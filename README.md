@@ -1,4 +1,4 @@
-# superssh
+# SuperConnectX
 
 An Electron application with Vue and TypeScript
 

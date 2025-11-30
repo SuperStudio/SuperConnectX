@@ -16,7 +16,7 @@ def handle_client(client_socket: socket.socket, client_addr: tuple):
         # 1. 连接成功后发送欢迎信息
         welcome_msg = (
             "=====================================\r\n"
-            "SuperSSH Telnet TestServer\r\n"
+            "SuperConnectX Telnet TestServer\r\n"
             f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\r\n"
             "press Ctrl+] and enter quit to exit\r\n"
             "=====================================\r\n"

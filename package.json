@@ -1,5 +1,5 @@
 {
-  "name": "superssh",
+  "name": "superconnectx",
   "version": "1.0.0",
   "description": "An Electron application with Vue and TypeScript",
   "main": "./out/main/index.js",
@@ -49,9 +49,9 @@
     "vue-tsc": "^3.0.7"
   },
   "build": {
-    "appId": "com.superssh.app",
-    "productName": "SuperSSH",
-    "copyright": "Copyright © 2025 SuperSSH",
+    "appId": "com.superconnectx.app",
+    "productName": "superconnectx",
+    "copyright": "Copyright © 2025 superconnectx",
     "directories": {
       "output": "release"
     },

@@ -10,7 +10,7 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1200, // 加宽（适配 SSH 终端和配置面板）
     height: 800,
-    title: 'SuperSSH',
+    title: 'SuperConnectX',
     autoHideMenuBar: false, // 显示菜单栏（方便操作）
     ...(process.platform === 'linux' ? { icon: join(__dirname, '../../build/icon.png') } : {}),
     webPreferences: {
@@ -42,7 +42,7 @@ function createWindow(): void {
 
 // 应用生命周期管理
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.superssh.app') // 应用唯一 ID（打包用）
+  electronApp.setAppUserModelId('com.superconnectx.app') // 应用唯一 ID（打包用）
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })

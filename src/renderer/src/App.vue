@@ -2,7 +2,7 @@
   <div class="app-container">
     <!-- 顶部导航栏 -->
     <header class="app-header">
-      <h1>🚀 SuperSSH</h1>
+      <h1>🚀 SuperConnectX</h1>
       <div class="header-actions">
         <!-- 新建连接按钮：触发弹窗 -->
         <el-button type="primary" icon="Plus" @click="openCreateDialog">新建连接</el-button>
