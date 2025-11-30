@@ -24,13 +24,13 @@ function createWindow(): void {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../../dist/index.html'))
+    mainWindow.loadFile(join(__dirname, '../../out/renderer/index.html'))
   }
 
   // 开发模式打开开发者工具
-  if (is.dev) {
-    mainWindow.webContents.openDevTools()
-  }
+  // if (is.dev) {
+  // mainWindow.webContents.openDevTools()
+  // }
 
   // 允许点击链接打开系统浏览器
   mainWindow.webContents.setWindowOpenHandler((details) => {
