@@ -1,4 +1,9 @@
 {
   "files": [],
-  "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }]
+  "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }],
+  "compilerOptions": {
+    "typeRoots": ["./node_modules/@types", "./src/types"], // 包含自定义类型目录
+    "types": ["node", "vue", "@types/electron-store"] // 包含相关类型
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "src/types/**/*.d.ts"] // 包含类型声明文件
 }

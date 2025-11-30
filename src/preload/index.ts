@@ -1,22 +1,20 @@
-import { contextBridge } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
+// electron/preload.ts
+import { contextBridge, ipcRenderer } from 'electron'
 
-// Custom APIs for renderer
-const api = {}
+// 暴露 IPC 调用接口给渲染进程
+contextBridge.exposeInMainWorld('electronStore', {
+  getConnections: () => ipcRenderer.invoke('get-connections'),
+  addConnection: (conn: any) => ipcRenderer.invoke('add-connection', conn),
+  deleteConnection: (id: number) => ipcRenderer.invoke('delete-connection', id)
+})
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
-if (process.contextIsolated) {
-  try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
-  } catch (error) {
-    console.error(error)
+// 类型声明
+declare global {
+  interface Window {
+    electronStore: {
+      getConnections: () => Promise<any[]>
+      addConnection: (conn: any) => Promise<any>
+      deleteConnection: (id: number) => Promise<any[]>
+    }
   }
-} else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
-  // @ts-ignore (define in dts)
-  window.api = api
 }
