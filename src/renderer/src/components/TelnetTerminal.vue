@@ -4,6 +4,15 @@
     <!-- 新增关闭按钮 -->
     <div class="terminal-header">
       <span class="connection-info"> {{ connection.host }}:{{ connection.port }} </span>
+      <el-button
+        type="text"
+        icon="Document"
+        class="log-btn"
+        @click="openLogFile"
+        :disabled="!isConnected"
+      >
+        打开日志
+      </el-button>
       <el-button type="text" icon="Close" class="close-btn" @click="handleClose">
         关闭连接
       </el-button>
@@ -27,7 +36,7 @@
 <script setup lang="ts">
 import { ref, onUnmounted, ref as vueRef } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Close } from '@element-plus/icons-vue' // 导入关闭图标
+import { Close, Document } from '@element-plus/icons-vue' // 导入关闭图标
 
 const emit = defineEmits(['onClose'])
 
@@ -44,6 +53,20 @@ const isConnected = ref(true) // 新增连接状态标识
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
 let currentConnId = 0 // 当前连接的 ID
+
+// 新增：打开日志文件
+const openLogFile = async () => {
+  try {
+    console.log('请求打开日志文件')
+    const result = await window.electronStore.openTelnetLog()
+    if (!result.success) {
+      ElMessage.error(`打开日志失败：${result.message}`)
+    }
+  } catch (error) {
+    console.error('打开日志异常:', error)
+    ElMessage.error('打开日志失败：' + (error instanceof Error ? error.message : '未知错误'))
+  }
+}
 
 // 处理关闭连接
 const handleClose = async () => {
@@ -160,17 +183,20 @@ const sendCommand = async () => {
   if (!currentCommand.value.trim() || !isConnected.value) return
 
   output.value += `> ${currentCommand.value}<br>`
+  let sendData = currentCommand.value
+  currentCommand.value = ''
+  commandInput.value?.focus()
+
   try {
     await window.electronStore.telnetSend({
       connId: currentConnId,
-      command: currentCommand.value.trim()
+      command: sendData.trim()
     })
   } catch (error) {
     ElMessage.error('命令发送失败')
     console.error('发送失败:', error)
   }
-  currentCommand.value = ''
-  commandInput.value?.focus()
+
   scrollToBottom()
 }
 
@@ -224,6 +250,8 @@ connect()
   padding: 8px 10px;
   border-bottom: 1px solid #333;
   background: #222;
+  height: 40px;
+  box-sizing: border-box;
 }
 
 .connection-info {

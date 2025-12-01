@@ -3,6 +3,64 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import Store from 'electron-store' // v3 版本在这里可以正常访问 app 模块
 import { Telnet } from 'telnet-client' // 导入telnet客户端
+import { writeFile, appendFile, existsSync, mkdirSync } from 'fs' // 导入文件系统模块
+
+// 确保日志目录存在
+const logDir = join(app.getPath('userData'), 'logs')
+if (!existsSync(logDir)) {
+  mkdirSync(logDir, { recursive: true })
+}
+
+// 获取当前日期的日志文件名
+const getLogFileName = () => {
+  const date = new Date()
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}.log`
+}
+
+// 写入日志到文件
+const writeToLog = (connId: number, data: string, isOutgoing: boolean = false) => {
+  const logFile = join(logDir, getLogFileName())
+  const timestamp = new Date().toISOString()
+  const direction = isOutgoing ? 'SEND' : 'RECV'
+  const logEntry = `[${timestamp}] [Conn ${connId}] [${direction}] ${data}\n`
+
+  appendFile(logFile, logEntry, (err) => {
+    if (err) {
+      console.error('写入日志失败:', err)
+    }
+  })
+}
+
+// 新增：IPC 监听「打开日志」请求
+ipcMain.handle('open-telnet-log', async () => {
+  try {
+    // 1. 拼接当前日志文件路径
+    const logFileName = getLogFileName()
+    const logFilePath = join(logDir, logFileName)
+    console.log('尝试打开日志文件：', logFilePath)
+
+    // 2. 检查日志文件是否存在（不存在则创建空文件）
+    if (!existsSync(logDir)) {
+      return { success: false, message: '日志目录不存在' }
+    }
+    if (!existsSync(logFilePath)) {
+      // 创建空日志文件（避免打开目录时找不到文件）
+      await fs.promises.writeFile(logFilePath, '', 'utf-8')
+      console.log('日志文件不存在，已创建空文件')
+    }
+
+    // 3. 打开日志目录并选中文件（全平台兼容）
+    // shell.showItemInFolder：打开文件所在目录并高亮选中文件
+    await shell.showItemInFolder(logFilePath)
+    return { success: true }
+  } catch (error) {
+    console.error('打开日志失败:', error)
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '打开日志文件失败'
+    }
+  }
+})
 
 let mainWindow: BrowserWindow
 
@@ -113,9 +171,11 @@ ipcMain.handle('connect-telnet', async (_, conn: any) => {
     telnetConnections.set(conn.id, connection)
     // 监听数据事件并转发到渲染进程
     connection.on('data', (data) => {
+      const dataStr = data.toString()
+      writeToLog(conn.id, dataStr)
       mainWindow.webContents.send('telnet-data', {
         connId: conn.id,
-        data: data.toString()
+        data: dataStr
       })
     })
 
@@ -146,6 +206,7 @@ ipcMain.handle(
     }
 
     try {
+      writeToLog(connId, command, true)
       await connection.send(command + '\n')
       return { success: true }
     } catch (error) {

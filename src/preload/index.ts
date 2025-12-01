@@ -21,7 +21,8 @@ contextBridge.exposeInMainWorld('electronStore', {
     const listener = (_event: Electron.IpcRendererEvent, connId: number) => callback(connId)
     ipcRenderer.on('telnet-close', listener)
     return () => ipcRenderer.removeListener('telnet-close', listener)
-  }
+  },
+  openTelnetLog: () => ipcRenderer.invoke('open-telnet-log') // 新增：打开日志
 })
 
 declare global {
@@ -35,6 +36,7 @@ declare global {
       telnetDisconnect: (connId: number) => Promise<any>
       onTelnetData: (callback: (data: { connId: number; data: string }) => void) => () => void
       onTelnetClose: (callback: (connId: number) => void) => () => void
+      openTelnetLog: () => Promise<{ success: boolean; message?: string }>
     }
   }
 }
