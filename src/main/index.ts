@@ -157,10 +157,15 @@ ipcMain.handle(
 
 // 关闭Telnet连接
 ipcMain.handle('telnet-disconnect', async (_, connId: number) => {
+  console.log('enter telnet-disconnect connId:', connId)
+  console.log('all connection id: ', Array.from(telnetConnections.keys()))
   const connection = telnetConnections.get(connId)
   if (connection) {
-    await connection.end()
+    console.warn('start end connection', connId)
+    connection.destroy()
     telnetConnections.delete(connId)
+  } else {
+    console.warn('not find connId:', connId)
   }
   return { success: true }
 })

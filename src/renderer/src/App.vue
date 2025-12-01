@@ -42,7 +42,7 @@
         <TelnetTerminal
           v-if="activeConnection"
           :connection="activeConnection"
-          @onClose="activeConnection = null"
+          @onClose="handleTerminalClose"
         />
         <div class="terminal-placeholder" v-else>选择一个连接或新建连接以启动 SSH/Telnet 终端</div>
       </div>
@@ -222,6 +222,11 @@ const activeConnection = ref<any>(null)
 // 修改连接函数
 const connectToServer = (conn: any) => {
   activeConnection.value = conn
+}
+
+const handleTerminalClose = () => {
+  console.log('关闭 Telnet 终端')
+  activeConnection.value = null // 清空激活的连接，让终端组件销毁
 }
 </script>
 

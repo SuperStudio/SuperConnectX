@@ -1,6 +1,14 @@
 <!-- TelnetTerminal.vue -->
 <template>
   <div class="telnet-terminal">
+    <!-- 新增关闭按钮 -->
+    <div class="terminal-header">
+      <span class="connection-info"> {{ connection.host }}:{{ connection.port }} </span>
+      <el-button type="text" icon="Close" class="close-btn" @click="handleClose">
+        关闭连接
+      </el-button>
+    </div>
+
     <!-- 终端输出区域 -->
     <div class="terminal-output" v-html="output"></div>
     <!-- 命令输入区域 -->
@@ -8,8 +16,9 @@
       <input
         v-model="currentCommand"
         @keydown.enter="sendCommand"
-        placeholder="输入命令并按回车..."
+        placeholder="输入命令并并按回车..."
         ref="commandInput"
+        :disabled="!isConnected"
       />
     </div>
   </div>
@@ -18,27 +27,67 @@
 <script setup lang="ts">
 import { ref, onUnmounted, ref as vueRef } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Close } from '@element-plus/icons-vue' // 导入关闭图标
+
+const emit = defineEmits(['onClose'])
 
 // 接收父组件传递的连接参数和关闭回调
 const props = defineProps<{
   connection: { id: number; host: string; port: number }
-  onClose: () => void
+  onClose?: () => void
 }>()
 
 const output = ref('') // 终端输出内容
 const currentCommand = ref('') // 当前输入的命令
 const commandInput = vueRef<HTMLInputElement>(null) // 输入框引用
-let removeDataListener: () => void // 移除数据监听的函数
-let removeCloseListener: () => void // 移除关闭监听的函数
+const isConnected = ref(true) // 新增连接状态标识
+let removeDataListener: (() => void) | null = null
+let removeCloseListener: (() => void) | null = null
 let currentConnId = 0 // 当前连接的 ID
 
-// 👇 关键：处理主进程发送的 Telnet 数据
+// 处理关闭连接
+const handleClose = async () => {
+  if (currentConnId) {
+    try {
+      await window.electronStore.telnetDisconnect(currentConnId)
+      output.value += '<br>--- 连接已手动关闭 ---'
+      isConnected.value = false
+
+      // 优先用 emit 触发父组件事件（Vue 推荐的组件通信方式）
+      emit('onClose')
+      // 兼容旧的 props.onClose（如果父组件仍用 props 传递）
+      if (typeof props.onClose === 'function') {
+        props.onClose()
+      }
+    } catch (error) {
+      console.error('关闭连接失败:', error)
+      ElMessage.error('关闭连接失败')
+    } finally {
+      if (removeDataListener) {
+        removeDataListener()
+        removeDataListener = null
+      }
+      if (removeCloseListener) {
+        removeCloseListener()
+        removeCloseListener = null
+      }
+      // 更新状态
+      output.value += '<br>--- 连接已手动关闭 ---'
+      isConnected.value = false
+      currentConnId = 0
+    }
+  } else {
+    emit('onClose')
+    if (typeof props.onClose === 'function') {
+      props.onClose()
+    }
+  }
+}
+
+// 处理主进程发送的 Telnet 数据
 const handleTelnetData = (data: { connId: number; data: string }) => {
-  // 只处理当前连接的数据（避免多个终端混淆）
   if (data.connId === currentConnId) {
-    // 更新输出内容（替换换行符为 <br>，适配 HTML 显示）
     output.value += data.data.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>')
-    // 滚动到最新输出（终端体验）
     scrollToBottom()
   }
 }
@@ -48,12 +97,31 @@ const handleTelnetClose = (connId: number) => {
   if (connId === currentConnId) {
     ElMessage.info('连接已关闭')
     output.value += '<br>--- 连接已关闭 ---'
-    props.onClose()
+    isConnected.value = false
+    currentConnId = 0 // 清空连接 ID，避免重复触发
+    emit('onClose')
+    if (typeof props.onClose === 'function') {
+      props.onClose()
+    }
   }
 }
 
-// 连接 Telnet 服务器（之前的逻辑，补充存储 currentConnId）
+// 连接 Telnet 服务器
 const connect = async () => {
+  if (removeDataListener) {
+    removeDataListener()
+    removeDataListener = null
+  }
+  if (removeCloseListener) {
+    removeCloseListener()
+    removeCloseListener = null
+  }
+
+  // 重置状态
+  isConnected.value = false
+  currentConnId = 0
+  output.value = ''
+
   try {
     const cleanConn = {
       id: props.connection.id,
@@ -62,28 +130,35 @@ const connect = async () => {
     }
     const result = await window.electronStore.connectTelnet(cleanConn)
     if (result.success) {
-      currentConnId = result.connId // 存储当前连接 ID
-      output.value = `success connect to ${cleanConn.host}:${cleanConn.port}<br>`
-      // 注册数据监听和关闭监听
+      currentConnId = result.connId
+      isConnected.value = true
+      output.value = `成功连接到 ${cleanConn.host}:${cleanConn.port}<br>`
       removeDataListener = window.electronStore.onTelnetData(handleTelnetData)
       removeCloseListener = window.electronStore.onTelnetClose(handleTelnetClose)
-      // 聚焦输入框
       commandInput.value?.focus()
     } else {
       ElMessage.error(result.message)
-      props.onClose()
+      isConnected.value = false
+      emit('onClose')
+      if (typeof props.onClose === 'function') {
+        props.onClose()
+      }
     }
   } catch (error) {
     console.error('连接失败:', error)
     ElMessage.error('连接失败')
-    props.onClose()
+    isConnected.value = false
+    emit('onClose')
+    if (typeof props.onClose === 'function') {
+      props.onClose()
+    }
   }
 }
 
-// 发送命令到 Telnet 服务器（补充功能）
+// 发送命令到 Telnet 服务器
 const sendCommand = async () => {
-  if (!currentCommand.value.trim()) return
-  // 先把命令显示在输出区（模拟终端输入回显）
+  if (!currentCommand.value.trim() || !isConnected.value) return
+
   output.value += `> ${currentCommand.value}<br>`
   try {
     await window.electronStore.telnetSend({
@@ -94,7 +169,6 @@ const sendCommand = async () => {
     ElMessage.error('命令发送失败')
     console.error('发送失败:', error)
   }
-  // 清空输入框并聚焦
   currentCommand.value = ''
   commandInput.value?.focus()
   scrollToBottom()
@@ -110,11 +184,19 @@ const scrollToBottom = () => {
 
 // 组件卸载时移除监听、断开连接
 onUnmounted(() => {
-  if (removeDataListener) removeDataListener()
-  if (removeCloseListener) removeCloseListener()
-  if (currentConnId) {
+  console.log('组件卸载：强制清理所有监听和连接')
+  if (removeDataListener) {
+    removeDataListener()
+    removeDataListener = null
+  }
+  if (removeCloseListener) {
+    removeCloseListener()
+    removeCloseListener = null
+  }
+  // 强制断开连接
+  if (currentConnId && isConnected.value) {
     window.electronStore.telnetDisconnect(currentConnId).catch((err) => {
-      console.error('卸载时断开连接失败:', err)
+      console.error('卸载时断开失败:', err)
     })
   }
 })
@@ -131,19 +213,40 @@ connect()
   flex-direction: column;
   background: #000;
   color: #fff;
-  padding: 10px;
   font-family: monospace;
+}
+
+/* 新增头部样式 */
+.terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-bottom: 1px solid #333;
+  background: #222;
+}
+
+.connection-info {
+  color: #61dafb;
+  font-size: 14px;
+}
+
+.close-btn {
+  color: #ff4d4f !important;
+  padding: 4px 8px !important;
 }
 
 .terminal-output {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: 10px;
+  padding: 10px;
   white-space: pre-wrap;
 }
 
 .terminal-input {
   display: flex;
+  padding: 10px;
+  border-top: 1px solid #333;
 }
 
 .terminal-input input {
@@ -154,5 +257,11 @@ connect()
   padding: 8px;
   outline: none;
   font-family: monospace;
+}
+
+/* 禁用状态样式 */
+.terminal-input input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 </style>
