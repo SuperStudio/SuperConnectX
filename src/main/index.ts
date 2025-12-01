@@ -81,14 +81,14 @@ ipcMain.handle('add-connection', (_, conn: any) => {
   const newId = connections.length ? Math.max(...connections.map((c) => c.id)) + 1 : 1
   const newConn = { id: newId, ...conn }
   connections.push(newConn)
-  connectionStore.set('connections', connections)
+  connectionStore.set('connections', connections as never[])
   return newConn
 })
 
 ipcMain.handle('delete-connection', (_, id: number) => {
   const connections = connectionStore.get('connections') as any[]
   const newConnections = connections.filter((c) => c.id !== id)
-  connectionStore.set('connections', newConnections)
+  connectionStore.set('connections', newConnections as never[])
   return newConnections
 })
 

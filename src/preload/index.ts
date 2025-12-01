@@ -12,12 +12,15 @@ contextBridge.exposeInMainWorld('electronStore', {
   telnetDisconnect: (connId: number) => ipcRenderer.invoke('telnet-disconnect', connId),
 
   onTelnetData: (callback: (data: { connId: number; data: string }) => void) => {
-    ipcRenderer.on('telnet-data', (_, data) => callback(data))
-    return () => ipcRenderer.removeListener('telnet-data', callback)
+    const listener = (_event: Electron.IpcRendererEvent, data: { connId: number; data: string }) =>
+      callback(data)
+    ipcRenderer.on('telnet-data', listener)
+    return () => ipcRenderer.removeListener('telnet-data', listener)
   },
   onTelnetClose: (callback: (connId: number) => void) => {
-    ipcRenderer.on('telnet-close', (_, connId) => callback(connId))
-    return () => ipcRenderer.removeListener('telnet-close', callback)
+    const listener = (_event: Electron.IpcRendererEvent, connId: number) => callback(connId)
+    ipcRenderer.on('telnet-close', listener)
+    return () => ipcRenderer.removeListener('telnet-close', listener)
   }
 })
 
