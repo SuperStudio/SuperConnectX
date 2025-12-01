@@ -22,7 +22,9 @@ function createWindow(): void {
       sandbox: false, // 关闭沙箱（需访问系统资源，如 SSH 连接）
       contextIsolation: true, // 保持隔离（安全最佳实践）
       nodeIntegration: false // 禁用直接 Node 集成，通过 preload 暴露 API
-    }
+    },
+    autoHideMenuBar: true, // 自动隐藏菜单栏（关键：不影响标题栏）
+    menuBarVisible: false // 初始状态不显示菜单栏
   })
 
   // 加载界面（开发环境加载 Vite 服务，生产环境加载本地 HTML）
