@@ -26,7 +26,8 @@
     "@element-plus/icons-vue": "^2.3.2",
     "electron-store": "^3.3.0",
     "element-plus": "^2.11.9",
-    "ssh2": "^1.17.0"
+    "ssh2": "^1.17.0",
+    "telnet-client": "^2.2.9"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "3.0.0",

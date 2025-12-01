@@ -5,16 +5,33 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('electronStore', {
   getConnections: () => ipcRenderer.invoke('get-connections'),
   addConnection: (conn: any) => ipcRenderer.invoke('add-connection', conn),
-  deleteConnection: (id: number) => ipcRenderer.invoke('delete-connection', id)
+  deleteConnection: (id: number) => ipcRenderer.invoke('delete-connection', id),
+  connectTelnet: (conn: any) => ipcRenderer.invoke('connect-telnet', conn),
+  telnetSend: (data: { connId: number; command: string }) =>
+    ipcRenderer.invoke('telnet-send', data),
+  telnetDisconnect: (connId: number) => ipcRenderer.invoke('telnet-disconnect', connId),
+
+  onTelnetData: (callback: (data: { connId: number; data: string }) => void) => {
+    ipcRenderer.on('telnet-data', (_, data) => callback(data))
+    return () => ipcRenderer.removeListener('telnet-data', callback)
+  },
+  onTelnetClose: (callback: (connId: number) => void) => {
+    ipcRenderer.on('telnet-close', (_, connId) => callback(connId))
+    return () => ipcRenderer.removeListener('telnet-close', callback)
+  }
 })
 
-// 类型声明
 declare global {
   interface Window {
     electronStore: {
       getConnections: () => Promise<any[]>
       addConnection: (conn: any) => Promise<any>
       deleteConnection: (id: number) => Promise<any[]>
+      connectTelnet: (conn: any) => Promise<any>
+      telnetSend: (data: { connId: number; command: string }) => Promise<any>
+      telnetDisconnect: (connId: number) => Promise<any>
+      onTelnetData: (callback: (data: { connId: number; data: string }) => void) => () => void
+      onTelnetClose: (callback: (connId: number) => void) => () => void
     }
   }
 }

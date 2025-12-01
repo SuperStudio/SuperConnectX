@@ -39,7 +39,12 @@
         </el-card>
       </div>
       <div class="terminal-panel">
-        <div class="terminal-placeholder">选择一个连接或新建连接以启动 SSH/Telnet 终端</div>
+        <TelnetTerminal
+          v-if="activeConnection"
+          :connection="activeConnection"
+          @onClose="activeConnection = null"
+        />
+        <div class="terminal-placeholder" v-else>选择一个连接或新建连接以启动 SSH/Telnet 终端</div>
       </div>
     </main>
 
@@ -101,6 +106,7 @@
 import { ref, onMounted } from 'vue'
 // 2. Element Plus 组件/工具：从 element-plus 导入
 import { ElMessage, ElForm } from 'element-plus'
+import TelnetTerminal from './components/TelnetTerminal.vue'
 
 // 连接列表（从 electron-store 加载）
 const connections = ref<any[]>([])
@@ -197,12 +203,6 @@ const submitNewConn = async () => {
   }
 }
 
-// 连接到服务器（后续实现 Telnet/SSH 连接逻辑）
-const connectToServer = (conn: any) => {
-  ElMessage.info(`正在连接 ${conn.name}（${conn.host}:${conn.port}）`)
-  // 后续此处添加：调用 Telnet/SSH 客户端库建立连接
-}
-
 // 删除连接
 const deleteConnection = async (id: number) => {
   const newConnections = await window.electronStore.deleteConnection(id)
@@ -213,6 +213,15 @@ const deleteConnection = async (id: number) => {
 // 打开设置（预留）
 const openSettings = () => {
   ElMessage.info('设置面板开发中...')
+}
+
+// 添加活跃连接状态
+
+const activeConnection = ref<any>(null)
+
+// 修改连接函数
+const connectToServer = (conn: any) => {
+  activeConnection.value = conn
 }
 </script>
 

@@ -10,36 +10,60 @@ INTERVAL = 1  # 数据推送间隔（秒）
 
 
 def handle_client(client_socket: socket.socket, client_addr: tuple):
-    """处理单个客户端连接：持续推送数据"""
+    """处理单个客户端连接：接收命令并响应 + 持续推送数据"""
     print(f"✅ 新客户端连接：{client_addr}")
     try:
-        # 1. 连接成功后发送欢迎信息
+        # 发送欢迎信息
         welcome_msg = (
             "=====================================\r\n"
             "SuperConnectX Telnet TestServer\r\n"
             f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\r\n"
             "press Ctrl+] and enter quit to exit\r\n"
+            "支持命令：hello、time、exit\r\n"
             "=====================================\r\n"
         )
         client_socket.send(welcome_msg.encode("utf-8"))
 
-        # 2. 持续推送数据（计数器 + 时间 + 模拟日志）
         counter = 0
+        # 设置非阻塞模式（避免recv阻塞导致无法定时推送）
+        client_socket.setblocking(False)
+
         while True:
+            # 1. 处理客户端命令（非阻塞读取）
+            try:
+                # 读取客户端发送的数据（最多1024字节）
+                cmd = client_socket.recv(1024).decode("utf-8").strip()
+                if cmd:
+                    print(f"📥 收到 {client_addr} 的命令：{cmd}")
+                    # 命令处理逻辑
+                    if cmd.lower() == "hello":
+                        response = "👋 你好！这是Telnet测试服务器\r\n"
+                    elif cmd.lower() == "time":
+                        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        response = f"⏰ 当前时间：{current_time}\r\n"
+                    elif cmd.lower() == "exit":
+                        response = "👋 正在断开连接...\r\n"
+                        client_socket.send(response.encode("utf-8"))
+                        break  # 退出循环，关闭连接
+                    else:
+                        response = (
+                            f"❓ 未知命令：{cmd}，支持的命令：hello、time、exit\r\n"
+                        )
+                    client_socket.send(response.encode("utf-8"))
+            except BlockingIOError:
+                # 无数据时正常忽略（非阻塞模式下没有数据会抛出此异常）
+                pass
+
+            # 2. 持续推送数据
             counter += 1
-            # 构造推送数据（可自定义格式，如 JSON、纯文本）
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[
-                :-3
-            ]  # 精确到毫秒
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
             data = (
                 f"[{current_time}] "
                 f"counter: {counter:04d} | "
                 f"now is running | "
                 f"client: {client_addr[0]}:{client_addr[1]}\r\n"
             )
-            # 发送数据（Telnet 客户端默认接收 ASCII 编码，此处用 UTF-8 兼容中文）
             client_socket.send(data.encode("utf-8"))
-            # 间隔指定时间再推送下一条
             time.sleep(INTERVAL)
 
     except BrokenPipeError:
@@ -47,7 +71,6 @@ def handle_client(client_socket: socket.socket, client_addr: tuple):
     except Exception as e:
         print(f"❌ 客户端 {client_addr} 连接异常：{str(e)}")
     finally:
-        # 关闭客户端连接
         client_socket.close()
         print(f"🔌 客户端 {client_addr} 连接已关闭")
 
