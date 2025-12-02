@@ -22,7 +22,11 @@ contextBridge.exposeInMainWorld('electronStore', {
     ipcRenderer.on('telnet-close', listener)
     return () => ipcRenderer.removeListener('telnet-close', listener)
   },
-  openTelnetLog: () => ipcRenderer.invoke('open-telnet-log') // 新增：打开日志
+  openTelnetLog: () => ipcRenderer.invoke('open-telnet-log'),
+  minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
+  maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
+  closeWindow: () => ipcRenderer.invoke('close-window'),
+  getWindowState: () => ipcRenderer.invoke('get-window-state')
 })
 
 declare global {
@@ -37,6 +41,10 @@ declare global {
       onTelnetData: (callback: (data: { connId: number; data: string }) => void) => () => void
       onTelnetClose: (callback: (connId: number) => void) => () => void
       openTelnetLog: () => Promise<{ success: boolean; message?: string }>
+      minimizeWindow: () => Promise<void>
+      maximizeWindow: () => Promise<void>
+      closeWindow: () => Promise<void>
+      getWindowState: () => Promise<boolean>
     }
   }
 }

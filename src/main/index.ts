@@ -81,8 +81,8 @@ function createWindow(): void {
       contextIsolation: true, // 保持隔离（安全最佳实践）
       nodeIntegration: false // 禁用直接 Node 集成，通过 preload 暴露 API
     },
-    autoHideMenuBar: true, // 自动隐藏菜单栏（关键：不影响标题栏）
-    menuBarVisible: false // 初始状态不显示菜单栏
+    frame: false, // 无边框
+    titleBarStyle: 'hidden' // 隐藏标题栏
   })
 
   // 加载界面（开发环境加载 Vite 服务，生产环境加载本地 HTML）
@@ -101,6 +101,17 @@ function createWindow(): void {
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
+  })
+
+  // 监听窗口最大化状态变化
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.executeJavaScript('window.dispatchEvent(new Event("window-maximized"))')
+  })
+
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.executeJavaScript(
+      'window.dispatchEvent(new Event("window-unmaximized"))'
+    )
   })
 }
 
@@ -231,4 +242,25 @@ ipcMain.handle('telnet-disconnect', async (_, connId: number) => {
     console.warn('not find connId:', connId)
   }
   return { success: true }
+})
+
+// 窗口控制IPC
+ipcMain.handle('minimize-window', () => {
+  mainWindow.minimize()
+})
+
+ipcMain.handle('maximize-window', () => {
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize()
+  } else {
+    mainWindow.maximize()
+  }
+})
+
+ipcMain.handle('close-window', () => {
+  mainWindow.close()
+})
+
+ipcMain.handle('get-window-state', () => {
+  return mainWindow.isMaximized()
 })

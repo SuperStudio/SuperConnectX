@@ -1,14 +1,15 @@
 <template>
   <div class="app-container">
+    <CustomTitleBar />
     <!-- 顶部导航栏 -->
-    <header class="app-header">
+    <div class="app-toolbar">
       <h1>🚀 SuperConnectX</h1>
       <div class="header-actions">
         <!-- 新建连接按钮：触发弹窗 -->
         <el-button type="primary" icon="Plus" @click="openCreateDialog">新建连接</el-button>
         <el-button type="default" icon="Setting" @click="openSettings">设置</el-button>
       </div>
-    </header>
+    </div>
 
     <!-- 主内容区：左侧连接列表 + 右侧终端 -->
     <main class="app-main">
@@ -107,6 +108,7 @@ import { ref, onMounted } from 'vue'
 // 2. Element Plus 组件/工具：从 element-plus 导入
 import { ElMessage, ElForm } from 'element-plus'
 import TelnetTerminal from './components/TelnetTerminal.vue'
+import CustomTitleBar from './components/CustomTitleBar.vue'
 
 // 连接列表（从 electron-store 加载）
 const connections = ref<any[]>([])
@@ -231,7 +233,17 @@ const handleTerminalClose = () => {
 </script>
 
 <style scoped>
-/* 基础样式保持不变，新增 Element Plus 组件样式适配 */
+/* 工具栏样式替代原来的header */
+.app-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  height: 50px;
+  border-bottom: 1px solid #333;
+  background: #2d2d2d;
+}
+
 .app-container {
   width: 100vw;
   height: 100vh;
