@@ -6,7 +6,7 @@ from datetime import datetime
 # 服务端配置
 HOST = "0.0.0.0"  # 监听所有网络接口
 PORT = 2323  # 自定义端口（默认 Telnet 端口 23，需管理员权限，此处用 2323 避免冲突）
-INTERVAL = 1  # 数据推送间隔（秒）
+INTERVAL = 0.1  # 数据推送间隔（秒）
 
 
 def handle_client(client_socket: socket.socket, client_addr: tuple):

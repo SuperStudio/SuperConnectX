@@ -5,6 +5,14 @@
     <div class="terminal-header">
       <span class="connection-info"> {{ connection.host }}:{{ connection.port }} </span>
       <div class="header-buttons">
+        <el-checkbox
+          v-model="isAutoScroll"
+          class="auto-scroll-checkbox"
+          size="small"
+          @change="handleAutoScrollChange"
+        >
+          自动滚动
+        </el-checkbox>
         <el-button
           type="default"
           icon="Delete"
@@ -67,7 +75,7 @@
     </div>
 
     <!-- 终端输出区域 -->
-    <div class="terminal-output" v-html="output"></div>
+    <div class="terminal-output" v-html="output" ref="terminalOutputRef"></div>
 
     <!-- 命令输入区域 -->
     <div class="terminal-input">
@@ -130,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, onMounted, onBeforeUnmount, ref as vueRef } from 'vue'
+import { ref, onUnmounted, onMounted, onBeforeUnmount, watch, ref as vueRef } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Close, Document } from '@element-plus/icons-vue' // 导入关闭图标
 
@@ -149,6 +157,17 @@ const isConnected = ref(true) // 新增连接状态标识
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
 let currentConnId = 0 // 当前连接的 ID
+
+const isAutoScroll = ref(true) // 自动滚动状态，默认勾选
+const terminalOutputRef = ref<HTMLDivElement | null>(null) // 输出区域DOM引用
+
+// 自动滚动状态变化处理
+const handleAutoScrollChange = (value: boolean) => {
+  // 如果勾选，立即滚动到最底部
+  if (value) {
+    scrollToBottom()
+  }
+}
 
 // 新增：打开日志文件
 const openLogFile = async () => {
@@ -298,11 +317,18 @@ const sendCommand = async () => {
 
 // 滚动到终端底部
 const scrollToBottom = () => {
-  const outputElement = document.querySelector('.terminal-output')
-  if (outputElement) {
+  if (isAutoScroll.value && terminalOutputRef.value) {
+    const outputElement = terminalOutputRef.value
     outputElement.scrollTop = outputElement.scrollHeight
   }
 }
+
+watch(
+  () => output.value,
+  () => {
+    scrollToBottom()
+  }
+)
 
 // 组件卸载时移除监听、断开连接
 onUnmounted(() => {
@@ -490,6 +516,8 @@ onMounted(() => {
   document.addEventListener('contextmenu', () => {
     contextMenuVisible.value = false
   })
+  // 初始滚动到底部
+  setTimeout(scrollToBottom, 100)
 })
 
 // 右键菜单相关（修改部分）
@@ -554,6 +582,7 @@ connect()
 .header-buttons {
   display: flex;
   gap: 8px; /* 按钮之间间距 */
+  align-items: center; /* 新增：垂直居中 */
 }
 
 /* 按钮样式优化（统一按钮风格） */
@@ -740,5 +769,27 @@ connect()
   border-color: #444 !important;
   color: #e0e0e0 !important;
   margin: 2px 0 !important;
+}
+
+/* 新增：自动滚动复选框样式 */
+.auto-scroll-checkbox {
+  color: #e0e0e0 !important;
+  margin-right: 8px !important;
+  align-self: center !important;
+}
+
+.el-checkbox__inner {
+  background-color: #3a3a3a !important;
+  border-color: #444 !important;
+}
+
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: #1890ff !important;
+  border-color: #1890ff !important;
+}
+
+.el-checkbox__label {
+  color: #e0e0e0 !important;
+  font-size: 14px !important;
 }
 </style>
