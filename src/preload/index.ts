@@ -26,7 +26,13 @@ contextBridge.exposeInMainWorld('electronStore', {
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
   maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
   closeWindow: () => ipcRenderer.invoke('close-window'),
-  getWindowState: () => ipcRenderer.invoke('get-window-state')
+  getWindowState: () => ipcRenderer.invoke('get-window-state'),
+  addPresetCommand: (cmd: { name: string; command: string; delay: number }) =>
+    ipcRenderer.invoke('add-preset-command', cmd),
+  updatePresetCommand: (cmd: { id: number; name: string; command: string; delay: number }) =>
+    ipcRenderer.invoke('update-preset-command', cmd),
+  deletePresetCommand: (id: number) => ipcRenderer.invoke('delete-preset-command', id),
+  getPresetCommands: () => ipcRenderer.invoke('get-preset-commands')
 })
 
 declare global {
@@ -45,6 +51,10 @@ declare global {
       maximizeWindow: () => Promise<void>
       closeWindow: () => Promise<void>
       getWindowState: () => Promise<boolean>
+      getPresetCommands: () => Promise<any[]>
+      addPresetCommand: (cmd: any) => Promise<any>
+      updatePresetCommand: (cmd: any) => Promise<any>
+      deletePresetCommand: (id: number) => Promise<any[]>
     }
   }
 }

@@ -18,8 +18,35 @@
       </el-button>
     </div>
 
+    <!-- 新增：命令预设行 -->
+    <div class="preset-commands">
+      <el-button
+        type="primary"
+        icon="Plus"
+        size="small"
+        @click="openAddPresetDialog"
+        :disabled="!isConnected"
+      >
+        新增命令
+      </el-button>
+
+      <!-- 修改：每个命令按钮添加右键事件 -->
+      <el-button
+        v-for="cmd in presetCommands"
+        :key="cmd.id"
+        type="default"
+        size="small"
+        class="preset-btn"
+        @click="sendPresetCommand(cmd)"
+        @contextmenu.prevent="showContextMenu(cmd, $event)"
+      >
+        {{ cmd.name }}
+      </el-button>
+    </div>
+
     <!-- 终端输出区域 -->
     <div class="terminal-output" v-html="output"></div>
+
     <!-- 命令输入区域 -->
     <div class="terminal-input">
       <input
@@ -30,11 +57,58 @@
         :disabled="!isConnected"
       />
     </div>
+
+    <!-- 新增命令对话框 -->
+    <el-dialog
+      :title="isEditing ? '编辑预设命令' : '新增预设命令'"
+      v-model="isPresetDialogOpen"
+      width="400px"
+    >
+      <el-form :model="presetForm" :rules="presetRules" ref="presetFormRef" label-width="80px">
+        <el-form-item label="命令名称" prop="name">
+          <el-input v-model="presetForm.name" placeholder="输入命令名称" />
+        </el-form-item>
+        <el-form-item label="命令内容" prop="command">
+          <el-input v-model="presetForm.command" placeholder="输入命令内容" />
+        </el-form-item>
+        <el-form-item label="时延(ms)" prop="delay">
+          <el-input
+            v-model.number="presetForm.delay"
+            type="number"
+            placeholder="命令发送后等待时间"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="isPresetDialogOpen = false">取消</el-button>
+        <el-button type="primary" @click="savePresetCommand">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <div
+      v-if="contextMenuVisible"
+      :style="{ left: contextMenuLeft + 'px', top: contextMenuTop + 'px' }"
+      class="context-menu-container"
+      @click.stop
+      @contextmenu.prevent
+    >
+      <el-menu class="context-menu" mode="vertical" :collapse="false" :collapse-transition="false">
+        <el-menu-item class="menu-item" @click="editPresetCommand(currentEditingCmd)">
+          编辑
+        </el-menu-item>
+        <el-menu-item
+          class="menu-item delete-item"
+          @click="deletePresetCommand(currentEditingCmd.id)"
+        >
+          删除
+        </el-menu-item>
+      </el-menu>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, ref as vueRef } from 'vue'
+import { ref, onUnmounted, onMounted, onBeforeUnmount, ref as vueRef } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Close, Document } from '@element-plus/icons-vue' // 导入关闭图标
 
@@ -227,6 +301,211 @@ onUnmounted(() => {
   }
 })
 
+// 命令预设相关
+const presetCommands = ref<any[]>([])
+const isPresetDialogOpen = ref(false)
+const isEditing = ref(false)
+const currentEditingCmd = ref<any>(null)
+const contextMenuVisible = ref(false)
+
+// 预设命令表单
+const presetForm = ref({
+  name: '',
+  command: '',
+  delay: 0
+})
+
+// 表单验证规则
+const presetRules = ref({
+  name: [{ required: true, message: '请输入命令名称', trigger: 'blur' }],
+  command: [{ required: true, message: '请输入命令内容', trigger: 'blur' }],
+  delay: [
+    { required: true, message: '请输入时延', trigger: 'blur' },
+    { type: 'number', min: 0, message: '时延不能为负数', trigger: 'blur' }
+  ]
+})
+
+// 表单引用
+const presetFormRef = ref<InstanceType<typeof ElForm> | null>(null)
+
+// 加载预设命令
+const loadPresetCommands = async () => {
+  try {
+    const commands = await window.electronStore.getPresetCommands()
+    presetCommands.value = Array.isArray(commands) ? commands : []
+  } catch (error) {
+    console.error('加载预设命令失败:', error)
+    ElMessage.error('加载预设命令失败')
+  }
+}
+
+// 打开新增预设命令对话框
+const openAddPresetDialog = () => {
+  isEditing.value = false
+  currentEditingCmd.value = null
+  presetForm.value = {
+    name: '',
+    command: '',
+    delay: 0
+  }
+  isPresetDialogOpen.value = true
+}
+
+// 打开编辑预设命令对话框
+const editPresetCommand = (cmd: any) => {
+  contextMenuVisible.value = false
+  isEditing.value = true
+  currentEditingCmd.value = cmd
+  presetForm.value = {
+    name: cmd.name,
+    command: cmd.command,
+    delay: cmd.delay
+  }
+  isPresetDialogOpen.value = true
+}
+
+// 保存预设命令
+// 保存预设命令（修改这里）
+const savePresetCommand = async () => {
+  if (!presetFormRef.value) return
+
+  try {
+    await presetFormRef.value.validate()
+
+    // 关键：创建纯 JavaScript 对象，去除 Vue 响应式属性
+    const pureFormData = {
+      name: presetForm.value.name.trim(),
+      command: presetForm.value.command.trim(),
+      delay: Number(presetForm.value.delay) || 0 // 确保是数字类型
+    }
+
+    if (isEditing.value && currentEditingCmd.value) {
+      // 更新现有命令
+      const updatedCmd = {
+        id: currentEditingCmd.value.id,
+        ...pureFormData
+      }
+      // 再次序列化确保安全
+      await window.electronStore.updatePresetCommand(JSON.parse(JSON.stringify(updatedCmd)))
+      ElMessage.success('命令已更新')
+    } else {
+      // 添加新命令
+      await window.electronStore.addPresetCommand(JSON.parse(JSON.stringify(pureFormData)))
+      ElMessage.success('命令已添加')
+    }
+
+    // 重新加载命令列表
+    loadPresetCommands()
+    isPresetDialogOpen.value = false
+  } catch (error) {
+    console.error('保存预设命令失败:', error)
+    ElMessage.error('保存失败：' + (error as Error).message)
+  }
+}
+
+// 删除预设命令
+const deletePresetCommand = async (id: number) => {
+  contextMenuVisible.value = false
+  try {
+    await window.electronStore.deletePresetCommand(id)
+    ElMessage.success('命令已删除')
+    loadPresetCommands()
+  } catch (error) {
+    console.error('删除预设命令失败:', error)
+    ElMessage.error('删除命令失败')
+  }
+}
+
+// 打开右键菜单
+const openContextMenu = (cmd: any, event: MouseEvent) => {
+  event.preventDefault()
+  currentEditingCmd.value = cmd
+  contextMenuVisible.value = true
+
+  // 定位菜单到鼠标位置
+  const menu = document.querySelector('.el-dropdown-menu')
+  if (menu) {
+    menu.style.position = 'fixed'
+    menu.style.left = `${event.clientX}px`
+    menu.style.top = `${event.clientY}px`
+  }
+}
+
+// 发送预设命令
+const sendPresetCommand = async (cmd: any) => {
+  if (!isConnected.value) return
+
+  try {
+    // 如果有时延，等待后再聚焦输入框
+    if (cmd.delay > 0) {
+      setTimeout(() => {
+        window.electronStore.telnetSend({
+          connId: currentConnId,
+          command: cmd.command.trim()
+        })
+        output.value += `> ${cmd.name}: ${cmd.command}<br>`
+        commandInput.value?.focus()
+      }, cmd.delay)
+    } else {
+      window.electronStore.telnetSend({
+        connId: currentConnId,
+        command: cmd.command.trim()
+      })
+      output.value += `> ${cmd.name}: ${cmd.command}<br>`
+      commandInput.value?.focus()
+    }
+
+    scrollToBottom()
+  } catch (error) {
+    ElMessage.error('命令发送失败')
+    console.error('发送失败:', error)
+  }
+}
+
+onMounted(() => {
+  loadPresetCommands()
+  document.addEventListener('click', closeContextMenuOnClickOutside)
+  document.addEventListener('contextmenu', () => {
+    contextMenuVisible.value = false
+  })
+})
+
+// 右键菜单相关（修改部分）
+const contextMenuLeft = ref(0) // 菜单左侧位置
+const contextMenuTop = ref(0) // 菜单顶部位置
+
+// 显示右键菜单（修改）
+const showContextMenu = (cmd: any, event: MouseEvent) => {
+  event.preventDefault() // 阻止浏览器默认右键菜单
+  event.stopPropagation() // 阻止事件冒泡
+
+  // 记录当前操作的命令
+  currentEditingCmd.value = cmd
+
+  // 设置菜单位置（基于鼠标坐标）
+  contextMenuLeft.value = event.clientX
+  contextMenuTop.value = event.clientY
+
+  // 显示菜单
+  contextMenuVisible.value = true
+}
+
+// 点击页面其他地方关闭菜单（新增）
+const closeContextMenuOnClickOutside = (event: MouseEvent) => {
+  const contextMenu = document.querySelector('.context-menu')
+  if (contextMenu && !contextMenu.contains(event.target as Node)) {
+    contextMenuVisible.value = false
+  }
+}
+
+// 移除事件监听（新增）
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeContextMenuOnClickOutside)
+  document.removeEventListener('contextmenu', () => {
+    contextMenuVisible.value = false
+  })
+})
+
 // 初始化时自动连接
 connect()
 </script>
@@ -291,5 +570,95 @@ connect()
 .terminal-input input:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+/* 新增命令预设区域样式 */
+.preset-commands {
+  padding: 8px 10px;
+  border-bottom: 1px solid #333;
+  background: #2a2a2a;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* 修复：命令按钮样式，确保右键点击区域正常 */
+.preset-btn {
+  background-color: #3a3a3a !important;
+  border-color: #444 !important;
+  color: #e0e0e0 !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+/* 右键菜单样式 */
+.el-dropdown-menu {
+  background-color: #2d2d2d !important;
+  border-color: #444 !important;
+}
+
+.el-dropdown-item {
+  color: #e0e0e0 !important;
+}
+
+.el-dropdown-item:hover {
+  background-color: #3a3a3a !important;
+}
+
+/* 修复：右键菜单核心样式 */
+.context-menu-container {
+  position: fixed !important;
+  z-index: 9999 !important;
+  padding: 2px !important;
+  background-color: #2d2d2d !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid #444 !important;
+}
+
+.context-menu {
+  width: 120px !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+/* 菜单项样式 */
+.menu-item {
+  color: #e0e0e0 !important;
+  height: 38px !important;
+  line-height: 38px !important;
+  padding: 0 16px !important;
+  margin: 0 !important;
+  border-radius: 2px !important;
+}
+
+.menu-item:hover {
+  background-color: #3a3a3a !important;
+}
+
+/* 删除项样式 */
+.delete-item {
+  color: #ff4d4f !important;
+}
+
+/* 去除菜单默认间距和边框 */
+.el-menu--vertical {
+  border-right: none !important;
+}
+
+.el-menu-item:not(:last-child) {
+  border-bottom: 1px solid #383838 !important;
+}
+
+/* 确保菜单不被遮挡 */
+.el-menu {
+  overflow: visible !important;
+}
+
+/* 命令按钮样式优化 */
+.preset-btn {
+  background-color: #3a3a3a !important;
+  border-color: #444 !important;
+  color: #e0e0e0 !important;
+  margin: 2px 0 !important;
 }
 </style>

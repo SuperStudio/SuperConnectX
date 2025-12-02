@@ -265,3 +265,73 @@ ipcMain.handle('close-window', () => {
 ipcMain.handle('get-window-state', () => {
   return mainWindow.isMaximized()
 })
+
+// 初始化命令预设存储
+const presetCommandsStore = new Store({
+  name: 'presetCommands',
+  cwd: 'super-ssh',
+  defaults: {
+    commands: []
+  }
+})
+
+// 命令预设相关IPC处理
+ipcMain.handle('get-preset-commands', () => {
+  return presetCommandsStore.get('commands')
+})
+// 修复：添加命令时使用结构化克隆
+ipcMain.handle('add-preset-command', (_, cmd: any) => {
+  try {
+    // 关键：使用 JSON 序列化/反序列化创建纯对象，去除响应式元数据
+    const pureCmd = JSON.parse(JSON.stringify(cmd))
+    const commands = presetCommandsStore.get('commands', []) as any[]
+
+    // 确保 id 生成逻辑安全
+    const newId = commands.length ? Math.max(...commands.map((c) => Number(c.id) || 0)) + 1 : 1
+
+    const newCmd = {
+      id: newId,
+      name: pureCmd.name || '',
+      command: pureCmd.command || '',
+      delay: Number(pureCmd.delay) || 0 // 确保是数字类型
+    }
+
+    commands.push(newCmd)
+    presetCommandsStore.set('commands', commands)
+    return newCmd
+  } catch (error) {
+    console.error('添加预设命令失败:', error)
+    throw new Error('添加命令失败：' + (error as Error).message)
+  }
+})
+
+// 修复：更新命令时同样处理
+ipcMain.handle('update-preset-command', (_, cmd: any) => {
+  try {
+    const pureCmd = JSON.parse(JSON.stringify(cmd))
+    const commands = presetCommandsStore.get('commands', []) as any[]
+    const index = commands.findIndex((c) => c.id === Number(pureCmd.id))
+
+    if (index !== -1) {
+      commands[index] = {
+        id: Number(pureCmd.id),
+        name: pureCmd.name || '',
+        command: pureCmd.command || '',
+        delay: Number(pureCmd.delay) || 0
+      }
+      presetCommandsStore.set('commands', commands)
+      return commands[index]
+    }
+    throw new Error('未找到该命令')
+  } catch (error) {
+    console.error('更新预设命令失败:', error)
+    throw new Error('更新命令失败：' + (error as Error).message)
+  }
+})
+
+ipcMain.handle('delete-preset-command', (_, id: number) => {
+  const commands = presetCommandsStore.get('commands') as any[]
+  const newCommands = commands.filter((c) => c.id !== id)
+  presetCommandsStore.set('commands', newCommands as never[])
+  return newCommands
+})

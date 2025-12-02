@@ -39,6 +39,30 @@ declare global {
         username?: string
         password?: string
       }>
+      getPresetCommands: () => Array<{
+        id: number
+        name: string
+        command: string
+        delay: number
+      }>
+      addPresetCommand: (cmd: { name: string; command: string; delay: number }) => {
+        id: number
+        name: string
+        command: string
+        delay: number
+      }
+      updatePresetCommand: (cmd: { id: number; name: string; command: string; delay: number }) => {
+        id: number
+        name: string
+        command: string
+        delay: number
+      }
+      deletePresetCommand: (id: number) => Array<{
+        id: number
+        name: string
+        command: string
+        delay: number
+      }>
     }
   }
 }
