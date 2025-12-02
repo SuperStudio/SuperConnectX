@@ -590,6 +590,7 @@ connect()
   display: flex;
   gap: 8px; /* 按钮之间间距 */
   align-items: center; /* 新增：垂直居中 */
+  margin-right: 10px;
 }
 
 /* 按钮样式优化（统一按钮风格） */
@@ -670,6 +671,7 @@ connect()
   display: flex;
   padding: 10px;
   border-top: 1px solid #333;
+  margin-bottom: 30px;
 }
 
 .terminal-input input {

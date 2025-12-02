@@ -121,6 +121,10 @@ const closeWindow = () => {
   background-color: #ff4d4f;
 }
 
+.close-btn {
+  margin-right: 10px;
+}
+
 /* 防止按钮聚焦样式 */
 .titlebar-btn:focus {
   outline: none;

@@ -73,6 +73,8 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1200, // 加宽（适配 SSH 终端和配置面板）
     height: 800,
+    minWidth: 800, // 最小宽度（防止过窄）
+    minHeight: 600, // 最小高度
     title: 'SuperConnectX',
     autoHideMenuBar: false, // 显示菜单栏（方便操作）
     ...(process.platform === 'linux' ? { icon: join(__dirname, '../../build/icon.png') } : {}),
