@@ -106,7 +106,7 @@
 // 1. Vue 内置 API：从 vue 导入
 import { ref, onMounted } from 'vue'
 // 2. Element Plus 组件/工具：从 element-plus 导入
-import { ElMessage, ElForm } from 'element-plus'
+import { ElMessage, ElForm, ElMessageBox } from 'element-plus'
 import TelnetTerminal from './components/TelnetTerminal.vue'
 import CustomTitleBar from './components/CustomTitleBar.vue'
 
@@ -207,9 +207,26 @@ const submitNewConn = async () => {
 
 // 删除连接
 const deleteConnection = async (id: number) => {
-  const newConnections = await window.electronStore.deleteConnection(id)
-  connections.value = newConnections
-  ElMessage.success('连接已删除')
+  try {
+    // 显示确认对话框
+    await ElMessageBox.confirm('确定要删除这个连接吗？', '确认删除', {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning',
+      center: true
+    })
+
+    // 用户确认后执行删除操作
+    const newConnections = await window.electronStore.deleteConnection(id)
+    connections.value = newConnections
+    ElMessage.success('连接已删除')
+  } catch (error) {
+    // 用户取消删除时不做任何操作，或显示提示
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+      ElMessage.error('删除连接失败')
+    }
+  }
 }
 
 // 打开设置（预留）
