@@ -4,18 +4,40 @@
     <!-- 新增关闭按钮 -->
     <div class="terminal-header">
       <span class="connection-info"> {{ connection.host }}:{{ connection.port }} </span>
-      <el-button
-        type="text"
-        icon="Document"
-        class="log-btn"
-        @click="openLogFile"
-        :disabled="!isConnected"
-      >
-        打开日志
-      </el-button>
-      <el-button type="text" icon="Close" class="close-btn" @click="handleClose">
-        关闭连接
-      </el-button>
+      <div class="header-buttons">
+        <el-button
+          type="default"
+          icon="Delete"
+          size="small"
+          class="clear-btn"
+          @click="clearTerminal"
+          :disabled="!isConnected || output === ''"
+        >
+          清空屏幕
+        </el-button>
+
+        <el-button
+          type="default"
+          icon="Document"
+          size="small"
+          class="log-btn"
+          @click="openLogFile"
+          :disabled="!isConnected"
+        >
+          打开日志
+        </el-button>
+
+        <el-button
+          type="danger"
+          icon="Close"
+          size="small"
+          class="close-btn"
+          @click="handleClose"
+          :disabled="!isConnected"
+        >
+          关闭连接
+        </el-button>
+      </div>
     </div>
 
     <!-- 新增：命令预设行 -->
@@ -506,6 +528,13 @@ onBeforeUnmount(() => {
   })
 })
 
+// 新增：清空屏幕功能
+const clearTerminal = () => {
+  output.value = '' // 清空输出内容
+  ElMessage.success('屏幕已清空')
+  commandInput.value?.focus() // 清空后聚焦输入框
+}
+
 // 初始化时自动连接
 connect()
 </script>
@@ -519,6 +548,62 @@ connect()
   background: #000;
   color: #fff;
   font-family: monospace;
+}
+
+/* 右侧按钮组样式 */
+.header-buttons {
+  display: flex;
+  gap: 8px; /* 按钮之间间距 */
+}
+
+/* 按钮样式优化（统一按钮风格） */
+.log-btn,
+.close-btn,
+.clear-btn {
+  padding: 6px 12px !important;
+  border-radius: 4px !important;
+}
+
+/* 打开日志按钮（默认样式） */
+.log-btn {
+  background-color: #3a3a3a !important;
+  border-color: #444 !important;
+  color: #e0e0e0 !important;
+}
+
+.log-btn:hover {
+  background-color: #4a4a4a !important;
+  border-color: #555 !important;
+}
+
+/* 关闭连接按钮（危险样式） */
+.close-btn {
+  background-color: #ff4d4f !important;
+  border-color: #ff6767 !important;
+  color: white !important;
+}
+
+.close-btn:hover {
+  background-color: #ff6b6b !important;
+  border-color: #ff8080 !important;
+}
+
+/* 清空屏幕按钮样式 */
+.clear-btn {
+  background-color: #3a3a3a !important;
+  border-color: #444 !important;
+  color: #e0e0e0 !important;
+}
+
+.clear-btn:hover {
+  background-color: #4a4a4a !important;
+  border-color: #555 !important;
+}
+
+/* 连接信息样式（保持不变） */
+.connection-info {
+  font-size: 14px;
+  font-weight: 500;
 }
 
 /* 新增头部样式 */
@@ -536,11 +621,6 @@ connect()
 .connection-info {
   color: #61dafb;
   font-size: 14px;
-}
-
-.close-btn {
-  color: #ff4d4f !important;
-  padding: 4px 8px !important;
 }
 
 .terminal-output {
