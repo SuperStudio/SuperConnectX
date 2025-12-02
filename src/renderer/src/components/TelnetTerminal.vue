@@ -5,6 +5,9 @@
     <div class="terminal-header">
       <span class="connection-info"> {{ connection.host }}:{{ connection.port }} </span>
       <div class="header-buttons">
+        <el-checkbox v-model="isShowLog" class="show-log-checkbox" size="small">
+          显示日志
+        </el-checkbox>
         <el-checkbox
           v-model="isAutoScroll"
           class="auto-scroll-checkbox"
@@ -158,6 +161,8 @@ let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
 let currentConnId = 0 // 当前连接的 ID
 
+// 新增：显示日志开关（默认勾选）
+const isShowLog = ref(true) // 控制是否在界面显示日志，默认显示
 const isAutoScroll = ref(true) // 自动滚动状态，默认勾选
 const terminalOutputRef = ref<HTMLDivElement | null>(null) // 输出区域DOM引用
 
@@ -225,7 +230,9 @@ const handleClose = async () => {
 // 处理主进程发送的 Telnet 数据
 const handleTelnetData = (data: { connId: number; data: string }) => {
   if (data.connId === currentConnId) {
-    output.value += data.data.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>')
+    if (isShowLog.value) {
+      output.value += data.data.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>')
+    }
     scrollToBottom()
   }
 }
@@ -791,5 +798,12 @@ connect()
 .el-checkbox__label {
   color: #e0e0e0 !important;
   font-size: 14px !important;
+}
+
+/* 新增：显示日志复选框样式 */
+.show-log-checkbox {
+  color: #e0e0e0 !important;
+  margin-right: 8px !important;
+  align-self: center !important;
 }
 </style>
