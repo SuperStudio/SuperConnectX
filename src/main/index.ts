@@ -3,7 +3,8 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import Store from 'electron-store' // v3 版本在这里可以正常访问 app 模块
 import { Telnet } from 'telnet-client' // 导入telnet客户端
-import { writeFile, appendFile, existsSync, mkdirSync } from 'fs' // 导入文件系统模块
+import { appendFile, existsSync, mkdirSync } from 'fs' // 导入文件系统模块
+import fs from 'fs'
 
 // 确保日志目录存在
 const logDir = join(app.getPath('userData'), 'logs')
