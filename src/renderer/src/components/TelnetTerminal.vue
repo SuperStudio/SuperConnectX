@@ -70,10 +70,12 @@
         type="default"
         size="small"
         class="preset-btn"
+        :class="{ looping: loopStatus[cmd.id] }"
         @click="sendPresetCommand(cmd)"
         @contextmenu.prevent="showContextMenu(cmd, $event)"
       >
         {{ cmd.name }}
+        <template v-if="loopStatus[cmd.id]">🔄</template>
       </el-button>
     </div>
 
@@ -135,6 +137,10 @@
         >
           删除
         </el-menu-item>
+
+        <el-menu-item class="menu-item" @click="toggleLoopSend(currentEditingCmd)">
+          {{ loopStatus[currentEditingCmd.id] ? '取消循环' : '循环发送' }}
+        </el-menu-item>
       </el-menu>
     </div>
   </div>
@@ -165,6 +171,41 @@ let currentConnId = 0 // 当前连接的 ID
 const isShowLog = ref(true) // 控制是否在界面显示日志，默认显示
 const isAutoScroll = ref(true) // 自动滚动状态，默认勾选
 const terminalOutputRef = ref<HTMLDivElement | null>(null) // 输出区域DOM引用
+
+// 记录循环发送的定时器ID
+const loopIntervals = ref<Record<number, NodeJS.Timeout>>({})
+// 记录命令是否处于循环发送中
+const loopStatus = ref<Record<number, boolean>>({})
+
+// 切换循环发送状态
+const toggleLoopSend = (cmd: any) => {
+  contextMenuVisible.value = false
+
+  // 如果已经在循环发送，清除定时器
+  if (loopStatus.value[cmd.id]) {
+    if (loopIntervals.value[cmd.id]) {
+      clearInterval(loopIntervals.value[cmd.id])
+      delete loopIntervals.value[cmd.id]
+    }
+    loopStatus.value[cmd.id] = false
+    ElMessage.success(`已停止循环发送: ${cmd.name}`)
+    return
+  }
+
+  // 开始循环发送
+  loopStatus.value[cmd.id] = true
+
+  // 立即发送一次
+  sendPresetCommand(cmd)
+
+  // 设置定时器，根据延迟时间循环发送
+  const intervalTime = Math.max(cmd.delay || 1000, 100) // 最小100ms防止过于频繁
+  loopIntervals.value[cmd.id] = setInterval(() => {
+    sendPresetCommand(cmd)
+  }, intervalTime)
+
+  ElMessage.success(`已开始循环发送: ${cmd.name} (间隔${intervalTime}ms)`)
+}
 
 // 自动滚动状态变化处理
 const handleAutoScrollChange = (value: boolean) => {
@@ -348,6 +389,12 @@ onUnmounted(() => {
     removeCloseListener()
     removeCloseListener = null
   }
+
+  // 清除所有循环发送定时器
+  Object.values(loopIntervals.value).forEach((interval) => {
+    clearInterval(interval)
+  })
+
   // 强制断开连接
   if (currentConnId && isConnected.value) {
     window.electronStore.telnetDisconnect(currentConnId).catch((err) => {
@@ -807,5 +854,22 @@ connect()
   color: #e0e0e0 !important;
   margin-right: 8px !important;
   align-self: center !important;
+}
+
+.preset-btn.looping {
+  animation: pulse 1.5s infinite;
+  border-color: #1890ff !important;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(24, 144, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+  }
 }
 </style>
