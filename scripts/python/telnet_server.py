@@ -2,13 +2,22 @@ import socket
 import threading
 import time
 from datetime import datetime
+import json
 
 # 服务端配置
 HOST = "0.0.0.0"  # 监听所有网络接口
 PORT = 2323  # 自定义端口（默认 Telnet 端口 23，需管理员权限，此处用 2323 避免冲突）
-DEFAULT_SEND_INTERVAL = 0.1  # 数据推送间隔（秒）
+DEFAULT_SEND_INTERVAL = 1  # 数据推送间隔（秒）
 
 send_interval = DEFAULT_SEND_INTERVAL
+
+
+def _build_json(size):
+    data = {}
+    for i in range(size):
+        data[f"key{i}"] = f"value{i}"
+
+    return json.dumps(data) + "\n"
 
 
 def handle_cmd(cmd: str):
@@ -19,6 +28,10 @@ def handle_cmd(cmd: str):
     if cmd.startswith("setInterval"):
         send_interval = float(cmd.split(",")[-1])
         rsp = f"set interval ok: {send_interval}s\n"
+    elif cmd == "jsonBig":
+        rsp = _build_json(10000)
+    elif cmd == "jsonNormal":
+        rsp = _build_json(100)
 
     return rsp
 
@@ -33,7 +46,6 @@ def handle_client(client_socket: socket.socket, client_addr: tuple):
             "SuperConnectX Telnet TestServer\r\n"
             f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\r\n"
             "press Ctrl+] and enter quit to exit\r\n"
-            "支持命令：hello、time、exit\r\n"
             "=====================================\r\n"
         )
         client_socket.send(welcome_msg.encode("utf-8"))
