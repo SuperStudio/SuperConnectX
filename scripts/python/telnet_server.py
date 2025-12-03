@@ -6,7 +6,21 @@ from datetime import datetime
 # 服务端配置
 HOST = "0.0.0.0"  # 监听所有网络接口
 PORT = 2323  # 自定义端口（默认 Telnet 端口 23，需管理员权限，此处用 2323 避免冲突）
-INTERVAL = 0.1  # 数据推送间隔（秒）
+DEFAULT_SEND_INTERVAL = 0.1  # 数据推送间隔（秒）
+
+send_interval = DEFAULT_SEND_INTERVAL
+
+
+def handle_cmd(cmd: str):
+    global send_interval  # 声明使用全局变量
+    print(f"recv {cmd}")
+    rsp = "not support cmd"
+    # 命令处理逻辑
+    if cmd.startswith("setInterval"):
+        send_interval = float(cmd.split(",")[-1])
+        rsp = f"set interval ok: {send_interval}s\n"
+
+    return rsp
 
 
 def handle_client(client_socket: socket.socket, client_addr: tuple):
@@ -33,23 +47,13 @@ def handle_client(client_socket: socket.socket, client_addr: tuple):
             try:
                 # 读取客户端发送的数据（最多1024字节）
                 cmd = client_socket.recv(1024).decode("utf-8").strip()
-                if cmd:
-                    print(f"📥 收到 {client_addr} 的命令：{cmd}")
-                    # 命令处理逻辑
-                    if cmd.lower() == "hello":
-                        response = "👋 你好！这是Telnet测试服务器\r\n"
-                    elif cmd.lower() == "time":
-                        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        response = f"⏰ 当前时间：{current_time}\r\n"
-                    elif cmd.lower() == "exit":
-                        response = "👋 正在断开连接...\r\n"
-                        client_socket.send(response.encode("utf-8"))
-                        break  # 退出循环，关闭连接
-                    else:
-                        response = (
-                            f"❓ 未知命令：{cmd}，支持的命令：hello、time、exit\r\n"
-                        )
-                    client_socket.send(response.encode("utf-8"))
+                if cmd == "exit":
+                    client_socket.send("== goodbye ==\n".encode("utf-8"))
+                    break
+                elif cmd:
+                    rsp = handle_cmd(cmd)
+                    if rsp:
+                        client_socket.send(rsp.encode("utf-8"))
             except BlockingIOError:
                 # 无数据时正常忽略（非阻塞模式下没有数据会抛出此异常）
                 pass
@@ -64,7 +68,7 @@ def handle_client(client_socket: socket.socket, client_addr: tuple):
                 f"client: {client_addr[0]}:{client_addr[1]}\r\n"
             )
             client_socket.send(data.encode("utf-8"))
-            time.sleep(INTERVAL)
+            time.sleep(send_interval)
 
     except BrokenPipeError:
         print(f"❌ 客户端 {client_addr} 断开连接（主动关闭）")
