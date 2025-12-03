@@ -2,20 +2,16 @@ import { app, BrowserWindow, shell, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import Store from 'electron-store'
-import { Telnet } from 'telnet-client'
 import logger from './utils/logger'
 import ConnectionStorage from './storage/ConnectionStorage'
+import TelnetClient from './protocol/TelnetClient'
 
 const _logger = new logger(app.getPath('userData'))
-const connectionStorage = new ConnectionStorage()
 
 // 新增：IPC 监听「打开日志」请求
 ipcMain.handle('open-telnet-log', async () => await _logger.openLogDir())
 
 let mainWindow: BrowserWindow
-
-// 存储活跃的Telnet连接
-const telnetConnections = new Map<number, Telnet>()
 
 function createWindow(): void {
   // 创建浏览器窗口
@@ -85,91 +81,38 @@ app.on('window-all-closed', () => {
   }
 })
 
+/* 连接持久化处理 */
+const connectionStorage = new ConnectionStorage()
 ipcMain.handle('get-connections', () => connectionStorage.getConnections())
 ipcMain.handle('add-connection', (_, conn: any) => connectionStorage.addConnection(conn))
 ipcMain.handle('delete-connection', (_, id: number) => connectionStorage.deleteConnection(id))
 
-// 添加Telnet连接处理
-ipcMain.handle('connect-telnet', async (_, conn: any) => {
-  const connection = new Telnet()
-  try {
-    const params = {
-      host: conn.host,
-      port: conn.port || 23,
-      timeout: 10000, // 10秒超时（必加！）
-      negotiationMandatory: false, // 禁用强制协议协商（很多服务器不支持）
-      echoLines: 0, // 禁用回声（避免重复输出）
-      terminalType: 'vt100', // 终端类型（cmd 中默认常用 vt100）
-      stripShellPrompt: false // 不剥离shell提示符（避免干扰连接）
-    }
-
-    await connection.connect(params) // 现在超时后会抛出错误，不会一直卡着
-    // 存储连接引用
-    telnetConnections.set(conn.id, connection)
-    // 监听数据事件并转发到渲染进程
-    connection.on('data', (data) => {
-      const dataStr = `[${new Date().toISOString()}] ${data}`
-      _logger.writeToLog(dataStr)
-      mainWindow.webContents.send('telnet-data', {
-        connId: conn.id,
-        data: dataStr
-      })
-    })
-
-    // 监听连接关闭事件
-    connection.on('close', () => {
-      mainWindow.webContents.send('telnet-close', conn.id)
-      telnetConnections.delete(conn.id)
-    })
-
-    return { success: true, message: '连接成功', connId: conn.id }
-  } catch (error) {
-    console.error(error)
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : '连接失败'
-    }
-  }
-})
-
-// 发送命令到Telnet服务器
+/* telnet 连接处理 */
+const telnetClient = new TelnetClient()
 ipcMain.handle(
-  'telnet-send',
-  async (_, { connId, command }: { connId: number; command: string }) => {
-    console.log('enter telnet-send')
-    const connection = telnetConnections.get(connId)
-    if (!connection) {
-      return { success: false, message: '连接不存在' }
-    }
-
-    try {
-      const dataStr = `[${new Date().toISOString()}] SEND >>>>>>>>>> ${command}`
-      _logger.writeToLog(dataStr)
-      await connection.send(command + '\n')
-      return { success: true }
-    } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : '发送命令失败'
-      }
-    }
-  }
+  'connect-telnet',
+  async (_, conn: any) =>
+    await telnetClient.start(
+      conn.host,
+      conn.port,
+      conn.id,
+      (dataStr) => {
+        _logger.writeToLog(dataStr)
+        mainWindow.webContents.send('telnet-data', {
+          connId: conn.id,
+          data: dataStr
+        })
+      },
+      () => mainWindow.webContents.send('telnet-close', conn.id)
+    )
 )
-
-// 关闭Telnet连接
-ipcMain.handle('telnet-disconnect', async (_, connId: number) => {
-  console.log('enter telnet-disconnect connId:', connId)
-  console.log('all connection id: ', Array.from(telnetConnections.keys()))
-  const connection = telnetConnections.get(connId)
-  if (connection) {
-    console.warn('start end connection', connId)
-    connection.destroy()
-    telnetConnections.delete(connId)
-  } else {
-    console.warn('not find connId:', connId)
-  }
-  return { success: true }
-})
+ipcMain.handle('telnet-send', async (_, { connId, command }: { connId: number; command: string }) =>
+  telnetClient.send(connId, command, (dataStr) => _logger.writeToLog(dataStr))
+)
+ipcMain.handle(
+  'telnet-disconnect',
+  async (_, connId: number) => await telnetClient.disconnect(connId)
+)
 
 // 窗口控制IPC
 ipcMain.handle('minimize-window', () => {
