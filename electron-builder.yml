@@ -1,4 +1,4 @@
-appId: com.electron.app
+appId: superconnectx.superstudio
 productName: superconnectx
 directories:
   buildResources: build
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: superconnectx
+  executableName: SuperConnectX
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -33,7 +33,7 @@ linux:
     - AppImage
     - snap
     - deb
-  maintainer: electronjs.org
+  maintainer: SuperStudio
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
