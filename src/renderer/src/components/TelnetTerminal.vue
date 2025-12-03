@@ -498,7 +498,7 @@ const sendPresetCommand = async (cmd: any) => {
           connId: currentConnId,
           command: cmd.command.trim()
         })
-        output.value += `> ${cmd.name}: ${cmd.command}<br>`
+        output.value += `[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}<br>`
         commandInput.value?.focus()
       }, cmd.delay)
     } else {
@@ -506,7 +506,7 @@ const sendPresetCommand = async (cmd: any) => {
         connId: currentConnId,
         command: cmd.command.trim()
       })
-      output.value += `> ${cmd.name}: ${cmd.command}<br>`
+      output.value += `[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}<br>`
       commandInput.value?.focus()
     }
 

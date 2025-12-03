@@ -19,13 +19,9 @@ const getLogFileName = () => {
 }
 
 // 写入日志到文件
-const writeToLog = (connId: number, data: string, isOutgoing: boolean = false) => {
+const writeToLog = (data: string) => {
   const logFile = join(logDir, getLogFileName())
-  const timestamp = new Date().toISOString()
-  const direction = isOutgoing ? 'SEND' : 'RECV'
-  const logEntry = `[${timestamp}] [Conn ${connId}] [${direction}] ${data}\n`
-
-  appendFile(logFile, logEntry, (err) => {
+  appendFile(logFile, data, (err) => {
     if (err) {
       console.error('写入日志失败:', err)
     }
@@ -185,8 +181,8 @@ ipcMain.handle('connect-telnet', async (_, conn: any) => {
     telnetConnections.set(conn.id, connection)
     // 监听数据事件并转发到渲染进程
     connection.on('data', (data) => {
-      const dataStr = data.toString()
-      writeToLog(conn.id, dataStr)
+      const dataStr = `[${new Date().toISOString()}] ${data}`
+      writeToLog(dataStr)
       mainWindow.webContents.send('telnet-data', {
         connId: conn.id,
         data: dataStr
@@ -220,7 +216,8 @@ ipcMain.handle(
     }
 
     try {
-      writeToLog(connId, command, true)
+      const dataStr = `[${new Date().toISOString()}] SEND >>>>>>>>>> ${command}`
+      writeToLog(dataStr)
       await connection.send(command + '\n')
       return { success: true }
     } catch (error) {
