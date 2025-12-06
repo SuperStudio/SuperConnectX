@@ -5,3 +5,94 @@ body {
   color: #c5c5c5;
   background-color: #1e1e1e;
 }
+
+/* 1. 弹窗外层容器背景（含边框/阴影） */
+.el-dialog {
+  background-color: #252526 !important; /* 浅灰背景 */
+  border-radius: 8px !important; /* 圆角适配 Electron 原生风格 */
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.5) !important; /* 增强阴影，贴近原生窗口 */
+  border: none !important; /* 取消默认边框，更像 Electron 原生弹窗 */
+}
+
+.el-dialog__title {
+  color: #ffffff !important; /* 白色文字，对比背景 */
+  font-size: 16px !important;
+  font-weight: 500 !important;
+}
+
+/* 2. 弹窗内容区背景（核心内容区） */
+.el-dialog__body {
+  background-color: #252526 !important;
+  padding: 24px !important; /* 调整内边距，适配 Electron 窗口比例 */
+}
+
+/* 3. 弹窗头部/底部背景（区分标题/按钮区） */
+.el-dialog__header {
+  background-color: #252526 !important;
+  padding: 16px 24px !important;
+  color: white !important;
+}
+.el-dialog__footer {
+  background-color: #252526 !important;
+  padding: 16px 24px !important;
+  border-top: 1px solid #cccccc !important;
+}
+
+.el-select .el-select__wrapper {
+  height: 36px !important; /* 自定义高度 */
+  border-radius: 6px !important; /* 圆角 */
+  border: 1px solid #60a5fa !important; /* 边框颜色 */
+  background-color: #cccccc !important; /* 深色背景（适配 Electron 深色模式） */
+  color: #000 !important; /* 文字颜色 */
+}
+
+/* 输入框聚焦样式 */
+.el-select .el-select__wrapper:focus-within {
+  border-color: #60a5fa !important; /* 聚焦边框高亮 */
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5) !important; /* 聚焦阴影 */
+}
+
+/* ========== 2. 下拉箭头样式 ========== */
+.el-select .el-select__caret {
+  color: #60a5fa !important; /* 箭头颜色 */
+  font-size: 14px !important;
+}
+
+/* 展开下拉时箭头颜色 */
+.el-select.is-open .el-select__caret {
+  color: #60a5fa !important;
+  transform: rotate(180deg) !important; /* 箭头翻转 */
+  transition: transform 0.2s ease !important;
+}
+
+/* ========== 3. 下拉选项容器样式 ========== */
+.el-select-dropdown {
+  border-radius: 6px !important;
+  border: 1px solid #374151 !important;
+  background-color: #cccccc !important; /* 下拉框背景（适配 Electron 深色） */
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.5) !important; /* 阴影增强，贴近 Electron 原生 */
+}
+
+/* ========== 4. 下拉选项样式 ========== */
+.el-select-dropdown__item {
+  color: #000 !important; /* 选项文字颜色 */
+  height: 36px !important; /* 选项高度 */
+  line-height: 36px !important; /* 垂直居中 */
+  padding: 0 16px !important; /* 选项内边距 */
+}
+
+/* 选项 hover 样式 */
+.el-select-dropdown__item:hover {
+  background-color: #094771 !important;
+  color: #ffffff !important;
+}
+
+/* 选中的选项样式 */
+.el-select-dropdown__item.selected {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.el-select-dropdown {
+  -webkit-app-region: no-drag !important; /* 避免 Electron 拖拽冲突 */
+}

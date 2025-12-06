@@ -8,7 +8,7 @@
     <main class="app-main">
       <div class="connection-list-wrapper" :class="{ collapsed: !showConnectionList }">
         <div class="connection-list">
-          <el-button type="primary" class="new-connection" icon="Plus" @click="openCreateDialog"
+          <el-button type="primary" class="vscode-btn" icon="Plus" @click="openCreateDialog"
             >新建连接</el-button
           >
 
@@ -58,19 +58,12 @@
 
     <!-- 新建连接弹窗：Element Plus 美化表单 -->
     <el-dialog
-      title="新建 Telnet 连接"
+      title="新建连接"
       v-model="isCreateDialogOpen"
       width="500px"
       :close-on-click-modal="false"
     >
-      <el-form :model="newConnForm" :rules="newConnRules" ref="connFormRef" label-width="80px">
-        <el-form-item label="连接名称" prop="name">
-          <el-input
-            v-model="newConnForm.name"
-            placeholder="输入连接名称（如：办公室 Telnet 设备）"
-            prefix="User"
-          />
-        </el-form-item>
+      <el-form :model="newConnForm" :rules="newConnRules" ref="connFormRef" label-width="120px">
         <el-form-item label="协议类型" prop="type">
           <el-select v-model="newConnForm.type" placeholder="选择协议">
             <el-option label="Telnet" value="telnet" />
@@ -78,17 +71,16 @@
             <!-- 预留 SSH 选项 -->
           </el-select>
         </el-form-item>
+        <el-form-item label="连接名称" prop="name">
+          <el-input v-model="newConnForm.name" placeholder="输入连接名称" prefix="User" />
+        </el-form-item>
         <el-form-item label="服务器地址" prop="host">
-          <el-input
-            v-model="newConnForm.host"
-            placeholder="输入 IP 地址或域名（如：192.168.1.100）"
-            prefix="Monitor"
-          />
+          <el-input v-model="newConnForm.host" placeholder="输入 IP 地址或域名" prefix="Monitor" />
         </el-form-item>
         <el-form-item label="端口" prop="port">
           <el-input
             v-model.number="newConnForm.port"
-            placeholder="输入端口（Telnet 默认 23，测试用 2323）"
+            placeholder="输入端口"
             prefix="Key"
             type="number"
           />
@@ -102,8 +94,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="isCreateDialogOpen = false">取消</el-button>
-        <el-button type="primary" @click="submitNewConn">确认保存</el-button>
+        <el-button type="danger" style="width: 100px" @click="isCreateDialogOpen = false"
+          >取消</el-button
+        >
+        <el-button type="primary" style="width: 100px" class="vscode-btn" @click="submitNewConn"
+          >确认保存</el-button
+        >
       </template>
     </el-dialog>
   </div>
@@ -426,7 +422,7 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 }
 
 .el-dialog__title {
-  color: #e0e0e0 !important;
+  color: #fff !important;
   font-size: 18px !important;
 }
 
@@ -436,8 +432,8 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 
 .el-input,
 .el-select {
-  --el-input-bg-color: #333 !important;
-  --el-input-text-color: #e0e0e0 !important;
+  --el-input-bg-color: #cccccc !important;
+  --el-input-text-color: #000 !important;
   --el-input-placeholder-color: #888 !important;
   --el-border-color: #444 !important;
 }
@@ -447,13 +443,13 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   --el-border-color: #42b983 !important;
 }
 
-.new-connection {
+.vscode-btn {
   width: 100%;
   background-color: #0e639c;
   border: none;
 }
 
-.new-connection:hover {
+.vscode-btn:hover {
   background-color: #1177bb;
 }
 
