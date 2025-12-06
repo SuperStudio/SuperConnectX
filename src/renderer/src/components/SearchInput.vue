@@ -4,7 +4,7 @@
     <div class="search-inner">
       <input
         type="text"
-        placeholder="搜索连接..."
+        placeholder="搜索..."
         v-model="searchText"
         @input="handleSearch"
         class="search-input"
@@ -32,9 +32,9 @@ watch(searchText, (val) => emit('search', val.trim()))
 
 <style scoped>
 .sidebar-search {
-  padding: 10px 12px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
+  margin-top: 10px;
+  padding: 0px;
+  background: transparent;
 }
 
 .search-inner {
@@ -47,7 +47,9 @@ watch(searchText, (val) => emit('search', val.trim()))
   width: 100%;
   height: 100%;
   padding: 0 28px 0 12px;
-  border: 1px solid #d1d5db;
+  border: 2px solid transparent;
+  background-color: #3c3c3c;
+  color: #cccccc;
   border-radius: 4px;
   font-size: 13px;
   outline: none;
