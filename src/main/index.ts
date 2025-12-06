@@ -80,6 +80,7 @@ app.on('window-all-closed', () => {
 const connectionStorage = new ConnectionStorage()
 ipcMain.handle('get-connections', () => connectionStorage.getConnections())
 ipcMain.handle('add-connection', (_, conn: any) => connectionStorage.addConnection(conn))
+ipcMain.handle('update-connection', (_, conn: any) => connectionStorage.updateConnection(conn))
 ipcMain.handle('delete-connection', (_, id: number) => connectionStorage.deleteConnection(id))
 
 /* 发送命令持久化 */

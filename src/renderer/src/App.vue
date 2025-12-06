@@ -32,14 +32,35 @@
               </div>
             </div>
             <div class="connection-actions">
-              <el-button type="text" icon="Link" @click="connectToServer(conn)">连接</el-button>
-              <el-button
-                type="text"
-                icon="Delete"
-                @click="deleteConnection(conn.id)"
-                text-color="#ff4d4f"
-                >删除</el-button
-              >
+              <div class="connection-btn">
+                <el-button
+                  type="text"
+                  class="el-button--primary"
+                  icon="Link"
+                  @click="connectToServer(conn)"
+                  >连接</el-button
+                >
+              </div>
+              <div class="connection-btn">
+                <el-button
+                  class="el-button--primary"
+                  type="text"
+                  style="color: #cccccc"
+                  icon="edit"
+                  @click="editCreateDialog(conn)"
+                  >编辑</el-button
+                >
+              </div>
+              <div class="connection-btn">
+                <el-button
+                  type="text"
+                  class="el-button--primary"
+                  icon="Delete"
+                  @click="deleteConnection(conn.id)"
+                  style="color: #b23f3f"
+                  >删除</el-button
+                >
+              </div>
             </div>
           </el-card>
         </div>
@@ -50,7 +71,7 @@
           :connection="activeConnection"
           @onClose="handleTerminalClose"
         />
-        <div class="terminal-placeholder" v-else>选择一个连接或新建连接以启动 SSH/Telnet 终端</div>
+        <div class="terminal-placeholder" v-else>选择一个连接或新建连接以启动终端</div>
       </div>
     </main>
 
@@ -67,7 +88,7 @@
         <el-form-item label="协议类型" prop="type">
           <el-select v-model="newConnForm.type" placeholder="选择协议">
             <el-option label="Telnet" value="telnet" />
-            <el-option label="SSH" value="ssh" />
+            <el-option label="SSH" value="ssh" disabled />
             <!-- 预留 SSH 选项 -->
           </el-select>
         </el-form-item>
@@ -211,21 +232,49 @@ const openCreateDialog = () => {
   isCreateDialogOpen.value = true
 }
 
+const editCreateDialog = (conn) => {
+  console.log(`conn`)
+  console.log(conn)
+  newConnForm.value = {
+    id: conn.id,
+    name: conn.name,
+    type: conn.type,
+    host: conn.host,
+    port: conn.port,
+    username: conn.username
+  }
+  isCreateDialogOpen.value = true
+}
+
 // 提交新建连接表单
 const submitNewConn = async () => {
   if (!connFormRef.value) return
 
   try {
     await connFormRef.value.validate()
-    // 1. 提交新连接
-    await window.electronStore.addConnection({
-      // 显式转换为纯数据对象，避免响应式属性
-      name: newConnForm.value.name,
-      type: newConnForm.value.type,
-      host: newConnForm.value.host,
-      port: newConnForm.value.port,
-      username: newConnForm.value.username
-    })
+    if (newConnForm.value.id) {
+      // 1. 提交新连接
+      await window.electronStore.updateConnection({
+        // 显式转换为纯数据对象，避免响应式属性
+        id: newConnForm.value.id,
+        name: newConnForm.value.name,
+        type: newConnForm.value.type,
+        host: newConnForm.value.host,
+        port: newConnForm.value.port,
+        username: newConnForm.value.username
+      })
+    } else {
+      // 1. 提交新连接
+      await window.electronStore.addConnection({
+        // 显式转换为纯数据对象，避免响应式属性
+        name: newConnForm.value.name,
+        type: newConnForm.value.type,
+        host: newConnForm.value.host,
+        port: newConnForm.value.port,
+        username: newConnForm.value.username
+      })
+    }
+
     // 2. 重新加载整个连接列表（而非手动 push），确保数据同步
     loadConnections()
     // 3. 关闭弹窗并提示
@@ -547,5 +596,14 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   color: #9ca3af;
   text-align: center;
   margin-top: 20px;
+}
+
+.connection-btn:deep(.el-button--primary) {
+  background-color: transparent;
+  padding: 5px;
+}
+
+.connection-btn:deep(.el-button--primary:hover) {
+  background-color: #454646;
 }
 </style>

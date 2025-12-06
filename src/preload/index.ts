@@ -5,6 +5,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('electronStore', {
   getConnections: () => ipcRenderer.invoke('get-connections'),
   addConnection: (conn: any) => ipcRenderer.invoke('add-connection', conn),
+  updateConnection: (conn: any) => ipcRenderer.invoke('update-connection', conn),
   deleteConnection: (id: number) => ipcRenderer.invoke('delete-connection', id),
   connectTelnet: (conn: any) => ipcRenderer.invoke('connect-telnet', conn),
   telnetSend: (data: { connId: number; command: string }) =>
@@ -41,6 +42,7 @@ declare global {
     electronStore: {
       getConnections: () => Promise<any[]>
       addConnection: (conn: any) => Promise<any>
+      updateConnection: (conn: any) => Promise<any>
       deleteConnection: (id: number) => Promise<any[]>
       connectTelnet: (conn: any) => Promise<any>
       telnetSend: (data: { connId: number; command: string }) => Promise<any>

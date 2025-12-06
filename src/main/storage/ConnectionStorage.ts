@@ -24,6 +24,23 @@ export default class ConnectionStorage {
     return newConn
   }
 
+  updateConnection(conn: any) {
+    const connections = this.connectionStore.get('connections') as any[]
+    let con = connections.filter((item) => item.id === conn.id)
+    if (!con) {
+      console.log(`con not found`)
+      return
+    }
+
+    con[0].name = conn.name
+    con[0].port = conn.port
+    con[0].type = conn.type
+    con[0].host = conn.host
+    con[0].username = conn.username
+    this.connectionStore.set('connections', connections as never[])
+    return con
+  }
+
   deleteConnection(id: number) {
     const connections = this.connectionStore.get('connections') as any[]
     const newConnections = connections.filter((c) => c.id !== id)
