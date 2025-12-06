@@ -96,3 +96,52 @@ body {
 .el-select-dropdown {
   -webkit-app-region: no-drag !important; /* 避免 Electron 拖拽冲突 */
 }
+
+/* ========== 1. 弹窗整体样式 ========== */
+.el-message-box {
+  width: 400px !important; /* 自定义宽度（默认 420px） */
+  border-radius: 8px !important; /* 圆角适配 Electron 原生风格 */
+  background-color: #1e1e1e !important; /* 深色背景（适配 Electron 深色模式） */
+  border: 1px solid #374151 !important; /* 边框颜色 */
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.5) !important; /* 阴影增强，贴近 Electron 原生 */
+  /* Electron 适配：禁止弹窗拖拽 */
+  -webkit-app-region: no-drag !important;
+}
+
+/* ========== 2. 弹窗头部（标题） ========== */
+.el-message-box__header {
+  padding: 16px 20px !important;
+  border-bottom: 1px solid #374151 !important;
+}
+.el-message-box__title {
+  color: #e2e8f0 !important; /* 标题文字颜色 */
+  font-size: 16px !important;
+  font-weight: 500 !important;
+}
+/* 关闭按钮 */
+.el-message-box__close {
+  color: #94a3b8 !important;
+  font-size: 18px !important;
+}
+.el-message-box__close:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+}
+
+/* ========== 3. 弹窗内容区 ========== */
+.el-message-box__content {
+  padding: 20px !important;
+  color: #e2e8f0 !important; /* 提示文本颜色 */
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+/* 图标颜色（警告/提示等） */
+.el-message-box__icon {
+  color: #f59e0b !important; /* 警告图标改为橙色 */
+}
+
+/* ========== 4. 按钮区样式 ========== */
+.el-message-box__btns {
+  padding: 12px 20px !important;
+}

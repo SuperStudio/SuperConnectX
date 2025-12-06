@@ -56,7 +56,7 @@
                   type="text"
                   class="el-button--primary"
                   icon="Delete"
-                  @click="deleteConnection(conn.id)"
+                  @click="deleteConnection(conn)"
                   style="color: #b23f3f"
                   >删除</el-button
                 >
@@ -287,10 +287,10 @@ const submitNewConn = async () => {
 }
 
 // 删除连接
-const deleteConnection = async (id: number) => {
+const deleteConnection = async (conn) => {
   try {
     // 显示确认对话框
-    await ElMessageBox.confirm('确定要删除这个连接吗？', '确认删除', {
+    await ElMessageBox.confirm(`确认删除 ${conn.name}?`, '删除连接', {
       confirmButtonText: '确认',
       cancelButtonText: '取消',
       type: 'warning',
@@ -298,7 +298,7 @@ const deleteConnection = async (id: number) => {
     })
 
     // 用户确认后执行删除操作
-    const newConnections = await window.electronStore.deleteConnection(id)
+    const newConnections = await window.electronStore.deleteConnection(conn.id)
     connections.value = newConnections
     ElMessage.success('连接已删除')
   } catch (error) {
