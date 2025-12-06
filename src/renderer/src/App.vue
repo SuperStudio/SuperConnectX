@@ -72,7 +72,7 @@
         <el-form-item label="协议类型" prop="type">
           <el-select v-model="newConnForm.type" placeholder="选择协议">
             <el-option label="Telnet" value="telnet" />
-            <el-option label="SSH" value="ssh" disabled />
+            <el-option label="SSH" value="ssh" />
             <!-- 预留 SSH 选项 -->
           </el-select>
         </el-form-item>

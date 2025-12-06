@@ -20,7 +20,9 @@
           ></path>
         </svg>
       </button>
-      <div class="app-logo">🚀</div>
+      <div class="app-logo">
+        <img class="logo-img" src="../assets/icon.png" alt="App Icon" />
+      </div>
       <div class="app-title">SuperConnectX</div>
     </div>
 
@@ -176,8 +178,29 @@ const toggleConnectionList = () => {
   gap: 8px;
 }
 
+/* Logo 容器：精准居中 + 固定尺寸 */
 .app-logo {
-  font-size: 16px;
+  width: 18px; /* 图标宽度（按需调整：20/24/28px） */
+  height: 18px; /* 图标高度 = 宽度，正方形 */
+  display: flex; /* 内部图片居中 */
+  align-items: center; /* 垂直居中图片 */
+  justify-content: center; /* 水平居中图片 */
+  /* 可选：防止图片溢出 */
+  overflow: hidden;
+  /* 取消默认间距（如有的话） */
+  margin: 0;
+  padding: 0;
+  margin-left: -5px;
+}
+
+/* Logo 图片：无默认间距 + 自适应 */
+.logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* 保持图片比例，不拉伸 */
+  /* 消除图片默认的基线对齐间距（关键！） */
+  display: block; /* 或 vertical-align: middle */
+  transition: opacity 0.2s ease;
 }
 
 .app-title {
