@@ -1,6 +1,25 @@
 <template>
   <div class="custom-titlebar">
     <div class="titlebar-left">
+      <!-- 添加切换按钮 -->
+      <button
+        class="titlebar-btn toggle-connection-btn"
+        @click="toggleConnectionList"
+        :class="{ toggled: !showConnectionList }"
+      >
+        <svg
+          viewBox="0 0 1024 1024"
+          fill="white"
+          xmlns="http://www.w3.org/2000/svg"
+          width="15"
+          height="15"
+        >
+          <path
+            d="M901.632 896H122.368c-30.72 0-55.808-25.088-55.808-55.808v-1.536c0-30.72 25.088-55.808 55.808-55.808h779.776c30.72 0 55.808 25.088 55.808 55.808v1.536c-0.512 30.72-25.6 55.808-56.32 55.808zM901.632 568.32H122.368c-30.72 0-55.808-25.088-55.808-55.808v-1.536c0-30.72 25.088-55.808 55.808-55.808h779.776c30.72 0 55.808 25.088 55.808 55.808v1.536c-0.512 30.72-25.6 55.808-56.32 55.808zM901.632 240.64H122.368c-30.72 0-55.808-25.088-55.808-55.808v-1.536c0-30.72 25.088-55.808 55.808-55.808h779.776c30.72 0 55.808 25.088 55.808 55.808v1.536c-0.512 30.72-25.6 55.808-56.32 55.808z"
+            p-id="15235"
+          ></path>
+        </svg>
+      </button>
       <div class="app-logo">🚀</div>
       <div class="app-title">SuperConnectX</div>
     </div>
@@ -118,11 +137,27 @@ const maximizeWindow = () => {
 const closeWindow = () => {
   electronStore.closeWindow()
 }
+
+import { defineEmits, defineProps } from 'vue'
+
+// 接收父组件的显示状态
+const props = defineProps({
+  showConnectionList: {
+    type: Boolean,
+    default: true
+  }
+})
+
+const emit = defineEmits(['toggle-connection-list'])
+
+const toggleConnectionList = () => {
+  emit('toggle-connection-list')
+}
 </script>
 
 <style scoped>
 .custom-titlebar {
-  height: 32px;
+  height: 30px;
   background-color: #323233;
   color: #c5c5c5;
   display: flex;
@@ -190,5 +225,27 @@ const closeWindow = () => {
 .svg-box {
   width: 30px; /* 可随意修改，图形比例不变 */
   height: 30px;
+}
+.toggle-connection-btn {
+  -webkit-app-region: no-drag; /* 取消拖拽，允许按钮点击 */
+  margin-left: -10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+
+  transition: background-color 0.2s ease;
+}
+
+.toggle-connection-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.toggle-connection-btn:active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 按钮图标切换样式 */
+.toggle-connection-btn.toggled svg {
+  transform: rotate(90deg);
 }
 </style>

@@ -1,38 +1,48 @@
 <template>
   <div class="app-container">
-    <CustomTitleBar />
+    <CustomTitleBar
+      @toggle-connection-list="toggleConnectionList"
+      :show-connection-list="showConnectionList"
+    />
     <!-- 主内容区：左侧连接列表 + 右侧终端 -->
     <main class="app-main">
-      <div class="connection-list">
-        <el-button type="primary" class="new-connection" icon="Plus" @click="openCreateDialog"
-          >新建连接</el-button
-        >
+      <div class="connection-list-wrapper" :class="{ collapsed: !showConnectionList }">
+        <div class="connection-list">
+          <el-button type="primary" class="new-connection" icon="Plus" @click="openCreateDialog"
+            >新建连接</el-button
+          >
 
-        <div class="empty-state" v-if="connections.length === 0">
-          暂无连接，点击「新建连接」添加
-        </div>
-        <el-card shadow="never" class="connection-card" v-for="conn in connections" :key="conn.id">
-          <div class="connection-info">
-            <div class="conn-name">{{ conn.name }}</div>
-            <div class="conn-detail">
-              <span>协议：{{ conn.type.toUpperCase() }}</span>
-              <span>地址：{{ conn.host }}:{{ conn.port }}</span>
-              <span v-if="conn.username">用户：{{ conn.username }}</span>
+          <div class="empty-state" v-if="connections.length === 0">
+            暂无连接，点击「新建连接」添加
+          </div>
+          <el-card
+            shadow="never"
+            class="connection-card"
+            v-for="conn in connections"
+            :key="conn.id"
+          >
+            <div class="connection-info">
+              <div class="conn-name">{{ conn.name }}</div>
+              <div class="conn-detail">
+                <span>协议：{{ conn.type.toUpperCase() }}</span>
+                <span>地址：{{ conn.host }}:{{ conn.port }}</span>
+                <span v-if="conn.username">用户：{{ conn.username }}</span>
+              </div>
             </div>
-          </div>
-          <div class="connection-actions">
-            <el-button type="text" icon="Link" @click="connectToServer(conn)">连接</el-button>
-            <el-button
-              type="text"
-              icon="Delete"
-              @click="deleteConnection(conn.id)"
-              text-color="#ff4d4f"
-              >删除</el-button
-            >
-          </div>
-        </el-card>
+            <div class="connection-actions">
+              <el-button type="text" icon="Link" @click="connectToServer(conn)">连接</el-button>
+              <el-button
+                type="text"
+                icon="Delete"
+                @click="deleteConnection(conn.id)"
+                text-color="#ff4d4f"
+                >删除</el-button
+              >
+            </div>
+          </el-card>
+        </div>
       </div>
-      <div class="terminal-panel">
+      <div class="terminal-panel" :class="{ expanded: !showConnectionList }">
         <TelnetTerminal
           v-if="activeConnection"
           :connection="activeConnection"
@@ -242,6 +252,14 @@ const handleTerminalClose = () => {
   console.log('关闭 Telnet 终端')
   activeConnection.value = null // 清空激活的连接，让终端组件销毁
 }
+
+// 新增：控制连接列表显示状态的变量
+const showConnectionList = ref(true)
+
+// 新增：切换连接列表显示状态的方法
+const toggleConnectionList = () => {
+  showConnectionList.value = !showConnectionList.value
+}
 </script>
 
 <style scoped>
@@ -404,5 +422,79 @@ const handleTerminalClose = () => {
 .status-bar {
   height: 25px;
   background-color: #007acc;
+}
+/* 连接列表容器：核心过渡逻辑 */
+.connection-list-wrapper {
+  width: 320px; /* 展开时的宽度 */
+  min-width: 320px; /* 防止收缩时内容挤压 */
+  height: 100%;
+  transition: all 0.3s ease-in-out; /* 平滑过渡：时长0.3秒，缓动曲线 */
+  overflow: hidden;
+  flex-shrink: 0; /* 防止flex布局挤压宽度 */
+  box-sizing: border-box; /* 关键：宽度包含边框，避免溢出 */
+}
+
+/* 收起状态：宽度收窄为0 */
+.connection-list-wrapper.collapsed {
+  width: 0;
+  min-width: 0;
+  border-right: none; /* 收起时隐藏边框 */
+}
+
+/* 终端面板：过渡宽度和边距 */
+.terminal-panel {
+  flex: 1; /* 默认占剩余宽度 */
+  padding: 8px;
+  transition: padding-left 0.3s ease-in-out; /* 边距过渡 */
+  height: 100%;
+  overflow: auto;
+}
+
+/* 展开状态：终端面板左内边距优化 */
+.terminal-panel.expanded {
+  padding-left: 16px;
+}
+
+/* 原有连接列表样式（补充） */
+.connection-list {
+  height: 100%;
+  padding: 8px;
+  overflow: auto;
+  box-sizing: border-box; /* 关键：padding 计入高度，不超出容器 */
+  overflow-y: auto; /* 仅纵向滚动，横向隐藏 */
+  overflow-x: hidden;
+  /* 优化滚动体验（可选） */
+}
+
+/* 1. connection-list 滚动条整体 */
+.connection-list::-webkit-scrollbar {
+  width: 10px !important; /* 列表内滚动条更窄，区别于全局 */
+  height: 6px !important;
+  background: transparent !important; /* 轨道透明 */
+}
+
+/* 2. connection-list 滚动条轨道 */
+.connection-list::-webkit-scrollbar-track {
+  background: transparent !important; /* 完全透明，更简洁 */
+  border-radius: 3px !important; /* 圆角适配窄滚动条 */
+}
+
+/* 3. connection-list 滚动条滑块 */
+.connection-list::-webkit-scrollbar-thumb {
+  background: #464647 !important; /* 自定义滑块颜色（浅灰蓝） */
+  border-radius: 0px !important; /* 与宽度匹配的圆角 */
+  border: 0 !important; /* 移除默认边框 */
+  transition: background 1s ease !important; /* hover 过渡 */
+}
+
+/* 4. 滑块 hover 状态 */
+.connection-list::-webkit-scrollbar-thumb:hover {
+  background: #515151 !important; /* hover 加深颜色 */
+  transform: scale(1.05) !important; /* 轻微放大，增强交互 */
+}
+
+/* 5. 滑块 active 状态（拖动时） */
+.connection-list::-webkit-scrollbar-thumb:active {
+  background: #626263 !important; /* 拖动时更深 */
 }
 </style>
