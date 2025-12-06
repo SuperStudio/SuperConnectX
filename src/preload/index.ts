@@ -34,7 +34,8 @@ contextBridge.exposeInMainWorld('electronStore', {
     ipcRenderer.invoke('update-preset-command', cmd),
   deletePresetCommand: (id: number) => ipcRenderer.invoke('delete-preset-command', id),
   getPresetCommands: () => ipcRenderer.invoke('get-preset-commands'),
-  openDevtools: () => ipcRenderer.invoke('open-devtools')
+  openDevtools: () => ipcRenderer.invoke('open-devtools'),
+  getAppResource: () => ipcRenderer.invoke('get-app-resource')
 })
 
 declare global {
@@ -59,6 +60,7 @@ declare global {
       updatePresetCommand: (cmd: any) => Promise<any>
       deletePresetCommand: (id: number) => Promise<any[]>
       openDevtools: () => Promise<void>
+      getAppResource: () => Promise<any>
     }
   }
 }

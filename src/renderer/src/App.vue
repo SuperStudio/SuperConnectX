@@ -75,7 +75,11 @@
       </div>
     </main>
 
-    <div class="status-bar"></div>
+    <div class="status-bar">
+      <div class="resource-monitor">
+        <ResourceMonitor />
+      </div>
+    </div>
 
     <!-- 新建连接弹窗：Element Plus 美化表单 -->
     <el-dialog
@@ -134,6 +138,7 @@ import { ElMessage, ElForm, ElMessageBox } from 'element-plus'
 import TelnetTerminal from './components/TelnetTerminal.vue'
 import CustomTitleBar from './components/CustomTitleBar.vue'
 import SearchInput from './components/SearchInput.vue'
+import ResourceMonitor from './components/ResourceMonitor.vue'
 
 const searchKeyword = ref('') // 搜索关键词
 const filterConnection = ref<any[]>([])
@@ -495,6 +500,8 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 .status-bar {
   height: 25px;
   background-color: #007acc;
+  display: flex;
+  flex-direction: column; /* 垂直排列 */
 }
 /* 连接列表容器：核心过渡逻辑 */
 .connection-list-wrapper {
@@ -596,5 +603,24 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 
 .connection-btn:deep(.el-button--primary:hover) {
   background-color: #454646;
+}
+
+.resource-monitor {
+  height: 100%;
+  margin-left: 10px;
+  background-color: transparent;
+  color: white;
+  font-size: 11px;
+  padding: 0px 10px;
+  display: flex;
+
+  align-items: center;
+  width: fit-content;
+  align-items: center; /* 垂直居中对齐 */
+  user-select: none;
+}
+
+.resource-monitor:hover {
+  background-color: #45464655;
 }
 </style>

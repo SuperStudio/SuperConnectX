@@ -5,6 +5,7 @@ import logger from './utils/logger'
 import ConnectionStorage from './storage/ConnectionStorage'
 import PreSetCommandStorage from './storage/PreSetCommandStorage'
 import TelnetClient from './protocol/TelnetClient'
+import os from 'os' // 核心：os 模块获取系统内存
 
 const _logger = new logger(app.getPath('userData'))
 
@@ -146,5 +147,19 @@ ipcMain.handle('open-devtools', () => {
     } else {
       webContents.openDevTools({ mode: 'right' })
     }
+  }
+})
+
+ipcMain.handle('get-app-resource', async () => {
+  const cpuInfo = process.getCPUUsage()
+  const cpuRate = Math.max(0, Math.min(100, cpuInfo.percentCPUUsage)).toFixed(2)
+  const memoryInfo = await process.getProcessMemoryInfo()
+  const usedMemory = memoryInfo.residentSet
+  const totalMemGB = os.totalmem()
+  const memRate = ((usedMemory / (totalMemGB / 1024)) * 100).toFixed(2)
+  return {
+    cpu: cpuRate,
+    memory: (usedMemory / 1024).toFixed(2),
+    memRate: memRate
   }
 })
