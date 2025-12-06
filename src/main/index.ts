@@ -40,11 +40,6 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../../out/renderer/index.html'))
   }
 
-  // 开发模式打开开发者工具
-  if (is.dev) {
-    // mainWindow.webContents.openDevTools()
-  }
-
   // 允许点击链接打开系统浏览器
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -140,4 +135,15 @@ ipcMain.handle('close-window', () => {
 
 ipcMain.handle('get-window-state', () => {
   return mainWindow.isMaximized()
+})
+
+ipcMain.handle('open-devtools', () => {
+  if (mainWindow) {
+    const webContents = mainWindow.webContents
+    if (webContents.isDevToolsOpened()) {
+      webContents.closeDevTools()
+    } else {
+      webContents.openDevTools({ mode: 'right' })
+    }
+  }
 })

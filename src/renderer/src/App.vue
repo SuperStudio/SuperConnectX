@@ -12,13 +12,15 @@
             >新建连接</el-button
           >
 
-          <div class="empty-state" v-if="connections.length === 0">
+          <SearchInput @search="handleSearch" />
+
+          <div class="empty-state" v-if="filterConnection.length === 0">
             暂无连接，点击「新建连接」添加
           </div>
           <el-card
             shadow="never"
             class="connection-card"
-            v-for="conn in connections"
+            v-for="conn in filterConnection"
             :key="conn.id"
           >
             <div class="connection-info">
@@ -109,12 +111,15 @@
 
 <script setup lang="ts">
 // 1. Vue 内置 API：从 vue 导入
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 // 2. Element Plus 组件/工具：从 element-plus 导入
 import { ElMessage, ElForm, ElMessageBox } from 'element-plus'
 import TelnetTerminal from './components/TelnetTerminal.vue'
 import CustomTitleBar from './components/CustomTitleBar.vue'
+import SearchInput from './components/SearchInput.vue'
 
+const searchKeyword = ref('') // 搜索关键词
+const filterConnection = ref<any[]>([])
 // 连接列表（从 electron-store 加载）
 const connections = ref<any[]>([])
 // 新建连接弹窗状态
@@ -150,6 +155,32 @@ const newConnRules = ref({
 onMounted(() => {
   console.log('window.electronStore:', window.electronStore) // 打印日志
   loadConnections()
+})
+
+// 过滤后的列表
+const filtereList = () => {
+  if (!searchKeyword.value) {
+    filterConnection.value = connections.value
+    return
+  }
+  const keyword = searchKeyword.value.toLowerCase()
+  filterConnection.value = connections.value.filter(
+    (item) =>
+      item.name.toLowerCase().includes(keyword) ||
+      item.type.toLowerCase().includes(keyword) ||
+      item.host.toLowerCase().includes(keyword) ||
+      String(item.port).includes(keyword)
+  )
+}
+
+// 处理搜索（接收搜索组件事件）
+const handleSearch = (keyword: string) => {
+  searchKeyword.value = keyword
+}
+
+watch([() => connections.value, () => searchKeyword.value], () => filtereList(), {
+  immediate: true,
+  deep: true
 })
 
 // 加载连接列表（从 electron-store 获取）
@@ -260,6 +291,13 @@ const showConnectionList = ref(true)
 const toggleConnectionList = () => {
   showConnectionList.value = !showConnectionList.value
 }
+
+window.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (e.key === 'F12' || e.keyCode === 123) {
+    e.preventDefault()
+    window.electronStore.openDevtools()
+  }
+})
 </script>
 
 <style scoped>
@@ -496,5 +534,22 @@ const toggleConnectionList = () => {
 /* 5. 滑块 active 状态（拖动时） */
 .connection-list::-webkit-scrollbar-thumb:active {
   background: #626263 !important; /* 拖动时更深 */
+}
+
+/* 关键词高亮样式 */
+.highlight {
+  background: #fde68a;
+  color: #92400e;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* 提示文本 */
+.no-result,
+.empty-list {
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  margin-top: 20px;
 }
 </style>
