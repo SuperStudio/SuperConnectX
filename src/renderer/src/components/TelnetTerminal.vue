@@ -1,10 +1,12 @@
 <!-- TelnetTerminal.vue -->
 <template>
   <div class="telnet-terminal">
-    <!-- 新增关闭按钮 -->
     <div class="terminal-header">
       <span class="connection-info">
-        {{ connection.host }}:{{ connection.port }}({{ connection.name }})
+        {{ connection.host }}:{{ connection.port }}({{ connection.name || connection.id }})
+        <span class="connection-status" :class="isConnected ? 'connected' : 'disconnected'">
+          {{ isConnected ? '已连接' : '已断开' }}
+        </span>
       </span>
       <div class="header-buttons">
         <el-checkbox v-model="isShowLog" class="show-log-checkbox" size="small">
@@ -55,8 +57,6 @@
 
     <!-- 终端输出区域 -->
     <div class="terminal-output" v-html="output" ref="terminalOutputRef"></div>
-
-    <!-- 新增：命令预设行 -->
     <div class="preset-commands">
       <el-button
         type="primary"
@@ -64,11 +64,11 @@
         size="small"
         @click="openAddPresetDialog"
         :disabled="!isConnected"
+        class="add-preset-btn"
       >
         新增命令
       </el-button>
 
-      <!-- 修改：每个命令按钮添加右键事件 -->
       <el-button
         v-for="cmd in presetCommands"
         :key="cmd.id"
@@ -86,20 +86,20 @@
 
     <!-- 命令输入区域 -->
     <div class="terminal-input">
+      <span class="prompt">$</span>
       <input
         v-model="currentCommand"
         @keydown.enter="sendCommand"
-        placeholder="输入命令并并按回车..."
+        placeholder="输入命令并按回车..."
         ref="commandInput"
         :disabled="!isConnected"
       />
     </div>
-
-    <!-- 新增命令对话框 -->
     <el-dialog
       :title="isEditing ? '编辑预设命令' : '新增预设命令'"
       v-model="isPresetDialogOpen"
       width="400px"
+      :close-on-click-modal="false"
     >
       <el-form :model="presetForm" :rules="presetRules" ref="presetFormRef" label-width="80px">
         <el-form-item label="命令名称" prop="name">
@@ -149,41 +149,38 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, onMounted, onBeforeUnmount, watch, ref as vueRef } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Close, Document } from '@element-plus/icons-vue' // 导入关闭图标
+import { ref, onUnmounted, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ElMessage, ElForm } from 'element-plus'
 
 const emit = defineEmits(['onClose'])
 
 // 接收父组件传递的连接参数和关闭回调
 const props = defineProps<{
-  connection: { id: number; host: string; port: number }
+  connection: { id: number; host: string; port: number; name?: string }
   onClose?: () => void
 }>()
 
 const output = ref('') // 终端输出内容
 const currentCommand = ref('') // 当前输入的命令
-const commandInput = vueRef<HTMLInputElement>(null) // 输入框引用
-const isConnected = ref(true) // 新增连接状态标识
+const commandInput = ref<HTMLInputElement>(null) // 输入框引用
+const isConnected = ref(true) // 连接状态标识
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
 let currentConnId = 0 // 当前连接的 ID
 
-// 新增：显示日志开关（默认勾选）
-const isShowLog = ref(true) // 控制是否在界面显示日志，默认显示
-const isAutoScroll = ref(true) // 自动滚动状态，默认勾选
-const terminalOutputRef = ref<HTMLDivElement | null>(null) // 输出区域DOM引用
+// 显示日志开关（默认勾选）
+const isShowLog = ref(true)
+const isAutoScroll = ref(true)
+const terminalOutputRef = ref<HTMLDivElement | null>(null)
 
-// 记录循环发送的定时器ID
+// 循环发送相关
 const loopIntervals = ref<Record<number, NodeJS.Timeout>>({})
-// 记录命令是否处于循环发送中
 const loopStatus = ref<Record<number, boolean>>({})
 
 // 切换循环发送状态
 const toggleLoopSend = (cmd: any) => {
   contextMenuVisible.value = false
 
-  // 如果已经在循环发送，清除定时器
   if (loopStatus.value[cmd.id]) {
     if (loopIntervals.value[cmd.id]) {
       clearInterval(loopIntervals.value[cmd.id])
@@ -194,14 +191,10 @@ const toggleLoopSend = (cmd: any) => {
     return
   }
 
-  // 开始循环发送
   loopStatus.value[cmd.id] = true
-
-  // 立即发送一次
   sendPresetCommand(cmd)
 
-  // 设置定时器，根据延迟时间循环发送
-  const intervalTime = Math.max(cmd.delay || 1000, 100) // 最小100ms防止过于频繁
+  const intervalTime = Math.max(cmd.delay || 1000, 100)
   loopIntervals.value[cmd.id] = setInterval(() => {
     sendPresetCommand(cmd)
   }, intervalTime)
@@ -209,15 +202,14 @@ const toggleLoopSend = (cmd: any) => {
   ElMessage.success(`已开始循环发送: ${cmd.name} (间隔${intervalTime}ms)`)
 }
 
-// 自动滚动状态变化处理
+// 自动滚动处理
 const handleAutoScrollChange = (value: boolean) => {
-  // 如果勾选，立即滚动到最底部
   if (value) {
     scrollToBottom()
   }
 }
 
-// 新增：打开日志文件
+// 打开日志文件
 const openLogFile = async () => {
   try {
     console.log('请求打开日志文件')
@@ -238,10 +230,7 @@ const handleClose = async () => {
       await window.electronStore.telnetDisconnect(currentConnId)
       output.value += '<br>--- 连接已手动关闭 ---'
       isConnected.value = false
-
-      // 优先用 emit 触发父组件事件（Vue 推荐的组件通信方式）
       emit('onClose')
-      // 兼容旧的 props.onClose（如果父组件仍用 props 传递）
       if (typeof props.onClose === 'function') {
         props.onClose()
       }
@@ -257,7 +246,6 @@ const handleClose = async () => {
         removeCloseListener()
         removeCloseListener = null
       }
-      // 更新状态
       output.value += '<br>--- 连接已手动关闭 ---'
       isConnected.value = false
       currentConnId = 0
@@ -286,7 +274,7 @@ const handleTelnetClose = (connId: number) => {
     ElMessage.info('连接已关闭')
     output.value += '<br>--- 连接已关闭 ---'
     isConnected.value = false
-    currentConnId = 0 // 清空连接 ID，避免重复触发
+    currentConnId = 0
     emit('onClose')
     if (typeof props.onClose === 'function') {
       props.onClose()
@@ -305,7 +293,6 @@ const connect = async () => {
     removeCloseListener = null
   }
 
-  // 重置状态
   isConnected.value = false
   currentConnId = 0
   output.value = ''
@@ -343,7 +330,7 @@ const connect = async () => {
   }
 }
 
-// 发送命令到 Telnet 服务器
+// 发送命令
 const sendCommand = async () => {
   if (!currentCommand.value.trim() || !isConnected.value) return
 
@@ -380,7 +367,7 @@ watch(
   }
 )
 
-// 组件卸载时移除监听、断开连接
+// 组件卸载清理
 onUnmounted(() => {
   console.log('组件卸载：强制清理所有监听和连接')
   if (removeDataListener) {
@@ -392,12 +379,10 @@ onUnmounted(() => {
     removeCloseListener = null
   }
 
-  // 清除所有循环发送定时器
   Object.values(loopIntervals.value).forEach((interval) => {
     clearInterval(interval)
   })
 
-  // 强制断开连接
   if (currentConnId && isConnected.value) {
     window.electronStore.telnetDisconnect(currentConnId).catch((err) => {
       console.error('卸载时断开失败:', err)
@@ -411,6 +396,8 @@ const isPresetDialogOpen = ref(false)
 const isEditing = ref(false)
 const currentEditingCmd = ref<any>(null)
 const contextMenuVisible = ref(false)
+const contextMenuLeft = ref(0)
+const contextMenuTop = ref(0)
 
 // 预设命令表单
 const presetForm = ref({
@@ -469,36 +456,30 @@ const editPresetCommand = (cmd: any) => {
 }
 
 // 保存预设命令
-// 保存预设命令（修改这里）
 const savePresetCommand = async () => {
   if (!presetFormRef.value) return
 
   try {
     await presetFormRef.value.validate()
 
-    // 关键：创建纯 JavaScript 对象，去除 Vue 响应式属性
     const pureFormData = {
       name: presetForm.value.name.trim(),
       command: presetForm.value.command.trim(),
-      delay: Number(presetForm.value.delay) || 0 // 确保是数字类型
+      delay: Number(presetForm.value.delay) || 0
     }
 
     if (isEditing.value && currentEditingCmd.value) {
-      // 更新现有命令
       const updatedCmd = {
         id: currentEditingCmd.value.id,
         ...pureFormData
       }
-      // 再次序列化确保安全
       await window.electronStore.updatePresetCommand(JSON.parse(JSON.stringify(updatedCmd)))
       ElMessage.success('命令已更新')
     } else {
-      // 添加新命令
       await window.electronStore.addPresetCommand(JSON.parse(JSON.stringify(pureFormData)))
       ElMessage.success('命令已添加')
     }
 
-    // 重新加载命令列表
     loadPresetCommands()
     isPresetDialogOpen.value = false
   } catch (error) {
@@ -520,18 +501,47 @@ const deletePresetCommand = async (id: number) => {
   }
 }
 
-// 打开右键菜单
-const openContextMenu = (cmd: any, event: MouseEvent) => {
-  event.preventDefault()
-  currentEditingCmd.value = cmd
-  contextMenuVisible.value = true
+// 显示右键菜单
+const showContextMenu = (cmd: any, event: MouseEvent) => {
+  event.preventDefault() // 阻止浏览器默认右键菜单
+  event.stopPropagation() // 阻止事件冒泡
 
-  // 定位菜单到鼠标位置
-  const menu = document.querySelector('.el-dropdown-menu')
-  if (menu) {
-    menu.style.position = 'fixed'
-    menu.style.left = `${event.clientX}px`
-    menu.style.top = `${event.clientY}px`
+  // 记录当前操作的命令
+  currentEditingCmd.value = cmd
+
+  // 获取菜单元素预估高度（每个菜单项约40px，3个菜单项+边框约124px）
+  const menuHeight = 124
+  // 获取屏幕可见区域高度
+  const screenHeight = window.innerHeight
+
+  // 计算基础位置
+  let left = event.clientX
+  let top = event.clientY
+
+  // 防止菜单底部超出屏幕
+  if (top + menuHeight > screenHeight) {
+    top = screenHeight - menuHeight - 10 // 向上调整位置，留10px边距
+  }
+
+  // 防止菜单右侧超出屏幕
+  if (left + 120 > window.innerWidth) {
+    // 120是菜单宽度
+    left = window.innerWidth - 120 - 10 // 向左调整位置
+  }
+
+  // 设置菜单位置
+  contextMenuLeft.value = left
+  contextMenuTop.value = top
+
+  // 显示菜单
+  contextMenuVisible.value = true
+}
+
+// 点击外部关闭右键菜单
+const closeContextMenuOnClickOutside = (event: MouseEvent) => {
+  const contextMenu = document.querySelector('.context-menu')
+  if (contextMenu && !contextMenu.contains(event.target as Node)) {
+    contextMenuVisible.value = false
   }
 }
 
@@ -540,7 +550,6 @@ const sendPresetCommand = async (cmd: any) => {
   if (!isConnected.value) return
 
   try {
-    // 如果有时延，等待后再聚焦输入框
     if (cmd.delay > 0) {
       setTimeout(() => {
         window.electronStore.telnetSend({
@@ -566,105 +575,117 @@ const sendPresetCommand = async (cmd: any) => {
   }
 }
 
+// 清空屏幕
+const clearTerminal = () => {
+  output.value = ''
+  commandInput.value?.focus()
+}
+
 onMounted(() => {
   loadPresetCommands()
   document.addEventListener('click', closeContextMenuOnClickOutside)
   document.addEventListener('contextmenu', () => {
     contextMenuVisible.value = false
   })
-  // 初始滚动到底部
   setTimeout(scrollToBottom, 100)
+  // 初始化连接
+  connect()
 })
 
-// 右键菜单相关（修改部分）
-const contextMenuLeft = ref(0) // 菜单左侧位置
-const contextMenuTop = ref(0) // 菜单顶部位置
-
-// 显示右键菜单（修改）
-const showContextMenu = (cmd: any, event: MouseEvent) => {
-  event.preventDefault() // 阻止浏览器默认右键菜单
-  event.stopPropagation() // 阻止事件冒泡
-
-  // 记录当前操作的命令
-  currentEditingCmd.value = cmd
-
-  // 设置菜单位置（基于鼠标坐标）
-  contextMenuLeft.value = event.clientX
-  contextMenuTop.value = event.clientY
-
-  // 显示菜单
-  contextMenuVisible.value = true
-}
-
-// 点击页面其他地方关闭菜单（新增）
-const closeContextMenuOnClickOutside = (event: MouseEvent) => {
-  const contextMenu = document.querySelector('.context-menu')
-  if (contextMenu && !contextMenu.contains(event.target as Node)) {
-    contextMenuVisible.value = false
-  }
-}
-
-// 移除事件监听（新增）
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeContextMenuOnClickOutside)
   document.removeEventListener('contextmenu', () => {
     contextMenuVisible.value = false
   })
 })
-
-// 新增：清空屏幕功能
-const clearTerminal = () => {
-  output.value = '' // 清空输出内容
-  ElMessage.success('屏幕已清空')
-  commandInput.value?.focus() // 清空后聚焦输入框
-}
-
-// 初始化时自动连接
-connect()
 </script>
 
 <style scoped>
 .telnet-terminal {
   width: 100%;
   height: 100%;
-  margin: 0px;
-  padding: 0px;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   background: #1e1e1e;
   color: #fff;
-  font-family: monospace;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  border-radius: 0px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* 右侧按钮组样式 */
+/* 头部样式 */
+.terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #333;
+  background: #2d2d2d;
+  height: 42px;
+  box-sizing: border-box;
+}
+
+/* 连接信息 */
+.connection-info {
+  font-size: 14px;
+  color: #e0e0e0;
+  flex: 1;
+  padding: 0 10px;
+}
+
+.connection-status {
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: normal;
+}
+
+.connection-status.connected {
+  background-color: rgba(24, 193, 56, 0.2);
+  color: #18c138;
+}
+
+.connection-status.disconnected {
+  background-color: rgba(255, 95, 88, 0.2);
+  color: #ff5f58;
+}
+
+/* 按钮组 */
 .header-buttons {
   display: flex;
-  gap: 8px; /* 按钮之间间距 */
-  align-items: center; /* 新增：垂直居中 */
+  gap: 8px;
+  align-items: center;
   margin-right: 10px;
 }
 
-/* 按钮样式优化（统一按钮风格） */
+/* 按钮样式 */
 .log-btn,
 .close-btn,
-.clear-btn {
+.clear-btn,
+.add-preset-btn {
   padding: 6px 12px !important;
   border-radius: 4px !important;
+  transition: all 0.2s ease !important;
 }
 
-/* 打开日志按钮（默认样式） */
-.log-btn {
+.log-btn,
+.clear-btn {
   background-color: #3a3a3a !important;
   border-color: #444 !important;
   color: #e0e0e0 !important;
 }
 
-.log-btn:hover {
+.log-btn:hover,
+.clear-btn:hover {
   background-color: #4a4a4a !important;
   border-color: #555 !important;
+  transform: translateY(-1px);
 }
 
-/* 关闭连接按钮（危险样式） */
 .close-btn {
   background-color: #ff4d4f !important;
   border-color: #ff6767 !important;
@@ -674,163 +695,159 @@ connect()
 .close-btn:hover {
   background-color: #ff6b6b !important;
   border-color: #ff8080 !important;
+  transform: translateY(-1px);
 }
 
-/* 清空屏幕按钮样式 */
-.clear-btn {
-  background-color: #3a3a3a !important;
-  border-color: #444 !important;
-  color: #e0e0e0 !important;
+.add-preset-btn {
+  background-color: #165dff !important;
+  border-color: #165dff !important;
 }
 
-.clear-btn:hover {
-  background-color: #4a4a4a !important;
-  border-color: #555 !important;
+.add-preset-btn:hover {
+  background-color: #0e4ada !important;
+  transform: translateY(-1px);
 }
 
-/* 连接信息样式（保持不变） */
-.connection-info {
-  font-size: 14px;
-  font-weight: 500;
-  color: #cccccc;
-  font-weight: 1000;
-  font-size: 14px;
-}
-
-/* 新增头部样式 */
-.terminal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 10px;
-  border-bottom: 1px solid #333;
-  background: #222;
-  height: 40px;
-  box-sizing: border-box;
-}
-
+/* 终端输出区域 */
 .terminal-output {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
+  padding: 15px;
   white-space: pre-wrap;
+  line-height: 1.5;
+  background-color: #1e1e1e;
+  position: relative;
 }
 
+/* 空状态样式 */
+.empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #888;
+}
+
+.empty-state .hint {
+  font-size: 12px;
+  margin-top: 8px;
+  color: #666;
+}
+
+.terminal-input input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #e0e0e0;
+  padding: 8px 0;
+  outline: none;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 14px;
+}
+
+.terminal-input input::placeholder {
+  color: #666;
+}
+
+.terminal-input input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* 命令输入区域样式调整 */
 .terminal-input {
   display: flex;
-  padding: 10px;
-  border-top: 1px solid #333;
-  margin-bottom: 30px;
+  align-items: center; /* 垂直居中对齐 */
+  border-radius: 0px;
+}
+/* 命令输入区域样式调整 */
+.terminal-input {
+  display: flex;
+  align-items: center; /* 垂直居中对齐 */
+  background-color: #333;
 }
 
+/* 命令提示符样式 */
+.prompt {
+  color: #4caf50; /* 绿色提示符，可自定义 */
+  font-weight: bold;
+  white-space: nowrap; /* 防止换行 */
+  margin-left: 10px;
+  user-select: none; /* 核心：禁止文本选择 */
+}
+
+/* 输入框样式保持不变，但可以移除左右内边距避免整体过宽 */
 .terminal-input input {
   flex: 1;
   background: #333;
   border: none;
   color: #fff;
-  padding: 8px;
+  padding: 8px 10px; /* 只保留上下内边距 */
   outline: none;
   font-family: monospace;
 }
 
-/* 禁用状态样式 */
-.terminal-input input:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-/* 新增命令预设区域样式 */
+/* 预设命令区域 */
 .preset-commands {
-  padding: 8px 10px;
+  padding: 8px 15px;
   border-bottom: 1px solid #333;
-  background: #2a2a2a;
+  background: #252526;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
   align-items: center;
+  max-height: 100px;
+  overflow-y: auto;
 }
 
-/* 修复：命令按钮样式，确保右键点击区域正常 */
-.preset-btn {
-  background-color: #3a3a3a !important;
-  border-color: #444 !important;
-  color: #e0e0e0 !important;
-  position: relative !important;
-  z-index: 1 !important;
-}
-/* 右键菜单样式 */
-.el-dropdown-menu {
-  background-color: #2d2d2d !important;
-  border-color: #444 !important;
+.preset-commands::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-.el-dropdown-item {
-  color: #e0e0e0 !important;
+.preset-commands::-webkit-scrollbar-thumb {
+  background-color: #444;
+  border-radius: 3px;
 }
 
-.el-dropdown-item:hover {
-  background-color: #3a3a3a !important;
-}
-
-/* 修复：右键菜单核心样式 */
-.context-menu-container {
-  position: fixed !important;
-  z-index: 9999 !important;
-  padding: 2px !important;
-  background-color: #2d2d2d !important;
-  border-radius: 4px !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important;
-  border: 1px solid #444 !important;
-}
-
-.context-menu {
-  width: 120px !important;
-  background-color: transparent !important;
-  border: none !important;
-}
-
-/* 菜单项样式 */
-.menu-item {
-  color: #e0e0e0 !important;
-  height: 38px !important;
-  line-height: 38px !important;
-  padding: 0 16px !important;
-  margin: 0 !important;
-  border-radius: 2px !important;
-}
-
-.menu-item:hover {
-  background-color: #3a3a3a !important;
-}
-
-/* 删除项样式 */
-.delete-item {
-  color: #ff4d4f !important;
-}
-
-/* 去除菜单默认间距和边框 */
-.el-menu--vertical {
-  border-right: none !important;
-}
-
-.el-menu-item:not(:last-child) {
-  border-bottom: 1px solid #383838 !important;
-}
-
-/* 确保菜单不被遮挡 */
-.el-menu {
-  overflow: visible !important;
-}
-
-/* 命令按钮样式优化 */
+/* 预设命令按钮 */
 .preset-btn {
   background-color: #3a3a3a !important;
   border-color: #444 !important;
   color: #e0e0e0 !important;
   margin: 2px 0 !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+  z-index: 1 !important;
 }
 
-/* 新增：自动滚动复选框样式 */
-.auto-scroll-checkbox {
+.preset-btn:hover {
+  background-color: #4a4a4a !important;
+  border-color: #555 !important;
+  transform: translateY(-1px);
+}
+
+.preset-btn.looping {
+  animation: pulse 1.5s infinite;
+  border-color: #165dff !important;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(22, 93, 255, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(22, 93, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 93, 255, 0);
+  }
+}
+
+/* 复选框样式 */
+.auto-scroll-checkbox,
+.show-log-checkbox {
   color: #e0e0e0 !important;
   margin-right: 8px !important;
   align-self: center !important;
@@ -842,8 +859,8 @@ connect()
 }
 
 .el-checkbox__input.is-checked .el-checkbox__inner {
-  background-color: #1890ff !important;
-  border-color: #1890ff !important;
+  background-color: #165dff !important;
+  border-color: #165dff !important;
 }
 
 .el-checkbox__label {
@@ -851,27 +868,81 @@ connect()
   font-size: 14px !important;
 }
 
-/* 新增：显示日志复选框样式 */
-.show-log-checkbox {
+/* 右键菜单样式 */
+.context-menu-container {
+  position: fixed !important;
+  z-index: 9999 !important;
+  padding: 2px !important;
+  background-color: #2d2d2d !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid #444 !important;
+  transition: opacity 0.1s ease;
+}
+
+.context-menu {
+  width: 120px !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.menu-item {
   color: #e0e0e0 !important;
-  margin-right: 8px !important;
-  align-self: center !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  padding: 0 16px !important;
+  margin: 0 !important;
+  border-radius: 2px !important;
+  transition: background-color 0.15s ease !important;
 }
 
-.preset-btn.looping {
-  animation: pulse 1.5s infinite;
-  border-color: #1890ff !important;
+.menu-item:hover {
+  background-color: #3a3a3a !important;
 }
 
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.4);
+.delete-item {
+  color: #ff4d4f !important;
+}
+
+.el-menu--vertical {
+  border-right: none !important;
+}
+
+.el-menu-item:not(:last-child) {
+  border-bottom: 1px solid #383838 !important;
+}
+
+/* 滚动条美化 */
+.terminal-output::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.terminal-output::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+.terminal-output::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+.terminal-output::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
   }
-  70% {
-    box-shadow: 0 0 0 10px rgba(24, 144, 255, 0);
+  to {
+    opacity: 1;
   }
-  100% {
-    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
-  }
+}
+
+.el-button,
+.el-checkbox {
+  animation: fadeIn 0.2s ease-out;
 }
 </style>
