@@ -124,7 +124,7 @@ const closeWindow = () => {
 .custom-titlebar {
   height: 32px;
   background-color: #323233;
-  color: #C5C5C5;
+  color: #c5c5c5;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -135,6 +135,7 @@ const closeWindow = () => {
 }
 
 .titlebar-left {
+  margin-left: 10px;
   display: flex;
   align-items: center;
   gap: 8px;

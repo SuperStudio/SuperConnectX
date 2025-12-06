@@ -42,6 +42,8 @@
       </div>
     </main>
 
+    <div class="status-bar"></div>
+
     <!-- 新建连接弹窗：Element Plus 美化表单 -->
     <el-dialog
       title="新建 Telnet 连接"
@@ -311,17 +313,14 @@ const handleTerminalClose = () => {
   background: #2d2d2d !important;
   border: 1px solid #3a3a3a !important;
   margin-top: 12px;
-  margin-bottom: 12px;
   border-radius: 8px !important;
   overflow: hidden;
 }
 
 /* 鼠标悬浮样式：显示阴影 + 改变边框颜色/宽度 */
 .connection-card:hover {
-  box-shadow: 0 10px 10px rgba(64, 158, 255, 0.1);
   /* 边框：颜色改为主题色 + 宽度稍增（可选） */
   border: 1px solid rgb(64, 158, 255) !important;
-  /* 可选：轻微上浮效果 */
   transform: translateY(-2px);
 }
 
@@ -400,5 +399,10 @@ const handleTerminalClose = () => {
 
 .new-connection:hover {
   background-color: #1177bb;
+}
+
+.status-bar {
+  height: 25px;
+  background-color: #007acc;
 }
 </style>
