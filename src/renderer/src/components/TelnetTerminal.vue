@@ -3,7 +3,9 @@
   <div class="telnet-terminal">
     <!-- 新增关闭按钮 -->
     <div class="terminal-header">
-      <span class="connection-info"> {{ connection.host }}:{{ connection.port }} </span>
+      <span class="connection-info">
+        {{ connection.host }}:{{ connection.port }}({{ connection.name }})
+      </span>
       <div class="header-buttons">
         <el-checkbox v-model="isShowLog" class="show-log-checkbox" size="small">
           显示日志
@@ -51,6 +53,9 @@
       </div>
     </div>
 
+    <!-- 终端输出区域 -->
+    <div class="terminal-output" v-html="output" ref="terminalOutputRef"></div>
+
     <!-- 新增：命令预设行 -->
     <div class="preset-commands">
       <el-button
@@ -78,9 +83,6 @@
         <template v-if="loopStatus[cmd.id]">🔄</template>
       </el-button>
     </div>
-
-    <!-- 终端输出区域 -->
-    <div class="terminal-output" v-html="output" ref="terminalOutputRef"></div>
 
     <!-- 命令输入区域 -->
     <div class="terminal-input">
@@ -625,6 +627,8 @@ connect()
 .telnet-terminal {
   width: 100%;
   height: 100%;
+  margin: 0px;
+  padding: 0px;
   display: flex;
   flex-direction: column;
   background: #1e1e1e;
@@ -688,6 +692,9 @@ connect()
 .connection-info {
   font-size: 14px;
   font-weight: 500;
+  color: #cccccc;
+  font-weight: 1000;
+  font-size: 14px;
 }
 
 /* 新增头部样式 */
@@ -700,11 +707,6 @@ connect()
   background: #222;
   height: 40px;
   box-sizing: border-box;
-}
-
-.connection-info {
-  color: #61dafb;
-  font-size: 14px;
 }
 
 .terminal-output {

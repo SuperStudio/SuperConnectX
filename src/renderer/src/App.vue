@@ -454,16 +454,6 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   margin-left: 8px;
 }
 
-.terminal-panel {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #1e1e1e;
-  color: #aaa;
-  font-size: 14px;
-}
-
 /* Element Plus 弹窗表单样式适配 */
 .el-dialog {
   background: #2d2d2d !important;
@@ -526,16 +516,17 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 
 /* 终端面板：过渡宽度和边距 */
 .terminal-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e1e1e;
+  color: #aaa;
+  font-size: 14px;
   flex: 1; /* 默认占剩余宽度 */
-  padding: 8px;
+  padding: 0px;
   transition: padding-left 0.3s ease-in-out; /* 边距过渡 */
   height: 100%;
   overflow: auto;
-}
-
-/* 展开状态：终端面板左内边距优化 */
-.terminal-panel.expanded {
-  padding-left: 16px;
 }
 
 /* 原有连接列表样式（补充） */
