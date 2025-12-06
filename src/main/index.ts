@@ -42,7 +42,7 @@ function createWindow(): void {
 
   // 开发模式打开开发者工具
   if (is.dev) {
-    mainWindow.webContents.openDevTools()
+    // mainWindow.webContents.openDevTools()
   }
 
   // 允许点击链接打开系统浏览器

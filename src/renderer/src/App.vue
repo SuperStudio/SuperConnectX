@@ -1,24 +1,17 @@
 <template>
   <div class="app-container">
     <CustomTitleBar />
-    <!-- 顶部导航栏 -->
-    <div class="app-toolbar">
-      <h1>🚀 SuperConnectX</h1>
-      <div class="header-actions">
-        <!-- 新建连接按钮：触发弹窗 -->
-        <el-button type="primary" icon="Plus" @click="openCreateDialog">新建连接</el-button>
-        <el-button type="default" icon="Setting" @click="openSettings">设置</el-button>
-      </div>
-    </div>
-
     <!-- 主内容区：左侧连接列表 + 右侧终端 -->
     <main class="app-main">
       <div class="connection-list">
-        <h3>已保存连接</h3>
+        <el-button type="primary" class="new-connection" icon="Plus" @click="openCreateDialog"
+          >新建连接</el-button
+        >
+
         <div class="empty-state" v-if="connections.length === 0">
           暂无连接，点击「新建连接」添加
         </div>
-        <el-card shadow="hover" class="connection-card" v-for="conn in connections" :key="conn.id">
+        <el-card shadow="never" class="connection-card" v-for="conn in connections" :key="conn.id">
           <div class="connection-info">
             <div class="conn-name">{{ conn.name }}</div>
             <div class="conn-detail">
@@ -296,7 +289,7 @@ const handleTerminalClose = () => {
   border-right: 1px solid #333;
   padding: 20px;
   overflow-y: auto;
-  background: #242424;
+  background: #252526;
 }
 
 .connection-list h3 {
@@ -317,18 +310,24 @@ const handleTerminalClose = () => {
 .connection-card {
   background: #2d2d2d !important;
   border: 1px solid #3a3a3a !important;
+  margin-top: 12px;
   margin-bottom: 12px;
   border-radius: 8px !important;
   overflow: hidden;
 }
 
-.connection-info {
-  padding: 12px;
+/* 鼠标悬浮样式：显示阴影 + 改变边框颜色/宽度 */
+.connection-card:hover {
+  box-shadow: 0 10px 10px rgba(64, 158, 255, 0.1);
+  /* 边框：颜色改为主题色 + 宽度稍增（可选） */
+  border: 1px solid rgb(64, 158, 255) !important;
+  /* 可选：轻微上浮效果 */
+  transform: translateY(-2px);
 }
 
 .conn-name {
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 1000;
   color: #e0e0e0;
   margin-bottom: 8px;
 }
@@ -346,10 +345,9 @@ const handleTerminalClose = () => {
 
 .connection-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: left;
   padding: 8px 12px;
   border-top: 1px solid #3a3a3a;
-  background: #333;
 }
 
 .connection-actions button {
@@ -361,7 +359,7 @@ const handleTerminalClose = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000;
+  background: #1e1e1e;
   color: #aaa;
   font-size: 14px;
 }
@@ -392,5 +390,15 @@ const handleTerminalClose = () => {
 .el-input:focus-within,
 .el-select:focus-within {
   --el-border-color: #42b983 !important;
+}
+
+.new-connection {
+  width: 100%;
+  background-color: #0e639c;
+  border: none;
+}
+
+.new-connection:hover {
+  background-color: #1177bb;
 }
 </style>

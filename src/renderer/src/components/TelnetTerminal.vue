@@ -627,7 +627,7 @@ connect()
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #000;
+  background: #1e1e1e;
   color: #fff;
   font-family: monospace;
 }
