@@ -21,30 +21,16 @@
           size="small"
           class="clear-btn"
           @click="clearTerminal"
-          :disabled="!isConnected || output === ''"
+          :disabled="output === ''"
         >
           清空屏幕
         </el-button>
 
-        <el-button
-          type="default"
-          icon="Document"
-          size="small"
-          class="log-btn"
-          @click="openLogFile"
-          :disabled="!isConnected"
-        >
+        <el-button type="default" icon="Document" size="small" class="log-btn" @click="openLogFile">
           打开日志
         </el-button>
 
-        <el-button
-          type="danger"
-          icon="Close"
-          size="small"
-          class="close-btn"
-          @click="handleClose"
-          :disabled="!isConnected"
-        >
+        <el-button type="danger" icon="Close" size="small" class="close-btn" @click="handleClose">
           关闭连接
         </el-button>
       </div>
@@ -144,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onUnmounted, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElForm } from 'element-plus'
 import * as monaco from 'monaco-editor'
 
@@ -175,14 +161,21 @@ const editorContainer = ref<HTMLElement | null>(null)
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 let editorModel: monaco.editor.ITextModel | null = null // 直接持有模型，不通过 Vue 响应式
 
+// 重试相关标记
+const MAX_RETRY_COUNT = 1000 // 最大重试次数
+const RETRY_INTERVAL_MS = 3000
+let retryCount = 0 // 当前重试次数
+let retryTimer: NodeJS.Timeout | null = null // 重试定时器
+let stopRetry = ref(false) // 是否停止重试（点击断开后设为true）
+
+// 初始化编辑器
 const initEditor = async () => {
   if (!editorContainer.value) return
 
-  // 1. 先创建独立文本模型（脱离 Vue 响应式）
   editorModel = monaco.editor.createModel(
-    `success connect to ${props.connection.host}:${props.connection.port}\n`,
+    `正在尝试连接 ${props.connection.host}:${props.connection.port}...\n`,
     'plaintext',
-    monaco.Uri.parse('telnet-terminal:///output.txt') // 自定义 URI，避免模型冲突
+    monaco.Uri.parse('telnet-terminal:///output.txt')
   )
 
   // 2. 创建编辑器，绑定独立模型
@@ -285,6 +278,14 @@ const openLogFile = async () => {
 
 // 处理关闭连接
 const handleClose = async () => {
+  // 标记停止重试
+  stopRetry.value = true
+  // 清除重试定时器
+  if (retryTimer) {
+    clearTimeout(retryTimer)
+    retryTimer = null
+  }
+
   if (currentConnId) {
     try {
       await window.electronStore.telnetDisconnect(currentConnId)
@@ -335,48 +336,57 @@ const handleTelnetClose = (connId: number) => {
     if (typeof props.onClose === 'function') {
       props.onClose()
     }
+    if (!stopRetry.value) connect()
   }
 }
 
 // 连接 Telnet 服务器
+// 连接逻辑（含重试）
 const connect = async () => {
-  if (removeDataListener) {
-    removeDataListener()
-    removeDataListener = null
-  }
-  if (removeCloseListener) {
-    removeCloseListener()
-    removeCloseListener = null
-  }
-
+  // 重置状态
+  stopRetry.value = false
+  retryCount = 0
   isConnected.value = false
   currentConnId = 0
+  // 定义连接尝试函数
+  const attemptConnect = async () => {
+    // 如果标记为停止重试，直接终止
+    if (stopRetry.value) {
+      console.log(`\n已手动停止重连，终止尝试\n`)
+      return
+    }
 
-  try {
-    const result = await window.electronStore.connectTelnet(getCurrentConnect())
-    if (result.success) {
-      currentConnId = result.connId
-      isConnected.value = true
-      removeDataListener = window.electronStore.onTelnetData(handleTelnetData)
-      removeCloseListener = window.electronStore.onTelnetClose(handleTelnetClose)
-      commandInput.value?.focus()
-    } else {
-      ElMessage.error(result.message)
-      isConnected.value = false
-      emit('onClose')
-      if (typeof props.onClose === 'function') {
-        props.onClose()
+    try {
+      const result = await window.electronStore.connectTelnet(getCurrentConnect())
+      if (result.success) {
+        currentConnId = result.connId
+        isConnected.value = true
+        removeDataListener = window.electronStore.onTelnetData(handleTelnetData)
+        removeCloseListener = window.electronStore.onTelnetClose(handleTelnetClose)
+        commandInput.value?.focus()
+        appendToTerminal(`connect success, retry count: ${retryCount + 1}\n`)
+        retryCount = 0 // 重置重试计数
+      } else {
+        throw new Error(result.message || '连接失败')
+      }
+    } catch (error) {
+      retryCount++
+      const errMsg = (error as Error).message
+      appendToTerminal(`connect failed: (${retryCount}/${MAX_RETRY_COUNT})：${errMsg}\n`)
+      // 未达到最大重试次数，继续重试（固定1秒间隔）
+      if (retryCount < MAX_RETRY_COUNT && !stopRetry.value) {
+        retryTimer = setTimeout(attemptConnect, RETRY_INTERVAL_MS) // 固定1秒重试
+      } else if (retryCount >= MAX_RETRY_COUNT) {
+        // 达到最大重试次数
+        appendToTerminal(`reach max retry count: (${MAX_RETRY_COUNT}\n`)
+        emit('onClose')
+        if (typeof props.onClose === 'function') props.onClose()
       }
     }
-  } catch (error) {
-    console.error('连接失败:', error)
-    ElMessage.error('连接失败')
-    isConnected.value = false
-    emit('onClose')
-    if (typeof props.onClose === 'function') {
-      props.onClose()
-    }
   }
+
+  // 启动首次连接尝试
+  await attemptConnect()
 }
 
 // 发送命令
@@ -402,6 +412,9 @@ const sendCommand = async () => {
 // 组件卸载清理
 onUnmounted(() => {
   console.log('组件卸载：强制清理所有监听和连接')
+
+  stopRetry.value = true
+  if (retryTimer) clearTimeout(retryTimer)
 
   if (editorModel) {
     editorModel.dispose()
