@@ -619,8 +619,4 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   align-items: center; /* 垂直居中对齐 */
   user-select: none;
 }
-
-.resource-monitor:hover {
-  background-color: #45464655;
-}
 </style>
