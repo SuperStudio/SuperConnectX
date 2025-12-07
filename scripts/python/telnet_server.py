@@ -23,7 +23,7 @@ def _build_json(size):
 def handle_cmd(cmd: str):
     global send_interval  # 声明使用全局变量
     print(f"recv {cmd}")
-    rsp = "not support cmd"
+    rsp = "not support cmd\n"
     # 命令处理逻辑
     if cmd.startswith("setInterval"):
         send_interval = float(cmd.split(",")[-1])

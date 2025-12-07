@@ -22,6 +22,7 @@
             class="connection-card"
             v-for="conn in filterConnection"
             :key="conn.id"
+            @dblclick="connectToServer(conn)"
           >
             <div class="connection-info">
               <div class="conn-name">{{ conn.name }}</div>
@@ -315,17 +316,16 @@ const deleteConnection = async (conn) => {
   }
 }
 
-// 打开设置（预留）
-const openSettings = () => {
-  ElMessage.info('设置面板开发中...')
-}
-
 // 添加活跃连接状态
 
 const activeConnection = ref<any>(null)
 
 // 修改连接函数
 const connectToServer = (conn: any) => {
+  if (activeConnection.value) {
+    ElMessage.info('当前仅支持打开一个连接')
+    return
+  }
   activeConnection.value = conn
 }
 

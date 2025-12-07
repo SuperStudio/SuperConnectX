@@ -260,17 +260,20 @@ const toggleLoopSend = (cmd: any) => {
   ElMessage.success(`已开始循环发送: ${cmd.name} (间隔${intervalTime}ms)`)
 }
 
+const getCurrentConnect = () => {
+  return {
+    id: props.connection.id,
+    host: props.connection.host,
+    port: props.connection.port,
+    name: props.connection.name
+  }
+}
+
 // 打开日志文件
 const openLogFile = async () => {
   try {
     console.log('请求打开日志文件')
-    const cleanConn = {
-      id: props.connection.id,
-      host: props.connection.host,
-      port: props.connection.port,
-      name: props.connection.name
-    }
-    const result = await window.electronStore.openTelnetLog(cleanConn)
+    const result = await window.electronStore.openTelnetLog(getCurrentConnect())
     if (!result.success) {
       ElMessage.error(`打开日志失败：${result.message}`)
     }
@@ -350,13 +353,7 @@ const connect = async () => {
   currentConnId = 0
 
   try {
-    const cleanConn = {
-      id: props.connection.id,
-      host: props.connection.host,
-      port: props.connection.port,
-      name: props.connection.name
-    }
-    const result = await window.electronStore.connectTelnet(cleanConn)
+    const result = await window.electronStore.connectTelnet(getCurrentConnect())
     if (result.success) {
       currentConnId = result.connId
       isConnected.value = true
@@ -389,11 +386,11 @@ const sendCommand = async () => {
   let sendData = currentCommand.value
   currentCommand.value = ''
   commandInput.value?.focus()
-  appendToTerminal(sendData)
+  appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${sendData}\n`)
 
   try {
     await window.electronStore.telnetSend({
-      conn: props.connection,
+      conn: getCurrentConnect(),
       command: sendData.trim()
     })
   } catch (error) {
@@ -599,18 +596,18 @@ const sendPresetCommand = async (cmd: any) => {
     if (cmd.delay > 0) {
       setTimeout(() => {
         window.electronStore.telnetSend({
-          connId: currentConnId,
+          conn: getCurrentConnect(),
           command: cmd.command.trim()
         })
-        appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}`)
+        appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}\n`)
         commandInput.value?.focus()
       }, cmd.delay)
     } else {
       window.electronStore.telnetSend({
-        connId: currentConnId,
+        conn: getCurrentConnect(),
         command: cmd.command.trim()
       })
-      appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}`)
+      appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}\n`)
       commandInput.value?.focus()
     }
   } catch (error) {
