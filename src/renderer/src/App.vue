@@ -35,11 +35,21 @@
             <div class="connection-actions">
               <div class="connection-btn">
                 <el-button
+                  v-if="activeConnection?.id !== conn.id"
                   type="text"
                   class="el-button--primary"
                   icon="Link"
                   @click="connectToServer(conn)"
                   >连接</el-button
+                >
+                <el-button
+                  v-else
+                  type="text"
+                  class="el-button--primary"
+                  icon="Close"
+                  style="color: #ff4d4f"
+                  @click="connectToServer(conn)"
+                  >断开</el-button
                 >
               </div>
               <div class="connection-btn">
@@ -321,11 +331,20 @@ const deleteConnection = async (conn) => {
 const activeConnection = ref<any>(null)
 
 // 修改连接函数
-const connectToServer = (conn: any) => {
-  if (activeConnection.value) {
-    ElMessage.info('当前仅支持打开一个连接')
+const connectToServer = async (conn: any) => {
+  if (activeConnection.value !== null) {
+    if (conn.id === activeConnection.value.id) {
+      await window.electronStore.telnetDisconnect(conn.id)
+      activeConnection.value = null
+      ElMessage.success('连接已断开')
+    } else {
+      ElMessage.info('当前仅支持打开一个连接')
+      return
+    }
+
     return
   }
+
   activeConnection.value = conn
 }
 
