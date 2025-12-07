@@ -12,12 +12,7 @@
         <el-checkbox v-model="isShowLog" class="show-log-checkbox" size="small">
           显示日志
         </el-checkbox>
-        <el-checkbox
-          v-model="isAutoScroll"
-          class="auto-scroll-checkbox"
-          size="small"
-          @change="handleAutoScrollChange"
-        >
+        <el-checkbox v-model="isAutoScroll" class="auto-scroll-checkbox" size="small">
           自动滚动
         </el-checkbox>
         <el-button
@@ -56,7 +51,7 @@
     </div>
 
     <!-- 终端输出区域 -->
-    <div class="terminal-output" v-html="output" ref="terminalOutputRef"></div>
+    <div ref="editorContainer" class="terminal-output"></div>
     <div class="preset-commands">
       <el-button
         type="primary"
@@ -151,6 +146,7 @@
 <script setup lang="ts">
 import { ref, onUnmounted, onMounted, onBeforeUnmount, watch } from 'vue'
 import { ElMessage, ElForm } from 'element-plus'
+import * as monaco from 'monaco-editor'
 
 const emit = defineEmits(['onClose'])
 
@@ -160,7 +156,6 @@ const props = defineProps<{
   onClose?: () => void
 }>()
 
-const output = ref('') // 终端输出内容
 const currentCommand = ref('') // 当前输入的命令
 const commandInput = ref<HTMLInputElement>(null) // 输入框引用
 const isConnected = ref(true) // 连接状态标识
@@ -171,11 +166,74 @@ let currentConnId = 0 // 当前连接的 ID
 // 显示日志开关（默认勾选）
 const isShowLog = ref(true)
 const isAutoScroll = ref(true)
-const terminalOutputRef = ref<HTMLDivElement | null>(null)
 
 // 循环发送相关
 const loopIntervals = ref<Record<number, NodeJS.Timeout>>({})
 const loopStatus = ref<Record<number, boolean>>({})
+
+const editorContainer = ref<HTMLElement | null>(null)
+let editor: monaco.editor.IStandaloneCodeEditor | null = null
+let editorModel: monaco.editor.ITextModel | null = null // 直接持有模型，不通过 Vue 响应式
+
+const initEditor = async () => {
+  if (!editorContainer.value) return
+
+  // 1. 先创建独立文本模型（脱离 Vue 响应式）
+  editorModel = monaco.editor.createModel(
+    `success connect to ${props.connection.host}:${props.connection.port}\n`,
+    'plaintext',
+    monaco.Uri.parse('telnet-terminal:///output.txt') // 自定义 URI，避免模型冲突
+  )
+
+  // 2. 创建编辑器，绑定独立模型
+  editor = monaco.editor.create(editorContainer.value, {
+    model: editorModel,
+    readOnly: true,
+    lineNumbers: 'on',
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    theme: 'vs-dark',
+    automaticLayout: true,
+    // 关闭所有可能触发线程竞争的功能
+    hover: { enabled: false },
+    occurrencesHighlight: 'off',
+    selectionHighlight: false,
+    codeLens: false,
+    links: false
+  })
+
+  // 3. 禁用 Vue 对编辑器的响应式监听（关键）
+  editor.updateOptions({ readOnly: true })
+}
+
+const appendToTerminal = (content: string) => {
+  if (!editorModel) return
+
+  // 关键：用模型的 pushEdit 替代编辑器的 setValue，避免触发渲染线程死锁
+  // 记录追加前的滚动位置（用于取消自动滚动时保留位置）
+  const lastLine = editorModel.getLineCount()
+  const lastCol = editorModel.getLineContent(lastLine).length + 1
+
+  // 同步编辑模型（Electron 下同步操作更稳定）
+  editorModel.pushEditOperations(
+    [],
+    [
+      {
+        range: new monaco.Range(lastLine, lastCol, lastLine, lastCol),
+        text: content,
+        forceMoveMarkers: true
+      }
+    ],
+    () => null
+  )
+
+  if (isAutoScroll.value) {
+    const newLastLine = editorModel!.getLineCount()
+    editor?.revealLine(newLastLine) // 滚动到最后一行
+  } else {
+    // editor?.setScrollPosition(scrollPosition) // 恢复原有滚动位置
+  }
+}
 
 // 切换循环发送状态
 const toggleLoopSend = (cmd: any) => {
@@ -202,13 +260,6 @@ const toggleLoopSend = (cmd: any) => {
   ElMessage.success(`已开始循环发送: ${cmd.name} (间隔${intervalTime}ms)`)
 }
 
-// 自动滚动处理
-const handleAutoScrollChange = (value: boolean) => {
-  if (value) {
-    scrollToBottom()
-  }
-}
-
 // 打开日志文件
 const openLogFile = async () => {
   try {
@@ -228,7 +279,6 @@ const handleClose = async () => {
   if (currentConnId) {
     try {
       await window.electronStore.telnetDisconnect(currentConnId)
-      output.value += '<br>--- 连接已手动关闭 ---'
       isConnected.value = false
       emit('onClose')
       if (typeof props.onClose === 'function') {
@@ -246,7 +296,6 @@ const handleClose = async () => {
         removeCloseListener()
         removeCloseListener = null
       }
-      output.value += '<br>--- 连接已手动关闭 ---'
       isConnected.value = false
       currentConnId = 0
     }
@@ -260,11 +309,10 @@ const handleClose = async () => {
 
 // 处理主进程发送的 Telnet 数据
 const handleTelnetData = (data: { connId: number; data: string }) => {
-  if (data.connId === currentConnId) {
-    if (isShowLog.value) {
-      output.value += data.data.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>')
-    }
-    scrollToBottom()
+  if (data.connId !== currentConnId) return
+  if (isShowLog.value) {
+    const formattedData = data.data.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\0/g, '') // 过滤空字符
+    appendToTerminal(formattedData)
   }
 }
 
@@ -272,7 +320,6 @@ const handleTelnetData = (data: { connId: number; data: string }) => {
 const handleTelnetClose = (connId: number) => {
   if (connId === currentConnId) {
     ElMessage.info('连接已关闭')
-    output.value += '<br>--- 连接已关闭 ---'
     isConnected.value = false
     currentConnId = 0
     emit('onClose')
@@ -295,7 +342,6 @@ const connect = async () => {
 
   isConnected.value = false
   currentConnId = 0
-  output.value = ''
 
   try {
     const cleanConn = {
@@ -307,7 +353,6 @@ const connect = async () => {
     if (result.success) {
       currentConnId = result.connId
       isConnected.value = true
-      output.value = `成功连接到 ${cleanConn.host}:${cleanConn.port}<br>`
       removeDataListener = window.electronStore.onTelnetData(handleTelnetData)
       removeCloseListener = window.electronStore.onTelnetClose(handleTelnetClose)
       commandInput.value?.focus()
@@ -334,10 +379,10 @@ const connect = async () => {
 const sendCommand = async () => {
   if (!currentCommand.value.trim() || !isConnected.value) return
 
-  output.value += `> ${currentCommand.value}<br>`
   let sendData = currentCommand.value
   currentCommand.value = ''
   commandInput.value?.focus()
+  appendToTerminal(sendData)
 
   try {
     await window.electronStore.telnetSend({
@@ -348,28 +393,22 @@ const sendCommand = async () => {
     ElMessage.error('命令发送失败')
     console.error('发送失败:', error)
   }
-
-  scrollToBottom()
 }
-
-// 滚动到终端底部
-const scrollToBottom = () => {
-  if (isAutoScroll.value && terminalOutputRef.value) {
-    const outputElement = terminalOutputRef.value
-    outputElement.scrollTop = outputElement.scrollHeight
-  }
-}
-
-watch(
-  () => output.value,
-  () => {
-    scrollToBottom()
-  }
-)
 
 // 组件卸载清理
 onUnmounted(() => {
   console.log('组件卸载：强制清理所有监听和连接')
+
+  if (editorModel) {
+    editorModel.dispose()
+    editorModel = null
+  }
+
+  if (editor) {
+    editor.dispose()
+    editor = null
+  }
+
   if (removeDataListener) {
     removeDataListener()
     removeDataListener = null
@@ -556,7 +595,7 @@ const sendPresetCommand = async (cmd: any) => {
           connId: currentConnId,
           command: cmd.command.trim()
         })
-        output.value += `[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}<br>`
+        appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}`)
         commandInput.value?.focus()
       }, cmd.delay)
     } else {
@@ -564,11 +603,9 @@ const sendPresetCommand = async (cmd: any) => {
         connId: currentConnId,
         command: cmd.command.trim()
       })
-      output.value += `[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}<br>`
+      appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}`)
       commandInput.value?.focus()
     }
-
-    scrollToBottom()
   } catch (error) {
     ElMessage.error('命令发送失败')
     console.error('发送失败:', error)
@@ -577,7 +614,10 @@ const sendPresetCommand = async (cmd: any) => {
 
 // 清空屏幕
 const clearTerminal = () => {
-  output.value = ''
+  if (editorModel) {
+    // 清空：直接重置模型内容，而非编辑器 setValue
+    editorModel.setValue('')
+  }
   commandInput.value?.focus()
 }
 
@@ -587,9 +627,10 @@ onMounted(() => {
   document.addEventListener('contextmenu', () => {
     contextMenuVisible.value = false
   })
-  setTimeout(scrollToBottom, 100)
   // 初始化连接
-  connect()
+  connect().then(() => {
+    initEditor()
+  })
 })
 
 onBeforeUnmount(() => {
