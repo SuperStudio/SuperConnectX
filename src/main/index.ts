@@ -8,6 +8,8 @@ import TelnetClient from './protocol/TelnetClient'
 import os from 'os' // 核心：os 模块获取系统内存
 
 const _logger = new logger()
+app.isQuitting = false // 扩展Electron app对象的属性
+let isQuitting = false
 
 let mainWindow: BrowserWindow
 
@@ -72,6 +74,48 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+// 退出事件处理
+app.on('window-all-closed', async () => {
+  if (isQuitting) return
+  isQuitting = true
+  app.isQuitting = true // 标记为退出中
+
+  _logger.flush() // 同步刷日志（无Electron依赖）
+
+  setTimeout(() => {
+    if (process.platform !== 'darwin') {
+      app.quit()
+    }
+  }, 300)
+})
+
+app.on('before-quit', (event) => {
+  if (isQuitting) return
+  isQuitting = true
+  app.isQuitting = true
+
+  _logger.flush() // 仅刷日志，不阻止默认行为
+})
+
+// 进程信号监听
+process.on('SIGINT', () => {
+  if (isQuitting) return
+  isQuitting = true
+  app.isQuitting = true
+
+  _logger.flush()
+  process.exit(0)
+})
+
+process.on('SIGTERM', () => {
+  if (isQuitting) return
+  isQuitting = true
+  app.isQuitting = true
+
+  _logger.flush()
+  process.exit(0)
 })
 
 /* 连接持久化处理 */
