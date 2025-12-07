@@ -607,7 +607,7 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 
 .resource-monitor {
   height: 100%;
-  margin-left: 10px;
+  margin-left: 5px;
   background-color: transparent;
   color: white;
   font-size: 11px;

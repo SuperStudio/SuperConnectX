@@ -86,7 +86,7 @@
 
     <!-- 命令输入区域 -->
     <div class="terminal-input">
-      <span class="prompt">$</span>
+      <span class="prompt">></span>
       <input
         v-model="currentCommand"
         @keydown.enter="sendCommand"
@@ -96,12 +96,12 @@
       />
     </div>
     <el-dialog
-      :title="isEditing ? '编辑预设命令' : '新增预设命令'"
+      :title="isEditing ? '编辑命令' : '新增命令'"
       v-model="isPresetDialogOpen"
       width="400px"
       :close-on-click-modal="false"
     >
-      <el-form :model="presetForm" :rules="presetRules" ref="presetFormRef" label-width="80px">
+      <el-form :model="presetForm" :rules="presetRules" ref="presetFormRef" label-width="120px">
         <el-form-item label="命令名称" prop="name">
           <el-input v-model="presetForm.name" placeholder="输入命令名称" />
         </el-form-item>
@@ -425,8 +425,8 @@ const loadPresetCommands = async () => {
     const commands = await window.electronStore.getPresetCommands()
     presetCommands.value = Array.isArray(commands) ? commands : []
   } catch (error) {
-    console.error('加载预设命令失败:', error)
-    ElMessage.error('加载预设命令失败')
+    console.error('加载命令失败:', error)
+    ElMessage.error('加载命令失败')
   }
 }
 
@@ -483,7 +483,7 @@ const savePresetCommand = async () => {
     loadPresetCommands()
     isPresetDialogOpen.value = false
   } catch (error) {
-    console.error('保存预设命令失败:', error)
+    console.error('保存命令失败:', error)
     ElMessage.error('保存失败：' + (error as Error).message)
   }
 }
@@ -496,7 +496,7 @@ const deletePresetCommand = async (id: number) => {
     ElMessage.success('命令已删除')
     loadPresetCommands()
   } catch (error) {
-    console.error('删除预设命令失败:', error)
+    console.error('删除命令失败:', error)
     ElMessage.error('删除命令失败')
   }
 }
@@ -770,7 +770,7 @@ onBeforeUnmount(() => {
 
 /* 命令提示符样式 */
 .prompt {
-  color: #4caf50; /* 绿色提示符，可自定义 */
+  color: #cccccc; /* 绿色提示符，可自定义 */
   font-weight: bold;
   white-space: nowrap; /* 防止换行 */
   margin-left: 10px;
@@ -944,5 +944,34 @@ onBeforeUnmount(() => {
 .el-button,
 .el-checkbox {
   animation: fadeIn 0.2s ease-out;
+}
+
+/* Element Plus 弹窗表单样式适配 */
+.el-dialog {
+  background: #2d2d2d !important;
+  border-radius: 8px !important;
+}
+
+.el-dialog__title {
+  color: #fff !important;
+  font-size: 18px !important;
+}
+
+.el-form-item__label {
+  color: #ccc !important;
+  width: 100px;
+}
+
+.el-input,
+.el-select {
+  --el-input-bg-color: #cccccc !important;
+  --el-input-text-color: #000 !important;
+  --el-input-placeholder-color: #888 !important;
+  --el-border-color: #444 !important;
+}
+
+.el-input:focus-within,
+.el-select:focus-within {
+  --el-border-color: #42b983 !important;
 }
 </style>
