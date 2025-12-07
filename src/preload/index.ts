@@ -8,8 +8,7 @@ contextBridge.exposeInMainWorld('electronStore', {
   updateConnection: (conn: any) => ipcRenderer.invoke('update-connection', conn),
   deleteConnection: (id: number) => ipcRenderer.invoke('delete-connection', id),
   connectTelnet: (conn: any) => ipcRenderer.invoke('connect-telnet', conn),
-  telnetSend: (data: { connId: number; command: string }) =>
-    ipcRenderer.invoke('telnet-send', data),
+  telnetSend: (data: { conn: any; command: string }) => ipcRenderer.invoke('telnet-send', data),
   telnetDisconnect: (connId: number) => ipcRenderer.invoke('telnet-disconnect', connId),
 
   onTelnetData: (callback: (data: { connId: number; data: string }) => void) => {
@@ -23,7 +22,7 @@ contextBridge.exposeInMainWorld('electronStore', {
     ipcRenderer.on('telnet-close', listener)
     return () => ipcRenderer.removeListener('telnet-close', listener)
   },
-  openTelnetLog: () => ipcRenderer.invoke('open-telnet-log'),
+  openTelnetLog: (conn: any) => ipcRenderer.invoke('open-telnet-log', conn),
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
   maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
   closeWindow: () => ipcRenderer.invoke('close-window'),
@@ -46,11 +45,11 @@ declare global {
       updateConnection: (conn: any) => Promise<any>
       deleteConnection: (id: number) => Promise<any[]>
       connectTelnet: (conn: any) => Promise<any>
-      telnetSend: (data: { connId: number; command: string }) => Promise<any>
+      telnetSend: (data: { conn: any; command: string }) => Promise<any>
       telnetDisconnect: (connId: number) => Promise<any>
       onTelnetData: (callback: (data: { connId: number; data: string }) => void) => () => void
       onTelnetClose: (callback: (connId: number) => void) => () => void
-      openTelnetLog: () => Promise<{ success: boolean; message?: string }>
+      openTelnetLog: (conn: any) => Promise<{ success: boolean; message?: string }>
       minimizeWindow: () => Promise<void>
       maximizeWindow: () => Promise<void>
       closeWindow: () => Promise<void>

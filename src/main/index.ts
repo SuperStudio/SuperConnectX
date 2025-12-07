@@ -7,10 +7,7 @@ import PreSetCommandStorage from './storage/PreSetCommandStorage'
 import TelnetClient from './protocol/TelnetClient'
 import os from 'os' // 核心：os 模块获取系统内存
 
-const _logger = new logger(app.getPath('userData'))
-
-// 新增：IPC 监听「打开日志」请求
-ipcMain.handle('open-telnet-log', async () => await _logger.openLogDir())
+const _logger = new logger()
 
 let mainWindow: BrowserWindow
 
@@ -93,30 +90,40 @@ ipcMain.handle('delete-preset-command', (_, id: number) => preSetCommandStorage.
 
 /* telnet 连接处理 */
 const telnetClient = new TelnetClient()
-ipcMain.handle(
-  'connect-telnet',
-  async (_, conn: any) =>
-    await telnetClient.start(
-      conn.host,
-      conn.port,
-      conn.id,
-      (dataStr) => {
-        _logger.writeToLog(dataStr)
-        mainWindow.webContents.send('telnet-data', {
-          connId: conn.id,
-          data: dataStr
-        })
-      },
-      () => mainWindow.webContents.send('telnet-close', conn.id)
-    )
-)
-ipcMain.handle('telnet-send', async (_, { connId, command }: { connId: number; command: string }) =>
-  telnetClient.send(connId, command, (dataStr) => _logger.writeToLog(dataStr))
+ipcMain.handle('connect-telnet', async (_, conn: any) => {
+  _logger.createConnLogFile(conn.id, conn.name)
+  return await telnetClient.start(
+    conn.host,
+    conn.port,
+    conn.id,
+    (dataStr) => {
+      _logger.writeToConnLog(dataStr, conn.id)
+      mainWindow.webContents.send('telnet-data', {
+        connId: conn.id,
+        data: dataStr
+      })
+    },
+    () => {
+      mainWindow.webContents.send('telnet-close', conn.id)
+      _logger.clearConnLogFile(conn.id)
+    }
+  )
+})
+ipcMain.handle('telnet-send', async (_, { conn, command }: { conn: any; command: string }) =>
+  telnetClient.send(conn.id, command, (dataStr) => _logger.writeToConnLog(dataStr, conn.id))
 )
 ipcMain.handle(
   'telnet-disconnect',
   async (_, connId: number) => await telnetClient.disconnect(connId)
 )
+// 新增：IPC 监听「打开日志」请求
+ipcMain.handle('open-telnet-log', async (_, conn: any) => {
+  if (conn.id) {
+    return await _logger.openConnLog(conn.id)
+  } else {
+    return await _logger.openLogDir()
+  }
+})
 
 // 窗口控制IPC
 ipcMain.handle('minimize-window', () => {

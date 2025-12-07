@@ -144,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onUnmounted, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage, ElForm } from 'element-plus'
 import * as monaco from 'monaco-editor'
 
@@ -264,7 +264,13 @@ const toggleLoopSend = (cmd: any) => {
 const openLogFile = async () => {
   try {
     console.log('请求打开日志文件')
-    const result = await window.electronStore.openTelnetLog()
+    const cleanConn = {
+      id: props.connection.id,
+      host: props.connection.host,
+      port: props.connection.port,
+      name: props.connection.name
+    }
+    const result = await window.electronStore.openTelnetLog(cleanConn)
     if (!result.success) {
       ElMessage.error(`打开日志失败：${result.message}`)
     }
@@ -347,7 +353,8 @@ const connect = async () => {
     const cleanConn = {
       id: props.connection.id,
       host: props.connection.host,
-      port: props.connection.port
+      port: props.connection.port,
+      name: props.connection.name
     }
     const result = await window.electronStore.connectTelnet(cleanConn)
     if (result.success) {
@@ -386,7 +393,7 @@ const sendCommand = async () => {
 
   try {
     await window.electronStore.telnetSend({
-      connId: currentConnId,
+      conn: props.connection,
       command: sendData.trim()
     })
   } catch (error) {
