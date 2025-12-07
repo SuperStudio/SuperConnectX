@@ -10,9 +10,9 @@
 [![Fork](https://img.shields.io/github/forks/SuperStudio/SuperConnectX?label=Fork%20this%20repo)](https://github.com/SuperStudio/SuperConnectX/fork)
 
 
-SuperConnectX 是**超级终端工具**，支持 telnet 功能
+SuperConnectX is a **super terminal tool** that supports Telnet.
 
-下载地址：[点此下载](https://github.com/SuperStudio/SuperConnectX/releases)
+Download：[Here](https://github.com/SuperStudio/SuperConnectX/releases)
 
 
 <img src="doc/images/main.jpg" alt="1" style="zoom:80%;" />
@@ -21,29 +21,3 @@ SuperConnectX 是**超级终端工具**，支持 telnet 功能
 ![star-history](https://api.star-history.com/svg?repos=SuperStudio/SuperConnectX&type=Date)
 
 
-# 编译构建
-
-## 安装依赖
-
-```bash
-npm install
-```
-
-## 运行
-
-```bash
-npm run dev
-```
-
-## 发布
-
-```bash
-# For windows
-npm run build:win
-
-# For macOS
-npm run build:mac
-
-# For Linux
-npm run build:linux
-```
