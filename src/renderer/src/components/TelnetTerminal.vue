@@ -87,7 +87,15 @@
           <el-input v-model="presetForm.name" placeholder="输入命令名称" ref="nameInputRef" />
         </el-form-item>
         <el-form-item label="命令内容" prop="command">
-          <el-input v-model="presetForm.command" placeholder="输入命令内容" />
+          <el-input
+            v-model="presetForm.command"
+            type="textarea"
+            placeholder="输入命令内容"
+            :rows="4"
+            input-style="background-color: #ccc;max-height: 200px;"
+            class="custom-textarea"
+            resize="vertical"
+          />
         </el-form-item>
         <el-form-item label="循环时延(ms)" prop="delay">
           <el-input
@@ -1075,5 +1083,11 @@ onBeforeUnmount(() => {
 .el-input:focus-within,
 .el-select:focus-within {
   --el-border-color: #42b983 !important;
+}
+
+.custom-textarea,
+.el-textarea__inner {
+  background-color: transparent;
+  max-height: 200px;
 }
 </style>
