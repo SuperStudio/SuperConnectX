@@ -633,9 +633,8 @@ onMounted(() => {
     contextMenuVisible.value = false
   })
   // 初始化连接
-  connect().then(() => {
-    initEditor()
-  })
+  initEditor()
+  connect()
 })
 
 onBeforeUnmount(() => {
