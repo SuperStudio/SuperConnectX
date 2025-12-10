@@ -23,11 +23,7 @@ export default class TelnetClient {
       // 存储连接引用
       this.telnetConnections.set(id, connection)
       // 监听数据事件并转发到渲染进程
-      connection.on('data', (data) => {
-        const dataStr = `[${new Date().toISOString()}] ${data}`
-        onData?.(dataStr)
-      })
-
+      connection.on('data', (data) => onData?.(String(data)))
       // 监听连接关闭事件
       connection.on('close', () => {
         this.telnetConnections.delete(id)

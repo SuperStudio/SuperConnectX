@@ -92,12 +92,31 @@ export default class logger {
   }
 
   // 写入日志（先缓存）
+  // 写入日志（先缓存，为每行添加时间戳）
   writeToConnLog(data: string, connId: number) {
     const fileName = this.connLogFiles.get(connId)
     if (!fileName) return
 
-    const currentLogs = this.logCache.get(connId) || []
-    currentLogs.push(`[${this.getTimeStamp()}] ${data}`)
+    let currentLogs = this.logCache.get(connId) || []
+    const hasNewline = /\r?\n/.test(data)
+
+    if (hasNewline) {
+      // 处理包含换行符的情况，拆分后为每行添加时间戳
+      const lines = data.split(/\r?\n/)
+      const timestamp = this.getTimeStamp()
+      const logLines = lines.map((line) => `[${timestamp}] ${line}`)
+      currentLogs.push(...logLines)
+    } else {
+      // 不含换行符，接在上一次数据后面（如果缓存为空则先添加时间戳）
+      if (currentLogs.length === 0) {
+        currentLogs.push(`[${this.getTimeStamp()}] ${data}`)
+      } else {
+        // 拼接在最后一条日志的时间戳后面
+        const lastLine = currentLogs.pop() || ''
+        currentLogs.push(`${lastLine}${data}`)
+      }
+    }
+
     this.logCache.set(connId, currentLogs)
   }
 

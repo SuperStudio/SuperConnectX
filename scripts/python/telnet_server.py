@@ -30,6 +30,8 @@ def handle_cmd(cmd: str):
         rsp = f"set interval ok: {send_interval}s\n"
     elif cmd == "jsonBig":
         rsp = _build_json(10000)
+    elif cmd == "jsonExtraBig":
+        rsp = _build_json(100000)
     elif cmd == "jsonNormal":
         rsp = _build_json(100)
 
