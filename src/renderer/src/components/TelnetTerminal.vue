@@ -89,7 +89,7 @@
         <el-form-item label="命令内容" prop="command">
           <el-input v-model="presetForm.command" placeholder="输入命令内容" />
         </el-form-item>
-        <el-form-item label="时延(ms)" prop="delay">
+        <el-form-item label="循环时延(ms)" prop="delay">
           <el-input
             v-model.number="presetForm.delay"
             type="number"
@@ -244,8 +244,7 @@ const toggleLoopSend = (cmd: any) => {
 
   loopStatus.value[cmd.id] = true
   sendPresetCommand(cmd)
-
-  const intervalTime = Math.max(cmd.delay || 1000, 100)
+  const intervalTime = Math.max(cmd.delay, 100)
   loopIntervals.value[cmd.id] = setInterval(() => {
     sendPresetCommand(cmd)
   }, intervalTime)
@@ -606,23 +605,12 @@ const sendPresetCommand = async (cmd: any) => {
   if (!isConnected.value) return
 
   try {
-    if (cmd.delay > 0) {
-      setTimeout(() => {
-        window.electronStore.telnetSend({
-          conn: getCurrentConnect(),
-          command: cmd.command.trim()
-        })
-        appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}\n`)
-        commandInput.value?.focus()
-      }, cmd.delay)
-    } else {
-      window.electronStore.telnetSend({
-        conn: getCurrentConnect(),
-        command: cmd.command.trim()
-      })
-      appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}\n`)
-      commandInput.value?.focus()
-    }
+    window.electronStore.telnetSend({
+      conn: getCurrentConnect(),
+      command: cmd.command.trim()
+    })
+    appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}\n`)
+    commandInput.value?.focus()
   } catch (error) {
     ElMessage.error('命令发送失败')
     console.error('发送失败:', error)
