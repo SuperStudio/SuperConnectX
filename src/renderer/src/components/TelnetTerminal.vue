@@ -142,7 +142,7 @@ import { ref, onUnmounted, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElForm, ElInput } from 'element-plus'
 import * as monaco from 'monaco-editor'
 
-const emit = defineEmits(['onClose'])
+const emit = defineEmits(['onClose', 'commandSent'])
 
 // 接收父组件传递的连接参数和关闭回调
 const props = defineProps<{
@@ -676,6 +676,7 @@ const sendPresetCommand = async (cmd: any) => {
     })
     appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}\n`)
     commandInput.value?.focus()
+    emit('commandSent', cmd.name.trim())
   } catch (error) {
     ElMessage.error('命令发送失败')
     console.error('发送失败:', error)

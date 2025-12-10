@@ -83,6 +83,7 @@
           v-if="activeConnection"
           :connection="activeConnection"
           @onClose="handleTerminalClose"
+          @commandSent="handleCommandSent"
         />
         <div class="terminal-placeholder" v-else>选择一个连接或新建连接以启动终端</div>
       </div>
@@ -92,6 +93,7 @@
       <div class="resource-monitor">
         <ResourceMonitor />
       </div>
+      <div class="command-status" v-if="lastSentCommand">已发送命令：{{ lastSentCommand }}</div>
     </div>
 
     <!-- 新建连接弹窗：Element Plus 美化表单 -->
@@ -369,6 +371,12 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     window.electronStore.openDevtools()
   }
 })
+
+const lastSentCommand = ref('')
+
+const handleCommandSent = (command: string) => {
+  lastSentCommand.value = command
+}
 </script>
 
 <style scoped>
@@ -522,8 +530,8 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   height: 25px;
   background-color: #007acc;
   display: flex;
-  flex-direction: column; /* 垂直排列 */
 }
+
 /* 连接列表容器：核心过渡逻辑 */
 .connection-list-wrapper {
   width: 320px; /* 展开时的宽度 */
@@ -635,6 +643,20 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   padding: 0px 10px;
   display: flex;
 
+  align-items: center;
+  width: fit-content;
+  align-items: center; /* 垂直居中对齐 */
+  user-select: none;
+}
+
+.command-status {
+  color: #e0e0e0;
+  font-size: 12px;
+  /* 关键：自动占据左侧剩余空间，实现右对齐 */
+  margin-left: auto;
+  margin-right: 20px;
+
+  display: flex;
   align-items: center;
   width: fit-content;
   align-items: center; /* 垂直居中对齐 */
