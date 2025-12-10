@@ -328,28 +328,31 @@ const handleTelnetData = (data: { connId: number; data: string }) => {
 // 处理连接关闭
 const handleTelnetClose = (connId: number) => {
   if (connId === currentConnId) {
-    ElMessage.info('连接已关闭')
+    ElMessage.info('连接已关闭，将尝试重新连接...')
     isConnected.value = false
     currentConnId = 0
-    emit('onClose')
-    if (typeof props.onClose === 'function') {
-      props.onClose()
+    appendToTerminal(`连接已关闭，将在${RETRY_INTERVAL_MS / 1000}秒后尝试重连...\n`)
+    if (!stopRetry.value) {
+      // 延迟一点再重连，避免立即重试可能的资源竞争
+      setTimeout(connect, 1000)
     }
-    if (!stopRetry.value) connect()
   }
 }
 
 // 连接 Telnet 服务器
 // 连接逻辑（含重试）
+// 修改连接成功后的逻辑，增加初始化信息清理机制
 const connect = async () => {
-  // 重置状态
+  // 重置状态（保持原有代码）
   stopRetry.value = false
   retryCount = 0
   isConnected.value = false
   currentConnId = 0
-  // 定义连接尝试函数
+
+  // 新增：记录是否是首次连接
+  let isFirstConnect = true
+
   const attemptConnect = async () => {
-    // 如果标记为停止重试，直接终止
     if (stopRetry.value) {
       console.log(`\n已手动停止重连，终止尝试\n`)
       return
@@ -358,25 +361,63 @@ const connect = async () => {
     try {
       const result = await window.electronStore.connectTelnet(getCurrentConnect())
       if (result.success) {
+        // 1. 确保先移除旧的监听
+        if (removeDataListener) {
+          removeDataListener()
+          removeDataListener = null
+        }
+        if (removeCloseListener) {
+          removeCloseListener()
+          removeCloseListener = null
+        }
+
         currentConnId = result.connId
         isConnected.value = true
-        removeDataListener = window.electronStore.onTelnetData(handleTelnetData)
+
+        // 2. 注册新的监听，增加初始化信息过滤
+        removeDataListener = window.electronStore.onTelnetData((data) => {
+          if (data.connId !== currentConnId) return
+
+          if (isShowLog.value) {
+            let formattedData = data.data
+              .replace(/\r\n/g, '\n')
+              .replace(/\r/g, '\n')
+              .replace(/\0/g, '')
+
+            // 3. 过滤重复的服务端初始化信息（根据实际初始化信息特征调整正则）
+            // 例如服务端初始化信息以"Server initialized"开头
+            const isInitMessage = /^Server initialized/.test(formattedData.trim())
+
+            if (isInitMessage) {
+              // 只保留首次连接的初始化信息
+              if (isFirstConnect) {
+                appendToTerminal(formattedData)
+                isFirstConnect = false // 标记为非首次连接
+              }
+            } else {
+              // 非初始化信息正常显示
+              appendToTerminal(formattedData)
+            }
+          }
+        })
+
         removeCloseListener = window.electronStore.onTelnetClose(handleTelnetClose)
         commandInput.value?.focus()
         appendToTerminal(`connect success, retry count: ${retryCount + 1}\n`)
-        retryCount = 0 // 重置重试计数
+        retryCount = 0
+        isFirstConnect = false // 重置首次连接标记
       } else {
         throw new Error(result.message || '连接失败')
       }
     } catch (error) {
+      // 保持原有错误处理逻辑
       retryCount++
       const errMsg = (error as Error).message
       appendToTerminal(`connect failed: (${retryCount}/${MAX_RETRY_COUNT})：${errMsg}\n`)
-      // 未达到最大重试次数，继续重试（固定1秒间隔）
+
       if (retryCount < MAX_RETRY_COUNT && !stopRetry.value) {
-        retryTimer = setTimeout(attemptConnect, RETRY_INTERVAL_MS) // 固定1秒重试
+        retryTimer = setTimeout(attemptConnect, RETRY_INTERVAL_MS)
       } else if (retryCount >= MAX_RETRY_COUNT) {
-        // 达到最大重试次数
         appendToTerminal(`reach max retry count: (${MAX_RETRY_COUNT}\n`)
         emit('onClose')
         if (typeof props.onClose === 'function') props.onClose()
@@ -384,7 +425,6 @@ const connect = async () => {
     }
   }
 
-  // 启动首次连接尝试
   await attemptConnect()
 }
 
