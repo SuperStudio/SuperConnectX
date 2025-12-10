@@ -54,6 +54,7 @@
               </div>
               <div class="connection-btn">
                 <el-button
+                  :disabled="activeConnection !== null"
                   class="el-button--primary"
                   type="text"
                   style="color: #cccccc"
@@ -65,6 +66,7 @@
               <div class="connection-btn">
                 <el-button
                   type="text"
+                  :disabled="activeConnection !== null"
                   class="el-button--primary"
                   icon="Delete"
                   @click="deleteConnection(conn)"
