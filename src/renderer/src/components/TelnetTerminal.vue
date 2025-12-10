@@ -84,7 +84,7 @@
     >
       <el-form :model="presetForm" :rules="presetRules" ref="presetFormRef" label-width="120px">
         <el-form-item label="命令名称" prop="name">
-          <el-input v-model="presetForm.name" placeholder="输入命令名称" />
+          <el-input v-model="presetForm.name" placeholder="输入命令名称" ref="nameInputRef" />
         </el-form-item>
         <el-form-item label="命令内容" prop="command">
           <el-input v-model="presetForm.command" placeholder="输入命令内容" />
@@ -131,7 +131,7 @@
 
 <script setup lang="ts">
 import { ref, onUnmounted, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { ElMessage, ElForm } from 'element-plus'
+import { ElMessage, ElForm, ElInput } from 'element-plus'
 import * as monaco from 'monaco-editor'
 
 const emit = defineEmits(['onClose'])
@@ -513,6 +513,7 @@ const presetRules = ref({
 
 // 表单引用
 const presetFormRef = ref<InstanceType<typeof ElForm> | null>(null)
+const nameInputRef = ref<InstanceType<typeof ElInput> | null>(null)
 
 // 加载预设命令
 const loadPresetCommands = async () => {
@@ -525,6 +526,20 @@ const loadPresetCommands = async () => {
   }
 }
 
+const focusInput = () => {
+  // 对话框打开后聚焦到命令名称输入框
+  nextTick(() => {
+    // 尝试获取输入框DOM元素并聚焦
+    const focusInput = () => {
+      const inputElement = nameInputRef.value?.$el.querySelector('input')
+      inputElement?.focus()
+    }
+    focusInput()
+    // 延迟50ms再试一次，确保聚焦成功
+    setTimeout(focusInput, 50)
+  })
+}
+
 // 打开新增预设命令对话框
 const openAddPresetDialog = () => {
   isEditing.value = false
@@ -535,6 +550,7 @@ const openAddPresetDialog = () => {
     delay: 0
   }
   isPresetDialogOpen.value = true
+  focusInput()
 }
 
 // 打开编辑预设命令对话框
@@ -548,6 +564,7 @@ const editPresetCommand = (cmd: any) => {
     delay: cmd.delay
   }
   isPresetDialogOpen.value = true
+  focusInput()
 }
 
 // 保存预设命令
