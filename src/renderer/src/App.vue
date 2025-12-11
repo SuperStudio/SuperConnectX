@@ -12,11 +12,8 @@
             >新建连接</el-button
           >
 
-          <SearchInput @search="handleSearch" />
+          <SearchInput @search="handleSearch" v-if="filterConnection.length >= 2" />
 
-          <div class="empty-state" v-if="filterConnection.length === 0">
-            暂无连接，点击「新建连接」添加
-          </div>
           <el-card
             shadow="never"
             class="connection-card"
@@ -85,7 +82,11 @@
           @onClose="handleTerminalClose"
           @commandSent="handleCommandSent"
         />
-        <div class="terminal-placeholder" v-else>选择一个连接或新建连接以启动终端</div>
+        <div class="terminal-placeholder" v-else>
+          <img class="logo-img" src="./assets/icon.png" alt="App Icon" />
+          <div class="terminal-placeholder-text welcome-text">欢迎使用 SuperConnectX</div>
+          <div class="terminal-placeholder-text">@SuperStudio Copyright © 2025</div>
+        </div>
       </div>
     </main>
 
@@ -661,5 +662,28 @@ const handleCommandSent = (command: string) => {
   width: fit-content;
   align-items: center; /* 垂直居中对齐 */
   user-select: none;
+}
+
+.terminal-placeholder {
+  /* 核心Grid属性：水平+垂直居中 */
+  display: grid;
+  place-items: center; /* 等价于 align-items + justify-items */
+}
+
+.terminal-placeholder-text {
+  margin-top: 10px;
+  align-items: center;
+  font-size: 20px;
+  text-shadow: 2px 2px 3px #000;
+}
+
+.welcome-text {
+  color: #fff;
+  font-weight: 1000;
+}
+
+.logo-img {
+  width: 128px;
+  height: 128px;
 }
 </style>

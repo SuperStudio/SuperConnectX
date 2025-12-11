@@ -213,19 +213,19 @@ const showHelpMenu = ref(false)
 const hideFileMenu = () => {
   setTimeout(() => {
     showFileMenu.value = false
-  }, 200)
+  }, 50)
 }
 
 const hideEditMenu = () => {
   setTimeout(() => {
     showEditMenu.value = false
-  }, 200)
+  }, 50)
 }
 
 const hideHelpMenu = () => {
   setTimeout(() => {
     showHelpMenu.value = false
-  }, 200)
+  }, 50)
 }
 
 // 新增：菜单点击处理函数
