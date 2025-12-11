@@ -214,3 +214,5 @@ ipcMain.handle('get-app-resource', async () => {
     memRate: memRate
   }
 })
+
+ipcMain.handle('open-external-url', async (_, url) => await shell.openExternal(url))

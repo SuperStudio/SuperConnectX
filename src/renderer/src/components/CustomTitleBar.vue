@@ -24,6 +24,54 @@
         <img class="logo-img" src="../assets/icon.png" alt="App Icon" />
       </div>
       <div class="app-title">SuperConnectX</div>
+
+      <div class="menu-button" @mouseenter="showFileMenu = true" @mouseleave="hideFileMenu">
+        <button class="menu-btn">文件</button>
+        <div
+          class="dropdown-menu"
+          v-if="showFileMenu"
+          @mouseenter="showFileMenu = true"
+          @mouseleave="hideFileMenu"
+        >
+          <div class="menu-item" @click="handleNewWindow">新建窗口</div>
+          <div class="menu-item" @click="handleImport">导入连接</div>
+          <div class="menu-item" @click="handleExport">导出连接</div>
+          <div class="menu-separator"></div>
+          <div class="menu-item" @click="handleExit">退出</div>
+        </div>
+      </div>
+
+      <div class="menu-button" @mouseenter="showEditMenu = true" @mouseleave="hideEditMenu">
+        <button class="menu-btn">编辑</button>
+        <div
+          class="dropdown-menu"
+          v-if="showEditMenu"
+          @mouseenter="showEditMenu = true"
+          @mouseleave="hideEditMenu"
+        >
+          <div class="menu-item" @click="handleUndo">撤销</div>
+          <div class="menu-item" @click="handleUndo">重做</div>
+          <div class="menu-separator"></div>
+          <div class="menu-item" @click="handleUndo">剪切</div>
+          <div class="menu-item" @click="handleUndo">复制</div>
+          <div class="menu-item" @click="handleUndo">粘贴</div>
+        </div>
+      </div>
+
+      <div class="menu-button" @mouseenter="showHelpMenu = true" @mouseleave="hideHelpMenu">
+        <button class="menu-btn">帮助</button>
+        <div
+          class="dropdown-menu"
+          v-if="showHelpMenu"
+          @mouseenter="showHelpMenu = true"
+          @mouseleave="hideHelpMenu"
+        >
+          <div class="menu-item" @click="handleDoc">文档</div>
+          <div class="menu-item" @click="handleAbout">关于</div>
+          <div class="menu-item" @click="handleFeedBack">反馈问题</div>
+          <div class="menu-item" @click="handleDevelop">参与开发</div>
+        </div>
+      </div>
     </div>
 
     <div class="titlebar-right">
@@ -155,6 +203,69 @@ const emit = defineEmits(['toggle-connection-list'])
 const toggleConnectionList = () => {
   emit('toggle-connection-list')
 }
+
+// 新增：菜单状态变量
+const showFileMenu = ref(false)
+const showEditMenu = ref(false)
+const showHelpMenu = ref(false)
+
+// 新增：延迟隐藏菜单，解决鼠标移动过快问题
+const hideFileMenu = () => {
+  setTimeout(() => {
+    showFileMenu.value = false
+  }, 200)
+}
+
+const hideEditMenu = () => {
+  setTimeout(() => {
+    showEditMenu.value = false
+  }, 200)
+}
+
+const hideHelpMenu = () => {
+  setTimeout(() => {
+    showHelpMenu.value = false
+  }, 200)
+}
+
+// 新增：菜单点击处理函数
+const handleNewWindow = () => {
+  // electronStore.createNewWindow()
+  showFileMenu.value = false
+}
+
+const handleImport = () => {
+  console.log('Import connections')
+  showFileMenu.value = false
+}
+
+const handleExport = () => {
+  console.log('Export connections')
+  showFileMenu.value = false
+}
+
+const handleExit = () => {
+  electronStore.closeWindow()
+}
+
+const handleUndo = () => {
+  showEditMenu.value = false
+}
+
+const handleAbout = () => {
+  showHelpMenu.value = false
+}
+
+const handleDevelop = () => {
+  showHelpMenu.value = false
+}
+const handleFeedBack = () => {
+  electronStore.openExternalUrl('https://github.com/SuperStudio/SuperConnectX/issues')
+  showHelpMenu.value = false
+}
+const handleDoc = () => {
+  showHelpMenu.value = false
+}
 </script>
 
 <style scoped>
@@ -270,5 +381,65 @@ const toggleConnectionList = () => {
 /* 按钮图标切换样式 */
 .toggle-connection-btn.toggled svg {
   transform: rotate(90deg);
+}
+
+.titlebar-menu {
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 新增：菜单按钮样式 */
+.menu-button {
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+.menu-btn {
+  background: none;
+  border: none;
+  color: #c5c5c5;
+  padding: 0 12px;
+  height: 30px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.menu-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 新增：下拉菜单样式 */
+.dropdown-menu {
+  position: absolute;
+  top: 30px;
+  left: 0;
+  width: 160px;
+  background-color: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  padding: 4px 0;
+}
+
+.menu-item {
+  padding: 6px 16px;
+  color: #e0e0e0;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.menu-item:hover {
+  background-color: #3a3a3a;
+}
+
+.menu-separator {
+  height: 1px;
+  background-color: #444;
+  margin: 4px 0;
 }
 </style>
