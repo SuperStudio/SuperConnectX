@@ -3,20 +3,19 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 // 暴露 IPC 调用接口给渲染进程
 contextBridge.exposeInMainWorld('storageApi', {
+  /* 连接存储 */
   getConnections: () => ipcRenderer.invoke('get-connections'),
   addConnection: (conn: any) => ipcRenderer.invoke('add-connection', conn),
   updateConnection: (conn: any) => ipcRenderer.invoke('update-connection', conn),
   deleteConnection: (id: number) => ipcRenderer.invoke('delete-connection', id),
-  minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
-  maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
-  closeWindow: () => ipcRenderer.invoke('close-window'),
-  getWindowState: () => ipcRenderer.invoke('get-window-state'),
+  /* 预设命令 */
   addPresetCommand: (cmd: { name: string; command: string; delay: number }) =>
     ipcRenderer.invoke('add-preset-command', cmd),
   updatePresetCommand: (cmd: { id: number; name: string; command: string; delay: number }) =>
     ipcRenderer.invoke('update-preset-command', cmd),
   deletePresetCommand: (id: number) => ipcRenderer.invoke('delete-preset-command', id),
   getPresetCommands: () => ipcRenderer.invoke('get-preset-commands'),
+  /* 工具类 */
   openDevtools: () => ipcRenderer.invoke('open-devtools'),
   getAppResource: () => ipcRenderer.invoke('get-app-resource'),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url)
@@ -41,6 +40,13 @@ contextBridge.exposeInMainWorld('telnetApi', {
   openTelnetLog: (conn: any) => ipcRenderer.invoke('open-telnet-log', conn)
 })
 
+contextBridge.exposeInMainWorld('windowApi', {
+  minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
+  maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
+  closeWindow: () => ipcRenderer.invoke('close-window'),
+  getWindowState: () => ipcRenderer.invoke('get-window-state')
+})
+
 declare global {
   interface Window {
     storageApi: {
@@ -48,10 +54,7 @@ declare global {
       addConnection: (conn: any) => Promise<any>
       updateConnection: (conn: any) => Promise<any>
       deleteConnection: (id: number) => Promise<any[]>
-      minimizeWindow: () => Promise<void>
-      maximizeWindow: () => Promise<void>
-      closeWindow: () => Promise<void>
-      getWindowState: () => Promise<boolean>
+
       getPresetCommands: () => Promise<any[]>
       addPresetCommand: (cmd: any) => Promise<any>
       updatePresetCommand: (cmd: any) => Promise<any>
@@ -67,6 +70,12 @@ declare global {
       onTelnetData: (callback: (data: { connId: number; data: string }) => void) => () => void
       onTelnetClose: (callback: (connId: number) => void) => () => void
       openTelnetLog: (conn: any) => Promise<{ success: boolean; message?: string }>
+    }
+    windowApi: {
+      minimizeWindow: () => Promise<void>
+      maximizeWindow: () => Promise<void>
+      closeWindow: () => Promise<void>
+      getWindowState: () => Promise<boolean>
     }
   }
 }

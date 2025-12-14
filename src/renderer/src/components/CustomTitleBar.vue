@@ -142,9 +142,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 
-// 从window对象获取preload暴露的API（关键修改）
-const storageApi = window.storageApi
-
 const isMaximized = ref(false)
 
 // 窗口状态变化处理函数
@@ -158,7 +155,7 @@ const handleWindowUnmaximized = () => {
 
 onMounted(() => {
   // 初始化窗口状态（通过preload暴露的API）
-  storageApi.getWindowState().then((state) => {
+  window.windowApi.getWindowState().then((state) => {
     isMaximized.value = state
   })
 
@@ -175,17 +172,17 @@ onUnmounted(() => {
 
 // 最小化窗口
 const minimizeWindow = () => {
-  storageApi.minimizeWindow()
+  window.windowApi.minimizeWindow()
 }
 
 // 最大化/还原窗口
 const maximizeWindow = () => {
-  storageApi.maximizeWindow()
+  window.windowApi.maximizeWindow()
 }
 
 // 关闭窗口
 const closeWindow = () => {
-  storageApi.closeWindow()
+  window.windowApi.closeWindow()
 }
 
 import { defineEmits, defineProps } from 'vue'
@@ -245,7 +242,7 @@ const handleExport = () => {
 }
 
 const handleExit = () => {
-  storageApi.closeWindow()
+  window.windowApi.closeWindow()
 }
 
 const handleUndo = () => {
