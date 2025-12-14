@@ -139,13 +139,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, defineEmits } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { defineEmits, defineProps } from 'vue'
 
 const isMaximized = ref(false)
 const showFileMenu = ref(false)
 const showEditMenu = ref(false)
 const showHelpMenu = ref(false)
 const emit = defineEmits(['toggle-connection-list'])
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const props = defineProps({
+  showConnectionList: {
+    type: Boolean,
+    default: true
+  }
+})
 
 const handleWindowMaximized = () => (isMaximized.value = true)
 const handleWindowUnmaximized = () => (isMaximized.value = false)
