@@ -368,7 +368,7 @@ const toggleConnectionList = () => {
 window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'F12' || e.keyCode === 123) {
     e.preventDefault()
-    window.storageApi.openDevtools()
+    window.toolApi.openDevtools()
   }
 })
 

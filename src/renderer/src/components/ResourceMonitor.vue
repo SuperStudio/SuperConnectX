@@ -36,7 +36,7 @@ let timer = null
 
 const fetchResourceData = async () => {
   try {
-    const data = await window.storageApi.getAppResource()
+    const data = await window.toolApi.getAppResource()
     cpuUsage.value = data.cpu
     // memoryUsage.value = data.memory
     // memRate.value = data.memRate

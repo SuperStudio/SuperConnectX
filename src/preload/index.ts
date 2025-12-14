@@ -14,11 +14,7 @@ contextBridge.exposeInMainWorld('storageApi', {
   updatePresetCommand: (cmd: { id: number; name: string; command: string; delay: number }) =>
     ipcRenderer.invoke('update-preset-command', cmd),
   deletePresetCommand: (id: number) => ipcRenderer.invoke('delete-preset-command', id),
-  getPresetCommands: () => ipcRenderer.invoke('get-preset-commands'),
-  /* 工具类 */
-  openDevtools: () => ipcRenderer.invoke('open-devtools'),
-  getAppResource: () => ipcRenderer.invoke('get-app-resource'),
-  openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url)
+  getPresetCommands: () => ipcRenderer.invoke('get-preset-commands')
 })
 
 contextBridge.exposeInMainWorld('telnetApi', {
@@ -47,6 +43,12 @@ contextBridge.exposeInMainWorld('windowApi', {
   getWindowState: () => ipcRenderer.invoke('get-window-state')
 })
 
+contextBridge.exposeInMainWorld('toolApi', {
+  openDevtools: () => ipcRenderer.invoke('open-devtools'),
+  getAppResource: () => ipcRenderer.invoke('get-app-resource'),
+  openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url)
+})
+
 declare global {
   interface Window {
     storageApi: {
@@ -59,9 +61,6 @@ declare global {
       addPresetCommand: (cmd: any) => Promise<any>
       updatePresetCommand: (cmd: any) => Promise<any>
       deletePresetCommand: (id: number) => Promise<any[]>
-      openDevtools: () => Promise<void>
-      getAppResource: () => Promise<any>
-      openExternalUrl: (url: string) => Promise<any>
     }
     telnetApi: {
       connectTelnet: (conn: any) => Promise<any>
@@ -76,6 +75,11 @@ declare global {
       maximizeWindow: () => Promise<void>
       closeWindow: () => Promise<void>
       getWindowState: () => Promise<boolean>
+    }
+    toolApi: {
+      openDevtools: () => Promise<void>
+      getAppResource: () => Promise<any>
+      openExternalUrl: (url: string) => Promise<any>
     }
   }
 }

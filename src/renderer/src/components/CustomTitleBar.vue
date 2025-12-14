@@ -257,7 +257,7 @@ const handleDevelop = () => {
   showHelpMenu.value = false
 }
 const handleFeedBack = () => {
-  storageApi.openExternalUrl('https://github.com/SuperStudio/SuperConnectX/issues')
+  toolApi.openExternalUrl('https://github.com/SuperStudio/SuperConnectX/issues')
   showHelpMenu.value = false
 }
 const handleDoc = () => {
