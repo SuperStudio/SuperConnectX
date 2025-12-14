@@ -1,19 +1,18 @@
 import { appendFile, appendFileSync, existsSync, mkdirSync } from 'fs'
-import { shell } from 'electron' // 仅在正常运行时使用
+import { shell } from 'electron'
 import fs from 'fs/promises'
 import { join } from 'path'
 import { app } from 'electron'
 import path from 'path'
 
 export default class logger {
-  logDir: string
+  private logDir: string
   private connLogFiles = new Map<number, string>()
   private logCache = new Map<number, string[]>()
   private writeTimer: NodeJS.Timeout | null = null
-  private readonly BATCH_WRITE_INTERVAL = 10000 // 10秒
+  private readonly BATCH_WRITE_INTERVAL_MS = 10 * 1000
 
   constructor() {
-    // 初始化日志目录
     const exePath = app.isPackaged ? app.getPath('exe') : process.cwd()
     const appDir = path.dirname(exePath)
     this.logDir = join(appDir, 'logs')
@@ -26,7 +25,7 @@ export default class logger {
   }
 
   // 生成高精度时间戳
-  getTimeStamp() {
+  getTimeStamp(): string {
     const date = new Date()
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
       date.getDate()
@@ -38,51 +37,51 @@ export default class logger {
   }
 
   // 启动定时写入
-  private startWriteTimer() {
+  private startWriteTimer(): void {
     this.writeTimer = setInterval(() => {
       this.flushAllLogs(false) // 正常运行时异步写入
-    }, this.BATCH_WRITE_INTERVAL)
+    }, this.BATCH_WRITE_INTERVAL_MS)
     if (this.writeTimer.unref) this.writeTimer.unref()
   }
 
   // 批量写入日志（区分同步/异步）
-  private flushAllLogs(isSync: boolean = true) {
+  private flushAllLogs(isSync: boolean = true): void {
     this.logCache.forEach((logEntries, connId) => {
-      if (logEntries.length > 0) {
-        const fileName = this.connLogFiles.get(connId)
-        if (!fileName) return
+      if (logEntries.length <= 0) {
+        return
+      }
 
-        const logFile = join(this.logDir, fileName)
-        const logData = logEntries.join('\n') + '\n'
+      const fileName = this.connLogFiles.get(connId)
+      if (!fileName) return
 
-        try {
-          if (isSync) {
-            // 退出时同步写入（纯Node.js API，无Electron依赖）
-            appendFileSync(logFile, logData, 'utf-8')
-          } else {
-            // 正常运行时异步写入
-            appendFile(logFile, logData, 'utf-8', (err) => {
-              if (err) console.error(`异步写入日志失败[connId:${connId}]:`, err)
-            })
-          }
-          this.logCache.set(connId, []) // 清空缓存
-        } catch (err) {
-          console.error(`写入日志失败[connId:${connId}]:`, err)
+      const logFile = join(this.logDir, fileName)
+      const logData = logEntries.join('\n') + '\n'
+
+      try {
+        if (isSync) {
+          // 退出时同步写入（纯Node.js API，无Electron依赖）
+          appendFileSync(logFile, logData, 'utf-8')
+        } else {
+          // 正常运行时异步写入
+          appendFile(logFile, logData, 'utf-8', (err) => {
+            if (err) console.error(`异步写入日志失败[connId:${connId}]:`, err)
+          })
         }
+        this.logCache.set(connId, []) // 清空缓存
+      } catch (err) {
+        console.error(`写入日志失败[connId:${connId}]:`, err)
       }
     })
   }
 
-  // 对外暴露的刷入方法（退出时调用）
-  flush() {
+  flush(): void {
     if (this.writeTimer) {
       clearInterval(this.writeTimer)
       this.writeTimer = null
     }
-    this.flushAllLogs(true) // 同步刷入，不依赖Electron
+    this.flushAllLogs(true)
   }
 
-  // 为新连接创建日志文件
   createConnLogFile(connId: number, connName: string): string {
     const safeName = connName.replace(/[\\/*?:"<>|]/g, '-')
     const fileName = `${safeName}-${this.getTimeStamp()}.log`
@@ -91,13 +90,11 @@ export default class logger {
     return fileName
   }
 
-  // 写入日志（先缓存）
-  // 写入日志（先缓存，为每行添加时间戳）
-  writeToConnLog(data: string, connId: number) {
+  writeToConnLog(data: string, connId: number): void {
     const fileName = this.connLogFiles.get(connId)
     if (!fileName) return
 
-    let currentLogs = this.logCache.get(connId) || []
+    const currentLogs = this.logCache.get(connId) || []
     const hasNewline = /\r?\n/.test(data)
 
     if (hasNewline) {
@@ -121,7 +118,7 @@ export default class logger {
   }
 
   // 连接关闭时清理并刷入日志
-  clearConnLogFile(connId: number) {
+  clearConnLogFile(connId: number): void {
     const remainingLogs = this.logCache.get(connId)
     if (remainingLogs && remainingLogs.length > 0) {
       const fileName = this.connLogFiles.get(connId)
@@ -139,10 +136,8 @@ export default class logger {
     this.logCache.delete(connId)
   }
 
-  // 打开指定连接的日志文件（正常运行时调用，依赖shell）
-  async openConnLog(connId: number) {
+  async openConnLog(connId: number): Promise<{ success: boolean; message: string } | null> {
     try {
-      // 先异步刷入缓存（不阻塞）
       this.flushAllLogs(false)
 
       const fileName = this.connLogFiles.get(connId)
@@ -155,12 +150,10 @@ export default class logger {
         await fs.writeFile(logFilePath, '', 'utf-8')
       }
 
-      // 仅在Electron资源未销毁时调用shell
       if (shell && !app.isQuitting) {
-        // 新增app.isQuitting判断
         await shell.showItemInFolder(logFilePath)
       }
-      return { success: true }
+      return { success: true, message: '' }
     } catch (error) {
       console.error('打开日志失败:', error)
       return {
@@ -170,21 +163,18 @@ export default class logger {
     }
   }
 
-  // 打开日志目录（正常运行时调用，依赖shell）
-  async openLogDir() {
+  async openLogDir(): Promise<{ success: boolean; message: string } | null> {
     try {
-      // 先异步刷入缓存
       this.flushAllLogs(false)
 
       if (!existsSync(this.logDir)) {
         return { success: false, message: '日志目录不存在' }
       }
 
-      // 仅在Electron资源未销毁时调用shell
       if (shell && !app.isQuitting) {
         await shell.openPath(this.logDir)
       }
-      return { success: true }
+      return { success: true, message: '' }
     } catch (error) {
       console.error('打开日志目录失败:', error)
       return {
