@@ -8,12 +8,12 @@
         </span>
       </span>
       <div class="header-buttons">
-        <el-checkbox v-model="isShowLog" class="show-log-checkbox" size="small">
-          显示日志
-        </el-checkbox>
-        <el-checkbox v-model="isAutoScroll" class="auto-scroll-checkbox" size="small">
-          自动滚动
-        </el-checkbox>
+        <div class="switch-item">
+          <el-switch v-model="isShowLog" size="small" active-text="显示日志" />
+        </div>
+        <div class="switch-item">
+          <el-switch v-model="isAutoScroll" size="small" active-text="自动滚动" />
+        </div>
         <el-button
           type="default"
           icon="Delete"
@@ -659,5 +659,21 @@ onUnmounted(() => {
 .el-textarea__inner {
   background-color: transparent;
   max-height: 200px;
+}
+
+.switch-item {
+  color: #e0e0e0;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+:deep(.el-switch) {
+  --el-switch-on-color: #165dff;
+  --el-switch-off-color: #444;
+}
+
+:deep(.el-switch__label) {
+  color: #e0e0e0;
 }
 </style>
