@@ -2,20 +2,23 @@ import { app, BrowserWindow, shell, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import logger from './utils/logger'
-import ConnectionStorage from './storage/ConnectionStorage'
-import PreSetCommandStorage from './storage/PreSetCommandStorage'
-import TelnetClient from './protocol/TelnetClient'
+import IpcStorage from './ipc/IpcStorage'
+import IpcTelnet from './ipc/IpcTelnet'
 import os from 'os' // 核心：os 模块获取系统内存
 
+app.isQuitting = false
 const _logger = new logger()
-app.isQuitting = false // 扩展Electron app对象的属性
 let isQuitting = false
+const windows = {
+  mainWindow: undefined as BrowserWindow | undefined
+}
 
-let mainWindow: BrowserWindow
+IpcStorage.getInstance().init(ipcMain)
+IpcTelnet.getInstance().init(ipcMain, _logger, windows)
 
 function createWindow(): void {
   // 创建浏览器窗口
-  mainWindow = new BrowserWindow({
+  const mainWindow = new BrowserWindow({
     width: 1200, // 加宽（适配 SSH 终端和配置面板）
     height: 800,
     minWidth: 800, // 最小宽度（防止过窄）
@@ -56,6 +59,8 @@ function createWindow(): void {
       'window.dispatchEvent(new Event("window-unmaximized"))'
     )
   })
+
+  windows.mainWindow = mainWindow
 }
 
 // 应用生命周期管理
@@ -76,13 +81,12 @@ app.on('window-all-closed', () => {
   }
 })
 
-// 退出事件处理
 app.on('window-all-closed', async () => {
   if (isQuitting) return
   isQuitting = true
-  app.isQuitting = true // 标记为退出中
+  app.isQuitting = true
 
-  _logger.flush() // 同步刷日志（无Electron依赖）
+  _logger.flush()
 
   setTimeout(() => {
     if (process.platform !== 'darwin') {
@@ -95,8 +99,7 @@ app.on('before-quit', (event) => {
   if (isQuitting) return
   isQuitting = true
   app.isQuitting = true
-
-  _logger.flush() // 仅刷日志，不阻止默认行为
+  _logger.flush()
 })
 
 // 进程信号监听
@@ -118,88 +121,20 @@ process.on('SIGTERM', () => {
   process.exit(0)
 })
 
-/* 连接持久化处理 */
-const connectionStorage = new ConnectionStorage()
-ipcMain.handle('get-connections', () => connectionStorage.getConnections())
-ipcMain.handle('add-connection', (_, conn: any) => connectionStorage.addConnection(conn))
-ipcMain.handle('update-connection', (_, conn: any) => connectionStorage.updateConnection(conn))
-ipcMain.handle('delete-connection', (_, id: number) => connectionStorage.deleteConnection(id))
-
-/* 发送命令持久化 */
-const preSetCommandStorage = new PreSetCommandStorage()
-ipcMain.handle('get-preset-commands', () => preSetCommandStorage.getAll())
-ipcMain.handle('add-preset-command', (_, cmd: any) => preSetCommandStorage.add(cmd))
-ipcMain.handle('update-preset-command', (_, cmd: any) => preSetCommandStorage.update(cmd))
-ipcMain.handle('delete-preset-command', (_, id: number) => preSetCommandStorage.delete(id))
-
-/* telnet 连接处理 */
-const telnetClient = new TelnetClient()
-ipcMain.handle('connect-telnet', async (_, conn: any) => {
-  _logger.createConnLogFile(conn.id, conn.name)
-  return await telnetClient.start(
-    conn.host,
-    conn.port,
-    conn.id,
-    (dataStr) => {
-      _logger.writeToConnLog(dataStr, conn.id)
-      mainWindow.webContents.send('telnet-data', {
-        connId: conn.id,
-        data: dataStr
-      })
-    },
-    () => {
-      mainWindow.webContents.send('telnet-close', conn.id)
-      _logger.clearConnLogFile(conn.id)
-    }
-  )
-})
-ipcMain.handle('telnet-send', async (_, { conn, command }: { conn: any; command: string }) =>
-  telnetClient.send(conn.id, command, (dataStr) => _logger.writeToConnLog(dataStr, conn.id))
-)
-ipcMain.handle(
-  'telnet-disconnect',
-  async (_, connId: number) => await telnetClient.disconnect(connId)
-)
-// 新增：IPC 监听「打开日志」请求
-ipcMain.handle('open-telnet-log', async (_, conn: any) => {
-  if (conn.id) {
-    return await _logger.openConnLog(conn.id)
-  } else {
-    return await _logger.openLogDir()
-  }
-})
-
 // 窗口控制IPC
-ipcMain.handle('minimize-window', () => {
-  mainWindow.minimize()
-})
-
-ipcMain.handle('maximize-window', () => {
-  if (mainWindow.isMaximized()) {
-    mainWindow.unmaximize()
-  } else {
-    mainWindow.maximize()
-  }
-})
-
-ipcMain.handle('close-window', () => {
-  mainWindow.close()
-})
-
-ipcMain.handle('get-window-state', () => {
-  return mainWindow.isMaximized()
-})
-
-ipcMain.handle('open-devtools', () => {
-  if (mainWindow) {
-    const webContents = mainWindow.webContents
-    if (webContents.isDevToolsOpened()) {
-      webContents.closeDevTools()
-    } else {
-      webContents.openDevTools({ mode: 'right' })
-    }
-  }
-})
+ipcMain.handle('minimize-window', () => windows.mainWindow?.minimize())
+ipcMain.handle('close-window', () => windows.mainWindow?.close())
+ipcMain.handle('get-window-state', () => windows.mainWindow?.isMaximized())
+ipcMain.handle('maximize-window', () =>
+  windows.mainWindow?.isMaximized()
+    ? windows.mainWindow?.unmaximize()
+    : windows.mainWindow?.maximize()
+)
+ipcMain.handle('open-devtools', () =>
+  windows.mainWindow?.webContents?.isDevToolsOpened()
+    ? windows.mainWindow?.webContents?.closeDevTools()
+    : windows.mainWindow?.webContents?.openDevTools({ mode: 'right' })
+)
 
 ipcMain.handle('get-app-resource', async () => {
   const cpuInfo = process.getCPUUsage()
