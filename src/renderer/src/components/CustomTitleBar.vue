@@ -1,7 +1,6 @@
 <template>
   <div class="custom-titlebar">
     <div class="titlebar-left">
-      <!-- 添加切换按钮 -->
       <button
         class="titlebar-btn toggle-connection-btn"
         @click="toggleConnectionList"
@@ -140,73 +139,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, defineEmits } from 'vue'
 
 const isMaximized = ref(false)
-
-// 窗口状态变化处理函数
-const handleWindowMaximized = () => {
-  isMaximized.value = true
-}
-
-const handleWindowUnmaximized = () => {
-  isMaximized.value = false
-}
-
-onMounted(() => {
-  // 初始化窗口状态（通过preload暴露的API）
-  window.windowApi.getWindowState().then((state) => {
-    isMaximized.value = state
-  })
-
-  // 监听窗口状态变化事件
-  window.addEventListener('window-maximized', handleWindowMaximized)
-  window.addEventListener('window-unmaximized', handleWindowUnmaximized)
-})
-
-onUnmounted(() => {
-  // 移除事件监听，防止内存泄漏
-  window.removeEventListener('window-maximized', handleWindowMaximized)
-  window.removeEventListener('window-unmaximized', handleWindowUnmaximized)
-})
-
-// 最小化窗口
-const minimizeWindow = () => {
-  window.windowApi.minimizeWindow()
-}
-
-// 最大化/还原窗口
-const maximizeWindow = () => {
-  window.windowApi.maximizeWindow()
-}
-
-// 关闭窗口
-const closeWindow = () => {
-  window.windowApi.closeWindow()
-}
-
-import { defineEmits, defineProps } from 'vue'
-
-// 接收父组件的显示状态
-const props = defineProps({
-  showConnectionList: {
-    type: Boolean,
-    default: true
-  }
-})
-
-const emit = defineEmits(['toggle-connection-list'])
-
-const toggleConnectionList = () => {
-  emit('toggle-connection-list')
-}
-
-// 新增：菜单状态变量
 const showFileMenu = ref(false)
 const showEditMenu = ref(false)
 const showHelpMenu = ref(false)
+const emit = defineEmits(['toggle-connection-list'])
 
-// 新增：延迟隐藏菜单，解决鼠标移动过快问题
+const handleWindowMaximized = () => (isMaximized.value = true)
+const handleWindowUnmaximized = () => (isMaximized.value = false)
+const minimizeWindow = () => window.windowApi.minimizeWindow()
+const maximizeWindow = () => window.windowApi.maximizeWindow()
+const closeWindow = () => window.windowApi.closeWindow()
+const toggleConnectionList = () => emit('toggle-connection-list')
+
 const hideFileMenu = () => {
   setTimeout(() => {
     showFileMenu.value = false
@@ -225,19 +172,15 @@ const hideHelpMenu = () => {
   }, 50)
 }
 
-// 新增：菜单点击处理函数
 const handleNewWindow = () => {
-  // storageApi.createNewWindow()
   showFileMenu.value = false
 }
 
 const handleImport = () => {
-  console.log('Import connections')
   showFileMenu.value = false
 }
 
 const handleExport = () => {
-  console.log('Export connections')
   showFileMenu.value = false
 }
 
@@ -256,13 +199,26 @@ const handleAbout = () => {
 const handleDevelop = () => {
   showHelpMenu.value = false
 }
+
 const handleFeedBack = () => {
-  toolApi.openExternalUrl('https://github.com/SuperStudio/SuperConnectX/issues')
+  window.toolApi.openExternalUrl('https://github.com/SuperStudio/SuperConnectX/issues')
   showHelpMenu.value = false
 }
+
 const handleDoc = () => {
   showHelpMenu.value = false
 }
+
+onMounted(() => {
+  window.windowApi.getWindowState().then((state) => (isMaximized.value = state))
+  window.addEventListener('window-maximized', handleWindowMaximized)
+  window.addEventListener('window-unmaximized', handleWindowUnmaximized)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('window-maximized', handleWindowMaximized)
+  window.removeEventListener('window-unmaximized', handleWindowUnmaximized)
+})
 </script>
 
 <style scoped>
@@ -274,9 +230,9 @@ const handleDoc = () => {
   justify-content: space-between;
   align-items: center;
   padding: 0 0px;
-  -webkit-app-region: drag; /* 允许拖拽 */
+  -webkit-app-region: drag;
   border-bottom: 1px solid #333;
-  user-select: none; /* 禁止文本选中 */
+  user-select: none;
 }
 
 .titlebar-left {
@@ -286,28 +242,26 @@ const handleDoc = () => {
   gap: 8px;
 }
 
-/* Logo 容器：精准居中 + 固定尺寸 */
 .app-logo {
-  width: 18px; /* 图标宽度（按需调整：20/24/28px） */
-  height: 18px; /* 图标高度 = 宽度，正方形 */
-  display: flex; /* 内部图片居中 */
-  align-items: center; /* 垂直居中图片 */
-  justify-content: center; /* 水平居中图片 */
-  /* 可选：防止图片溢出 */
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   overflow: hidden;
-  /* 取消默认间距（如有的话） */
+
   margin: 0;
   padding: 0;
   margin-left: -5px;
 }
 
-/* Logo 图片：无默认间距 + 自适应 */
 .logo-img {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* 保持图片比例，不拉伸 */
-  /* 消除图片默认的基线对齐间距（关键！） */
-  display: block; /* 或 vertical-align: middle */
+  object-fit: contain;
+
+  display: block;
   transition: opacity 0.2s ease;
 }
 
@@ -318,7 +272,7 @@ const handleDoc = () => {
 
 .titlebar-right {
   display: flex;
-  -webkit-app-region: no-drag; /* 取消拖拽，允许按钮点击 */
+  -webkit-app-region: no-drag;
 }
 
 .titlebar-btn {
@@ -348,17 +302,16 @@ const handleDoc = () => {
   font-size: 10px;
 }
 
-/* 防止按钮聚焦样式 */
 .titlebar-btn:focus {
   outline: none;
 }
 
 .svg-box {
-  width: 30px; /* 可随意修改，图形比例不变 */
+  width: 30px;
   height: 30px;
 }
 .toggle-connection-btn {
-  -webkit-app-region: no-drag; /* 取消拖拽，允许按钮点击 */
+  -webkit-app-region: no-drag;
   margin-left: -10px;
   border: none;
   background: transparent;
@@ -375,7 +328,6 @@ const handleDoc = () => {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* 按钮图标切换样式 */
 .toggle-connection-btn.toggled svg {
   transform: rotate(90deg);
 }
@@ -387,7 +339,6 @@ const handleDoc = () => {
   gap: 8px;
 }
 
-/* 新增：菜单按钮样式 */
 .menu-button {
   position: relative;
   -webkit-app-region: no-drag;
@@ -408,7 +359,6 @@ const handleDoc = () => {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* 新增：下拉菜单样式 */
 .dropdown-menu {
   position: absolute;
   top: 30px;
