@@ -176,6 +176,9 @@ let retryCount = 0 // 当前重试次数
 let retryTimer: NodeJS.Timeout | null = null // 重试定时器
 let stopRetry = ref(false) // 是否停止重试（点击断开后设为true）
 
+const MAX_CLEAR_INTERVAL_SIZE = 1024 * 1024 * 1
+let totalRecvSize = 0
+
 // 初始化编辑器
 const initEditor = async () => {
   if (!editorContainer.value) return
@@ -233,6 +236,12 @@ const appendToTerminal = (content: string) => {
     editor?.revealLine(newLastLine) // 滚动到最后一行
   } else {
     // editor?.setScrollPosition(scrollPosition) // 恢复原有滚动位置
+  }
+
+  totalRecvSize += content.length
+  console.log(`totalRecvSize`, totalRecvSize)
+  if (totalRecvSize > MAX_CLEAR_INTERVAL_SIZE) {
+    clearTerminal()
   }
 }
 
@@ -690,6 +699,7 @@ const clearTerminal = () => {
     editorModel.setValue('')
   }
   commandInput.value?.focus()
+  totalRecvSize = 0
 }
 
 onMounted(() => {
