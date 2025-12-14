@@ -7,22 +7,6 @@ contextBridge.exposeInMainWorld('storageApi', {
   addConnection: (conn: any) => ipcRenderer.invoke('add-connection', conn),
   updateConnection: (conn: any) => ipcRenderer.invoke('update-connection', conn),
   deleteConnection: (id: number) => ipcRenderer.invoke('delete-connection', id),
-  connectTelnet: (conn: any) => ipcRenderer.invoke('connect-telnet', conn),
-  telnetSend: (data: { conn: any; command: string }) => ipcRenderer.invoke('telnet-send', data),
-  telnetDisconnect: (connId: number) => ipcRenderer.invoke('telnet-disconnect', connId),
-
-  onTelnetData: (callback: (data: { connId: number; data: string }) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: { connId: number; data: string }) =>
-      callback(data)
-    ipcRenderer.on('telnet-data', listener)
-    return () => ipcRenderer.removeListener('telnet-data', listener)
-  },
-  onTelnetClose: (callback: (connId: number) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, connId: number) => callback(connId)
-    ipcRenderer.on('telnet-close', listener)
-    return () => ipcRenderer.removeListener('telnet-close', listener)
-  },
-  openTelnetLog: (conn: any) => ipcRenderer.invoke('open-telnet-log', conn),
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
   maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
   closeWindow: () => ipcRenderer.invoke('close-window'),
@@ -38,6 +22,25 @@ contextBridge.exposeInMainWorld('storageApi', {
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url)
 })
 
+contextBridge.exposeInMainWorld('telnetApi', {
+  connectTelnet: (conn: any) => ipcRenderer.invoke('connect-telnet', conn),
+  telnetSend: (data: { conn: any; command: string }) => ipcRenderer.invoke('telnet-send', data),
+  telnetDisconnect: (connId: number) => ipcRenderer.invoke('telnet-disconnect', connId),
+
+  onTelnetData: (callback: (data: { connId: number; data: string }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: { connId: number; data: string }) =>
+      callback(data)
+    ipcRenderer.on('telnet-data', listener)
+    return () => ipcRenderer.removeListener('telnet-data', listener)
+  },
+  onTelnetClose: (callback: (connId: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, connId: number) => callback(connId)
+    ipcRenderer.on('telnet-close', listener)
+    return () => ipcRenderer.removeListener('telnet-close', listener)
+  },
+  openTelnetLog: (conn: any) => ipcRenderer.invoke('open-telnet-log', conn)
+})
+
 declare global {
   interface Window {
     storageApi: {
@@ -45,12 +48,6 @@ declare global {
       addConnection: (conn: any) => Promise<any>
       updateConnection: (conn: any) => Promise<any>
       deleteConnection: (id: number) => Promise<any[]>
-      connectTelnet: (conn: any) => Promise<any>
-      telnetSend: (data: { conn: any; command: string }) => Promise<any>
-      telnetDisconnect: (connId: number) => Promise<any>
-      onTelnetData: (callback: (data: { connId: number; data: string }) => void) => () => void
-      onTelnetClose: (callback: (connId: number) => void) => () => void
-      openTelnetLog: (conn: any) => Promise<{ success: boolean; message?: string }>
       minimizeWindow: () => Promise<void>
       maximizeWindow: () => Promise<void>
       closeWindow: () => Promise<void>
@@ -62,6 +59,14 @@ declare global {
       openDevtools: () => Promise<void>
       getAppResource: () => Promise<any>
       openExternalUrl: (url: string) => Promise<any>
+    }
+    telnetApi: {
+      connectTelnet: (conn: any) => Promise<any>
+      telnetSend: (data: { conn: any; command: string }) => Promise<any>
+      telnetDisconnect: (connId: number) => Promise<any>
+      onTelnetData: (callback: (data: { connId: number; data: string }) => void) => () => void
+      onTelnetClose: (callback: (connId: number) => void) => () => void
+      openTelnetLog: (conn: any) => Promise<{ success: boolean; message?: string }>
     }
   }
 }

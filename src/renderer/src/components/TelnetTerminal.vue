@@ -174,7 +174,7 @@ const getCurrentConnect = () => {
 const openLogFile = async () => {
   try {
     console.log('请求打开日志文件')
-    const result = await window.storageApi.openTelnetLog(getCurrentConnect())
+    const result = await window.telnetApi.openTelnetLog(getCurrentConnect())
     if (!result.success) {
       ElMessage.error(`打开日志失败：${result.message}`)
     }
@@ -196,7 +196,7 @@ const handleClose = async () => {
 
   if (currentConnId) {
     try {
-      await window.storageApi.telnetDisconnect(currentConnId)
+      await window.telnetApi.telnetDisconnect(currentConnId)
       isConnected.value = false
       emit('onClose')
       if (typeof props.onClose === 'function') {
@@ -259,7 +259,7 @@ const connect = async () => {
     }
 
     try {
-      const result = await window.storageApi.connectTelnet(getCurrentConnect())
+      const result = await window.telnetApi.connectTelnet(getCurrentConnect())
       if (result.success) {
         // 1. 确保先移除旧的监听
         if (removeDataListener) {
@@ -275,7 +275,7 @@ const connect = async () => {
         isConnected.value = true
 
         // 2. 注册新的监听，增加初始化信息过滤
-        removeDataListener = window.storageApi.onTelnetData((data) => {
+        removeDataListener = window.telnetApi.onTelnetData((data) => {
           if (data.connId !== currentConnId) return
 
           if (isShowLog.value) {
@@ -301,7 +301,7 @@ const connect = async () => {
           }
         })
 
-        removeCloseListener = window.storageApi.onTelnetClose(handleTelnetClose)
+        removeCloseListener = window.telnetApi.onTelnetClose(handleTelnetClose)
         commandInput.value?.focus()
         appendToTerminal(`connect success, retry count: ${retryCount + 1}\n`)
         retryCount = 0
@@ -338,7 +338,7 @@ const sendCommand = async () => {
   appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${sendData}\n`)
 
   try {
-    await window.storageApi.telnetSend({
+    await window.telnetApi.telnetSend({
       conn: getCurrentConnect(),
       command: sendData.trim()
     })
@@ -375,7 +375,7 @@ onUnmounted(() => {
   }
 
   if (currentConnId && isConnected.value) {
-    window.storageApi.telnetDisconnect(currentConnId).catch((err) => {
+    window.telnetApi.telnetDisconnect(currentConnId).catch((err) => {
       console.error('卸载时断开失败:', err)
     })
   }

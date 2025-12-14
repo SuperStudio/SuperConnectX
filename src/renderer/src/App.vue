@@ -338,7 +338,7 @@ const activeConnection = ref<any>(null)
 const connectToServer = async (conn: any) => {
   if (activeConnection.value !== null) {
     if (conn.id === activeConnection.value.id) {
-      await window.storageApi.telnetDisconnect(conn.id)
+      await window.telnetApi.telnetDisconnect(conn.id)
       activeConnection.value = null
       ElMessage.success('连接已断开')
     } else {

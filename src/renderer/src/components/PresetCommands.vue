@@ -307,7 +307,7 @@ const sendPresetCommand = async (cmd: any) => {
   try {
     emit('commandSent', cmd.name.trim())
     emit('commandSentContent', cmd.command)
-    window.storageApi.telnetSend({
+    window.telnetApi.telnetSend({
       conn: getCurrentConnect(),
       command: cmd.command.trim()
     })
