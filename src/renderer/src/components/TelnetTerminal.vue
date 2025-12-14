@@ -1,4 +1,3 @@
-<!-- TelnetTerminal.vue -->
 <template>
   <div class="telnet-terminal">
     <div class="terminal-header">
@@ -64,50 +63,43 @@ import { ref, onUnmounted, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as monaco from 'monaco-editor'
 import PresetCommands from './PresetCommands.vue'
+import TelnetInfo from '../entity/protocol/TelnetInfo'
+const MAX_RETRY_COUNT = 1000
+const RETRY_INTERVAL_MS = 3000
+const MAX_CLEAR_INTERVAL_SIZE = 1024 * 1024 * 1
 
 const emit = defineEmits(['onClose', 'commandSent'])
-
-// 接收父组件传递的连接参数和关闭回调
 const props = defineProps<{
   connection: { id: number; host: string; port: number; name?: string }
   onClose?: () => void
 }>()
 
-const currentCommand = ref('') // 当前输入的命令
-const commandInput = ref<HTMLInputElement>(null) // 输入框引用
-const isConnected = ref(true) // 连接状态标识
+const currentCommand = ref('')
+const commandInput = ref<HTMLInputElement>(null)
+const isConnected = ref(true)
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
-let currentConnId = 0 // 当前连接的 ID
-
-// 显示日志开关（默认勾选）
+let currentConnId = 0
 const isShowLog = ref(true)
 const isAutoScroll = ref(true)
 const editorContainer = ref<HTMLElement | null>(null)
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 let editorModel: monaco.editor.ITextModel | null = null // 直接持有模型，不通过 Vue 响应式
 
-// 重试相关标记
-const MAX_RETRY_COUNT = 1000 // 最大重试次数
-const RETRY_INTERVAL_MS = 3000
-let retryCount = 0 // 当前重试次数
-let retryTimer: NodeJS.Timeout | null = null // 重试定时器
-let stopRetry = ref(false) // 是否停止重试（点击断开后设为true）
-
-const MAX_CLEAR_INTERVAL_SIZE = 1024 * 1024 * 1
+let retryCount = 0
+let retryTimer: NodeJS.Timeout | null = null
+let stopRetry = ref(false)
 let totalRecvSize = 0
 
-// 初始化编辑器
 const initEditor = async () => {
   if (!editorContainer.value) return
 
   editorModel = monaco.editor.createModel(
-    `正在尝试连接 ${props.connection.host}:${props.connection.port}...\n`,
+    `try to connect ${props.connection.host}:${props.connection.port}...\n`,
     'plaintext',
     monaco.Uri.parse('telnet-terminal:///output.txt')
   )
 
-  // 2. 创建编辑器，绑定独立模型
   editor = monaco.editor.create(editorContainer.value, {
     model: editorModel,
     readOnly: true,
@@ -116,7 +108,6 @@ const initEditor = async () => {
     scrollBeyondLastLine: false,
     theme: 'vs-dark',
     automaticLayout: true,
-    // 关闭所有可能触发线程竞争的功能
     hover: { enabled: false },
     occurrencesHighlight: 'off',
     selectionHighlight: false,
@@ -124,19 +115,15 @@ const initEditor = async () => {
     links: false
   })
 
-  // 3. 禁用 Vue 对编辑器的响应式监听（关键）
   editor.updateOptions({ readOnly: true })
 }
 
 const appendToTerminal = (content: string) => {
   if (!editorModel) return
 
-  // 关键：用模型的 pushEdit 替代编辑器的 setValue，避免触发渲染线程死锁
-  // 记录追加前的滚动位置（用于取消自动滚动时保留位置）
   const lastLine = editorModel.getLineCount()
   const lastCol = editorModel.getLineContent(lastLine).length + 1
 
-  // 同步编辑模型（Electron 下同步操作更稳定）
   editorModel.pushEditOperations(
     [],
     [
@@ -151,9 +138,7 @@ const appendToTerminal = (content: string) => {
 
   if (isAutoScroll.value) {
     const newLastLine = editorModel!.getLineCount()
-    editor?.revealLine(newLastLine) // 滚动到最后一行
-  } else {
-    // editor?.setScrollPosition(scrollPosition) // 恢复原有滚动位置
+    editor?.revealLine(newLastLine)
   }
 
   totalRecvSize += content.length
@@ -161,34 +146,20 @@ const appendToTerminal = (content: string) => {
     clearTerminal()
   }
 }
-const getCurrentConnect = () => {
-  return {
-    id: props.connection.id,
-    host: props.connection.host,
-    port: props.connection.port,
-    name: props.connection.name
-  }
-}
 
-// 打开日志文件
 const openLogFile = async () => {
   try {
-    console.log('请求打开日志文件')
-    const result = await window.telnetApi.openTelnetLog(getCurrentConnect())
+    const result = await window.telnetApi.openTelnetLog(TelnetInfo.buildWithValue(props.connection))
     if (!result.success) {
       ElMessage.error(`打开日志失败：${result.message}`)
     }
   } catch (error) {
-    console.error('打开日志异常:', error)
     ElMessage.error('打开日志失败：' + (error instanceof Error ? error.message : '未知错误'))
   }
 }
 
-// 处理关闭连接
 const handleClose = async () => {
-  // 标记停止重试
   stopRetry.value = true
-  // 清除重试定时器
   if (retryTimer) {
     clearTimeout(retryTimer)
     retryTimer = null
@@ -225,7 +196,6 @@ const handleClose = async () => {
   }
 }
 
-// 处理连接关闭
 const handleTelnetClose = (connId: number) => {
   if (connId === currentConnId) {
     ElMessage.info('连接已关闭，将尝试重新连接...')
@@ -233,25 +203,18 @@ const handleTelnetClose = (connId: number) => {
     currentConnId = 0
     appendToTerminal(`连接已关闭，将在${RETRY_INTERVAL_MS / 1000}秒后尝试重连...\n`)
     if (!stopRetry.value) {
-      // 延迟一点再重连，避免立即重试可能的资源竞争
       setTimeout(connect, 1000)
     }
   }
 }
 
-// 连接 Telnet 服务器
-// 连接逻辑（含重试）
-// 修改连接成功后的逻辑，增加初始化信息清理机制
 const connect = async () => {
-  // 重置状态（保持原有代码）
   stopRetry.value = false
   retryCount = 0
   isConnected.value = false
   currentConnId = 0
 
-  // 新增：记录是否是首次连接
   let isFirstConnect = true
-
   const attemptConnect = async () => {
     if (stopRetry.value) {
       console.log(`\n已手动停止重连，终止尝试\n`)
@@ -259,9 +222,10 @@ const connect = async () => {
     }
 
     try {
-      const result = await window.telnetApi.connectTelnet(getCurrentConnect())
+      const result = await window.telnetApi.connectTelnet(
+        TelnetInfo.buildWithValue(props.connection)
+      )
       if (result.success) {
-        // 1. 确保先移除旧的监听
         if (removeDataListener) {
           removeDataListener()
           removeDataListener = null
@@ -274,7 +238,6 @@ const connect = async () => {
         currentConnId = result.connId
         isConnected.value = true
 
-        // 2. 注册新的监听，增加初始化信息过滤
         removeDataListener = window.telnetApi.onTelnetData((data) => {
           if (data.connId !== currentConnId) return
 
@@ -289,13 +252,11 @@ const connect = async () => {
             const isInitMessage = /^Server initialized/.test(formattedData.trim())
 
             if (isInitMessage) {
-              // 只保留首次连接的初始化信息
               if (isFirstConnect) {
                 appendToTerminal(formattedData)
-                isFirstConnect = false // 标记为非首次连接
+                isFirstConnect = false
               }
             } else {
-              // 非初始化信息正常显示
               appendToTerminal(formattedData)
             }
           }
@@ -305,12 +266,11 @@ const connect = async () => {
         commandInput.value?.focus()
         appendToTerminal(`connect success, retry count: ${retryCount + 1}\n`)
         retryCount = 0
-        isFirstConnect = false // 重置首次连接标记
+        isFirstConnect = false
       } else {
         throw new Error(result.message || '连接失败')
       }
     } catch (error) {
-      // 保持原有错误处理逻辑
       retryCount++
       const errMsg = (error as Error).message
       appendToTerminal(`connect failed: (${retryCount}/${MAX_RETRY_COUNT})：${errMsg}\n`)
@@ -328,7 +288,6 @@ const connect = async () => {
   await attemptConnect()
 }
 
-// 发送命令
 const sendCommand = async () => {
   if (!currentCommand.value.trim() || !isConnected.value) return
 
@@ -339,7 +298,7 @@ const sendCommand = async () => {
 
   try {
     await window.telnetApi.telnetSend({
-      conn: getCurrentConnect(),
+      conn: TelnetInfo.buildWithValue(props.connection),
       command: sendData.trim()
     })
   } catch (error) {
@@ -348,12 +307,32 @@ const sendCommand = async () => {
   }
 }
 
+const clearTerminal = () => {
+  if (editorModel) {
+    editorModel.setValue('')
+  }
+  commandInput.value?.focus()
+  totalRecvSize = 0
+}
+
+const handleCommandSent = (cmdName: string) => emit('commandSent', cmdName)
+
+const appendCommandToTerminal = (content: string) => {
+  appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${content}\n`)
+  commandInput.value?.focus()
+}
+
+onMounted(() => {
+  initEditor()
+  connect()
+})
+
 // 组件卸载清理
 onUnmounted(() => {
-  console.log('组件卸载：强制清理所有监听和连接')
-
   stopRetry.value = true
-  if (retryTimer) clearTimeout(retryTimer)
+  if (retryTimer) {
+    clearTimeout(retryTimer)
+  }
 
   if (editorModel) {
     editorModel.dispose()
@@ -380,32 +359,6 @@ onUnmounted(() => {
     })
   }
 })
-
-// 清空屏幕
-const clearTerminal = () => {
-  if (editorModel) {
-    // 清空：直接重置模型内容，而非编辑器 setValue
-    editorModel.setValue('')
-  }
-  commandInput.value?.focus()
-  totalRecvSize = 0
-}
-
-onMounted(() => {
-  initEditor()
-  connect()
-})
-
-// 新增处理命令发送的回调
-const handleCommandSent = (cmdName: string) => {
-  emit('commandSent', cmdName)
-}
-
-// 追加命令到终端显示
-const appendCommandToTerminal = (content: string) => {
-  appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${content}\n`)
-  commandInput.value?.focus()
-}
 </script>
 
 <style scoped>
@@ -424,7 +377,6 @@ const appendCommandToTerminal = (content: string) => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* 头部样式 */
 .terminal-header {
   display: flex;
   justify-content: space-between;
@@ -436,7 +388,6 @@ const appendCommandToTerminal = (content: string) => {
   box-sizing: border-box;
 }
 
-/* 连接信息 */
 .connection-info {
   font-size: 14px;
   color: #e0e0e0;
@@ -462,7 +413,6 @@ const appendCommandToTerminal = (content: string) => {
   color: #ff5f58;
 }
 
-/* 按钮组 */
 .header-buttons {
   display: flex;
   gap: 8px;
@@ -470,7 +420,6 @@ const appendCommandToTerminal = (content: string) => {
   margin-right: 10px;
 }
 
-/* 按钮样式 */
 .log-btn,
 .close-btn,
 .clear-btn,
@@ -506,7 +455,6 @@ const appendCommandToTerminal = (content: string) => {
   transform: translateY(-1px);
 }
 
-/* 终端输出区域 */
 .terminal-output {
   flex: 1;
   overflow-y: auto;
@@ -517,7 +465,6 @@ const appendCommandToTerminal = (content: string) => {
   position: relative;
 }
 
-/* 空状态样式 */
 .empty-state {
   position: absolute;
   top: 50%;
@@ -553,40 +500,36 @@ const appendCommandToTerminal = (content: string) => {
   cursor: not-allowed;
 }
 
-/* 命令输入区域样式调整 */
 .terminal-input {
   display: flex;
-  align-items: center; /* 垂直居中对齐 */
+  align-items: center;
   border-radius: 0px;
 }
-/* 命令输入区域样式调整 */
+
 .terminal-input {
   display: flex;
-  align-items: center; /* 垂直居中对齐 */
+  align-items: center;
   background-color: #333;
 }
 
-/* 命令提示符样式 */
 .prompt {
-  color: #cccccc; /* 绿色提示符，可自定义 */
+  color: #cccccc;
   font-weight: bold;
-  white-space: nowrap; /* 防止换行 */
+  white-space: nowrap;
   margin-left: 10px;
-  user-select: none; /* 核心：禁止文本选择 */
+  user-select: none;
 }
 
-/* 输入框样式保持不变，但可以移除左右内边距避免整体过宽 */
 .terminal-input input {
   flex: 1;
   background: #333;
   border: none;
   color: #fff;
-  padding: 8px 10px; /* 只保留上下内边距 */
+  padding: 8px 10px;
   outline: none;
   font-family: monospace;
 }
 
-/* 复选框样式 */
 .auto-scroll-checkbox,
 .show-log-checkbox {
   color: #e0e0e0 !important;
@@ -609,7 +552,6 @@ const appendCommandToTerminal = (content: string) => {
   font-size: 14px !important;
 }
 
-/* 右键菜单样式 */
 .context-menu-container {
   position: fixed !important;
   z-index: 9999 !important;
@@ -653,7 +595,6 @@ const appendCommandToTerminal = (content: string) => {
   border-bottom: 1px solid #383838 !important;
 }
 
-/* 滚动条美化 */
 .terminal-output::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -672,7 +613,6 @@ const appendCommandToTerminal = (content: string) => {
   background: #555;
 }
 
-/* 动画效果 */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -687,7 +627,6 @@ const appendCommandToTerminal = (content: string) => {
   animation: fadeIn 0.2s ease-out;
 }
 
-/* Element Plus 弹窗表单样式适配 */
 .el-dialog {
   background: #2d2d2d !important;
   border-radius: 8px !important;
