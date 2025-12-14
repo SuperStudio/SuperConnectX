@@ -1,4 +1,3 @@
-<!-- src/components/SearchInput.vue -->
 <template>
   <div class="sidebar-search">
     <div class="search-inner">
@@ -19,14 +18,13 @@ import { ref, watch } from 'vue'
 const emit = defineEmits(['search'])
 const searchText = ref('')
 
-// 实时搜索
 const handleSearch = () => emit('search', searchText.value.trim())
-// 清空搜索
+
 const clearSearch = () => {
   searchText.value = ''
   emit('search', '')
 }
-// 监听文本变化（容错）
+
 watch(searchText, (val) => emit('search', val.trim()))
 </script>
 
