@@ -8,21 +8,19 @@
       placement="bottom-start"
     >
       <el-button type="default" size="small" class="group-selector">
-        {{ selectedGroupName || '新建组' }}
+        <span class="group-selector-text">{{ selectedGroupName || '新建组' }}</span>
         <el-icon class="el-icon--right"> <ArrowDown /></el-icon>
       </el-button>
       <template #dropdown>
-        <el-dropdown-menu>
+        <el-dropdown-menu class="custom-dropdown-menu">
           <!-- 新建组选项 -->
-          <el-dropdown-item command="new" class="group-menu-item">
-            新建组
-            <span class="group-actions">
-              <el-icon size="16" class="action-icon add-icon"><Plus /></el-icon>
-            </span>
+          <el-dropdown-item command="new" class="group-menu-item new-group-item">
+            <el-icon size="16" class="action-icon add-icon"><Plus /></el-icon>
+            <span class="group-name-new">新建组</span>
           </el-dropdown-item>
 
           <!-- 分隔线 -->
-          <el-dropdown-item disabled v-if="filteredGroups.length > 0">
+          <el-dropdown-item disabled v-if="filteredGroups.length > 0" class="menu-divider-item">
             <div class="menu-divider"></div>
           </el-dropdown-item>
 
@@ -32,8 +30,10 @@
             :key="group.groupId"
             :command="group.groupId"
             class="group-menu-item"
+            :class="{ 'active-group': selectedGroupId === group.groupId }"
           >
-            {{ group.name }}
+            <span class="group-name">{{ group.name }}</span>
+            <span class="group-type-badge">{{ group.connectionType }}</span>
             <span class="group-actions">
               <el-icon size="16" class="action-icon edit-icon" @click.stop="editGroup(group)"
                 ><Edit
@@ -620,7 +620,7 @@ onBeforeUnmount(() => {
 }
 
 .edit-icon {
-  color: #165dff;
+  color: #fff;
 }
 
 .delete-icon {
@@ -758,5 +758,113 @@ onBeforeUnmount(() => {
 .el-textarea__inner {
   background-color: transparent;
   max-height: 200px;
+}
+
+.custom-dropdown-menu {
+  background-color: #2d2d2d !important;
+  border: 1px solid #444 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  padding: 8px 0 !important;
+  min-width: 240px !important;
+  overflow: hidden;
+}
+
+:deep(.group-menu-item) {
+  display: flex !important;
+  align-items: center !important;
+  padding: 8px 16px !important;
+  color: #fff !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  height: auto !important;
+  line-height: normal !important;
+}
+
+:deep(.group-menu-item:hover) {
+  background-color: #0078d4 !important;
+}
+
+.new-group-item {
+  color: #42b983 !important;
+  font-weight: 500 !important;
+}
+
+:deep(.active-group) {
+  background-color: rgba(22, 93, 255, 0.15) !important;
+  border-left: 3px solid #165dff !important;
+}
+
+.group-name,
+.group-name-new {
+  flex: 1 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  margin-right: 8px !important;
+  color: #fff;
+}
+
+.group-type-badge {
+  font-size: 12px !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  margin-right: 8px !important;
+  background-color: #444 !important;
+  color: #fff !important;
+}
+
+.group-type-badge:empty {
+  display: none !important;
+}
+
+.menu-divider-item {
+  padding: 0 !important;
+  margin: 4px 0 !important;
+}
+
+.menu-divider {
+  height: 1px !important;
+  background-color: #444 !important;
+  margin: 0 8px !important;
+}
+
+.group-selector {
+  background-color: #3a3a3a !important;
+  border: 2px solid transparent !important;
+  color: #fff !important;
+  padding: 6px 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.group-selector:hover {
+  border: 2px solid #0078d4 !important;
+}
+
+.group-selector-text {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 180px !important;
+}
+
+.action-icon {
+  transition: all 0.2s ease !important;
+  opacity: 0.8 !important;
+}
+
+.action-icon:hover {
+  transform: scale(1.1) !important;
+  opacity: 1 !important;
+}
+
+.edit-icon:hover {
+  color: #fff !important;
+}
+
+.delete-icon:hover {
+  color: #ff6b6b !important;
 }
 </style>
