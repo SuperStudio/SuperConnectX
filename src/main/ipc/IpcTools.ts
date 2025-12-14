@@ -1,0 +1,50 @@
+import os from 'os'
+import { shell } from 'electron'
+
+const MAX_CPU_VALUE = 100
+const CPU_FLOAT_FIXED_SIZE = 2
+const MEM_FLOAT_FIXED_SIZE = 2
+const BYTE_VALUE_SIZE = 1024
+const FLOAT_TO_PERCENT = 100
+
+export default class IpcTools {
+  private static sInstance: IpcTools
+
+  constructor() {}
+
+  static getInstance(): IpcTools {
+    if (IpcTools.sInstance == null) {
+      IpcTools.sInstance = new IpcTools()
+    }
+
+    return IpcTools.sInstance
+  }
+
+  init(ipcMain, windows): void {
+    ipcMain.handle('open-devtools', () =>
+      windows.mainWindow?.webContents?.isDevToolsOpened()
+        ? windows.mainWindow?.webContents?.closeDevTools()
+        : windows.mainWindow?.webContents?.openDevTools({ mode: 'right' })
+    )
+
+    ipcMain.handle('get-app-resource', async () => {
+      const cpuInfo = process.getCPUUsage()
+      const cpuRate = Math.max(0, Math.min(MAX_CPU_VALUE, cpuInfo.percentCPUUsage)).toFixed(
+        CPU_FLOAT_FIXED_SIZE
+      )
+      const memoryInfo = await process.getProcessMemoryInfo()
+      const usedMemory = memoryInfo.residentSet
+      const totalMemGB = os.totalmem()
+      const memRate = ((usedMemory / (totalMemGB / BYTE_VALUE_SIZE)) * FLOAT_TO_PERCENT).toFixed(
+        MEM_FLOAT_FIXED_SIZE
+      )
+      return {
+        cpu: cpuRate,
+        memory: (usedMemory / BYTE_VALUE_SIZE).toFixed(MEM_FLOAT_FIXED_SIZE),
+        memRate: memRate
+      }
+    })
+
+    ipcMain.handle('open-external-url', async (_, url) => await shell.openExternal(url))
+  }
+}

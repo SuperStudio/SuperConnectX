@@ -4,17 +4,18 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import logger from './utils/logger'
 import IpcStorage from './ipc/IpcStorage'
 import IpcTelnet from './ipc/IpcTelnet'
-import os from 'os' // 核心：os 模块获取系统内存
+import IpcWindow from './ipc/IpcWindow'
+import IpcTools from './ipc/IpcTools'
 
 app.isQuitting = false
-const _logger = new logger()
 let isQuitting = false
-const windows = {
-  mainWindow: undefined as BrowserWindow | undefined
-}
+const _logger = new logger()
+const windows = { mainWindow: undefined as BrowserWindow | undefined }
 
 IpcStorage.getInstance().init(ipcMain)
 IpcTelnet.getInstance().init(ipcMain, _logger, windows)
+IpcWindow.getInstance().init(ipcMain, windows)
+IpcTools.getInstance().init(ipcMain, windows)
 
 function createWindow(): void {
   // 创建浏览器窗口
@@ -120,34 +121,3 @@ process.on('SIGTERM', () => {
   _logger.flush()
   process.exit(0)
 })
-
-// 窗口控制IPC
-ipcMain.handle('minimize-window', () => windows.mainWindow?.minimize())
-ipcMain.handle('close-window', () => windows.mainWindow?.close())
-ipcMain.handle('get-window-state', () => windows.mainWindow?.isMaximized())
-ipcMain.handle('maximize-window', () =>
-  windows.mainWindow?.isMaximized()
-    ? windows.mainWindow?.unmaximize()
-    : windows.mainWindow?.maximize()
-)
-ipcMain.handle('open-devtools', () =>
-  windows.mainWindow?.webContents?.isDevToolsOpened()
-    ? windows.mainWindow?.webContents?.closeDevTools()
-    : windows.mainWindow?.webContents?.openDevTools({ mode: 'right' })
-)
-
-ipcMain.handle('get-app-resource', async () => {
-  const cpuInfo = process.getCPUUsage()
-  const cpuRate = Math.max(0, Math.min(100, cpuInfo.percentCPUUsage)).toFixed(2)
-  const memoryInfo = await process.getProcessMemoryInfo()
-  const usedMemory = memoryInfo.residentSet
-  const totalMemGB = os.totalmem()
-  const memRate = ((usedMemory / (totalMemGB / 1024)) * 100).toFixed(2)
-  return {
-    cpu: cpuRate,
-    memory: (usedMemory / 1024).toFixed(2),
-    memRate: memRate
-  }
-})
-
-ipcMain.handle('open-external-url', async (_, url) => await shell.openExternal(url))
