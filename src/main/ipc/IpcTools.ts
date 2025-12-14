@@ -1,5 +1,5 @@
 import os from 'os'
-import { shell } from 'electron'
+import { shell, ipcMain } from 'electron'
 
 const MAX_CPU_VALUE = 100
 const CPU_FLOAT_FIXED_SIZE = 2
@@ -20,7 +20,7 @@ export default class IpcTools {
     return IpcTools.sInstance
   }
 
-  init(ipcMain, windows): void {
+  init(windows): void {
     ipcMain.handle('open-devtools', () =>
       windows.mainWindow?.webContents?.isDevToolsOpened()
         ? windows.mainWindow?.webContents?.closeDevTools()

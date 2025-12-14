@@ -1,4 +1,5 @@
 import TelnetClient from '../protocol/TelnetClient'
+import { ipcMain } from 'electron'
 
 export default class IpcTelnet {
   private static sInstance: IpcTelnet
@@ -15,7 +16,7 @@ export default class IpcTelnet {
     return IpcTelnet.sInstance
   }
 
-  init(ipcMain, _logger, windows): void {
+  init(_logger, windows): void {
     ipcMain.handle('connect-telnet', async (_, conn: any) => {
       _logger.createConnLogFile(conn.id, conn.name)
       return await this.telnetClient.start(

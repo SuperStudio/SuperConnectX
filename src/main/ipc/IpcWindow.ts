@@ -1,3 +1,5 @@
+import { ipcMain } from 'electron'
+
 export default class IpcWindow {
   private static sInstance: IpcWindow
 
@@ -11,7 +13,7 @@ export default class IpcWindow {
     return IpcWindow.sInstance
   }
 
-  init(ipcMain, windows): void {
+  init(windows): void {
     // 窗口控制IPC
     ipcMain.handle('minimize-window', () => windows.mainWindow?.minimize())
     ipcMain.handle('close-window', () => windows.mainWindow?.close())

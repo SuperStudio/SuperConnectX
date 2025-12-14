@@ -1,5 +1,6 @@
 import ConnectionStorage from '../storage/ConnectionStorage'
 import PreSetCommandStorage from '../storage/PreSetCommandStorage'
+import { ipcMain } from 'electron'
 
 export default class IpcStorage {
   private static sInstance: IpcStorage
@@ -14,7 +15,7 @@ export default class IpcStorage {
     return IpcStorage.sInstance
   }
 
-  init(ipcMain): void {
+  init(): void {
     /* 连接持久化处理 */
     const connectionStorage = new ConnectionStorage()
     ipcMain.handle('get-connections', () => connectionStorage.getConnections())
