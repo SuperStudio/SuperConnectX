@@ -116,6 +116,10 @@ const initEditor = async () => {
   })
 
   editor.updateOptions({ readOnly: true })
+
+  editor.onMouseDown(() => {
+    isAutoScroll.value = false
+  })
 }
 
 const appendToTerminal = (content: string) => {
