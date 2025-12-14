@@ -8,7 +8,7 @@
       placement="bottom-start"
     >
       <el-button type="default" size="small" class="group-selector">
-        <span class="group-selector-text">{{ selectedGroupName || '新建组' }}</span>
+        <span class="group-selector-text">{{ selectedGroupName || '点击新建组' }}</span>
         <el-icon class="el-icon--right"> <ArrowDown /></el-icon>
       </el-button>
       <template #dropdown>
@@ -163,7 +163,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
-import { ElMessage, ElForm, ElInput } from 'element-plus'
+import { ElMessage, ElForm, ElInput, ElMessageBox } from 'element-plus'
 import { ElSelect, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon } from 'element-plus'
 import { Plus, Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
 import FormUtils from '../utils/FormUtils'
@@ -341,6 +341,13 @@ const editGroup = (group: any) => {
 // 删除组
 const deleteGroup = async (group: any) => {
   try {
+    await ElMessageBox.confirm(`确认删除 ${group.name} 及其所有命令?`, '删除组', {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning',
+      center: true
+    })
+
     await window.storageApi.deleteCommandGroup(group.groupId)
     // 删除组关联的命令
     await Promise.all(
