@@ -290,7 +290,6 @@ onMounted(() => loadConnections())
 </script>
 
 <style scoped>
-/* 工具栏样式替代原来的header */
 .app-toolbar {
   display: flex;
   justify-content: space-between;
@@ -353,7 +352,6 @@ onMounted(() => loadConnections())
   border-radius: 8px;
 }
 
-/* 连接卡片样式 */
 .connection-card {
   background: #2d2d2d !important;
   border: 1px solid #3a3a3a !important;
@@ -362,9 +360,7 @@ onMounted(() => loadConnections())
   overflow: hidden;
 }
 
-/* 鼠标悬浮样式：显示阴影 + 改变边框颜色/宽度 */
 .connection-card:hover {
-  /* 边框：颜色改为主题色 + 宽度稍增（可选） */
   border: 1px solid rgb(64, 158, 255) !important;
   transform: translateY(-2px);
 }
@@ -398,7 +394,6 @@ onMounted(() => loadConnections())
   margin-left: 8px;
 }
 
-/* Element Plus 弹窗表单样式适配 */
 .el-dialog {
   background: #2d2d2d !important;
   border-radius: 8px !important;
@@ -442,25 +437,22 @@ onMounted(() => loadConnections())
   display: flex;
 }
 
-/* 连接列表容器：核心过渡逻辑 */
 .connection-list-wrapper {
-  width: 320px; /* 展开时的宽度 */
-  min-width: 320px; /* 防止收缩时内容挤压 */
+  width: 320px;
+  min-width: 320px;
   height: 100%;
-  transition: all 0.3s ease-in-out; /* 平滑过渡：时长0.3秒，缓动曲线 */
+  transition: all 0.3s ease-in-out;
   overflow: hidden;
-  flex-shrink: 0; /* 防止flex布局挤压宽度 */
-  box-sizing: border-box; /* 关键：宽度包含边框，避免溢出 */
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
-/* 收起状态：宽度收窄为0 */
 .connection-list-wrapper.collapsed {
   width: 0;
   min-width: 0;
-  border-right: none; /* 收起时隐藏边框 */
+  border-right: none;
 }
 
-/* 终端面板：过渡宽度和边距 */
 .terminal-panel {
   display: flex;
   align-items: center;
@@ -468,57 +460,49 @@ onMounted(() => loadConnections())
   background: #1e1e1e;
   color: #aaa;
   font-size: 14px;
-  flex: 1; /* 默认占剩余宽度 */
+  flex: 1;
   padding: 0px;
-  transition: padding-left 0.3s ease-in-out; /* 边距过渡 */
+  transition: padding-left 0.3s ease-in-out;
   height: 100%;
   overflow: auto;
 }
 
-/* 原有连接列表样式（补充） */
 .connection-list {
   height: 100%;
   padding: 8px;
   overflow: auto;
-  box-sizing: border-box; /* 关键：padding 计入高度，不超出容器 */
-  overflow-y: auto; /* 仅纵向滚动，横向隐藏 */
+  box-sizing: border-box;
+  overflow-y: auto;
   overflow-x: hidden;
-  /* 优化滚动体验（可选） */
 }
 
-/* 1. connection-list 滚动条整体 */
 .connection-list::-webkit-scrollbar {
-  width: 10px !important; /* 列表内滚动条更窄，区别于全局 */
+  width: 10px !important;
   height: 6px !important;
-  background: transparent !important; /* 轨道透明 */
+  background: transparent !important;
 }
 
-/* 2. connection-list 滚动条轨道 */
 .connection-list::-webkit-scrollbar-track {
-  background: transparent !important; /* 完全透明，更简洁 */
-  border-radius: 3px !important; /* 圆角适配窄滚动条 */
+  background: transparent !important;
+  border-radius: 3px !important;
 }
 
-/* 3. connection-list 滚动条滑块 */
 .connection-list::-webkit-scrollbar-thumb {
-  background: #464647 !important; /* 自定义滑块颜色（浅灰蓝） */
-  border-radius: 0px !important; /* 与宽度匹配的圆角 */
-  border: 0 !important; /* 移除默认边框 */
-  transition: background 1s ease !important; /* hover 过渡 */
+  background: #464647 !important;
+  border-radius: 0px !important;
+  border: 0 !important;
+  transition: background 1s ease !important;
 }
 
-/* 4. 滑块 hover 状态 */
 .connection-list::-webkit-scrollbar-thumb:hover {
-  background: #515151 !important; /* hover 加深颜色 */
-  transform: scale(1.05) !important; /* 轻微放大，增强交互 */
+  background: #515151 !important;
+  transform: scale(1.05) !important;
 }
 
-/* 5. 滑块 active 状态（拖动时） */
 .connection-list::-webkit-scrollbar-thumb:active {
-  background: #626263 !important; /* 拖动时更深 */
+  background: #626263 !important;
 }
 
-/* 关键词高亮样式 */
 .highlight {
   background: #fde68a;
   color: #92400e;
@@ -526,7 +510,6 @@ onMounted(() => loadConnections())
   border-radius: 2px;
 }
 
-/* 提示文本 */
 .no-result,
 .empty-list {
   font-size: 12px;
@@ -555,28 +538,27 @@ onMounted(() => loadConnections())
 
   align-items: center;
   width: fit-content;
-  align-items: center; /* 垂直居中对齐 */
+  align-items: center;
   user-select: none;
 }
 
 .command-status {
   color: #e0e0e0;
   font-size: 12px;
-  /* 关键：自动占据左侧剩余空间，实现右对齐 */
+
   margin-left: auto;
   margin-right: 20px;
 
   display: flex;
   align-items: center;
   width: fit-content;
-  align-items: center; /* 垂直居中对齐 */
+  align-items: center;
   user-select: none;
 }
 
 .terminal-placeholder {
-  /* 核心Grid属性：水平+垂直居中 */
   display: grid;
-  place-items: center; /* 等价于 align-items + justify-items */
+  place-items: center;
 }
 
 .terminal-placeholder-text {

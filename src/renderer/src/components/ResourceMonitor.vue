@@ -69,15 +69,14 @@ onUnmounted(() => {
   padding: 0px;
 }
 
-/* 横向排列容器 */
 .progress-container {
   display: flex;
-  gap: 3px; /* 两个进度条之间的间距 */
+  gap: 3px;
   width: 100%;
 }
 
 .resource-item {
-  flex: 1; /* 两个进度条平分宽度 */
+  flex: 1;
 }
 
 .progress-bar {
