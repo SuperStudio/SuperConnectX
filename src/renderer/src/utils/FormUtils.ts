@@ -18,4 +18,15 @@ export default class FormUtils {
       ]
     })
   }
+
+  static buildPresetCmd() {
+    return ref({
+      name: [{ required: true, message: '请输入命令名称', trigger: 'blur' }],
+      command: [{ required: true, message: '请输入命令内容', trigger: 'blur' }],
+      delay: [
+        { required: true, message: '请输入时延', trigger: 'blur' },
+        { type: 'number', min: 0, message: '时延不能为负数', trigger: 'blur' }
+      ]
+    })
+  }
 }

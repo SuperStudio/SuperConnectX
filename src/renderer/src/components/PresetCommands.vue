@@ -91,6 +91,27 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage, ElForm, ElInput } from 'element-plus'
+import FormUtils from '../utils/FormUtils'
+
+const presetCommands = ref<any[]>([])
+const isPresetDialogOpen = ref(false)
+const isEditing = ref(false)
+const currentEditingCmd = ref<any>(null)
+const contextMenuVisible = ref(false)
+const contextMenuLeft = ref(0)
+const contextMenuTop = ref(0)
+
+// 循环发送相关
+const loopIntervals = ref<Record<number, NodeJS.Timeout>>({})
+const loopStatus = ref<Record<number, boolean>>({})
+const presetRules = FormUtils.buildPresetCmd()
+const presetFormRef = ref<InstanceType<typeof ElForm> | null>(null)
+const nameInputRef = ref<InstanceType<typeof ElInput> | null>(null)
+const presetForm = ref({
+  name: '',
+  command: '',
+  delay: 0
+})
 
 // 定义属性
 const props = defineProps<{
@@ -104,8 +125,6 @@ const emit = defineEmits<{
   (e: 'commandSentContent', content: string): void
 }>()
 
-// 预设命令相关
-// 切换循环发送状态
 const toggleLoopSend = (cmd: any) => {
   contextMenuVisible.value = false
 
@@ -138,40 +157,6 @@ const getCurrentConnect = () => {
   }
 }
 
-const presetCommands = ref<any[]>([])
-const isPresetDialogOpen = ref(false)
-const isEditing = ref(false)
-const currentEditingCmd = ref<any>(null)
-const contextMenuVisible = ref(false)
-const contextMenuLeft = ref(0)
-const contextMenuTop = ref(0)
-
-// 循环发送相关
-const loopIntervals = ref<Record<number, NodeJS.Timeout>>({})
-const loopStatus = ref<Record<number, boolean>>({})
-
-// 预设命令表单
-const presetForm = ref({
-  name: '',
-  command: '',
-  delay: 0
-})
-
-// 表单验证规则
-const presetRules = ref({
-  name: [{ required: true, message: '请输入命令名称', trigger: 'blur' }],
-  command: [{ required: true, message: '请输入命令内容', trigger: 'blur' }],
-  delay: [
-    { required: true, message: '请输入时延', trigger: 'blur' },
-    { type: 'number', min: 0, message: '时延不能为负数', trigger: 'blur' }
-  ]
-})
-
-// 表单引用
-const presetFormRef = ref<InstanceType<typeof ElForm> | null>(null)
-const nameInputRef = ref<InstanceType<typeof ElInput> | null>(null)
-
-// 加载预设命令
 const loadPresetCommands = async () => {
   try {
     const commands = await window.storageApi.getPresetCommands()
@@ -193,7 +178,6 @@ const focusInput = () => {
   })
 }
 
-// 打开新增预设命令对话框
 const openAddPresetDialog = () => {
   isEditing.value = false
   currentEditingCmd.value = null
@@ -206,7 +190,6 @@ const openAddPresetDialog = () => {
   focusInput()
 }
 
-// 打开编辑预设命令对话框
 const editPresetCommand = (cmd: any) => {
   contextMenuVisible.value = false
   isEditing.value = true
@@ -220,7 +203,6 @@ const editPresetCommand = (cmd: any) => {
   focusInput()
 }
 
-// 保存预设命令
 const savePresetCommand = async () => {
   if (!presetFormRef.value) return
 
@@ -253,7 +235,6 @@ const savePresetCommand = async () => {
   }
 }
 
-// 删除预设命令
 const deletePresetCommand = async (id: number) => {
   contextMenuVisible.value = false
   try {
@@ -266,7 +247,6 @@ const deletePresetCommand = async (id: number) => {
   }
 }
 
-// 显示右键菜单
 const showContextMenu = (cmd: any, event: MouseEvent) => {
   event.preventDefault()
   event.stopPropagation()
@@ -292,7 +272,6 @@ const showContextMenu = (cmd: any, event: MouseEvent) => {
   contextMenuVisible.value = true
 }
 
-// 点击外部关闭右键菜单
 const closeContextMenuOnClickOutside = (event: MouseEvent) => {
   const contextMenu = document.querySelector('.context-menu')
   if (contextMenu && !contextMenu.contains(event.target as Node)) {
@@ -300,7 +279,6 @@ const closeContextMenuOnClickOutside = (event: MouseEvent) => {
   }
 }
 
-// 发送预设命令
 const sendPresetCommand = async (cmd: any) => {
   if (!props.isConnected) return
 
@@ -332,7 +310,6 @@ onBeforeUnmount(() => {
     contextMenuVisible.value = false
   })
 
-  // 清除所有循环定时器
   Object.values(loopIntervals.value).forEach((interval) => {
     clearInterval(interval)
   })
