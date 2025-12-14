@@ -1,18 +1,67 @@
 <template>
   <div class="preset-commands">
+    <!-- 组选择下拉框 -->
+    <el-dropdown
+      class="el-drop-down"
+      v-model="selectedGroupId"
+      @command="handleGroupCommand"
+      placement="bottom-start"
+    >
+      <el-button type="default" size="small" class="group-selector">
+        {{ selectedGroupName || '新建组' }}
+        <el-icon class="el-icon--right"> <ArrowDown /></el-icon>
+      </el-button>
+      <template #dropdown>
+        <el-dropdown-menu>
+          <!-- 新建组选项 -->
+          <el-dropdown-item command="new" class="group-menu-item">
+            新建组
+            <span class="group-actions">
+              <el-icon size="16" class="action-icon add-icon"><Plus /></el-icon>
+            </span>
+          </el-dropdown-item>
+
+          <!-- 分隔线 -->
+          <el-dropdown-item disabled v-if="filteredGroups.length > 0">
+            <div class="menu-divider"></div>
+          </el-dropdown-item>
+
+          <!-- 组列表 -->
+          <el-dropdown-item
+            v-for="group in filteredGroups"
+            :key="group.groupId"
+            :command="group.groupId"
+            class="group-menu-item"
+          >
+            {{ group.name }}
+            <span class="group-actions">
+              <el-icon size="16" class="action-icon edit-icon" @click.stop="editGroup(group)"
+                ><Edit
+              /></el-icon>
+              <el-icon size="16" class="action-icon delete-icon" @click.stop="deleteGroup(group)"
+                ><Delete
+              /></el-icon>
+            </span>
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
+
+    <!-- 新增命令按钮 -->
     <el-button
       type="primary"
       icon="Plus"
       size="small"
       @click="openAddPresetDialog"
-      :disabled="!isConnected"
+      :disabled="!isConnected || !selectedGroupId"
       class="add-preset-btn"
     >
       新增命令
     </el-button>
 
+    <!-- 命令按钮列表 -->
     <el-button
-      v-for="cmd in presetCommands"
+      v-for="cmd in filteredCommands"
       :key="cmd.id"
       type="default"
       size="small"
@@ -24,6 +73,30 @@
       {{ cmd.name }}
       <template v-if="loopStatus[cmd.id]">🔄</template>
     </el-button>
+
+    <!-- 组编辑对话框 -->
+    <el-dialog
+      :title="isEditingGroup ? '编辑组' : '新建组'"
+      v-model="isGroupDialogOpen"
+      width="400px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="groupForm" :rules="groupRules" ref="groupFormRef" label-width="120px">
+        <el-form-item label="组名称" prop="name">
+          <el-input v-model="groupForm.name" placeholder="输入组名称" />
+        </el-form-item>
+        <el-form-item label="连接类型" prop="connectionType">
+          <el-select v-model="groupForm.connectionType" placeholder="选择连接类型">
+            <el-option label="Telnet" value="telnet" />
+            <el-option label="SSH" value="ssh" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="isGroupDialogOpen = false">取消</el-button>
+        <el-button type="primary" @click="saveGroup">保存</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 命令编辑对话框 -->
     <el-dialog
@@ -89,11 +162,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { ElMessage, ElForm, ElInput } from 'element-plus'
+import { ElSelect, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon } from 'element-plus'
+import { Plus, Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
 import FormUtils from '../utils/FormUtils'
 
+// 组相关状态
+const groups = ref<any[]>([])
+const filteredGroups = ref<any[]>([])
+const selectedGroupId = ref<number | null>(null)
+const selectedGroupName = ref('')
+const isGroupDialogOpen = ref(false)
+const isEditingGroup = ref(false)
+const currentEditingGroup = ref<any>(null)
+const groupForm = FormUtils.buildGroupData()
+const groupRules = FormUtils.buildGroups()
+const groupFormRef = ref<InstanceType<typeof ElForm> | null>(null)
+
+// 命令相关状态
 const presetCommands = ref<any[]>([])
+const filteredCommands = ref<any[]>([])
 const isPresetDialogOpen = ref(false)
 const isEditing = ref(false)
 const currentEditingCmd = ref<any>(null)
@@ -110,13 +199,14 @@ const nameInputRef = ref<InstanceType<typeof ElInput> | null>(null)
 const presetForm = ref({
   name: '',
   command: '',
-  delay: 0
+  delay: 0,
+  groupId: null
 })
 
 // 定义属性
 const props = defineProps<{
   isConnected: boolean
-  connection: { id: number; host: string; port: number; name?: string }
+  connection: { id: number; host: string; port: number; name?: string; connectionType?: string }
 }>()
 
 // 定义事件
@@ -148,22 +238,122 @@ const toggleLoopSend = (cmd: any) => {
   ElMessage.success(`已开始循环发送: ${cmd.name} (间隔${intervalTime}ms)`)
 }
 
+// 加载组数据
+const loadGroups = async () => {
+  try {
+    const savedGroups = await window.storageApi.getCommandGroups()
+    groups.value = Array.isArray(savedGroups) ? savedGroups : []
+    filterGroupsByConnectionType()
+  } catch (error) {
+    console.error('加载命令组失败:', error)
+    ElMessage.error('加载命令组失败')
+  }
+}
+
 const getCurrentConnect = () => {
   return {
     id: props.connection.id,
     host: props.connection.host,
     port: props.connection.port,
-    name: props.connection.name
+    name: props.connection.name,
+    connectionType: props.connection.connectionType
   }
 }
 
+// 根据连接类型过滤组
+const filterGroupsByConnectionType = () => {
+  const connType = props.connection?.connectionType || 'telnet'
+  filteredGroups.value = groups.value.filter((group) => group.connectionType === connType)
+  console.log(`filteredGroups`, JSON.stringify(filteredGroups.value))
+  // 如果当前选中的组不在过滤列表中，清除选中状态
+  if (
+    selectedGroupId.value &&
+    !filteredGroups.value.some((g) => g.groupId === selectedGroupId.value)
+  ) {
+    selectedGroupId.value = null
+    selectedGroupName.value = ''
+  }
+}
+
+// 加载命令数据
 const loadPresetCommands = async () => {
   try {
-    const commands = await window.storageApi.getPresetCommands()
-    presetCommands.value = Array.isArray(commands) ? commands : []
+    const savedCommands = await window.storageApi.getPresetCommands()
+    presetCommands.value = Array.isArray(savedCommands) ? savedCommands : []
+    filterCommandsByGroup()
   } catch (error) {
-    console.error('加载命令失败:', error)
-    ElMessage.error('加载命令失败')
+    console.error('加载预设命令失败:', error)
+    ElMessage.error('加载预设命令失败')
+  }
+}
+
+// 根据选中的组过滤命令
+const filterCommandsByGroup = () => {
+  filteredCommands.value = selectedGroupId.value
+    ? presetCommands.value.filter((cmd) => cmd.groupId === selectedGroupId.value)
+    : []
+}
+
+// 处理组选择
+const handleGroupCommand = (command: string | number) => {
+  if (command === 'new') {
+    openAddGroupDialog()
+    return
+  }
+
+  selectedGroupId.value = Number(command)
+  const selected = groups.value.find((g) => g.groupId === selectedGroupId.value)
+  if (selected) {
+    selectedGroupName.value = selected.name
+  }
+  filterCommandsByGroup()
+}
+
+// 打开新增组对话框
+const openAddGroupDialog = () => {
+  isEditingGroup.value = false
+  currentEditingGroup.value = null
+  groupForm.value = {
+    name: '',
+    connectionType: props.connection?.connectionType || 'telnet'
+  }
+  isGroupDialogOpen.value = true
+}
+
+// 编辑组
+const editGroup = (group: any) => {
+  isEditingGroup.value = true
+  currentEditingGroup.value = group
+  groupForm.value = {
+    name: group.name,
+    connectionType: group.connectionType
+  }
+  isGroupDialogOpen.value = true
+}
+
+// 删除组
+const deleteGroup = async (group: any) => {
+  try {
+    await window.storageApi.deleteCommandGroup(group.groupId)
+    // 删除组关联的命令
+    await Promise.all(
+      presetCommands.value
+        .filter((cmd) => cmd.groupId === group.groupId)
+        .map((cmd) => window.storageApi.deletePresetCommand(cmd.id))
+    )
+
+    ElMessage.success('命令组已删除')
+    loadGroups()
+    loadPresetCommands()
+
+    // 如果删除的是当前选中的组，清除选中状态
+    if (selectedGroupId.value === group.groupId) {
+      selectedGroupId.value = null
+      selectedGroupName.value = ''
+    }
+  } catch (error) {
+    console.error('删除命令组失败:', error)
+    ElMessage.error('删除命令组失败')
   }
 }
 
@@ -178,13 +368,49 @@ const focusInput = () => {
   })
 }
 
+// 保存组
+const saveGroup = async () => {
+  if (!groupFormRef.value) return
+
+  try {
+    await groupFormRef.value.validate()
+
+    const groupData = {
+      name: groupForm.value.name.trim(),
+      connectionType: groupForm.value.connectionType
+    }
+
+    if (isEditingGroup.value && currentEditingGroup.value) {
+      await window.storageApi.updateCommandGroup({
+        groupId: currentEditingGroup.value.groupId,
+        ...groupData
+      })
+      ElMessage.success('命令组已更新')
+    } else {
+      const newGroup = await window.storageApi.addCommandGroup(groupData)
+      // 自动选中新创建的组
+      selectedGroupId.value = newGroup.groupId
+      selectedGroupName.value = newGroup.name
+      ElMessage.success('命令组已添加')
+    }
+
+    loadGroups()
+    isGroupDialogOpen.value = false
+  } catch (error) {
+    console.error('保存命令组失败:', error)
+    ElMessage.error('保存命令组失败')
+  }
+}
+
+// 打开新增命令对话框
 const openAddPresetDialog = () => {
   isEditing.value = false
   currentEditingCmd.value = null
   presetForm.value = {
     name: '',
     command: '',
-    delay: 0
+    delay: 0,
+    groupId: selectedGroupId.value
   }
   isPresetDialogOpen.value = true
   focusInput()
@@ -197,7 +423,8 @@ const editPresetCommand = (cmd: any) => {
   presetForm.value = {
     name: cmd.name,
     command: cmd.command,
-    delay: cmd.delay
+    delay: cmd.delay,
+    groupId: cmd.groupId
   }
   isPresetDialogOpen.value = true
   focusInput()
@@ -212,7 +439,8 @@ const savePresetCommand = async () => {
     const pureFormData = {
       name: presetForm.value.name.trim(),
       command: presetForm.value.command.trim(),
-      delay: Number(presetForm.value.delay) || 0
+      delay: Number(presetForm.value.delay) || 0,
+      groupId: selectedGroupId.value
     }
 
     if (isEditing.value && currentEditingCmd.value) {
@@ -295,8 +523,20 @@ const sendPresetCommand = async (cmd: any) => {
   }
 }
 
+watch(
+  () => props.connection?.connectionType,
+  () => {
+    filterGroupsByConnectionType()
+  }
+)
+
+watch(selectedGroupId, () => {
+  filterCommandsByGroup()
+})
+
 // 组件生命周期
 onMounted(() => {
+  loadGroups()
   loadPresetCommands()
   document.addEventListener('click', closeContextMenuOnClickOutside)
   document.addEventListener('contextmenu', () => {
@@ -339,6 +579,61 @@ onBeforeUnmount(() => {
   border-radius: 3px;
 }
 
+.el-drop-down {
+  background-color: transparent;
+  border: none;
+}
+
+.el-dropdown-menu {
+  background-color: #2d2d2d !important; /* 深色背景 */
+  border: 1px solid #444 !important; /* 边框 */
+  border-radius: 6px !important; /* 圆角 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important; /* 阴影 */
+  padding: 4px 0 !important; /* 上下内边距 */
+  min-width: 200px !important; /* 最小宽度 */
+  margin: 0px;
+}
+
+.group-selector {
+  background-color: #3a3a3a !important;
+  border: 2px solid transparent !important;
+  color: #fff !important;
+}
+
+.group-selector:hover {
+  border: 2px solid #007acc !important;
+}
+
+.group-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 10px;
+}
+
+.action-icon {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.add-icon {
+  color: #42b983;
+}
+
+.edit-icon {
+  color: #165dff;
+}
+
+.delete-icon {
+  color: #ff4d4f;
+}
+
+.menu-divider {
+  height: 1px;
+  background-color: #444;
+  margin: 4px 0;
+  width: 100%;
+}
+
 .add-preset-btn {
   background-color: #165dff !important;
   border-color: #165dff !important;
@@ -347,6 +642,12 @@ onBeforeUnmount(() => {
 .add-preset-btn:hover {
   background-color: #0e4ada !important;
   transform: translateY(-1px);
+}
+
+.add-preset-btn:disabled {
+  background-color: #444 !important;
+  border-color: #555 !important;
+  cursor: not-allowed;
 }
 
 .preset-btn {

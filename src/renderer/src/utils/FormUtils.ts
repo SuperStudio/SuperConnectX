@@ -29,4 +29,18 @@ export default class FormUtils {
       ]
     })
   }
+
+  static buildGroups() {
+    return {
+      name: [{ required: true, message: '请输入组名称', trigger: 'blur' }],
+      connectionType: [{ required: true, message: '请选择连接类型', trigger: 'change' }]
+    }
+  }
+
+  static buildGroupData() {
+    return ref({
+      name: '',
+      connectionType: 'telnet'
+    })
+  }
 }
