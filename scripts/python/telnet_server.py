@@ -38,6 +38,24 @@ def handle_cmd(cmd: str):
     return rsp
 
 
+def handle_client_recv(client_socket: socket.socket, client_addr: tuple):
+    while True:
+        # 1. 处理客户端命令（非阻塞读取）
+        try:
+            # 读取客户端发送的数据（最多1024字节）
+            cmd = client_socket.recv(1024).decode("utf-8").strip()
+            if cmd == "exit":
+                client_socket.send("== goodbye ==\n".encode("utf-8"))
+                break
+            elif cmd:
+                rsp = handle_cmd(cmd)
+                if rsp:
+                    client_socket.send(rsp.encode("utf-8"))
+        except BlockingIOError:
+            # 无数据时正常忽略（非阻塞模式下没有数据会抛出此异常）
+            pass
+
+
 def handle_client(client_socket: socket.socket, client_addr: tuple):
     """处理单个客户端连接：接收命令并响应 + 持续推送数据"""
     print(f"✅ 新客户端连接：{client_addr}")
@@ -57,22 +75,7 @@ def handle_client(client_socket: socket.socket, client_addr: tuple):
         client_socket.setblocking(False)
 
         while True:
-            # 1. 处理客户端命令（非阻塞读取）
-            try:
-                # 读取客户端发送的数据（最多1024字节）
-                cmd = client_socket.recv(1024).decode("utf-8").strip()
-                if cmd == "exit":
-                    client_socket.send("== goodbye ==\n".encode("utf-8"))
-                    break
-                elif cmd:
-                    rsp = handle_cmd(cmd)
-                    if rsp:
-                        client_socket.send(rsp.encode("utf-8"))
-            except BlockingIOError:
-                # 无数据时正常忽略（非阻塞模式下没有数据会抛出此异常）
-                pass
-
-            # 2. 持续推送数据
+            # 持续推送数据
             counter += 1
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
             data = (
@@ -120,6 +123,12 @@ def start_telnet_server():
                 daemon=True,  # 主线程退出时自动关闭子线程
             )
             client_thread.start()
+            recv_thread = threading.Thread(
+                target=handle_client_recv,
+                args=(client_socket, client_addr),
+                daemon=True,  # 主线程退出时自动关闭子线程
+            )
+            recv_thread.start()
             # 打印当前连接数
             print(
                 f"ℹ️ 当前在线客户端数：{threading.active_count() - 1}"
