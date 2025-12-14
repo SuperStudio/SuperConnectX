@@ -88,7 +88,7 @@
         <el-form-item label="连接类型" prop="connectionType">
           <el-select v-model="groupForm.connectionType" placeholder="选择连接类型">
             <el-option label="Telnet" value="telnet" />
-            <el-option label="SSH" value="ssh" />
+            <el-option label="SSH" value="ssh" disabled />
           </el-select>
         </el-form-item>
       </el-form>
@@ -244,6 +244,13 @@ const loadGroups = async () => {
     const savedGroups = await window.storageApi.getCommandGroups()
     groups.value = Array.isArray(savedGroups) ? savedGroups : []
     filterGroupsByConnectionType()
+
+    if (filteredGroups.value.length > 0 && !selectedGroupId.value) {
+      const firstGroup = filteredGroups.value[0]
+      selectedGroupId.value = firstGroup.groupId
+      selectedGroupName.value = firstGroup.name
+      filterCommandsByGroup() // 同步加载该组的命令
+    }
   } catch (error) {
     console.error('加载命令组失败:', error)
     ElMessage.error('加载命令组失败')
