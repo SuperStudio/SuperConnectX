@@ -2,6 +2,7 @@ import ConnectionStorage from '../storage/ConnectionStorage'
 import PreSetCommandStorage from '../storage/PreSetCommandStorage'
 import { ipcMain } from 'electron'
 import logger from './IpcAppLogger'
+import CommandGroupStorage from '../storage/CommandGroupStorage'
 
 export default class IpcStorage {
   private static sInstance: IpcStorage
@@ -30,6 +31,16 @@ export default class IpcStorage {
     ipcMain.handle('add-preset-command', (_, cmd: any) => preSetCommandStorage.add(cmd))
     ipcMain.handle('update-preset-command', (_, cmd: any) => preSetCommandStorage.update(cmd))
     ipcMain.handle('delete-preset-command', (_, id: number) => preSetCommandStorage.delete(id))
+
+    /* 组持久化 */
+    const groupStorage = new CommandGroupStorage()
+    ipcMain.handle('get-command-groups', () => groupStorage.getAll())
+    ipcMain.handle('add-command-group', (_, group) => groupStorage.add(group))
+    ipcMain.handle('update-command-group', (_, group) => groupStorage.update(group))
+    ipcMain.handle('delete-command-group', (_, id) => {
+      preSetCommandStorage.deleteByGroupId(id)
+      return groupStorage.delete(id)
+    })
 
     logger.info(`init IpcStorage done`)
   }

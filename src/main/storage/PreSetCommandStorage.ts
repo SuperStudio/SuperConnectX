@@ -23,7 +23,8 @@ export default class PreSetCommandStorage {
         id: newId,
         name: pureCmd.name || '',
         command: pureCmd.command || '',
-        delay: Number(pureCmd.delay) || 0
+        delay: Number(pureCmd.delay) || 0,
+        groupId: Number(pureCmd.groupId) || 0
       }
 
       commands.push(newCmd)
@@ -47,7 +48,8 @@ export default class PreSetCommandStorage {
           id: Number(pureCmd.id),
           name: pureCmd.name || '',
           command: pureCmd.command || '',
-          delay: Number(pureCmd.delay) || 0
+          delay: Number(pureCmd.delay) || 0,
+          groupId: Number(pureCmd.groupId) || 0
         }
         this.presetCommandsStore.set('commands', commands)
         logger.info(`update preset command: ${JSON.stringify(commands[index])}`)
@@ -64,7 +66,19 @@ export default class PreSetCommandStorage {
     const newCommands = commands.filter((c) => c.id !== id)
     const deleteCmd = commands.filter((c) => c.id === id)
     this.presetCommandsStore.set('commands', newCommands as never[])
-    logger.error(`delete preset command: ${JSON.stringify(deleteCmd?.[0])}`)
+    logger.info(`delete preset command: ${JSON.stringify(deleteCmd?.[0])}`)
     return newCommands
+  }
+
+  deleteByGroupId(groupId: number) {
+    try {
+      const commands = this.getAll()
+      const newCommands = commands.filter((c) => c.groupId !== groupId)
+      this.presetCommandsStore.set('commands', newCommands)
+      return newCommands
+    } catch (error) {
+      logger.error(`deleteByGroupId error: ${error}`)
+      return this.getAll()
+    }
   }
 }

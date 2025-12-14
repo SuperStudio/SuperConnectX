@@ -9,12 +9,16 @@ contextBridge.exposeInMainWorld('storageApi', {
   updateConnection: (conn: any) => ipcRenderer.invoke('update-connection', conn),
   deleteConnection: (id: number) => ipcRenderer.invoke('delete-connection', id),
   /* 预设命令 */
-  addPresetCommand: (cmd: { name: string; command: string; delay: number }) =>
-    ipcRenderer.invoke('add-preset-command', cmd),
-  updatePresetCommand: (cmd: { id: number; name: string; command: string; delay: number }) =>
-    ipcRenderer.invoke('update-preset-command', cmd),
+  addPresetCommand: (cmd: any) => ipcRenderer.invoke('add-preset-command', cmd),
+  updatePresetCommand: (cmd: any) => ipcRenderer.invoke('update-preset-command', cmd),
   deletePresetCommand: (id: number) => ipcRenderer.invoke('delete-preset-command', id),
-  getPresetCommands: () => ipcRenderer.invoke('get-preset-commands')
+  getPresetCommands: () => ipcRenderer.invoke('get-preset-commands'),
+
+  /* 组 */
+  getCommandGroups: () => ipcRenderer.invoke('get-command-groups'),
+  addCommandGroup: (group: any) => ipcRenderer.invoke('add-command-group', group),
+  updateCommandGroup: (group: any) => ipcRenderer.invoke('update-command-group', group),
+  deleteCommandGroup: (groupId: number) => ipcRenderer.invoke('delete-command-group', groupId)
 })
 
 contextBridge.exposeInMainWorld('telnetApi', {
@@ -61,6 +65,11 @@ declare global {
       addPresetCommand: (cmd: any) => Promise<any>
       updatePresetCommand: (cmd: any) => Promise<any>
       deletePresetCommand: (id: number) => Promise<any[]>
+
+      getCommandGroups: () => Promise<any[]>
+      addCommandGroup: (group: any) => Promise<any[]>
+      updateCommandGroup: (group: any) => Promise<any[]>
+      deleteCommandGroup: (groupId: number) => Promise<any[]>
     }
     telnetApi: {
       connectTelnet: (conn: any) => Promise<any>
