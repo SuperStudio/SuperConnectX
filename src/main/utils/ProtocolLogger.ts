@@ -5,7 +5,7 @@ import { join } from 'path'
 import { app } from 'electron'
 import path from 'path'
 
-export default class logger {
+export default class ProtocolLogger {
   private logDir: string
   private connLogFiles = new Map<number, string>()
   private logCache = new Map<number, string[]>()
