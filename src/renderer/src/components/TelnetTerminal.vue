@@ -38,32 +38,12 @@
 
     <!-- 终端输出区域 -->
     <div ref="editorContainer" class="terminal-output"></div>
-    <div class="preset-commands">
-      <el-button
-        type="primary"
-        icon="Plus"
-        size="small"
-        @click="openAddPresetDialog"
-        :disabled="!isConnected"
-        class="add-preset-btn"
-      >
-        新增命令
-      </el-button>
-
-      <el-button
-        v-for="cmd in presetCommands"
-        :key="cmd.id"
-        type="default"
-        size="small"
-        class="preset-btn"
-        :class="{ looping: loopStatus[cmd.id] }"
-        @click="sendPresetCommand(cmd)"
-        @contextmenu.prevent="showContextMenu(cmd, $event)"
-      >
-        {{ cmd.name }}
-        <template v-if="loopStatus[cmd.id]">🔄</template>
-      </el-button>
-    </div>
+    <PresetCommands
+      :is-connected="isConnected"
+      :connection="connection"
+      @commandSent="handleCommandSent"
+      @commandSentContent="appendCommandToTerminal"
+    />
 
     <!-- 命令输入区域 -->
     <div class="terminal-input">
@@ -76,71 +56,14 @@
         :disabled="!isConnected"
       />
     </div>
-    <el-dialog
-      :title="isEditing ? '编辑命令' : '新增命令'"
-      v-model="isPresetDialogOpen"
-      width="400px"
-      :close-on-click-modal="false"
-    >
-      <el-form :model="presetForm" :rules="presetRules" ref="presetFormRef" label-width="120px">
-        <el-form-item label="命令名称" prop="name">
-          <el-input v-model="presetForm.name" placeholder="输入命令名称" ref="nameInputRef" />
-        </el-form-item>
-        <el-form-item label="命令内容" prop="command">
-          <el-input
-            v-model="presetForm.command"
-            type="textarea"
-            placeholder="输入命令内容"
-            :rows="4"
-            input-style="background-color: #ccc;max-height: 200px;"
-            class="custom-textarea"
-            resize="vertical"
-          />
-        </el-form-item>
-        <el-form-item label="循环时延(ms)" prop="delay">
-          <el-input
-            v-model.number="presetForm.delay"
-            type="number"
-            placeholder="命令发送后等待时间"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="isPresetDialogOpen = false">取消</el-button>
-        <el-button type="primary" @click="savePresetCommand">保存</el-button>
-      </template>
-    </el-dialog>
-
-    <div
-      v-if="contextMenuVisible"
-      :style="{ left: contextMenuLeft + 'px', top: contextMenuTop + 'px' }"
-      class="context-menu-container"
-      @click.stop
-      @contextmenu.prevent
-    >
-      <el-menu class="context-menu" mode="vertical" :collapse="false" :collapse-transition="false">
-        <el-menu-item class="menu-item" @click="editPresetCommand(currentEditingCmd)">
-          编辑
-        </el-menu-item>
-        <el-menu-item
-          class="menu-item delete-item"
-          @click="deletePresetCommand(currentEditingCmd.id)"
-        >
-          删除
-        </el-menu-item>
-
-        <el-menu-item class="menu-item" @click="toggleLoopSend(currentEditingCmd)">
-          {{ loopStatus[currentEditingCmd.id] ? '取消循环' : '循环发送' }}
-        </el-menu-item>
-      </el-menu>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { ElMessage, ElForm, ElInput } from 'element-plus'
+import { ref, onUnmounted, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import * as monaco from 'monaco-editor'
+import PresetCommands from './PresetCommands.vue'
 
 const emit = defineEmits(['onClose', 'commandSent'])
 
@@ -160,11 +83,6 @@ let currentConnId = 0 // 当前连接的 ID
 // 显示日志开关（默认勾选）
 const isShowLog = ref(true)
 const isAutoScroll = ref(true)
-
-// 循环发送相关
-const loopIntervals = ref<Record<number, NodeJS.Timeout>>({})
-const loopStatus = ref<Record<number, boolean>>({})
-
 const editorContainer = ref<HTMLElement | null>(null)
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 let editorModel: monaco.editor.ITextModel | null = null // 直接持有模型，不通过 Vue 响应式
@@ -239,36 +157,10 @@ const appendToTerminal = (content: string) => {
   }
 
   totalRecvSize += content.length
-  console.log(`totalRecvSize`, totalRecvSize)
   if (totalRecvSize > MAX_CLEAR_INTERVAL_SIZE) {
     clearTerminal()
   }
 }
-
-// 切换循环发送状态
-const toggleLoopSend = (cmd: any) => {
-  contextMenuVisible.value = false
-
-  if (loopStatus.value[cmd.id]) {
-    if (loopIntervals.value[cmd.id]) {
-      clearInterval(loopIntervals.value[cmd.id])
-      delete loopIntervals.value[cmd.id]
-    }
-    loopStatus.value[cmd.id] = false
-    ElMessage.success(`已停止循环发送: ${cmd.name}`)
-    return
-  }
-
-  loopStatus.value[cmd.id] = true
-  sendPresetCommand(cmd)
-  const intervalTime = Math.max(cmd.delay, 100)
-  loopIntervals.value[cmd.id] = setInterval(() => {
-    sendPresetCommand(cmd)
-  }, intervalTime)
-
-  ElMessage.success(`已开始循环发送: ${cmd.name} (间隔${intervalTime}ms)`)
-}
-
 const getCurrentConnect = () => {
   return {
     id: props.connection.id,
@@ -330,15 +222,6 @@ const handleClose = async () => {
     if (typeof props.onClose === 'function') {
       props.onClose()
     }
-  }
-}
-
-// 处理主进程发送的 Telnet 数据
-const handleTelnetData = (data: { connId: number; data: string }) => {
-  if (data.connId !== currentConnId) return
-  if (isShowLog.value) {
-    const formattedData = data.data.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\0/g, '') // 过滤空字符
-    appendToTerminal(formattedData)
   }
 }
 
@@ -482,7 +365,7 @@ onUnmounted(() => {
     editor = null
   }
 
-  if (removeDataListener) {
+  if (appendToTerminal) {
     removeDataListener()
     removeDataListener = null
   }
@@ -491,206 +374,12 @@ onUnmounted(() => {
     removeCloseListener = null
   }
 
-  Object.values(loopIntervals.value).forEach((interval) => {
-    clearInterval(interval)
-  })
-
   if (currentConnId && isConnected.value) {
     window.electronStore.telnetDisconnect(currentConnId).catch((err) => {
       console.error('卸载时断开失败:', err)
     })
   }
 })
-
-// 命令预设相关
-const presetCommands = ref<any[]>([])
-const isPresetDialogOpen = ref(false)
-const isEditing = ref(false)
-const currentEditingCmd = ref<any>(null)
-const contextMenuVisible = ref(false)
-const contextMenuLeft = ref(0)
-const contextMenuTop = ref(0)
-
-// 预设命令表单
-const presetForm = ref({
-  name: '',
-  command: '',
-  delay: 0
-})
-
-// 表单验证规则
-const presetRules = ref({
-  name: [{ required: true, message: '请输入命令名称', trigger: 'blur' }],
-  command: [{ required: true, message: '请输入命令内容', trigger: 'blur' }],
-  delay: [
-    { required: true, message: '请输入时延', trigger: 'blur' },
-    { type: 'number', min: 0, message: '时延不能为负数', trigger: 'blur' }
-  ]
-})
-
-// 表单引用
-const presetFormRef = ref<InstanceType<typeof ElForm> | null>(null)
-const nameInputRef = ref<InstanceType<typeof ElInput> | null>(null)
-
-// 加载预设命令
-const loadPresetCommands = async () => {
-  try {
-    const commands = await window.electronStore.getPresetCommands()
-    presetCommands.value = Array.isArray(commands) ? commands : []
-  } catch (error) {
-    console.error('加载命令失败:', error)
-    ElMessage.error('加载命令失败')
-  }
-}
-
-const focusInput = () => {
-  // 对话框打开后聚焦到命令名称输入框
-  nextTick(() => {
-    // 尝试获取输入框DOM元素并聚焦
-    const focusInput = () => {
-      const inputElement = nameInputRef.value?.$el.querySelector('input')
-      inputElement?.focus()
-    }
-    focusInput()
-    // 延迟50ms再试一次，确保聚焦成功
-    setTimeout(focusInput, 50)
-  })
-}
-
-// 打开新增预设命令对话框
-const openAddPresetDialog = () => {
-  isEditing.value = false
-  currentEditingCmd.value = null
-  presetForm.value = {
-    name: '',
-    command: '',
-    delay: 0
-  }
-  isPresetDialogOpen.value = true
-  focusInput()
-}
-
-// 打开编辑预设命令对话框
-const editPresetCommand = (cmd: any) => {
-  contextMenuVisible.value = false
-  isEditing.value = true
-  currentEditingCmd.value = cmd
-  presetForm.value = {
-    name: cmd.name,
-    command: cmd.command,
-    delay: cmd.delay
-  }
-  isPresetDialogOpen.value = true
-  focusInput()
-}
-
-// 保存预设命令
-const savePresetCommand = async () => {
-  if (!presetFormRef.value) return
-
-  try {
-    await presetFormRef.value.validate()
-
-    const pureFormData = {
-      name: presetForm.value.name.trim(),
-      command: presetForm.value.command.trim(),
-      delay: Number(presetForm.value.delay) || 0
-    }
-
-    if (isEditing.value && currentEditingCmd.value) {
-      const updatedCmd = {
-        id: currentEditingCmd.value.id,
-        ...pureFormData
-      }
-      await window.electronStore.updatePresetCommand(JSON.parse(JSON.stringify(updatedCmd)))
-      ElMessage.success('命令已更新')
-    } else {
-      await window.electronStore.addPresetCommand(JSON.parse(JSON.stringify(pureFormData)))
-      ElMessage.success('命令已添加')
-    }
-
-    loadPresetCommands()
-    isPresetDialogOpen.value = false
-  } catch (error) {
-    console.error('保存命令失败:', error)
-    ElMessage.error('保存失败：' + (error as Error).message)
-  }
-}
-
-// 删除预设命令
-const deletePresetCommand = async (id: number) => {
-  contextMenuVisible.value = false
-  try {
-    await window.electronStore.deletePresetCommand(id)
-    ElMessage.success('命令已删除')
-    loadPresetCommands()
-  } catch (error) {
-    console.error('删除命令失败:', error)
-    ElMessage.error('删除命令失败')
-  }
-}
-
-// 显示右键菜单
-const showContextMenu = (cmd: any, event: MouseEvent) => {
-  event.preventDefault() // 阻止浏览器默认右键菜单
-  event.stopPropagation() // 阻止事件冒泡
-
-  // 记录当前操作的命令
-  currentEditingCmd.value = cmd
-
-  // 获取菜单元素预估高度（每个菜单项约40px，3个菜单项+边框约124px）
-  const menuHeight = 124
-  // 获取屏幕可见区域高度
-  const screenHeight = window.innerHeight
-
-  // 计算基础位置
-  let left = event.clientX
-  let top = event.clientY
-
-  // 防止菜单底部超出屏幕
-  if (top + menuHeight > screenHeight) {
-    top = screenHeight - menuHeight - 10 // 向上调整位置，留10px边距
-  }
-
-  // 防止菜单右侧超出屏幕
-  if (left + 120 > window.innerWidth) {
-    // 120是菜单宽度
-    left = window.innerWidth - 120 - 10 // 向左调整位置
-  }
-
-  // 设置菜单位置
-  contextMenuLeft.value = left
-  contextMenuTop.value = top
-
-  // 显示菜单
-  contextMenuVisible.value = true
-}
-
-// 点击外部关闭右键菜单
-const closeContextMenuOnClickOutside = (event: MouseEvent) => {
-  const contextMenu = document.querySelector('.context-menu')
-  if (contextMenu && !contextMenu.contains(event.target as Node)) {
-    contextMenuVisible.value = false
-  }
-}
-
-// 发送预设命令
-const sendPresetCommand = async (cmd: any) => {
-  if (!isConnected.value) return
-
-  try {
-    window.electronStore.telnetSend({
-      conn: getCurrentConnect(),
-      command: cmd.command.trim()
-    })
-    appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${cmd.command}\n`)
-    commandInput.value?.focus()
-    emit('commandSent', cmd.name.trim())
-  } catch (error) {
-    ElMessage.error('命令发送失败')
-    console.error('发送失败:', error)
-  }
-}
 
 // 清空屏幕
 const clearTerminal = () => {
@@ -703,22 +392,20 @@ const clearTerminal = () => {
 }
 
 onMounted(() => {
-  loadPresetCommands()
-  document.addEventListener('click', closeContextMenuOnClickOutside)
-  document.addEventListener('contextmenu', () => {
-    contextMenuVisible.value = false
-  })
-  // 初始化连接
   initEditor()
   connect()
 })
 
-onBeforeUnmount(() => {
-  document.removeEventListener('click', closeContextMenuOnClickOutside)
-  document.removeEventListener('contextmenu', () => {
-    contextMenuVisible.value = false
-  })
-})
+// 新增处理命令发送的回调
+const handleCommandSent = (cmdName: string) => {
+  emit('commandSent', cmdName)
+}
+
+// 追加命令到终端显示
+const appendCommandToTerminal = (content: string) => {
+  appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${content}\n`)
+  commandInput.value?.focus()
+}
 </script>
 
 <style scoped>
@@ -819,16 +506,6 @@ onBeforeUnmount(() => {
   transform: translateY(-1px);
 }
 
-.add-preset-btn {
-  background-color: #165dff !important;
-  border-color: #165dff !important;
-}
-
-.add-preset-btn:hover {
-  background-color: #0e4ada !important;
-  transform: translateY(-1px);
-}
-
 /* 终端输出区域 */
 .terminal-output {
   flex: 1;
@@ -907,63 +584,6 @@ onBeforeUnmount(() => {
   padding: 8px 10px; /* 只保留上下内边距 */
   outline: none;
   font-family: monospace;
-}
-
-/* 预设命令区域 */
-.preset-commands {
-  padding: 8px 15px;
-  border-bottom: 1px solid #333;
-  background: #252526;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
-  max-height: 100px;
-  overflow-y: auto;
-}
-
-.preset-commands::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.preset-commands::-webkit-scrollbar-thumb {
-  background-color: #444;
-  border-radius: 3px;
-}
-
-/* 预设命令按钮 */
-.preset-btn {
-  background-color: #3a3a3a !important;
-  border-color: #444 !important;
-  color: #e0e0e0 !important;
-  margin: 2px 0 !important;
-  transition: all 0.2s ease !important;
-  position: relative !important;
-  z-index: 1 !important;
-}
-
-.preset-btn:hover {
-  background-color: #4a4a4a !important;
-  border-color: #555 !important;
-  transform: translateY(-1px);
-}
-
-.preset-btn.looping {
-  animation: pulse 1.5s infinite;
-  border-color: #165dff !important;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(22, 93, 255, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 8px rgba(22, 93, 255, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(22, 93, 255, 0);
-  }
 }
 
 /* 复选框样式 */
