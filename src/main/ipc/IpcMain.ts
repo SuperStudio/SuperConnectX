@@ -1,9 +1,16 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import logger from './IpcAppLogger'
+import { printAppInfo } from '../utils/PrintAppInfo'
+import fs from 'fs'
+import path from 'path'
 
 app.isQuitting = false
 let isQuitting = false
+
+const packageJsonPath = path.join(app.getAppPath(), 'package.json')
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
 
 export default class IpcMain {
   private static sInstance: IpcMain
@@ -66,6 +73,10 @@ export default class IpcMain {
       })
 
       windows.mainWindow = mainWindow
+
+      mainWindow.webContents.on('did-finish-load', () => {
+        printAppInfo(mainWindow)
+      })
     }
 
     // 应用生命周期管理
@@ -125,5 +136,19 @@ export default class IpcMain {
       _logger.flush()
       process.exit(0)
     })
+
+    logger.info(`init IpcMain done`)
+  }
+
+  getVersionInfo = () => {
+    return {
+      appVersion: app.getVersion(),
+      electronVersion: process.versions?.electron,
+      electronVersionFromPackage: packageJson.devDependencies?.electron?.replace(/^\^|~/, ''), // 去掉版本前缀 ^/~
+      vueVersion: packageJson.dependencies?.vue?.replace(/^\^|~/, ''),
+      nodeVersion: process.versions?.node,
+      chromeVersion: process.versions?.chrome,
+      appName: app.getName()
+    }
   }
 }

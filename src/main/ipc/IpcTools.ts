@@ -1,5 +1,6 @@
 import os from 'os'
 import { shell, ipcMain } from 'electron'
+import logger from './IpcAppLogger'
 
 const MAX_CPU_VALUE = 100
 const CPU_FLOAT_FIXED_SIZE = 2
@@ -46,5 +47,7 @@ export default class IpcTools {
     })
 
     ipcMain.handle('open-external-url', async (_, url) => await shell.openExternal(url))
+
+    logger.info(`init IpcTools done`)
   }
 }

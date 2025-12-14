@@ -1,5 +1,6 @@
 import TelnetClient from '../protocol/TelnetClient'
 import { ipcMain } from 'electron'
+import logger from './IpcAppLogger'
 
 export default class IpcTelnet {
   private static sInstance: IpcTelnet
@@ -53,5 +54,7 @@ export default class IpcTelnet {
         return await _logger.openLogDir()
       }
     })
+
+    logger.info(`init IpcTelnet done`)
   }
 }

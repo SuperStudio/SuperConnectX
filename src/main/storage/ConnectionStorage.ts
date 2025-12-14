@@ -1,5 +1,6 @@
 import Store from 'electron-store'
 import { DEFAULT_STORAGE_DIR } from './StorageConstants'
+import logger from '../ipc/IpcAppLogger'
 
 export default class ConnectionStorage {
   private connectionStore = new Store({
@@ -21,6 +22,8 @@ export default class ConnectionStorage {
     const newConn = { id: newId, ...conn }
     connections.push(newConn)
     this.connectionStore.set('connections', connections as never[])
+    logger.info(`add connection ${conn.host}:${conn.port}`)
+    logger.debug(JSON.stringify(newConn))
     return newConn
   }
 
@@ -38,13 +41,20 @@ export default class ConnectionStorage {
     con[0].host = conn.host
     con[0].username = conn.username
     this.connectionStore.set('connections', connections as never[])
+
+    logger.info(`update connection ${conn.host}:${conn.port}`)
+    logger.debug(JSON.stringify(con[0]))
     return con
   }
 
   deleteConnection(id: number) {
     const connections = this.connectionStore.get('connections') as any[]
     const newConnections = connections.filter((c) => c.id !== id)
+    const deleteItem = connections.filter((c) => c.id === id)
     this.connectionStore.set('connections', newConnections as never[])
+
+    logger.info(`delete connection ${deleteItem?.[0].host}:${deleteItem?.[0].port}`)
+    logger.debug(JSON.stringify(deleteItem))
     return newConnections
   }
 }

@@ -1,4 +1,5 @@
 import { Telnet } from 'telnet-client'
+import logger from '../ipc/IpcAppLogger'
 
 const DEFAULT_TELNET_PORT = 23
 const DEFAULT_TIMOUT_MS = 10 * 1000
@@ -22,6 +23,9 @@ export default class TelnetClient {
         stripShellPrompt: false // 不剥离shell提示符（避免干扰连接）
       }
 
+      logger.info(`start to connect: ${host}:${port}`)
+      logger.debug(JSON.stringify(params))
+
       await connection.connect(params)
       this.telnetConnections.set(id, connection)
       connection.on('data', (data) => onData?.(String(data)))
@@ -30,6 +34,7 @@ export default class TelnetClient {
         onClose?.()
       })
 
+      logger.info(`connect ok`)
       return { success: true, message: '连接成功', connId: id }
     } catch (error) {
       console.error(error)
@@ -50,6 +55,8 @@ export default class TelnetClient {
       const dataStr = `[${new Date().toISOString()}] SEND >>>>>>>>>> ${command}`
       await connection.send(command + '\n')
       onComplete?.(dataStr)
+
+      logger.info(`send command: ${command}`)
       return { success: true }
     } catch (error) {
       return {
@@ -62,7 +69,8 @@ export default class TelnetClient {
   async disconnect(connId) {
     const connection = this.telnetConnections.get(connId)
     if (connection) {
-      console.warn('start end connection', connId)
+      logger.info(`disconnect: ${connection.opts?.host}:${connection.opts?.port}`)
+      logger.debug(JSON.stringify(connection.opts))
       connection.destroy()
       this.telnetConnections.delete(connId)
     } else {

@@ -1,6 +1,7 @@
 import ConnectionStorage from '../storage/ConnectionStorage'
 import PreSetCommandStorage from '../storage/PreSetCommandStorage'
 import { ipcMain } from 'electron'
+import logger from './IpcAppLogger'
 
 export default class IpcStorage {
   private static sInstance: IpcStorage
@@ -29,5 +30,7 @@ export default class IpcStorage {
     ipcMain.handle('add-preset-command', (_, cmd: any) => preSetCommandStorage.add(cmd))
     ipcMain.handle('update-preset-command', (_, cmd: any) => preSetCommandStorage.update(cmd))
     ipcMain.handle('delete-preset-command', (_, id: number) => preSetCommandStorage.delete(id))
+
+    logger.info(`init IpcStorage done`)
   }
 }

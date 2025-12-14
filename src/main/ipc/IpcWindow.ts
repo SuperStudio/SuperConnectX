@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import logger from './IpcAppLogger'
 
 export default class IpcWindow {
   private static sInstance: IpcWindow
@@ -23,5 +24,7 @@ export default class IpcWindow {
         ? windows.mainWindow?.unmaximize()
         : windows.mainWindow?.maximize()
     )
+
+    logger.info(`init IpcWindow done`)
   }
 }

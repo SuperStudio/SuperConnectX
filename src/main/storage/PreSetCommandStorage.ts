@@ -1,5 +1,6 @@
 import Store from 'electron-store'
 import { DEFAULT_STORAGE_DIR } from './StorageConstants'
+import logger from '../ipc/IpcAppLogger'
 
 export default class PreSetCommandStorage {
   private presetCommandsStore = new Store({
@@ -27,11 +28,12 @@ export default class PreSetCommandStorage {
 
       commands.push(newCmd)
       this.presetCommandsStore.set('commands', commands)
+      logger.info(`add preset command ${JSON.stringify(newCmd)}`)
       return newCmd
     } catch (error) {
-      console.error('添加预设命令失败:', error)
-      return ''
+      logger.error(`add preset command error: ${error}`)
     }
+    return ''
   }
 
   update(cmd) {
@@ -48,10 +50,11 @@ export default class PreSetCommandStorage {
           delay: Number(pureCmd.delay) || 0
         }
         this.presetCommandsStore.set('commands', commands)
+        logger.info(`update preset command: ${JSON.stringify(commands[index])}`)
         return commands[index]
       }
     } catch (error) {
-      console.error('更新预设命令失败:', error)
+      logger.error(`update preset command error: ${error}`)
     }
     return ''
   }
@@ -59,7 +62,9 @@ export default class PreSetCommandStorage {
   delete(id) {
     const commands = this.presetCommandsStore.get('commands') as any[]
     const newCommands = commands.filter((c) => c.id !== id)
+    const deleteCmd = commands.filter((c) => c.id === id)
     this.presetCommandsStore.set('commands', newCommands as never[])
+    logger.error(`delete preset command: ${JSON.stringify(deleteCmd?.[0])}`)
     return newCommands
   }
 }
