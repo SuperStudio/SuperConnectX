@@ -147,54 +147,26 @@
 </template>
 
 <script setup lang="ts">
-// 1. Vue 内置 API：从 vue 导入
 import { ref, onMounted, watch } from 'vue'
-// 2. Element Plus 组件/工具：从 element-plus 导入
 import { ElMessage, ElForm, ElMessageBox } from 'element-plus'
 import TelnetTerminal from './components/TelnetTerminal.vue'
 import CustomTitleBar from './components/CustomTitleBar.vue'
 import SearchInput from './components/SearchInput.vue'
 import ResourceMonitor from './components/ResourceMonitor.vue'
+import FormUtils from './utils/FormUtils'
+import TelnetInfo from './entity/protocol/TelnetInfo'
 
-const searchKeyword = ref('') // 搜索关键词
+const searchKeyword = ref('')
 const filterConnection = ref<any[]>([])
-// 连接列表（从 electron-store 加载）
 const connections = ref<any[]>([])
-// 新建连接弹窗状态
 const isCreateDialogOpen = ref(false)
-// 表单引用（用于验证）
 const connFormRef = ref<InstanceType<typeof ElForm> | null>(null)
-// 新建连接表单数据
-const newConnForm = ref({
-  name: '',
-  type: 'telnet', // 默认 Telnet 协议
-  host: '',
-  port: 23, // 默认 Telnet 端口
-  username: ''
-})
-// 表单验证规则
-const newConnRules = ref({
-  name: [{ required: true, message: '请输入连接名称', trigger: 'blur' }],
-  host: [
-    { required: true, message: '请输入服务器地址', trigger: 'blur' },
-    {
-      pattern: /^([0-9]{1,3}\.){3}[0-9]{1,3}$|^[a-zA-Z0-9.-]+$/,
-      message: '请输入有效的 IP 地址或域名',
-      trigger: 'blur'
-    }
-  ],
-  port: [
-    { required: true, message: '请输入端口', trigger: 'blur' },
-    { type: 'number', min: 1, max: 65535, message: '端口范围 1-65535', trigger: 'blur' }
-  ]
-})
+const newConnForm = ref(TelnetInfo.build())
+const newConnRules = FormUtils.buildTelnet()
+const activeConnection = ref<any>(null)
+const showConnectionList = ref(true)
+const lastSentCommand = ref('')
 
-// 初始化：加载本地保存的连接
-onMounted(() => {
-  loadConnections()
-})
-
-// 过滤后的列表
 const filtereList = () => {
   if (!searchKeyword.value) {
     filterConnection.value = connections.value
@@ -210,23 +182,11 @@ const filtereList = () => {
   )
 }
 
-// 处理搜索（接收搜索组件事件）
-const handleSearch = (keyword: string) => {
-  searchKeyword.value = keyword
-}
-
-watch([() => connections.value, () => searchKeyword.value], () => filtereList(), {
-  immediate: true,
-  deep: true
-})
-
-// 加载连接列表（从 electron-store 获取）
+const handleSearch = (keyword: string) => (searchKeyword.value = keyword)
 const loadConnections = async () => {
   try {
     // 强制确保返回值是数组（如果为 undefined 或非数组，默认空数组）
     const savedConn = await window.storageApi.getConnections()
-    console.log('savedConn')
-    console.log(savedConn)
     connections.value = Array.isArray(savedConn) ? savedConn : []
   } catch (e) {
     ElMessage.error('加载连接失败，请重启应用')
@@ -236,68 +196,31 @@ const loadConnections = async () => {
   }
 }
 
-// 打开新建连接弹窗
 const openCreateDialog = () => {
-  // 重置表单
-  newConnForm.value = {
-    name: '',
-    type: 'telnet',
-    host: '',
-    port: 23,
-    username: ''
-  }
+  newConnForm.value = TelnetInfo.build()
   if (connFormRef.value) {
-    connFormRef.value.clearValidate() // 清除之前的验证提示
+    connFormRef.value.clearValidate()
   }
   isCreateDialogOpen.value = true
 }
 
 const editCreateDialog = (conn) => {
-  console.log(`conn`)
-  console.log(conn)
-  newConnForm.value = {
-    id: conn.id,
-    name: conn.name,
-    type: conn.type,
-    host: conn.host,
-    port: conn.port,
-    username: conn.username
-  }
+  newConnForm.value = TelnetInfo.buildWithValue(conn)
   isCreateDialogOpen.value = true
 }
 
-// 提交新建连接表单
 const submitNewConn = async () => {
   if (!connFormRef.value) return
 
   try {
     await connFormRef.value.validate()
     if (newConnForm.value.id) {
-      // 1. 提交新连接
-      await window.storageApi.updateConnection({
-        // 显式转换为纯数据对象，避免响应式属性
-        id: newConnForm.value.id,
-        name: newConnForm.value.name,
-        type: newConnForm.value.type,
-        host: newConnForm.value.host,
-        port: newConnForm.value.port,
-        username: newConnForm.value.username
-      })
+      await window.storageApi.updateConnection(TelnetInfo.buildWithValue(newConnForm.value))
     } else {
-      // 1. 提交新连接
-      await window.storageApi.addConnection({
-        // 显式转换为纯数据对象，避免响应式属性
-        name: newConnForm.value.name,
-        type: newConnForm.value.type,
-        host: newConnForm.value.host,
-        port: newConnForm.value.port,
-        username: newConnForm.value.username
-      })
+      await window.storageApi.addConnection(TelnetInfo.buildWithValue(newConnForm.value))
     }
 
-    // 2. 重新加载整个连接列表（而非手动 push），确保数据同步
     loadConnections()
-    // 3. 关闭弹窗并提示
     isCreateDialogOpen.value = false
     ElMessage.success(`连接 "${newConnForm.value.name}" 已保存`)
   } catch (error) {
@@ -330,11 +253,6 @@ const deleteConnection = async (conn) => {
   }
 }
 
-// 添加活跃连接状态
-
-const activeConnection = ref<any>(null)
-
-// 修改连接函数
 const connectToServer = async (conn: any) => {
   if (activeConnection.value !== null) {
     if (conn.id === activeConnection.value.id) {
@@ -352,18 +270,9 @@ const connectToServer = async (conn: any) => {
   activeConnection.value = conn
 }
 
-const handleTerminalClose = () => {
-  console.log('关闭 Telnet 终端')
-  activeConnection.value = null // 清空激活的连接，让终端组件销毁
-}
-
-// 新增：控制连接列表显示状态的变量
-const showConnectionList = ref(true)
-
-// 新增：切换连接列表显示状态的方法
-const toggleConnectionList = () => {
-  showConnectionList.value = !showConnectionList.value
-}
+const handleTerminalClose = () => (activeConnection.value = null)
+const toggleConnectionList = () => (showConnectionList.value = !showConnectionList.value)
+const handleCommandSent = (command: string) => (lastSentCommand.value = command)
 
 window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'F12' || e.keyCode === 123) {
@@ -372,11 +281,12 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   }
 })
 
-const lastSentCommand = ref('')
+watch([() => connections.value, () => searchKeyword.value], () => filtereList(), {
+  immediate: true,
+  deep: true
+})
 
-const handleCommandSent = (command: string) => {
-  lastSentCommand.value = command
-}
+onMounted(() => loadConnections())
 </script>
 
 <style scoped>

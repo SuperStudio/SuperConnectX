@@ -27,7 +27,7 @@ export default class ConnectionStorage {
   updateConnection(conn: any) {
     const connections = this.connectionStore.get('connections') as any[]
     let con = connections.filter((item) => item.id === conn.id)
-    if (!con) {
+    if (!con.length) {
       console.log(`con not found`)
       return
     }
