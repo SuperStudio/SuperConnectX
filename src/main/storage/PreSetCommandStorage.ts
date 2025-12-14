@@ -1,9 +1,10 @@
-import Store from 'electron-store' // v3 版本在这里可以正常访问 app 模块
+import Store from 'electron-store'
+import { DEFAULT_STORAGE_DIR } from './StorageConstants'
 
 export default class PreSetCommandStorage {
-  presetCommandsStore = new Store({
+  private presetCommandsStore = new Store({
     name: 'presetCommands',
-    cwd: 'super-ssh',
+    cwd: DEFAULT_STORAGE_DIR,
     defaults: {
       commands: []
     }
@@ -21,7 +22,7 @@ export default class PreSetCommandStorage {
         id: newId,
         name: pureCmd.name || '',
         command: pureCmd.command || '',
-        delay: Number(pureCmd.delay) || 0 // 确保是数字类型
+        delay: Number(pureCmd.delay) || 0
       }
 
       commands.push(newCmd)

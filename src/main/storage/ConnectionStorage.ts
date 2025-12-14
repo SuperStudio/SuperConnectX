@@ -1,10 +1,10 @@
-import Store from 'electron-store' // v3 版本在这里可以正常访问 app 模块
+import Store from 'electron-store'
+import { DEFAULT_STORAGE_DIR } from './StorageConstants'
 
 export default class ConnectionStorage {
-  // 初始化存储
-  connectionStore = new Store({
+  private connectionStore = new Store({
     name: 'connections',
-    cwd: 'super-ssh',
+    cwd: DEFAULT_STORAGE_DIR,
     defaults: {
       connections: []
     }

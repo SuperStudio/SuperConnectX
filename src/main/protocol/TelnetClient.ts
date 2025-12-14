@@ -1,7 +1,10 @@
 import { Telnet } from 'telnet-client'
 
+const DEFAULT_TELNET_PORT = 23
+const DEFAULT_TIMOUT_MS = 10 * 1000
+const DEFAULT_TERMINAL_TYPE = 'vt100' /* cmd 中默认常用 vt100 */
+
 export default class TelnetClient {
-  // 存储活跃的Telnet连接
   telnetConnections = new Map<number, Telnet>()
 
   constructor() {}
@@ -11,20 +14,17 @@ export default class TelnetClient {
     try {
       const params = {
         host: host,
-        port: port || 23,
-        timeout: 10000, // 10秒超时（必加！）
+        port: port || DEFAULT_TELNET_PORT,
+        timeout: DEFAULT_TIMOUT_MS,
         negotiationMandatory: false, // 禁用强制协议协商（很多服务器不支持）
         echoLines: 0, // 禁用回声（避免重复输出）
-        terminalType: 'vt100', // 终端类型（cmd 中默认常用 vt100）
+        terminalType: DEFAULT_TERMINAL_TYPE,
         stripShellPrompt: false // 不剥离shell提示符（避免干扰连接）
       }
 
-      await connection.connect(params) // 现在超时后会抛出错误，不会一直卡着
-      // 存储连接引用
+      await connection.connect(params)
       this.telnetConnections.set(id, connection)
-      // 监听数据事件并转发到渲染进程
       connection.on('data', (data) => onData?.(String(data)))
-      // 监听连接关闭事件
       connection.on('close', () => {
         this.telnetConnections.delete(id)
         onClose?.()
@@ -60,8 +60,6 @@ export default class TelnetClient {
   }
 
   async disconnect(connId) {
-    console.log('enter telnet-disconnect connId:', connId)
-    console.log('all connection id: ', Array.from(this.telnetConnections.keys()))
     const connection = this.telnetConnections.get(connId)
     if (connection) {
       console.warn('start end connection', connId)
