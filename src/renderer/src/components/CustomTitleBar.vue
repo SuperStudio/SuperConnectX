@@ -143,7 +143,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 
 // 从window对象获取preload暴露的API（关键修改）
-const electronStore = window.electronStore
+const storageApi = window.storageApi
 
 const isMaximized = ref(false)
 
@@ -158,7 +158,7 @@ const handleWindowUnmaximized = () => {
 
 onMounted(() => {
   // 初始化窗口状态（通过preload暴露的API）
-  electronStore.getWindowState().then((state) => {
+  storageApi.getWindowState().then((state) => {
     isMaximized.value = state
   })
 
@@ -175,17 +175,17 @@ onUnmounted(() => {
 
 // 最小化窗口
 const minimizeWindow = () => {
-  electronStore.minimizeWindow()
+  storageApi.minimizeWindow()
 }
 
 // 最大化/还原窗口
 const maximizeWindow = () => {
-  electronStore.maximizeWindow()
+  storageApi.maximizeWindow()
 }
 
 // 关闭窗口
 const closeWindow = () => {
-  electronStore.closeWindow()
+  storageApi.closeWindow()
 }
 
 import { defineEmits, defineProps } from 'vue'
@@ -230,7 +230,7 @@ const hideHelpMenu = () => {
 
 // 新增：菜单点击处理函数
 const handleNewWindow = () => {
-  // electronStore.createNewWindow()
+  // storageApi.createNewWindow()
   showFileMenu.value = false
 }
 
@@ -245,7 +245,7 @@ const handleExport = () => {
 }
 
 const handleExit = () => {
-  electronStore.closeWindow()
+  storageApi.closeWindow()
 }
 
 const handleUndo = () => {
@@ -260,7 +260,7 @@ const handleDevelop = () => {
   showHelpMenu.value = false
 }
 const handleFeedBack = () => {
-  electronStore.openExternalUrl('https://github.com/SuperStudio/SuperConnectX/issues')
+  storageApi.openExternalUrl('https://github.com/SuperStudio/SuperConnectX/issues')
   showHelpMenu.value = false
 }
 const handleDoc = () => {

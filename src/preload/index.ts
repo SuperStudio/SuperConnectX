@@ -2,7 +2,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 // 暴露 IPC 调用接口给渲染进程
-contextBridge.exposeInMainWorld('electronStore', {
+contextBridge.exposeInMainWorld('storageApi', {
   getConnections: () => ipcRenderer.invoke('get-connections'),
   addConnection: (conn: any) => ipcRenderer.invoke('add-connection', conn),
   updateConnection: (conn: any) => ipcRenderer.invoke('update-connection', conn),
@@ -40,7 +40,7 @@ contextBridge.exposeInMainWorld('electronStore', {
 
 declare global {
   interface Window {
-    electronStore: {
+    storageApi: {
       getConnections: () => Promise<any[]>
       addConnection: (conn: any) => Promise<any>
       updateConnection: (conn: any) => Promise<any>

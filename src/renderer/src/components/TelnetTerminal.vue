@@ -174,7 +174,7 @@ const getCurrentConnect = () => {
 const openLogFile = async () => {
   try {
     console.log('请求打开日志文件')
-    const result = await window.electronStore.openTelnetLog(getCurrentConnect())
+    const result = await window.storageApi.openTelnetLog(getCurrentConnect())
     if (!result.success) {
       ElMessage.error(`打开日志失败：${result.message}`)
     }
@@ -196,7 +196,7 @@ const handleClose = async () => {
 
   if (currentConnId) {
     try {
-      await window.electronStore.telnetDisconnect(currentConnId)
+      await window.storageApi.telnetDisconnect(currentConnId)
       isConnected.value = false
       emit('onClose')
       if (typeof props.onClose === 'function') {
@@ -259,7 +259,7 @@ const connect = async () => {
     }
 
     try {
-      const result = await window.electronStore.connectTelnet(getCurrentConnect())
+      const result = await window.storageApi.connectTelnet(getCurrentConnect())
       if (result.success) {
         // 1. 确保先移除旧的监听
         if (removeDataListener) {
@@ -275,7 +275,7 @@ const connect = async () => {
         isConnected.value = true
 
         // 2. 注册新的监听，增加初始化信息过滤
-        removeDataListener = window.electronStore.onTelnetData((data) => {
+        removeDataListener = window.storageApi.onTelnetData((data) => {
           if (data.connId !== currentConnId) return
 
           if (isShowLog.value) {
@@ -301,7 +301,7 @@ const connect = async () => {
           }
         })
 
-        removeCloseListener = window.electronStore.onTelnetClose(handleTelnetClose)
+        removeCloseListener = window.storageApi.onTelnetClose(handleTelnetClose)
         commandInput.value?.focus()
         appendToTerminal(`connect success, retry count: ${retryCount + 1}\n`)
         retryCount = 0
@@ -338,7 +338,7 @@ const sendCommand = async () => {
   appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${sendData}\n`)
 
   try {
-    await window.electronStore.telnetSend({
+    await window.storageApi.telnetSend({
       conn: getCurrentConnect(),
       command: sendData.trim()
     })
@@ -365,7 +365,7 @@ onUnmounted(() => {
     editor = null
   }
 
-  if (appendToTerminal) {
+  if (removeDataListener) {
     removeDataListener()
     removeDataListener = null
   }
@@ -375,7 +375,7 @@ onUnmounted(() => {
   }
 
   if (currentConnId && isConnected.value) {
-    window.electronStore.telnetDisconnect(currentConnId).catch((err) => {
+    window.storageApi.telnetDisconnect(currentConnId).catch((err) => {
       console.error('卸载时断开失败:', err)
     })
   }

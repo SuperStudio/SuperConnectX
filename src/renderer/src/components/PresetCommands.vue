@@ -174,7 +174,7 @@ const nameInputRef = ref<InstanceType<typeof ElInput> | null>(null)
 // 加载预设命令
 const loadPresetCommands = async () => {
   try {
-    const commands = await window.electronStore.getPresetCommands()
+    const commands = await window.storageApi.getPresetCommands()
     presetCommands.value = Array.isArray(commands) ? commands : []
   } catch (error) {
     console.error('加载命令失败:', error)
@@ -238,10 +238,10 @@ const savePresetCommand = async () => {
         id: currentEditingCmd.value.id,
         ...pureFormData
       }
-      await window.electronStore.updatePresetCommand(JSON.parse(JSON.stringify(updatedCmd)))
+      await window.storageApi.updatePresetCommand(JSON.parse(JSON.stringify(updatedCmd)))
       ElMessage.success('命令已更新')
     } else {
-      await window.electronStore.addPresetCommand(JSON.parse(JSON.stringify(pureFormData)))
+      await window.storageApi.addPresetCommand(JSON.parse(JSON.stringify(pureFormData)))
       ElMessage.success('命令已添加')
     }
 
@@ -257,7 +257,7 @@ const savePresetCommand = async () => {
 const deletePresetCommand = async (id: number) => {
   contextMenuVisible.value = false
   try {
-    await window.electronStore.deletePresetCommand(id)
+    await window.storageApi.deletePresetCommand(id)
     ElMessage.success('命令已删除')
     loadPresetCommands()
   } catch (error) {
@@ -307,7 +307,7 @@ const sendPresetCommand = async (cmd: any) => {
   try {
     emit('commandSent', cmd.name.trim())
     emit('commandSentContent', cmd.command)
-    window.electronStore.telnetSend({
+    window.storageApi.telnetSend({
       conn: getCurrentConnect(),
       command: cmd.command.trim()
     })

@@ -1,7 +1,7 @@
-// 扩展 Window 接口，声明 electronStore 的类型
+// 扩展 Window 接口，声明 storageApi 的类型
 declare global {
   interface Window {
-    electronStore: {
+    storageApi: {
       // 获取所有连接
       getConnections: () => Array<{
         id: number

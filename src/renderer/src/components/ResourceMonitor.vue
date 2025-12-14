@@ -36,7 +36,7 @@ let timer = null
 
 const fetchResourceData = async () => {
   try {
-    const data = await window.electronStore.getAppResource()
+    const data = await window.storageApi.getAppResource()
     cpuUsage.value = data.cpu
     // memoryUsage.value = data.memory
     // memRate.value = data.memRate

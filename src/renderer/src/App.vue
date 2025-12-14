@@ -191,7 +191,6 @@ const newConnRules = ref({
 
 // 初始化：加载本地保存的连接
 onMounted(() => {
-  console.log('window.electronStore:', window.electronStore) // 打印日志
   loadConnections()
 })
 
@@ -225,7 +224,7 @@ watch([() => connections.value, () => searchKeyword.value], () => filtereList(),
 const loadConnections = async () => {
   try {
     // 强制确保返回值是数组（如果为 undefined 或非数组，默认空数组）
-    const savedConn = await window.electronStore.getConnections()
+    const savedConn = await window.storageApi.getConnections()
     console.log('savedConn')
     console.log(savedConn)
     connections.value = Array.isArray(savedConn) ? savedConn : []
@@ -275,7 +274,7 @@ const submitNewConn = async () => {
     await connFormRef.value.validate()
     if (newConnForm.value.id) {
       // 1. 提交新连接
-      await window.electronStore.updateConnection({
+      await window.storageApi.updateConnection({
         // 显式转换为纯数据对象，避免响应式属性
         id: newConnForm.value.id,
         name: newConnForm.value.name,
@@ -286,7 +285,7 @@ const submitNewConn = async () => {
       })
     } else {
       // 1. 提交新连接
-      await window.electronStore.addConnection({
+      await window.storageApi.addConnection({
         // 显式转换为纯数据对象，避免响应式属性
         name: newConnForm.value.name,
         type: newConnForm.value.type,
@@ -319,7 +318,7 @@ const deleteConnection = async (conn) => {
     })
 
     // 用户确认后执行删除操作
-    const newConnections = await window.electronStore.deleteConnection(conn.id)
+    const newConnections = await window.storageApi.deleteConnection(conn.id)
     connections.value = newConnections
     ElMessage.success('连接已删除')
   } catch (error) {
@@ -339,7 +338,7 @@ const activeConnection = ref<any>(null)
 const connectToServer = async (conn: any) => {
   if (activeConnection.value !== null) {
     if (conn.id === activeConnection.value.id) {
-      await window.electronStore.telnetDisconnect(conn.id)
+      await window.storageApi.telnetDisconnect(conn.id)
       activeConnection.value = null
       ElMessage.success('连接已断开')
     } else {
@@ -369,7 +368,7 @@ const toggleConnectionList = () => {
 window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'F12' || e.keyCode === 123) {
     e.preventDefault()
-    window.electronStore.openDevtools()
+    window.storageApi.openDevtools()
   }
 })
 

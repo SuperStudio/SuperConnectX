@@ -10,7 +10,7 @@ declare module '*.vue' {
 // 扩展window对象类型
 declare global {
   interface Window {
-    electronStore: {
+    storageApi: {
       // 原有API...
       minimizeWindow: () => Promise<void>
       maximizeWindow: () => Promise<void>
