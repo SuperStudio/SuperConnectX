@@ -6,25 +6,3 @@ declare module '*.vue' {
   const component: DefineComponent<{}, {}, any>
   export default component
 }
-
-// 扩展window对象类型
-declare global {
-  interface Window {
-    storageApi: {
-      // 原有API...
-      minimizeWindow: () => Promise<void>
-      maximizeWindow: () => Promise<void>
-      closeWindow: () => Promise<void>
-      getWindowState: () => Promise<boolean>
-    }
-    // 窗口状态事件
-    addEventListener: (
-      type: 'window-maximized' | 'window-unmaximized',
-      listener: () => void
-    ) => void
-    removeEventListener: (
-      type: 'window-maximized' | 'window-unmaximized',
-      listener: () => void
-    ) => void
-  }
-}
