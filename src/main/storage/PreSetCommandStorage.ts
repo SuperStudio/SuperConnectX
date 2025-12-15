@@ -1,23 +1,19 @@
-import Store from 'electron-store'
-import { DEFAULT_STORAGE_DIR } from './StorageConstants'
+import BaseStorage from './BaseStorage'
 import logger from '../ipc/IpcAppLogger'
 
-export default class PreSetCommandStorage {
-  private presetCommandsStore = new Store({
-    name: 'presetCommands',
-    cwd: DEFAULT_STORAGE_DIR,
-    defaults: {
-      commands: []
-    }
-  })
-  constructor() {}
+const STORAGE_NAME = 'commands'
 
-  getAll = () => this.presetCommandsStore.get('commands')
+export default class PreSetCommandStorage extends BaseStorage {
+  constructor() {
+    super(STORAGE_NAME, {
+      commands: []
+    })
+  }
 
   add(cmd) {
     try {
       const pureCmd = JSON.parse(JSON.stringify(cmd))
-      const commands = this.presetCommandsStore.get('commands', []) as any[]
+      const commands = this.getAll()
       const newId = commands.length ? Math.max(...commands.map((c) => Number(c.id) || 0)) + 1 : 1
       const newCmd = {
         id: newId,
@@ -28,7 +24,7 @@ export default class PreSetCommandStorage {
       }
 
       commands.push(newCmd)
-      this.presetCommandsStore.set('commands', commands)
+      this.saveAll(commands)
       logger.info(`add preset command ${JSON.stringify(newCmd)}`)
       return newCmd
     } catch (error) {
@@ -40,7 +36,7 @@ export default class PreSetCommandStorage {
   update(cmd) {
     try {
       const pureCmd = JSON.parse(JSON.stringify(cmd))
-      const commands = this.presetCommandsStore.get('commands', []) as any[]
+      const commands = this.getAll()
       const index = commands.findIndex((c) => c.id === Number(pureCmd.id))
 
       if (index !== -1) {
@@ -51,7 +47,7 @@ export default class PreSetCommandStorage {
           delay: Number(pureCmd.delay) || 0,
           groupId: Number(pureCmd.groupId) || 0
         }
-        this.presetCommandsStore.set('commands', commands)
+        this.saveAll(commands)
         logger.info(`update preset command: ${JSON.stringify(commands[index])}`)
         return commands[index]
       }
@@ -62,10 +58,10 @@ export default class PreSetCommandStorage {
   }
 
   delete(id) {
-    const commands = this.presetCommandsStore.get('commands') as any[]
+    const commands = this.getAll()
     const newCommands = commands.filter((c) => c.id !== id)
     const deleteCmd = commands.filter((c) => c.id === id)
-    this.presetCommandsStore.set('commands', newCommands as never[])
+    this.saveAll(newCommands)
     logger.info(`delete preset command: ${JSON.stringify(deleteCmd?.[0])}`)
     return newCommands
   }
@@ -74,7 +70,7 @@ export default class PreSetCommandStorage {
     try {
       const commands = this.getAll()
       const newCommands = commands.filter((c) => c.groupId !== groupId)
-      this.presetCommandsStore.set('commands', newCommands)
+      this.saveAll(newCommands)
       return newCommands
     } catch (error) {
       logger.error(`deleteByGroupId error: ${error}`)

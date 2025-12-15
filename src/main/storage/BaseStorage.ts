@@ -35,7 +35,7 @@ export default class BaseStorage {
   }
 
   getAll() {
-    return this.storageData.get(this.storageName)
+    return this.storageData.get(this.storageName) || []
   }
 
   saveAll(data: never[]) {

@@ -1,20 +1,13 @@
-import Store from 'electron-store'
-import { DEFAULT_STORAGE_DIR } from './StorageConstants'
-const GROUP_STORE_KEY_NAME = 'cmdGroups'
+import BaseStorage from './BaseStorage'
+import logger from '../ipc/IpcAppLogger'
 
-export default class CommandGroupStorage {
-  private groupStore = new Store({
-    name: GROUP_STORE_KEY_NAME,
-    cwd: DEFAULT_STORAGE_DIR,
-    defaults: {
+const STORAGE_NAME = 'cmdGroups'
+
+export default class CommandGroupStorage extends BaseStorage {
+  constructor() {
+    super(STORAGE_NAME, {
       groups: []
-    }
-  })
-
-  constructor() {}
-
-  getAll() {
-    return this.groupStore.get(GROUP_STORE_KEY_NAME) || []
+    })
   }
 
   add(group: { name: string; connectionType: string }) {
@@ -27,10 +20,10 @@ export default class CommandGroupStorage {
         connectionType: group.connectionType
       }
       groups.push(newGroup)
-      this.groupStore.set(GROUP_STORE_KEY_NAME, groups)
+      this.saveAll(groups)
       return newGroup
     } catch (error) {
-      console.error('添加组失败:', error)
+      logger.error(`add group error: ${error}`)
       return null
     }
   }
@@ -45,10 +38,10 @@ export default class CommandGroupStorage {
         name: group.name.trim(),
         connectionType: group.connectionType
       }
-      this.groupStore.set(GROUP_STORE_KEY_NAME, groups)
+      this.saveAll(groups)
       return groups[index]
     } catch (error) {
-      console.error('更新组失败:', error)
+      logger.error(`update group error: ${error}`)
       return null
     }
   }
@@ -57,10 +50,10 @@ export default class CommandGroupStorage {
     try {
       const groups = this.getAll()
       const newGroups = groups.filter((g) => g.groupId !== groupId)
-      this.groupStore.set(GROUP_STORE_KEY_NAME, newGroups)
+      this.saveAll(newGroups)
       return newGroups
     } catch (error) {
-      console.error('删除组失败:', error)
+      logger.error(`delete group error: ${error}`)
       return this.getAll()
     }
   }
