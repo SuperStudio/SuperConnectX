@@ -569,7 +569,7 @@ onMounted(() => loadConnections())
 .terminal-placeholder-text {
   margin-top: 10px;
   align-items: center;
-  font-size: 20px;
+  font-size: 15px;
   text-shadow: 2px 2px 3px #000;
 }
 

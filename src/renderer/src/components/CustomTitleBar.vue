@@ -24,12 +24,15 @@
       </div>
       <div class="app-title">SuperConnectX</div>
 
-      <div class="menu-button" @mouseenter="showFileMenu = true" @mouseleave="hideFileMenu">
+      <div
+        class="menu-button"
+        @mouseenter="((showFileMenu = true), (showEditMenu = false), (showHelpMenu = false))"
+      >
         <button class="menu-btn">文件</button>
         <div
           class="dropdown-menu"
           v-if="showFileMenu"
-          @mouseenter="showFileMenu = true"
+          @mouseenter="((showFileMenu = true), (showEditMenu = false), (showHelpMenu = false))"
           @mouseleave="hideFileMenu"
         >
           <div class="menu-item" @click="importCmd">导入命令</div>
@@ -41,12 +44,15 @@
         </div>
       </div>
 
-      <div class="menu-button" @mouseenter="showEditMenu = true" @mouseleave="hideEditMenu">
+      <div
+        class="menu-button"
+        @mouseenter="((showFileMenu = false), (showEditMenu = true), (showHelpMenu = false))"
+      >
         <button class="menu-btn">编辑</button>
         <div
           class="dropdown-menu"
           v-if="showEditMenu"
-          @mouseenter="showEditMenu = true"
+          @mouseenter="((showFileMenu = false), (showEditMenu = true), (showHelpMenu = false))"
           @mouseleave="hideEditMenu"
         >
           <div class="menu-item" @click="handleUndo">撤销</div>
@@ -58,12 +64,15 @@
         </div>
       </div>
 
-      <div class="menu-button" @mouseenter="showHelpMenu = true" @mouseleave="hideHelpMenu">
+      <div
+        class="menu-button"
+        @mouseenter="((showFileMenu = false), (showEditMenu = false), (showHelpMenu = true))"
+      >
         <button class="menu-btn">帮助</button>
         <div
           class="dropdown-menu"
           v-if="showHelpMenu"
-          @mouseenter="showHelpMenu = true"
+          @mouseenter="((showFileMenu = false), (showEditMenu = false), (showHelpMenu = true))"
           @mouseleave="hideHelpMenu"
         >
           <div class="menu-item" @click="handleDoc">文档</div>
@@ -143,6 +152,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { defineEmits, defineProps } from 'vue'
 import { ElMessage } from 'element-plus'
+import { fa, tr } from 'element-plus/es/locale'
 
 const isMaximized = ref(false)
 const showFileMenu = ref(false)
@@ -322,8 +332,8 @@ onUnmounted(() => {
 }
 
 .logo-img {
-  width: 100%;
-  height: 100%;
+  width: 90%;
+  height: 90%;
   object-fit: contain;
 
   display: block;
@@ -331,7 +341,7 @@ onUnmounted(() => {
 }
 
 .app-title {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -412,10 +422,11 @@ onUnmounted(() => {
 .menu-btn {
   background: none;
   border: none;
+  border-radius: 5px;
   color: #c5c5c5;
   padding: 0 12px;
-  height: 30px;
-  font-size: 14px;
+  height: 22px;
+  font-size: 12px;
   cursor: pointer;
   transition: background-color 0.2s;
 }
@@ -426,7 +437,7 @@ onUnmounted(() => {
 
 .dropdown-menu {
   position: absolute;
-  top: 30px;
+  top: 26px;
   left: 0;
   width: 160px;
   background-color: #2d2d2d;
@@ -440,7 +451,7 @@ onUnmounted(() => {
 .menu-item {
   padding: 6px 16px;
   color: #e0e0e0;
-  font-size: 14px;
+  font-size: 12px;
   cursor: pointer;
   transition: background-color 0.15s;
 }
