@@ -25,13 +25,24 @@ export default class ProtocolLogger {
   }
 
   // 生成高精度时间戳
-  getTimeStamp(): string {
+  getFileTimeStamp(): string {
     const date = new Date()
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
       date.getDate()
     ).padStart(2, '0')}-${String(date.getHours()).padStart(2, '0')}-${String(
       date.getMinutes()
     ).padStart(2, '0')}-${String(date.getSeconds()).padStart(2, '0')}-${String(
+      date.getMilliseconds()
+    ).padStart(3, '0')}`
+  }
+
+  getTimeStamp(): string {
+    const date = new Date()
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+      date.getDate()
+    ).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(
+      date.getMinutes()
+    ).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}.${String(
       date.getMilliseconds()
     ).padStart(3, '0')}`
   }
@@ -84,7 +95,7 @@ export default class ProtocolLogger {
 
   createConnLogFile(connId: number, connName: string): string {
     const safeName = connName.replace(/[\\/*?:"<>|]/g, '-')
-    const fileName = `${safeName}-${this.getTimeStamp()}.log`
+    const fileName = `${safeName}-${this.getFileTimeStamp()}.log`
     this.connLogFiles.set(connId, fileName)
     this.logCache.set(connId, [])
     return fileName
