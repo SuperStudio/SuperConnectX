@@ -2,6 +2,7 @@
   <div class="app-container">
     <CustomTitleBar
       @toggle-connection-list="toggleConnectionList"
+      @refreshCommands="refreshHandler"
       :show-connection-list="showConnectionList"
     />
     <!-- 主内容区：左侧连接列表 + 右侧终端 -->
@@ -79,6 +80,7 @@
         <TelnetTerminal
           v-if="activeConnection"
           :connection="activeConnection"
+          ref="telnetTerminalRef"
           @onClose="handleTerminalClose"
           @commandSent="handleCommandSent"
         />
@@ -166,6 +168,9 @@ const newConnRules = FormUtils.buildTelnet()
 const activeConnection = ref<any>(null)
 const showConnectionList = ref(true)
 const lastSentCommand = ref('')
+
+const telnetTerminalRef = ref<InstanceType<typeof TelnetTerminal>>()
+const refreshHandler = () => telnetTerminalRef.value?.refreshGroupsCmds()
 
 const filtereList = () => {
   if (!searchKeyword.value) {

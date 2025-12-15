@@ -32,9 +32,8 @@
           @mouseenter="showFileMenu = true"
           @mouseleave="hideFileMenu"
         >
-          <div class="menu-item" @click="handleNewWindow">新建窗口</div>
-          <div class="menu-item" @click="handleImport">导入连接</div>
-          <div class="menu-item" @click="handleExport">导出连接</div>
+          <div class="menu-item" @click="importCmd">导入命令</div>
+          <div class="menu-item" @click="exportCmd">导出命令</div>
           <div class="menu-separator"></div>
           <div class="menu-item" @click="openAppDir">打开程序所在路径</div>
           <div class="menu-separator"></div>
@@ -143,12 +142,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { defineEmits, defineProps } from 'vue'
+import { ElMessage } from 'element-plus'
 
 const isMaximized = ref(false)
 const showFileMenu = ref(false)
 const showEditMenu = ref(false)
 const showHelpMenu = ref(false)
-const emit = defineEmits(['toggle-connection-list'])
+const emit = defineEmits(['toggle-connection-list', 'refreshCommands'])
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps({
   showConnectionList: {
@@ -192,6 +192,56 @@ const handleImport = () => {
 
 const handleExport = () => {
   showFileMenu.value = false
+}
+const importCmd = async () => {
+  try {
+    const result = await window.dialogApi.openFileDialog({
+      title: '导入命令',
+      filters: [
+        { name: '命令文件', extensions: ['json'] },
+        { name: '所有文件', extensions: ['*'] }
+      ]
+    })
+
+    if (result.filePaths && result.filePaths.length > 0) {
+      const importResult = await window.storageApi.importCommands(result.filePaths[0])
+      if (importResult.success) {
+        ElMessage.success(
+          `成功导入 ${importResult.imported} 条命令，跳过 ${importResult.skipped} 条重复命令`
+        )
+        // 通知PresetCommands组件刷新数据
+        emit('refreshCommands')
+      } else {
+        ElMessage.error(`导入失败: ${importResult.message}`)
+      }
+    }
+  } catch (error) {
+    console.error('导入命令失败:', error)
+    ElMessage.error('导入命令失败')
+  }
+}
+
+// 导出命令
+const exportCmd = async () => {
+  try {
+    const result = await window.dialogApi.saveFileDialog({
+      title: '导出命令',
+      defaultPath: 'commands.json',
+      filters: [{ name: '命令文件', extensions: ['json'] }]
+    })
+
+    if (result.filePath) {
+      const exportResult = await window.storageApi.exportCommands(result.filePath)
+      if (exportResult.success) {
+        ElMessage.success(`成功导出 ${exportResult.count} 条命令`)
+      } else {
+        ElMessage.error(`导出失败: ${exportResult.message}`)
+      }
+    }
+  } catch (error) {
+    console.error('导出命令失败:', error)
+    ElMessage.error('导出命令失败')
+  }
 }
 
 const openAppDir = async () => {

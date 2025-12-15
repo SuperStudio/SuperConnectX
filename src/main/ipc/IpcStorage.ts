@@ -42,6 +42,15 @@ export default class IpcStorage {
       return groupStorage.delete(id)
     })
 
+    /* 命令导入导出 */
+    ipcMain.handle('export-commands', (_, filePath: string) =>
+      preSetCommandStorage.exportCommands(groupStorage, filePath)
+    )
+
+    ipcMain.handle('import-commands', (_, filePath: string) =>
+      preSetCommandStorage.importCommands(groupStorage, filePath)
+    )
+
     logger.info(`init IpcStorage done`)
   }
 }

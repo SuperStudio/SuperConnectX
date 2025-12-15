@@ -18,7 +18,9 @@ contextBridge.exposeInMainWorld('storageApi', {
   getCommandGroups: () => ipcRenderer.invoke('get-command-groups'),
   addCommandGroup: (group: any) => ipcRenderer.invoke('add-command-group', group),
   updateCommandGroup: (group: any) => ipcRenderer.invoke('update-command-group', group),
-  deleteCommandGroup: (groupId: number) => ipcRenderer.invoke('delete-command-group', groupId)
+  deleteCommandGroup: (groupId: number) => ipcRenderer.invoke('delete-command-group', groupId),
+  exportCommands: (filePath: string) => ipcRenderer.invoke('export-commands', filePath),
+  importCommands: (filePath: string) => ipcRenderer.invoke('import-commands', filePath)
 })
 
 contextBridge.exposeInMainWorld('telnetApi', {
@@ -38,6 +40,13 @@ contextBridge.exposeInMainWorld('telnetApi', {
     return () => ipcRenderer.removeListener('telnet-close', listener)
   },
   openTelnetLog: (conn: any) => ipcRenderer.invoke('open-telnet-log', conn)
+})
+
+contextBridge.exposeInMainWorld('dialogApi', {
+  openFileDialog: (options: Electron.OpenDialogOptions) =>
+    ipcRenderer.invoke('open-file-dialog', options),
+  saveFileDialog: (options: Electron.SaveDialogOptions) =>
+    ipcRenderer.invoke('save-file-dialog', options)
 })
 
 contextBridge.exposeInMainWorld('windowApi', {
@@ -71,6 +80,9 @@ declare global {
       addCommandGroup: (group: any) => Promise<any[]>
       updateCommandGroup: (group: any) => Promise<any[]>
       deleteCommandGroup: (groupId: number) => Promise<any[]>
+
+      exportCommands: (filePath: string) => Promise<any>
+      importCommands: (filePath: string) => Promise<any>
     }
     telnetApi: {
       connectTelnet: (conn: any) => Promise<any>
@@ -91,6 +103,10 @@ declare global {
       getAppResource: () => Promise<any>
       openExternalUrl: (url: string) => Promise<any>
       openAppDir: () => Promise<any>
+    }
+    dialogApi: {
+      openFileDialog: (options: Electron.OpenDialogOptions) => Promise<any>
+      saveFileDialog: (options: Electron.SaveDialogOptions) => Promise<any>
     }
   }
 }

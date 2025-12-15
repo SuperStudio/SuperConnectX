@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import logger from './IpcAppLogger'
@@ -135,6 +135,24 @@ export default class IpcMain {
 
       _logger.flush()
       process.exit(0)
+    })
+
+    // 文件选择对话框
+    ipcMain.handle('open-file-dialog', async (_, options) => {
+      const mainWindow = BrowserWindow.getFocusedWindow()
+      if (mainWindow) {
+        return await dialog.showOpenDialog(mainWindow, options)
+      }
+      return { filePaths: [] }
+    })
+
+    // 保存文件对话框
+    ipcMain.handle('save-file-dialog', async (_, options) => {
+      const mainWindow = BrowserWindow.getFocusedWindow()
+      if (mainWindow) {
+        return await dialog.showSaveDialog(mainWindow, options)
+      }
+      return { filePath: null }
     })
 
     logger.info(`init IpcMain done`)

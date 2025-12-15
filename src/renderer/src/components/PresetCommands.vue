@@ -537,6 +537,15 @@ const sendPresetCommand = async (cmd: any) => {
   }
 }
 
+const refreshGroupsCmds = () => {
+  loadGroups()
+  loadPresetCommands()
+}
+
+defineExpose({
+  refreshGroupsCmds
+})
+
 watch(
   () => props.connection?.connectionType,
   () => {

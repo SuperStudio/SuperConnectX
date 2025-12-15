@@ -40,6 +40,7 @@
     <PresetCommands
       :is-connected="isConnected"
       :connection="connection"
+      ref="presetCommandsRef"
       @commandSent="handleCommandSent"
       @commandSentContent="appendCommandToTerminal"
     />
@@ -90,6 +91,8 @@ let retryCount = 0
 let retryTimer: NodeJS.Timeout | null = null
 let stopRetry = ref(false)
 let totalRecvSize = 0
+
+const presetCommandsRef = ref<InstanceType<typeof PresetCommands>>()
 
 const initEditor = async () => {
   if (!editorContainer.value) return
@@ -325,6 +328,12 @@ const appendCommandToTerminal = (content: string) => {
   appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${content}\n`)
   commandInput.value?.focus()
 }
+
+const refreshGroupsCmds = () => presetCommandsRef.value.refreshGroupsCmds()
+
+defineExpose({
+  refreshGroupsCmds
+})
 
 onMounted(() => {
   initEditor()
