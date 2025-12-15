@@ -20,10 +20,10 @@ export default class IpcStorage {
   init(): void {
     /* 连接持久化处理 */
     const connectionStorage = new ConnectionStorage()
-    ipcMain.handle('get-connections', () => connectionStorage.getConnections())
-    ipcMain.handle('add-connection', (_, conn: any) => connectionStorage.addConnection(conn))
-    ipcMain.handle('update-connection', (_, conn: any) => connectionStorage.updateConnection(conn))
-    ipcMain.handle('delete-connection', (_, id: number) => connectionStorage.deleteConnection(id))
+    ipcMain.handle('get-connections', () => connectionStorage.getAll())
+    ipcMain.handle('add-connection', (_, conn: any) => connectionStorage.add(conn))
+    ipcMain.handle('update-connection', (_, conn: any) => connectionStorage.update(conn))
+    ipcMain.handle('delete-connection', (_, id: number) => connectionStorage.delete(id))
 
     /* 发送命令持久化 */
     const preSetCommandStorage = new PreSetCommandStorage()

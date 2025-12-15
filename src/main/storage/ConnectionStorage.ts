@@ -1,34 +1,29 @@
-import Store from 'electron-store'
-import { DEFAULT_STORAGE_DIR } from './StorageConstants'
 import logger from '../ipc/IpcAppLogger'
+import BaseStorage from './BaseStorage'
 
-export default class ConnectionStorage {
-  private connectionStore = new Store({
-    name: 'connections',
-    cwd: DEFAULT_STORAGE_DIR,
-    defaults: {
+const STORAGE_NAME = 'connections'
+
+export default class ConnectionStorage extends BaseStorage {
+  constructor() {
+    super(STORAGE_NAME, {
       connections: []
-    }
-  })
-  constructor() {}
-
-  getConnections() {
-    return this.connectionStore.get('connections')
+    })
   }
 
-  addConnection(conn: any) {
-    const connections = this.connectionStore.get('connections') as any[]
+  add(conn: any) {
+    const connections = this.getAll() as any[]
     const newId = connections.length ? Math.max(...connections.map((c) => c.id)) + 1 : 1
     const newConn = { id: newId, ...conn }
     connections.push(newConn)
-    this.connectionStore.set('connections', connections as never[])
+    this.saveAll(connections as never[])
+
     logger.info(`add connection ${conn.host}:${conn.port}`)
     logger.debug(JSON.stringify(newConn))
     return newConn
   }
 
-  updateConnection(conn: any) {
-    const connections = this.connectionStore.get('connections') as any[]
+  update(conn: any) {
+    const connections = this.getAll() as any[]
     let con = connections.filter((item) => item.id === conn.id)
     if (!con.length) {
       console.log(`con not found`)
@@ -40,18 +35,18 @@ export default class ConnectionStorage {
     con[0].type = conn.type
     con[0].host = conn.host
     con[0].username = conn.username
-    this.connectionStore.set('connections', connections as never[])
 
+    this.saveAll(connections as never[])
     logger.info(`update connection ${conn.host}:${conn.port}`)
     logger.debug(JSON.stringify(con[0]))
     return con
   }
 
-  deleteConnection(id: number) {
-    const connections = this.connectionStore.get('connections') as any[]
+  delete(id: number) {
+    const connections = this.getAll() as any[]
     const newConnections = connections.filter((c) => c.id !== id)
     const deleteItem = connections.filter((c) => c.id === id)
-    this.connectionStore.set('connections', newConnections as never[])
+    this.saveAll(newConnections as never[])
 
     logger.info(`delete connection ${deleteItem?.[0].host}:${deleteItem?.[0].port}`)
     logger.debug(JSON.stringify(deleteItem))
