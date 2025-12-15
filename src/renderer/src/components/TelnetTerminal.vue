@@ -72,7 +72,7 @@ import PresetCommands from './PresetCommands.vue'
 import TelnetInfo from '../entity/protocol/TelnetInfo'
 const MAX_RETRY_COUNT = 1000
 const RETRY_INTERVAL_MS = 3000
-const MAX_CLEAR_INTERVAL_SIZE = 1024 * 1024 * 1
+const MAX_CLEAR_INTERVAL_SIZE = 1024 * 1024 * 30
 
 const emit = defineEmits(['onClose', 'commandSent'])
 const props = defineProps<{
