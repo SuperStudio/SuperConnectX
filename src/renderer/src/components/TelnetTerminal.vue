@@ -12,7 +12,12 @@
           <el-switch v-model="isShowLog" size="small" active-text="显示日志" />
         </div>
         <div class="switch-item">
-          <el-switch v-model="isAutoScroll" size="small" active-text="自动滚动" />
+          <el-switch
+            v-model="isAutoScroll"
+            @change="autoScrollChange"
+            size="small"
+            active-text="自动滚动"
+          />
         </div>
         <el-button
           type="default"
@@ -143,15 +148,23 @@ const appendToTerminal = (content: string) => {
     () => null
   )
 
-  if (isAutoScroll.value) {
-    const newLastLine = editorModel!.getLineCount()
-    editor?.revealLine(newLastLine)
-  }
+  scrollToEnd()
 
   totalRecvSize += content.length
   if (totalRecvSize > MAX_CLEAR_INTERVAL_SIZE) {
     clearTerminal()
   }
+}
+
+const scrollToEnd = () => {
+  if (isAutoScroll.value) {
+    const newLastLine = editorModel!.getLineCount()
+    editor?.revealLine(newLastLine)
+  }
+}
+
+const scrollToStart = () => {
+  editor?.revealLine(0)
 }
 
 const openLogFile = async () => {
@@ -330,6 +343,12 @@ const appendCommandToTerminal = (content: string) => {
 }
 
 const refreshGroupsCmds = () => presetCommandsRef.value.refreshGroupsCmds()
+
+const autoScrollChange = (autoScroll) => {
+  if (autoScroll) {
+    scrollToEnd()
+  }
+}
 
 defineExpose({
   refreshGroupsCmds
