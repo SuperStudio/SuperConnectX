@@ -128,6 +128,29 @@ const initEditor = async () => {
   editor.onMouseDown(() => {
     isAutoScroll.value = false
   })
+
+  handleMouseWheel(editor)
+}
+
+const handleMouseWheel = (editor) => {
+  let fontSize = 14
+  editorContainer.value?.addEventListener(
+    'wheel',
+    (e) => {
+      if (e.ctrlKey && e.deltaY !== 0) {
+        e.preventDefault() // 阻止页面滚动
+        if (e.deltaY < 0) {
+          fontSize = Math.min(fontSize + 2, 30)
+        } else {
+          fontSize = Math.max(fontSize - 2, 5)
+        }
+        editor.updateOptions({
+          fontSize: fontSize
+        })
+      }
+    },
+    { passive: false, capture: true }
+  )
 }
 
 const appendToTerminal = (content: string) => {
