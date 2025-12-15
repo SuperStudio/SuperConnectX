@@ -46,21 +46,32 @@
 
       <div
         class="menu-button"
-        @mouseenter="((showFileMenu = false), (showEditMenu = true), (showHelpMenu = false))"
+        @mouseenter="handleMenuMouseEnter('edit')"
+        @mouseleave="handleMenuMouseLeave('edit')"
       >
         <button class="menu-btn">编辑</button>
-        <div
-          class="dropdown-menu"
-          v-if="showEditMenu"
-          @mouseenter="((showFileMenu = false), (showEditMenu = true), (showHelpMenu = false))"
-          @mouseleave="hideEditMenu"
-        >
-          <div class="menu-item" @click="handleUndo">撤销</div>
-          <div class="menu-item" @click="handleUndo">重做</div>
-          <div class="menu-separator"></div>
-          <div class="menu-item" @click="handleUndo">剪切</div>
-          <div class="menu-item" @click="handleUndo">复制</div>
-          <div class="menu-item" @click="handleUndo">粘贴</div>
+        <div class="dropdown-menu" v-if="showEditMenu">
+          <div
+            class="menu-item submenu-trigger"
+            @mouseenter="handleFontSubmenuMouseEnter"
+            @mouseleave="handleFontSubmenuMouseLeave"
+          >
+            字体
+            <div class="dropdown-submenu" v-if="showFontSubmenu">
+              <div
+                class="menu-item"
+                v-for="font in systemFonts"
+                :key="font"
+                @click="changeFont(font)"
+                :style="{ fontFamily: font }"
+              >
+                {{ formatFontName(font) }}
+              </div>
+              <div class="menu-separator"></div>
+              <div class="menu-item" @click="changeFontSize('increase')">增大字号</div>
+              <div class="menu-item" @click="changeFontSize('decrease')">减小字号</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -152,13 +163,22 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { defineEmits, defineProps } from 'vue'
 import { ElMessage } from 'element-plus'
-import { fa, tr } from 'element-plus/es/locale'
+import { getSystemFonts, formatFontName } from '../utils/FontDetector'
 
 const isMaximized = ref(false)
 const showFileMenu = ref(false)
 const showEditMenu = ref(false)
 const showHelpMenu = ref(false)
-const emit = defineEmits(['toggle-connection-list', 'refreshCommands'])
+// 字体子菜单状态
+const showFontSubmenu = ref(false)
+const fontsLoaded = ref(false)
+const systemFonts = ref([])
+const emit = defineEmits([
+  'toggle-connection-list',
+  'refreshCommands',
+  'change-font',
+  'change-font-size'
+])
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps({
   showConnectionList: {
@@ -284,7 +304,54 @@ const handleDoc = () => {
   showHelpMenu.value = false
 }
 
-onMounted(() => {
+const handleMenuMouseEnter = async (menuType) => {
+  showFileMenu.value = false
+  showEditMenu.value = false
+  showHelpMenu.value = false
+  showFontSubmenu.value = false
+
+  if (!fontsLoaded.value) {
+    systemFonts.value = await getSystemFonts()
+    fontsLoaded.value = true
+  }
+
+  if (menuType === 'file') showFileMenu.value = true
+  if (menuType === 'edit') showEditMenu.value = true
+  if (menuType === 'help') showHelpMenu.value = true
+}
+
+const handleMenuMouseLeave = (menuType) => {
+  setTimeout(() => {
+    if (menuType === 'file' && !showFontSubmenu.value) showFileMenu.value = false
+    if (menuType === 'edit' && !showFontSubmenu.value) showEditMenu.value = false
+    if (menuType === 'help' && !showFontSubmenu.value) showHelpMenu.value = false
+  }, 200)
+}
+
+const handleFontSubmenuMouseEnter = () => {
+  showFontSubmenu.value = true
+}
+
+const handleFontSubmenuMouseLeave = () => {
+  setTimeout(() => {
+    showFontSubmenu.value = false
+  }, 200)
+}
+
+const changeFont = (fontFamily) => {
+  showFontSubmenu.value = false
+  showEditMenu.value = false
+  emit('change-font', fontFamily)
+}
+
+// 调整字号
+const changeFontSize = (action) => {
+  showFontSubmenu.value = false
+  showEditMenu.value = false
+  emit('change-font-size', action)
+}
+
+onMounted(async () => {
   window.windowApi.getWindowState().then((state) => (isMaximized.value = state))
   window.addEventListener('window-maximized', handleWindowMaximized)
   window.addEventListener('window-unmaximized', handleWindowUnmaximized)
@@ -457,12 +524,56 @@ onUnmounted(() => {
 }
 
 .menu-item:hover {
-  background-color: #3a3a3a;
+  background-color: #1f466e;
 }
 
 .menu-separator {
   height: 1px;
   background-color: #444;
   margin: 4px 0;
+}
+
+.menu-bar {
+  display: flex;
+  align-items: center;
+  background-color: #2d2d2d;
+  padding: 0 8px;
+}
+
+.menu-button {
+  position: relative;
+  margin: 0 4px;
+}
+
+.dropdown-submenu {
+  position: absolute;
+  background-color: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  padding: 4px 0;
+  top: 0;
+  left: 100%;
+  z-index: 1000;
+  min-width: 150px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.menu-item {
+  padding: 4px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  position: relative;
+}
+
+.submenu-trigger::after {
+  content: '▶';
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  font-size: 10px;
+  transform: scaleX(0.7);
 }
 </style>

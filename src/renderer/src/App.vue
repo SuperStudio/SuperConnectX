@@ -3,6 +3,8 @@
     <CustomTitleBar
       @toggle-connection-list="toggleConnectionList"
       @refreshCommands="refreshHandler"
+      @change-font="handleFontChange"
+      @change-font-size="handleFontSizeChange"
       :show-connection-list="showConnectionList"
     />
     <!-- 主内容区：左侧连接列表 + 右侧终端 -->
@@ -278,6 +280,8 @@ const connectToServer = async (conn: any) => {
 const handleTerminalClose = () => (activeConnection.value = null)
 const toggleConnectionList = () => (showConnectionList.value = !showConnectionList.value)
 const handleCommandSent = (command: string) => (lastSentCommand.value = command)
+const handleFontChange = (fontFamily) => telnetTerminalRef?.value.handleFontChange(fontFamily)
+const handleFontSizeChange = (action) => telnetTerminalRef?.value.handleFontSizeChange(action)
 
 window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'F12' || e.keyCode === 123) {

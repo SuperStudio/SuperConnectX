@@ -373,8 +373,31 @@ const autoScrollChange = (autoScroll) => {
   }
 }
 
+const handleFontChange = (font) => {
+  editor?.updateOptions({ fontFamily: font })
+  editor?.layout()
+}
+
+const handleFontSizeChange = (action) => {
+  if (editor) {
+    const currentSize = editor.getOption(monaco.editor.EditorOption.fontSize)
+    let newSize = currentSize
+    if (action === 'increase') {
+      newSize = Math.min(currentSize + 2, 30)
+    } else {
+      newSize = Math.max(currentSize - 2, 8)
+    }
+
+    editor.updateOptions({
+      fontSize: newSize
+    })
+  }
+}
+
 defineExpose({
-  refreshGroupsCmds
+  refreshGroupsCmds,
+  handleFontChange,
+  handleFontSizeChange
 })
 
 onMounted(() => {
