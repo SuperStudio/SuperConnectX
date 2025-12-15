@@ -301,7 +301,7 @@ const sendCommand = async () => {
   let sendData = currentCommand.value
   currentCommand.value = ''
   commandInput.value?.focus()
-  appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${sendData}\n`)
+  appendToTerminal(`\n[${new Date().toISOString()}] SEND >>>>>>>>>> ${sendData}\n`)
 
   try {
     await window.telnetApi.telnetSend({
@@ -325,7 +325,7 @@ const clearTerminal = () => {
 const handleCommandSent = (cmdName: string) => emit('commandSent', cmdName)
 
 const appendCommandToTerminal = (content: string) => {
-  appendToTerminal(`[${new Date().toISOString()}] SEND >>>>>>>>>> ${content}\n`)
+  appendToTerminal(`\n[${new Date().toISOString()}] SEND >>>>>>>>>> ${content}\n`)
   commandInput.value?.focus()
 }
 
