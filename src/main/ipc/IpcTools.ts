@@ -1,6 +1,8 @@
 import os from 'os'
-import { shell, ipcMain } from 'electron'
+import { shell, ipcMain, app } from 'electron'
 import logger from './IpcAppLogger'
+import fs from 'fs'
+import path from 'path'
 
 const MAX_CPU_VALUE = 100
 const CPU_FLOAT_FIXED_SIZE = 2
@@ -47,7 +49,22 @@ export default class IpcTools {
     })
 
     ipcMain.handle('open-external-url', async (_, url) => await shell.openExternal(url))
+    ipcMain.handle('open-app-dir', async () => await shell.openExternal(this.getAppExecutableDir()))
 
     logger.info(`init IpcTools done`)
+  }
+
+  getAppExecutableDir(): string {
+    let exePath = app.getPath('exe')
+    if (process.platform === 'darwin') {
+      exePath = path.resolve(exePath, '../../..')
+    }
+
+    const exeDir = path.dirname(exePath)
+    if (!fs.existsSync(exeDir)) {
+      logger.error(`not find exe dir: ${exeDir}`)
+    }
+
+    return exeDir
   }
 }

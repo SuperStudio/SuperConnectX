@@ -50,7 +50,8 @@ contextBridge.exposeInMainWorld('windowApi', {
 contextBridge.exposeInMainWorld('toolApi', {
   openDevtools: () => ipcRenderer.invoke('open-devtools'),
   getAppResource: () => ipcRenderer.invoke('get-app-resource'),
-  openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url)
+  openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
+  openAppDir: () => ipcRenderer.invoke('open-app-dir')
 })
 
 declare global {
@@ -89,6 +90,7 @@ declare global {
       openDevtools: () => Promise<void>
       getAppResource: () => Promise<any>
       openExternalUrl: (url: string) => Promise<any>
+      openAppDir: () => Promise<any>
     }
   }
 }

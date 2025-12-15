@@ -36,6 +36,8 @@
           <div class="menu-item" @click="handleImport">导入连接</div>
           <div class="menu-item" @click="handleExport">导出连接</div>
           <div class="menu-separator"></div>
+          <div class="menu-item" @click="openAppDir">打开程序所在路径</div>
+          <div class="menu-separator"></div>
           <div class="menu-item" @click="handleExit">退出</div>
         </div>
       </div>
@@ -165,19 +167,19 @@ const toggleConnectionList = () => emit('toggle-connection-list')
 const hideFileMenu = () => {
   setTimeout(() => {
     showFileMenu.value = false
-  }, 50)
+  }, 200)
 }
 
 const hideEditMenu = () => {
   setTimeout(() => {
     showEditMenu.value = false
-  }, 50)
+  }, 200)
 }
 
 const hideHelpMenu = () => {
   setTimeout(() => {
     showHelpMenu.value = false
-  }, 50)
+  }, 200)
 }
 
 const handleNewWindow = () => {
@@ -190,6 +192,11 @@ const handleImport = () => {
 
 const handleExport = () => {
   showFileMenu.value = false
+}
+
+const openAppDir = async () => {
+  showFileMenu.value = false
+  await window.toolApi.openAppDir()
 }
 
 const handleExit = () => {
