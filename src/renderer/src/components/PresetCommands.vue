@@ -66,6 +66,7 @@
       type="default"
       size="small"
       class="preset-btn"
+      :title="cmd.command"
       :class="{ looping: loopStatus[cmd.id] }"
       @click="sendPresetCommand(cmd)"
       @contextmenu.prevent="showContextMenu(cmd, $event)"
