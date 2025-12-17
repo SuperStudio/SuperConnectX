@@ -40,7 +40,8 @@ export default class FormUtils {
   static buildGroupData() {
     return ref({
       name: '',
-      connectionType: 'telnet'
+      connectionType: 'telnet',
+      copyFromGroupId: null
     })
   }
 }

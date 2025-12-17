@@ -103,7 +103,7 @@ const initEditor = async () => {
   if (!editorContainer.value) return
 
   editorModel = monaco.editor.createModel(
-    `try to connect ${props.connection.host}:${props.connection.port}...\n`,
+    `try to connect ${props.connection.host}:${props.connection.port}\n`,
     'plaintext',
     monaco.Uri.parse('telnet-terminal:///output.txt')
   )
@@ -316,7 +316,7 @@ const connect = async () => {
     } catch (error) {
       retryCount++
       const errMsg = (error as Error).message
-      appendToTerminal(`connect failed: (${retryCount}/${MAX_RETRY_COUNT})：${errMsg}\n`)
+      appendToTerminal(`connect failed: (${retryCount}/${MAX_RETRY_COUNT}): ${errMsg}\n`)
 
       if (retryCount < MAX_RETRY_COUNT && !stopRetry.value) {
         retryTimer = setTimeout(attemptConnect, RETRY_INTERVAL_MS)

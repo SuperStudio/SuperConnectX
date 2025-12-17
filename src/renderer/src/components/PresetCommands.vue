@@ -91,6 +91,18 @@
             <el-option label="SSH" value="ssh" disabled />
           </el-select>
         </el-form-item>
+
+        <el-form-item label="拷贝组" v-if="!isEditingGroup">
+          <el-select v-model="groupForm.copyFromGroupId" placeholder="（可选）" clearable>
+            <el-option
+              v-for="group in copyableGroups"
+              :key="group.groupId"
+              :label="group.name"
+              :value="group.groupId"
+            />
+          </el-select>
+          <div class="form-hint">复制该组下的所有命令到新组</div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="isGroupDialogOpen = false">取消</el-button>
@@ -162,7 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, nextTick, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { ElMessage, ElForm, ElInput, ElMessageBox } from 'element-plus'
 import { ElSelect, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon } from 'element-plus'
 import { Plus, Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
@@ -214,6 +226,14 @@ const emit = defineEmits<{
   (e: 'commandSent', cmdName: string): void
   (e: 'commandSentContent', content: string): void
 }>()
+
+const copyableGroups = computed(() => {
+  const connType = props.connection?.connectionType || 'telnet'
+  return groups.value.filter(
+    (group) =>
+      group.groupId !== currentEditingGroup.value?.groupId && group.connectionType === connType
+  )
+})
 
 const toggleLoopSend = (cmd: any) => {
   contextMenuVisible.value = false
@@ -322,7 +342,8 @@ const openAddGroupDialog = () => {
   currentEditingGroup.value = null
   groupForm.value = {
     name: '',
-    connectionType: props.connection?.connectionType || 'telnet'
+    connectionType: props.connection?.connectionType || 'telnet',
+    copyFromGroupId: null
   }
   isGroupDialogOpen.value = true
 }
@@ -402,6 +423,31 @@ const saveGroup = async () => {
       ElMessage.success('命令组已更新')
     } else {
       const newGroup = await window.storageApi.addCommandGroup(groupData)
+
+      if (groupForm.value.copyFromGroupId) {
+        const sourceCommands = presetCommands.value.filter(
+          (cmd) => cmd.groupId === groupForm.value.copyFromGroupId
+        )
+
+        if (sourceCommands.length > 0) {
+          const newCommands = sourceCommands.map((cmd) => ({
+            ...cmd,
+            id: undefined,
+            groupId: newGroup.groupId
+          }))
+
+          for (const cmd of newCommands) {
+            await window.storageApi.addPresetCommand(cmd)
+          }
+
+          ElMessage.success(`命令组已添加，并复制了 ${newCommands.length} 条命令`)
+        } else {
+          ElMessage.success('命令组已添加')
+        }
+      } else {
+        ElMessage.success('命令组已添加')
+      }
+
       // 自动选中新创建的组
       selectedGroupId.value = newGroup.groupId
       selectedGroupName.value = newGroup.name
@@ -409,6 +455,7 @@ const saveGroup = async () => {
     }
 
     loadGroups()
+    loadPresetCommands()
     isGroupDialogOpen.value = false
   } catch (error) {
     console.error('保存命令组失败:', error)
@@ -889,5 +936,12 @@ onBeforeUnmount(() => {
 
 .delete-icon:hover {
   color: #ff6b6b !important;
+}
+
+.form-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #888;
+  line-height: 1.4;
 }
 </style>
