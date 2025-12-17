@@ -3,9 +3,9 @@ import threading
 import time
 from datetime import datetime
 import json
+import sys
 
 # 服务端配置
-HOST = "0.0.0.0"  # 监听所有网络接口
 PORT = 2323  # 自定义端口（默认 Telnet 端口 23，需管理员权限，此处用 2323 避免冲突）
 DEFAULT_SEND_INTERVAL = 1  # 数据推送间隔（秒）
 
@@ -96,19 +96,19 @@ def handle_client(client_socket: socket.socket, client_addr: tuple):
         print(f"🔌 客户端 {client_addr} 连接已关闭")
 
 
-def start_telnet_server():
+def start_telnet_server(host):
     """启动 Telnet 服务端"""
     # 创建 TCP 套接字（Telnet 基于 TCP 协议）
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # 允许端口复用（避免服务重启时提示端口被占用）
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     # 绑定地址和端口
-    server_socket.bind((HOST, PORT))
+    server_socket.bind((host, PORT))
     # 开始监听（最大等待连接数 5）
     server_socket.listen(5)
-    print(f"🚀 Telnet 服务端已启动，监听 {HOST}:{PORT}")
+    print(f"🚀 Telnet 服务端已启动，监听 {host}:{PORT}")
     print(
-        f"ℹ️  客户端可通过：telnet {HOST.split('0.0.0.0')[0] if HOST == '0.0.0.0' else HOST} {PORT} 连接"
+        f"ℹ️  客户端可通过：telnet {host.split('0.0.0.0')[0] if host == '0.0.0.0' else host} {PORT} 连接"
     )
 
     try:
@@ -131,7 +131,7 @@ def start_telnet_server():
             recv_thread.start()
             # 打印当前连接数
             print(
-                f"ℹ️ 当前在线客户端数：{threading.active_count() - 1}"
+                f"ℹ️ 当前在线客户端数：{(threading.active_count() - 1) / 2}"
             )  # 减 1 排除主线程
 
     except KeyboardInterrupt:
@@ -142,4 +142,5 @@ def start_telnet_server():
 
 
 if __name__ == "__main__":
-    start_telnet_server()
+    ip = sys.argv[1]
+    start_telnet_server(ip)
