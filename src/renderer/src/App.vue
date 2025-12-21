@@ -78,18 +78,33 @@
           </el-card>
         </div>
       </div>
-      <div class="terminal-panel" :class="{ expanded: !showConnectionList }">
-        <TelnetTerminal
-          v-if="activeConnection"
-          :connection="activeConnection"
-          ref="telnetTerminalRef"
-          @onClose="handleTerminalClose"
-          @commandSent="handleCommandSent"
-        />
-        <div class="terminal-placeholder" v-else>
-          <img class="logo-img" src="./assets/icon.png" alt="App Icon" />
-          <div class="terminal-placeholder-text welcome-text">欢迎使用 SuperConnectX</div>
-          <div class="terminal-placeholder-text">@SuperStudio Copyright © 2025</div>
+      <div class="terminal-wrapper" :class="{ expanded: !showConnectionList }">
+        <div class="tabs-container">
+          <el-tabs
+            v-model="activeTabId"
+            type="card"
+            closable
+            @tab-remove="closeTab"
+            @tab-click="switchTab"
+            draggable
+            class="telnet-tabs"
+          >
+            <el-tab-pane
+              v-for="tab in connectionTabs"
+              :key="tab.id"
+              :label="tab.name || `${tab.host}:${tab.port}`"
+              :name="tab.id.toString()"
+              class="telnet-tab-pane"
+            >
+              <TelnetTerminal
+                :connection="tab"
+                :ref="(el) => (telnetTerminalRefs[tab.id] = el)"
+                @onClose="handleTerminalClose(tab.id)"
+                @commandSent="handleCommandSent"
+                class="telnet-terminal"
+              />
+            </el-tab-pane>
+          </el-tabs>
         </div>
       </div>
     </main>
@@ -151,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, reactive } from 'vue'
 import { ElMessage, ElForm, ElMessageBox } from 'element-plus'
 import TelnetTerminal from './components/TelnetTerminal.vue'
 import CustomTitleBar from './components/CustomTitleBar.vue'
@@ -170,9 +185,19 @@ const newConnRules = FormUtils.buildTelnet()
 const activeConnection = ref<any>(null)
 const showConnectionList = ref(true)
 const lastSentCommand = ref('')
+// 新增选项卡相关状态
+const connectionTabs = ref<any[]>([])
+const telnetTerminalRefs = reactive<Record<number, InstanceType<typeof TelnetTerminal>>>({})
+const activeTabId = ref('')
+const refreshHandler = () => {
+  if (activeTabId.value) {
+    telnetTerminalRefs[Number(activeTabId.value)]?.refreshGroupsCmds()
+  }
+}
 
-const telnetTerminalRef = ref<InstanceType<typeof TelnetTerminal>>()
-const refreshHandler = () => telnetTerminalRef.value?.refreshGroupsCmds()
+const generateSessionId = () => {
+  return Date.now() + Math.floor(Math.random() * 10000).toString()
+}
 
 const filtereList = () => {
   if (!searchKeyword.value) {
@@ -261,27 +286,53 @@ const deleteConnection = async (conn) => {
 }
 
 const connectToServer = async (conn: any) => {
-  if (activeConnection.value !== null) {
-    if (conn.id === activeConnection.value.id) {
-      await window.telnetApi.telnetDisconnect(conn.id)
-      activeConnection.value = null
-      ElMessage.success('连接已断开')
-    } else {
-      ElMessage.info('当前仅支持打开一个连接')
-      return
-    }
-
+  const existingTab = connectionTabs.value.find((tab) => tab.id === conn.id)
+  if (existingTab) {
+    activeTabId.value = conn.id.toString()
     return
   }
-
-  activeConnection.value = conn
+  connectionTabs.value.push(conn)
+  activeTabId.value = conn.id.toString()
 }
 
-const handleTerminalClose = () => (activeConnection.value = null)
+// 关闭选项卡逻辑调整
+const closeTab = async (tabId: string) => {
+  const id = Number(tabId)
+  await window.telnetApi.telnetDisconnect(id)
+  connectionTabs.value = connectionTabs.value.filter((tab) => tab.id !== id)
+  delete telnetTerminalRefs[id]
+  if (activeTabId.value === tabId && connectionTabs.value.length > 0) {
+    activeTabId.value = connectionTabs.value[0].id.toString()
+  } else if (connectionTabs.value.length === 0) {
+    activeTabId.value = ''
+  }
+}
+
+const switchTab = (tab: any) => {
+  activeTabId.value = tab.paneName
+  setTimeout(() => {
+    telnetTerminalRefs[Number(tab.paneName)]?.refreshLayout()
+  }, 0)
+}
+
+const handleTerminalClose = async (connId: number) => {
+  closeTab(connId.toString())
+}
+
+const handleFontChange = (fontFamily: string) => {
+  if (activeTabId.value) {
+    telnetTerminalRefs[Number(activeTabId.value)]?.handleFontChange(fontFamily)
+  }
+}
+
+const handleFontSizeChange = (action: string) => {
+  if (activeTabId.value) {
+    telnetTerminalRefs[Number(activeTabId.value)]?.handleFontSizeChange(action)
+  }
+}
+
 const toggleConnectionList = () => (showConnectionList.value = !showConnectionList.value)
 const handleCommandSent = (command: string) => (lastSentCommand.value = command)
-const handleFontChange = (fontFamily) => telnetTerminalRef?.value.handleFontChange(fontFamily)
-const handleFontSizeChange = (action) => telnetTerminalRef?.value.handleFontSizeChange(action)
 
 window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'F12' || e.keyCode === 123) {
@@ -585,5 +636,220 @@ onMounted(() => loadConnections())
 .logo-img {
   width: 128px;
   height: 128px;
+}
+
+.terminal-wrapper {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.tabs-container {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #1e1e1e;
+}
+
+.telnet-tabs {
+  height: 100%;
+  width: 100%;
+  --el-tabs-padding: 0 !important;
+}
+
+.telnet-tabs :deep(.el-tabs__header) {
+  margin: 0 !important;
+  border: none;
+  background: #252526;
+}
+
+.telnet-tabs :deep(.el-tabs__content) {
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.telnet-tab-pane {
+  height: 100%;
+  width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.telnet-terminal {
+  width: 100%;
+  height: 100%;
+}
+
+/* 选项卡美化样式 */
+.telnet-tabs {
+  height: 100%;
+  width: 100%;
+  --el-tabs-padding: 0 !important;
+}
+
+.telnet-tabs :deep(.el-tabs__header) {
+  margin: 0 !important;
+  border: none;
+  background: #252526;
+  border-radius: 0px;
+}
+
+.telnet-tabs :deep(.el-tabs__nav) {
+  background-color: #1e1e1e;
+  border: none;
+}
+
+.telnet-tabs :deep(.el-tabs__item) {
+  color: #ccc;
+  background-color: #2d2d2d;
+  border: none;
+  border-radius: 0px;
+  margin: 0px;
+  padding: 0 16px;
+  height: 32px;
+}
+
+.telnet-tabs :deep(.el-tabs__item.is-active) {
+  color: #fff;
+
+  border: none;
+}
+
+/* 标签内容样式 */
+.tab-label-container {
+  display: flex;
+  align-items: center;
+}
+
+.tab-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.active-tab {
+  background-color: #1e1e1e !important;
+  border: none;
+}
+
+/* 标签栏头部：移除原有 border-bottom，重置所有边框 */
+.telnet-tabs :deep(.el-tabs__header) {
+  margin: 0 !important;
+  border: none !important; /* 移除底部边框 + 所有边框 */
+  background: #252526;
+  padding-left: 0px;
+}
+
+.telnet-tabs :deep(.el-tabs__nav) {
+  background-color: transparent;
+  border: none; /* 确保导航区无边框 */
+  height: 40px;
+}
+
+/* 单个选项卡：移除所有 border 相关样式 */
+.telnet-tabs :deep(.el-tabs__item) {
+  color: #ccc;
+  background-color: #2d2d2d;
+  border: 1px solid #ccc !important; /* 移除原有边框 */
+  border-left: none !important;
+  border-bottom: none !important; /* 双重保险，确保底部无框 */
+  border-radius: 0px;
+  margin: 0px;
+  padding: 0 16px;
+  height: 100%;
+  min-width: 150px;
+  transition: all 0.2s ease;
+  position: relative; /* 为激活态的底部线条保留定位 */
+}
+
+/* 激活的选项卡：移除 border 相关，仅保留底部高亮条（可选，若不需要也可删除） */
+.telnet-tabs :deep(.el-tabs__item.is-active) {
+  color: #fff;
+  background-color: #1e1e1e;
+  border: none !important; /* 移除激活态的边框 */
+  border-bottom-color: transparent !important; /* 确保底部无框 */
+  font-weight: 500;
+}
+
+/* 内容区域样式 */
+.telnet-tabs :deep(.el-tabs__content) {
+  height: calc(100% - 36px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important; /* 确保内容区无边框 */
+}
+
+/* 激活的选项卡额外样式：移除 border 相关 */
+.active-tab {
+  background-color: #1e1e1e !important;
+  border: none !important;
+}
+
+/* 选项卡基础样式 */
+.telnet-tabs {
+  height: 100%;
+  width: 100%;
+  --el-tabs-padding: 0 !important;
+  /* 新增：重置 Element Plus 内置的边框变量 */
+  --el-tabs-border-color: transparent !important;
+  --el-tabs-header-border-color: transparent !important;
+}
+
+/* 针对 el-tabs__nav.is-top 及父元素的边框清零 */
+.telnet-tabs :deep(.el-tabs__nav-wrap) {
+  border: none !important;
+}
+.telnet-tabs :deep(.el-tabs__nav.is-top) {
+  border: none !important;
+  border-bottom: none !important; /* 重点：强制移除顶部导航的底部边框 */
+}
+/* 移除 Element Plus 自带的激活条（如果不需要） */
+.telnet-tabs :deep(.el-tabs__active-bar) {
+  display: none !important; /* 或设置为 height: 0 !important */
+}
+/* 移除所有可能的伪元素边框 */
+.telnet-tabs :deep(.el-tabs__nav.is-top)::before,
+.telnet-tabs :deep(.el-tabs__nav.is-top)::after {
+  border: none !important;
+  content: none !important;
+}
+
+.telnet-tabs :deep(.el-tabs__header .el-tabs__item .is-icon-close) {
+  visibility: hidden;
+  width: 25px;
+  height: 25px;
+  border-radius: 2px;
+}
+
+.telnet-tabs :deep(.el-tabs__header .el-tabs__item .is-icon-close:hover) {
+  background-color: #3b3c3c;
+  width: 25px;
+}
+
+.telnet-tabs :deep(.el-tabs__header .el-tabs__item.is-active .is-icon-close) {
+  visibility: visible;
+  width: 25px;
+}
+
+/* 修正选择器，匹配同时包含两个类的元素 */
+.telnet-tabs :deep(.el-tabs__header .el-tabs__item:hover .el-icon.is-icon-close) {
+  visibility: visible;
+  width: 25px !important; /* 强制生效 */
+  height: 25px;
+}
+
+/* 调整选项卡内部布局 - 核心修改 */
+.telnet-tabs :deep(.el-tabs__item) {
+  /* 启用弹性布局 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* 文本左对齐，关闭按钮右对齐 */
+  padding: 0 16px; /* 保持左右内边距 */
+  position: relative;
 }
 </style>

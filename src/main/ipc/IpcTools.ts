@@ -27,7 +27,7 @@ export default class IpcTools {
     ipcMain.handle('open-devtools', () =>
       windows.mainWindow?.webContents?.isDevToolsOpened()
         ? windows.mainWindow?.webContents?.closeDevTools()
-        : windows.mainWindow?.webContents?.openDevTools({ mode: 'right' })
+        : windows.mainWindow?.webContents?.openDevTools({ mode: 'bottom' })
     )
 
     ipcMain.handle('get-app-resource', async () => {

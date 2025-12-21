@@ -102,10 +102,11 @@ const presetCommandsRef = ref<InstanceType<typeof PresetCommands>>()
 const initEditor = async () => {
   if (!editorContainer.value) return
 
+  const uniqueUri = monaco.Uri.parse(`telnet-terminal:///output-${props.connection.id}.txt`)
   editorModel = monaco.editor.createModel(
     `try to connect ${props.connection.host}:${props.connection.port}\n`,
     'plaintext',
-    monaco.Uri.parse('telnet-terminal:///output.txt')
+    uniqueUri
   )
 
   editor = monaco.editor.create(editorContainer.value, {
@@ -122,6 +123,8 @@ const initEditor = async () => {
     codeLens: false,
     links: false
   })
+
+  editor.layout()
 
   editor.updateOptions({ readOnly: true })
 
@@ -394,10 +397,15 @@ const handleFontSizeChange = (action) => {
   }
 }
 
+const refreshLayout = () => {
+  editor?.layout()
+}
+
 defineExpose({
   refreshGroupsCmds,
   handleFontChange,
-  handleFontSizeChange
+  handleFontSizeChange,
+  refreshLayout
 })
 
 onMounted(() => {
@@ -461,7 +469,7 @@ onUnmounted(() => {
   align-items: center;
   padding: 8px 0;
   border-bottom: 1px solid #333;
-  background: #2d2d2d;
+ background-color: #1e1e1e;
   height: 42px;
   box-sizing: border-box;
 }
