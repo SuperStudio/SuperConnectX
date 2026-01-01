@@ -42,6 +42,9 @@
 
     <!-- 终端输出区域 -->
     <div ref="editorContainer" class="terminal-output"></div>
+    <div class="telminal-status-bar">
+      <span>接收 {{ recvDataSize }}</span>
+    </div>
     <PresetCommands
       :is-connected="isConnected"
       :connection="connection"
@@ -70,6 +73,7 @@ import { ElMessage } from 'element-plus'
 import * as monaco from 'monaco-editor'
 import PresetCommands from './PresetCommands.vue'
 import TelnetInfo from '../entity/protocol/TelnetInfo'
+import FileUtils from '../utils/FileUtils'
 const MAX_RETRY_COUNT = 1000
 const RETRY_INTERVAL_MS = 3000
 const MAX_CLEAR_INTERVAL_SIZE = 1024 * 1024 * 30
@@ -81,6 +85,7 @@ const props = defineProps<{
 }>()
 
 const currentCommand = ref('')
+const recvDataSize = ref('')
 const commandInput = ref<HTMLInputElement>(null)
 const isConnected = ref(true)
 let removeDataListener: (() => void) | null = null
@@ -95,7 +100,8 @@ let editorModel: monaco.editor.ITextModel | null = null // 直接持有模型，
 let retryCount = 0
 let retryTimer: NodeJS.Timeout | null = null
 let stopRetry = ref(false)
-let totalRecvSize = 0
+let totalRecvSize = 0 /* 当前显示的总大小 */
+let allRecvSize = 0 /* 实际总大小 */
 
 const presetCommandsRef = ref<InstanceType<typeof PresetCommands>>()
 
@@ -233,6 +239,8 @@ const handleClose = async () => {
       }
       isConnected.value = false
       currentConnId = 0
+      recvDataSize.value = ''
+      allRecvSize = 0
     }
   } else {
     emit('onClose')
@@ -247,6 +255,8 @@ const handleTelnetClose = (connId: number) => {
     ElMessage.info('连接已关闭，将尝试重新连接...')
     isConnected.value = false
     currentConnId = 0
+    recvDataSize.value = ''
+    allRecvSize = 0
     appendToTerminal(`连接已关闭，将在${RETRY_INTERVAL_MS / 1000}秒后尝试重连...\n`)
     if (!stopRetry.value) {
       setTimeout(connect, 1000)
@@ -259,6 +269,8 @@ const connect = async () => {
   retryCount = 0
   isConnected.value = false
   currentConnId = 0
+  recvDataSize.value = ''
+  allRecvSize = 0
 
   let isFirstConnect = true
   const attemptConnect = async () => {
@@ -286,7 +298,7 @@ const connect = async () => {
 
         removeDataListener = window.telnetApi.onTelnetData((data) => {
           if (data.connId !== currentConnId) return
-
+          calcRecvSize(data.data.length)
           if (isShowLog.value) {
             let formattedData = data.data
               .replace(/\r\n/g, '\n')
@@ -332,6 +344,11 @@ const connect = async () => {
   }
 
   await attemptConnect()
+}
+
+const calcRecvSize = (len: number): void => {
+  allRecvSize += len
+  recvDataSize.value = FileUtils.formatBytes(allRecvSize)
 }
 
 const sendCommand = async () => {
@@ -469,7 +486,7 @@ onUnmounted(() => {
   align-items: center;
   padding: 8px 0;
   border-bottom: 1px solid #333;
- background-color: #1e1e1e;
+  background-color: #1e1e1e;
   height: 42px;
   box-sizing: border-box;
 }
@@ -761,5 +778,12 @@ onUnmounted(() => {
 
 :deep(.el-switch__label) {
   color: #e0e0e0;
+}
+
+.telminal-status-bar {
+  width: 100%;
+  background-color: #323233;
+  padding: 10px;
+  opacity: 0.9;
 }
 </style>
