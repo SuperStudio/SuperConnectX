@@ -121,6 +121,7 @@
       title="新建连接"
       v-model="isCreateDialogOpen"
       width="500px"
+      @keydown.enter.native="submitNewConn"
       :close-on-click-modal="false"
     >
       <el-form :model="newConnForm" :rules="newConnRules" ref="connFormRef" label-width="120px">

@@ -81,6 +81,7 @@
       v-model="isGroupDialogOpen"
       width="400px"
       :close-on-click-modal="false"
+      @keydown.enter.native="saveGroup"
     >
       <el-form :model="groupForm" :rules="groupRules" ref="groupFormRef" label-width="120px">
         <el-form-item label="组名称" prop="name">
@@ -115,6 +116,7 @@
     <el-dialog
       :title="isEditing ? '编辑命令' : '新增命令'"
       v-model="isPresetDialogOpen"
+      @keydown.enter.native="savePresetCommand"
       width="400px"
       :close-on-click-modal="false"
     >
