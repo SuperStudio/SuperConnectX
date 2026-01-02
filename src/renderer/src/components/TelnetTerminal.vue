@@ -112,6 +112,8 @@ const isAutoScroll = ref(true)
 const editorContainer = ref<HTMLElement | null>(null)
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 let editorModel: monaco.editor.ITextModel | null = null // 直接持有模型，不通过 Vue 响应式
+let wrapLineAction: monaco.IDisposable | null = null
+let isWordWrapEnabled = false
 
 let retryCount = 0
 let retryTimer: NodeJS.Timeout | null = null
@@ -143,7 +145,9 @@ const initEditor = async () => {
     occurrencesHighlight: 'off',
     selectionHighlight: false,
     codeLens: false,
-    links: false
+    links: false,
+    wordWrap: 'off',
+    wrappingStrategy: 'simple'
   })
 
   editor.layout()
@@ -155,6 +159,34 @@ const initEditor = async () => {
   })
 
   handleMouseWheel(editor)
+
+  // 注册原生右键菜单扩展
+  registerWrapLineContextMenu()
+}
+
+const registerWrapLineContextMenu = () => {
+  if (!editor) return
+  if (wrapLineAction) {
+    wrapLineAction.dispose()
+    wrapLineAction = null
+  }
+
+  wrapLineAction = editor.addAction({
+    id: 'toggle-word-wrap',
+    label: isWordWrapEnabled ? '✓ 自动换行' : ' 自动换行',
+    keybindings: [],
+    contextMenuGroupId: 'navigation',
+    contextMenuOrder: 1.5,
+    run: () => {
+      if (!editor) return
+      isWordWrapEnabled = !isWordWrapEnabled
+      editor.updateOptions({
+        wrappingStrategy: isWordWrapEnabled ? 'advanced' : 'simple',
+        wordWrap: isWordWrapEnabled ? 'on' : 'off'
+      })
+      registerWrapLineContextMenu()
+    }
+  })
 }
 
 const handleMouseWheel = (editor) => {
@@ -448,6 +480,11 @@ onUnmounted(() => {
   stopRetry.value = true
   if (retryTimer) {
     clearTimeout(retryTimer)
+  }
+
+  if (wrapLineAction) {
+    wrapLineAction.dispose()
+    wrapLineAction = null
   }
 
   if (editorModel) {
