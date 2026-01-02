@@ -42,6 +42,22 @@
 
     <!-- 终端输出区域 -->
     <div ref="editorContainer" class="terminal-output"></div>
+    <div class="scroll-wrapper">
+      <el-button
+        icon="ArrowUp"
+        size="mini"
+        circle
+        @click="scrollToStart"
+        class="scroll-btn up-btn"
+      />
+      <el-button
+        icon="ArrowDown"
+        size="mini"
+        circle
+        @click="scrollToEnd"
+        class="scroll-btn down-btn"
+      />
+    </div>
     <div class="telminal-status-bar">
       <span>接收 {{ recvDataSize }}</span>
     </div>
@@ -100,8 +116,8 @@ let editorModel: monaco.editor.ITextModel | null = null // 直接持有模型，
 let retryCount = 0
 let retryTimer: NodeJS.Timeout | null = null
 let stopRetry = ref(false)
-let totalRecvSize = 0 /* 当前显示的总大小 */
-let allRecvSize = 0 /* 实际总大小 */
+let totalRecvSize = 0 //当前显示的总大小
+let allRecvSize = 0 //实际总大小
 
 const presetCommandsRef = ref<InstanceType<typeof PresetCommands>>()
 
@@ -179,8 +195,7 @@ const appendToTerminal = (content: string) => {
     ],
     () => null
   )
-
-  scrollToEnd()
+  if (isAutoScroll.value) scrollToEnd()
 
   totalRecvSize += content.length
   if (totalRecvSize > MAX_CLEAR_INTERVAL_SIZE) {
@@ -189,10 +204,8 @@ const appendToTerminal = (content: string) => {
 }
 
 const scrollToEnd = () => {
-  if (isAutoScroll.value) {
-    const newLastLine = editorModel!.getLineCount()
-    editor?.revealLine(newLastLine)
-  }
+  const newLastLine = editorModel!.getLineCount()
+  editor?.revealLine(newLastLine)
 }
 
 const scrollToStart = () => {
@@ -785,5 +798,62 @@ onUnmounted(() => {
   background-color: #323233;
   padding: 10px;
   opacity: 0.9;
+}
+
+.scroll-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(50, 50, 51, 0.5);
+  border-color: #555;
+  color: #fff;
+  transition: all 0.2s ease;
+
+  position: static !important;
+}
+
+.scroll-btn:hover {
+  background-color: rgba(60, 60, 62, 0.9);
+  transform: scale(1.05);
+}
+
+.scroll-wrapper {
+  position: absolute;
+  right: 40px;
+  bottom: 150px;
+  z-index: 10;
+
+  width: 32px;
+
+  margin: 0;
+  padding: 0;
+  border: none;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.scroll-btn {
+  width: 32px !important;
+  height: 32px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  background-color: rgba(50, 50, 51, 0.8) !important;
+  border-color: #555 !important;
+  color: #fff !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+  position: static !important;
+
+  transition: all 0.2s ease;
 }
 </style>
