@@ -96,7 +96,14 @@ const MAX_CLEAR_INTERVAL_SIZE = 1024 * 1024 * 30
 
 const emit = defineEmits(['onClose', 'commandSent'])
 const props = defineProps<{
-  connection: { id: number; host: string; port: number; name?: string; sessionId: string }
+  connection: {
+    id: number
+    connectionType: string
+    host: string
+    port: number
+    name?: string
+    sessionId: string
+  }
   onClose?: () => void
 }>()
 
@@ -264,7 +271,10 @@ const handleClose = async () => {
 
   if (currentConnId) {
     try {
-      await window.connectApi.stopConnect(currentConnId)
+      await window.connectApi.stopConnect({
+        ...TelnetInfo.buildWithValue(props.connection),
+        sessionId: props.connection.sessionId
+      })
       isConnected.value = false
       emit('onClose')
       if (typeof props.onClose === 'function') {
@@ -511,9 +521,14 @@ onUnmounted(() => {
   }
 
   if (currentConnId && isConnected.value) {
-    window.connectApi.stopConnect(currentConnId).catch((err) => {
-      console.error('卸载时断开失败:', err)
-    })
+    window.connectApi
+      .stopConnect({
+        ...TelnetInfo.buildWithValue(props.connection),
+        sessionId: props.connection.sessionId
+      })
+      .catch((err) => {
+        console.error('卸载时断开失败:', err)
+      })
   }
 })
 </script>

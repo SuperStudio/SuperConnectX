@@ -26,7 +26,7 @@ contextBridge.exposeInMainWorld('storageApi', {
 contextBridge.exposeInMainWorld('connectApi', {
   startConnect: (conn: any) => ipcRenderer.invoke('start-connect', conn),
   sendData: (data: { conn: any; command: string }) => ipcRenderer.invoke('send-data', data),
-  stopConnect: (connId: number) => ipcRenderer.invoke('stop-connect', connId),
+  stopConnect: (conn: any) => ipcRenderer.invoke('stop-connect', conn),
 
   onRecvData: (callback: (data: { connId: number; data: string }) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, data: { connId: number; data: string }) =>
@@ -87,7 +87,7 @@ declare global {
     connectApi: {
       startConnect: (conn: any) => Promise<any>
       sendData: (data: { conn: any; command: string }) => Promise<any>
-      stopConnect: (connId: number) => Promise<any>
+      stopConnect: (conn: any) => Promise<any>
       onRecvData: (callback: (data: { connId: number; data: string }) => void) => () => void
       onConnectClose: (callback: (connId: number) => void) => () => void
       openConnectLog: (sessionId: string) => Promise<{ success: boolean; message?: string }>

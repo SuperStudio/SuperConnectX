@@ -1,4 +1,5 @@
 import TelnetClient from '../protocol/TelnetClient'
+import BaseClient from '../protocol/BaseClient'
 import { ipcMain } from 'electron'
 import logger from './IpcAppLogger'
 
@@ -6,6 +7,11 @@ export default class IpcConnector {
   private static sInstance: IpcConnector
   /* telnet 连接处理 */
   private telnetClient = new TelnetClient()
+
+  private CONNECT_TYPE_DATA = new Map<string, BaseClient>([
+    ['telnet', new TelnetClient()],
+    ['ftp', new TelnetClient()]
+  ])
 
   constructor() {}
 
@@ -20,8 +26,9 @@ export default class IpcConnector {
   init(_logger, windows): void {
     ipcMain.handle('start-connect', async (_, conn: any) => {
       logger.info(`start connect telnet: ${conn.name}`)
+      logger.debug(JSON.stringify(conn))
       _logger.createConnLogFile(conn.sessionId, conn.name)
-      return await this.telnetClient.start(
+      return await this.CONNECT_TYPE_DATA.get(conn.connectionType)?.start(
         conn.host,
         conn.port,
         conn.sessionId,
@@ -39,13 +46,14 @@ export default class IpcConnector {
       )
     })
     ipcMain.handle('send-data', async (_, { conn, command }: { conn: any; command: string }) =>
-      this.telnetClient.send(conn.sessionId, command, (dataStr) =>
+      this.CONNECT_TYPE_DATA.get(conn.connectionType)?.send(conn.sessionId, command, (dataStr) =>
         _logger.writeToConnLog(dataStr, conn.sessionId)
       )
     )
     ipcMain.handle(
       'stop-connect',
-      async (_, connId: number) => await this.telnetClient.disconnect(connId)
+      async (_, conn: any) =>
+        await this.CONNECT_TYPE_DATA.get(conn.connectionType)?.disconnect(conn.sessionId)
     )
     // 新增：IPC 监听「打开日志」请求
     ipcMain.handle('open-connect-log', async (_, sessionId: string) => {

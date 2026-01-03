@@ -1,11 +1,12 @@
 import { Telnet } from 'telnet-client'
 import logger from '../ipc/IpcAppLogger'
+import BaseClient from './BaseClient'
 
 const DEFAULT_TELNET_PORT = 23
 const DEFAULT_TIMOUT_MS = 10 * 1000
 const DEFAULT_TERMINAL_TYPE = 'vt100' /* cmd 中默认常用 vt100 */
 
-export default class TelnetClient {
+export default class TelnetClient extends BaseClient {
   telnetConnections = new Map<number, Telnet>()
 
   async start(host, port, sessionId, onData, onClose): Promise<object> {
@@ -43,7 +44,7 @@ export default class TelnetClient {
     }
   }
 
-  async send(connId, command, onComplete) {
+  async send(connId, command, onComplete): Promise<object> {
     const connection = this.telnetConnections.get(connId)
     if (!connection) {
       return { success: false, message: '连接不存在' }
@@ -64,7 +65,7 @@ export default class TelnetClient {
     }
   }
 
-  async disconnect(connId) {
+  async disconnect(connId): Promise<object> {
     const connection = this.telnetConnections.get(connId)
     if (connection) {
       logger.info(`disconnect: ${connection.opts?.host}:${connection.opts?.port}`)

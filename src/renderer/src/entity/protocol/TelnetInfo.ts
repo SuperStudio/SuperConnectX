@@ -2,7 +2,7 @@ export default class TelnetInfo {
   static build(): object {
     return {
       name: '',
-      type: 'telnet',
+      connectionType: 'telnet',
       host: '',
       port: 23,
       username: '',
@@ -15,7 +15,7 @@ export default class TelnetInfo {
       return {
         id: conn.id,
         name: conn.name,
-        type: conn.type,
+        connectionType: conn.connectionType,
         host: conn.host,
         port: conn.port,
         username: conn.username,
@@ -24,7 +24,7 @@ export default class TelnetInfo {
     } else {
       return {
         name: conn.name,
-        type: conn.type,
+        connectionType: conn.connectionType,
         host: conn.host,
         port: conn.port,
         username: conn.username,

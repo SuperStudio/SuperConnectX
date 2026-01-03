@@ -27,7 +27,7 @@
             <div class="connection-info">
               <div class="conn-name">{{ conn.name }}</div>
               <div class="conn-detail">
-                <span>协议：{{ conn.type.toUpperCase() }}</span>
+                <span>协议：{{ conn.connectionType?.toUpperCase() }}</span>
                 <span>地址：{{ conn.host }}:{{ conn.port }}</span>
                 <span v-if="conn.username">用户：{{ conn.username }}</span>
               </div>
@@ -113,9 +113,9 @@
       :close-on-click-modal="false"
     >
       <el-form :model="newConnForm" :rules="newConnRules" ref="connFormRef" label-width="120px">
-        <el-form-item label="协议类型" prop="type">
+        <el-form-item label="协议类型" prop="connectionType">
           <el-select
-            v-model="newConnForm.type"
+            v-model="newConnForm.connectionType"
             @change="handleProtocolChange"
             placeholder="选择协议"
           >
@@ -146,7 +146,7 @@
             prefix="UserFilled"
           />
         </el-form-item>
-        <el-form-item label="密码" prop="password" v-if="newConnForm.type === 'ftp'">
+        <el-form-item label="密码" prop="password" v-if="newConnForm.connectionType === 'ftp'">
           <el-input v-model="newConnForm.password" placeholder="输入密码" type="password" />
         </el-form-item>
       </el-form>
@@ -193,7 +193,7 @@ const refreshHandler = () => {
 
 const newConnRules = computed(() => {
   const baseRules = {
-    type: [{ required: true, message: '请选择协议类型', trigger: 'change' }],
+    connectionType: [{ required: true, message: '请选择协议类型', trigger: 'change' }],
     name: [{ required: true, message: '请输入连接名称', trigger: 'blur' }],
     host: [{ required: true, message: '请输入服务器地址', trigger: 'blur' }],
     port: [
@@ -213,7 +213,7 @@ const newConnRules = computed(() => {
   }
 
   // FTP协议时添加密码必填验证
-  if (newConnForm.type === 'ftp') {
+  if (newConnForm.connectionType === 'ftp') {
     baseRules.password = [
       {
         required: false,
@@ -258,9 +258,9 @@ const filtereList = () => {
   const keyword = searchKeyword.value.toLowerCase()
   filterConnection.value = connections.value.filter(
     (item) =>
-      item.name.toLowerCase().includes(keyword) ||
-      item.type.toLowerCase().includes(keyword) ||
-      item.host.toLowerCase().includes(keyword) ||
+      item.name?.toLowerCase().includes(keyword) ||
+      item.connectionType?.toLowerCase().includes(keyword) ||
+      item.host?.toLowerCase().includes(keyword) ||
       String(item.port).includes(keyword)
   )
 }
@@ -282,7 +282,7 @@ const loadConnections = async () => {
 const setConnFormData = (defaultData) => {
   newConnForm.id = defaultData.id
   newConnForm.name = defaultData.name
-  newConnForm.type = defaultData.type
+  newConnForm.connectionType = defaultData.connectionType
   newConnForm.host = defaultData.host
   newConnForm.port = defaultData.port
   newConnForm.username = defaultData.username
@@ -357,19 +357,6 @@ const connectToServer = async (conn) => {
   // 添加到标签列表
   connectionTabs.value.push(newTab)
   activeTabId.value = newTab.id.toString()
-
-  // 连接服务器
-  try {
-    const result = await window.connectApi.startConnect(newTab)
-    if (!result.success) {
-      ElMessage.error(`连接失败: ${result.message}`)
-      // 移除失败的标签
-      connectionTabs.value = connectionTabs.value.filter((tab) => tab.id !== newTab.id)
-    }
-  } catch (error) {
-    ElMessage.error(`连接出错: ${error.message}`)
-    connectionTabs.value = connectionTabs.value.filter((tab) => tab.id !== newTab.id)
-  }
 }
 
 // 关闭选项卡逻辑调整
@@ -378,7 +365,10 @@ const closeTab = async (tabId) => {
   const tab = connectionTabs.value.find((t) => t.id === tabId)
   if (tab) {
     // 断开对应的会话连接
-    await window.connectApi.stopConnect(tab.sessionId)
+    await window.connectApi.stopConnect({
+      ...TelnetInfo.buildWithValue(tab),
+      sessionId: tab.sessionId
+    })
   }
 
   // 从标签列表中移除

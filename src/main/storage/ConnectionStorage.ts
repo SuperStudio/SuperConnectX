@@ -32,11 +32,11 @@ export default class ConnectionStorage extends BaseStorage {
 
     con[0].name = conn.name
     con[0].port = conn.port
-    con[0].type = conn.type
+    con[0].connectionType = conn.connectionType
     con[0].host = conn.host
     con[0].username = conn.username
     // 新增：添加FTP所需的密码字段
-    if (conn.type === 'ftp') {
+    if (conn.connectionType === 'ftp') {
       con[0].password = conn.password
     }
 
