@@ -1,5 +1,5 @@
 export default class TelnetInfo {
-  static build() {
+  static build(): object {
     return {
       name: '',
       type: 'telnet',
@@ -9,7 +9,7 @@ export default class TelnetInfo {
     }
   }
 
-  static buildWithValue(conn) {
+  static buildWithValue(conn): object {
     if (conn.id) {
       return {
         id: conn.id,

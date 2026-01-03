@@ -221,7 +221,14 @@ const presetForm = ref({
 // 定义属性
 const props = defineProps<{
   isConnected: boolean
-  connection: { id: number; host: string; port: number; name?: string; connectionType?: string }
+  connection: {
+    id: number
+    host: string
+    port: number
+    name?: string
+    connectionType?: string
+    sessionId: string
+  }
 }>()
 
 // 定义事件
@@ -286,7 +293,8 @@ const getCurrentConnect = () => {
     host: props.connection.host,
     port: props.connection.port,
     name: props.connection.name,
-    connectionType: props.connection.connectionType
+    connectionType: props.connection.connectionType,
+    sessionId: props.connection.sessionId
   }
 }
 

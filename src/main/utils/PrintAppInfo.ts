@@ -95,17 +95,13 @@ export const printAppInfo = (mainWindow?: BrowserWindow) => {
   }
 
   logger.info(
-    JSON.stringify(
-      {
-        appBasicInfo,
-        systemInfo,
-        screenInfo,
-        ...(mainWindow ? { windowInfo } : {}),
-        performanceInfo,
-        configInfo
-      },
-      null,
-      2
-    )
+    JSON.stringify({
+      appBasicInfo,
+      systemInfo,
+      screenInfo,
+      ...(mainWindow ? { windowInfo } : {}),
+      performanceInfo,
+      configInfo
+    })
   )
 }

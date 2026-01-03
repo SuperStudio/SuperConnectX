@@ -39,7 +39,7 @@ contextBridge.exposeInMainWorld('telnetApi', {
     ipcRenderer.on('telnet-close', listener)
     return () => ipcRenderer.removeListener('telnet-close', listener)
   },
-  openTelnetLog: (conn: any) => ipcRenderer.invoke('open-telnet-log', conn)
+  openTelnetLog: (sessionId: string) => ipcRenderer.invoke('open-telnet-log', sessionId)
 })
 
 contextBridge.exposeInMainWorld('dialogApi', {
@@ -90,7 +90,7 @@ declare global {
       telnetDisconnect: (connId: number) => Promise<any>
       onTelnetData: (callback: (data: { connId: number; data: string }) => void) => () => void
       onTelnetClose: (callback: (connId: number) => void) => () => void
-      openTelnetLog: (conn: any) => Promise<{ success: boolean; message?: string }>
+      openTelnetLog: (sessionId: string) => Promise<{ success: boolean; message?: string }>
     }
     windowApi: {
       minimizeWindow: () => Promise<void>

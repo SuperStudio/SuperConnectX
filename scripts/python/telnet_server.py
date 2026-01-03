@@ -10,6 +10,7 @@ PORT = 2323  # 自定义端口（默认 Telnet 端口 23，需管理员权限，
 DEFAULT_SEND_INTERVAL = 1  # 数据推送间隔（秒）
 
 send_interval = DEFAULT_SEND_INTERVAL
+current_host = ""
 
 
 def _build_json(size):
@@ -82,6 +83,7 @@ def handle_client(client_socket: socket.socket, client_addr: tuple):
                 f"[{current_time}] "
                 f"counter: {counter:04d} | "
                 f"now is running | "
+                f"server: {current_host}:{PORT} | "
                 f"client: {client_addr[0]}:{client_addr[1]}\r\n"
             )
             client_socket.send(data.encode("utf-8"))
@@ -97,6 +99,8 @@ def handle_client(client_socket: socket.socket, client_addr: tuple):
 
 
 def start_telnet_server(host):
+    global current_host
+    current_host = host
     """启动 Telnet 服务端"""
     # 创建 TCP 套接字（Telnet 基于 TCP 协议）
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

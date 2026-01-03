@@ -35,26 +35,15 @@
             <div class="connection-actions">
               <div class="connection-btn">
                 <el-button
-                  v-if="activeConnection?.id !== conn.id"
                   type="text"
                   class="el-button--primary"
                   icon="Link"
                   @click="connectToServer(conn)"
                   >连接</el-button
                 >
-                <el-button
-                  v-else
-                  type="text"
-                  class="el-button--primary"
-                  icon="Close"
-                  style="color: #ff4d4f"
-                  @click="connectToServer(conn)"
-                  >断开</el-button
-                >
               </div>
               <div class="connection-btn">
                 <el-button
-                  :disabled="activeConnection?.id === conn.id && activeConnection !== null"
                   class="el-button--primary"
                   type="text"
                   style="color: #cccccc"
@@ -66,7 +55,6 @@
               <div class="connection-btn">
                 <el-button
                   type="text"
-                  :disabled="activeConnection?.id === conn.id && activeConnection !== null"
                   class="el-button--primary"
                   icon="Delete"
                   @click="deleteConnection(conn)"
@@ -286,26 +274,47 @@ const deleteConnection = async (conn) => {
   }
 }
 
-const connectToServer = async (conn: any) => {
-  const existingTab = connectionTabs.value.find((tab) => tab.id === conn.id)
-  if (existingTab) {
-    activeTabId.value = conn.id.toString()
-    return
+const connectToServer = async (conn) => {
+  const sessionId = Date.now() + Math.floor(Math.random() * 1000)
+  const newTab = {
+    ...TelnetInfo.buildWithValue(conn),
+    sessionId: sessionId, // 新增会话ID用于区分相同连接的不同标签
+    id: `${conn.id}-${sessionId}` // 组合ID确保标签唯一
   }
-  connectionTabs.value.push(conn)
-  activeTabId.value = conn.id.toString()
+
+  // 添加到标签列表
+  connectionTabs.value.push(newTab)
+  activeTabId.value = newTab.id.toString()
+
+  // 连接服务器
+  try {
+    const result = await window.telnetApi.connectTelnet(newTab)
+    if (!result.success) {
+      ElMessage.error(`连接失败: ${result.message}`)
+      // 移除失败的标签
+      connectionTabs.value = connectionTabs.value.filter((tab) => tab.id !== newTab.id)
+    }
+  } catch (error) {
+    ElMessage.error(`连接出错: ${error.message}`)
+    connectionTabs.value = connectionTabs.value.filter((tab) => tab.id !== newTab.id)
+  }
 }
 
 // 关闭选项卡逻辑调整
-const closeTab = async (tabId: string) => {
-  const id = Number(tabId)
-  await window.telnetApi.telnetDisconnect(id)
-  connectionTabs.value = connectionTabs.value.filter((tab) => tab.id !== id)
-  delete telnetTerminalRefs[id]
-  if (activeTabId.value === tabId && connectionTabs.value.length > 0) {
-    activeTabId.value = connectionTabs.value[0].id.toString()
-  } else if (connectionTabs.value.length === 0) {
-    activeTabId.value = ''
+const closeTab = async (tabId) => {
+  // 找到对应的标签
+  const tab = connectionTabs.value.find((t) => t.id === tabId)
+  if (tab) {
+    // 断开对应的会话连接
+    await window.telnetApi.telnetDisconnect(tab.sessionId)
+  }
+
+  // 从标签列表中移除
+  connectionTabs.value = connectionTabs.value.filter((tab) => tab.id !== tabId)
+
+  // 如果关闭的是当前激活的标签，切换到最后一个标签
+  if (activeTabId.value === tabId.toString() && connectionTabs.value.length > 0) {
+    activeTabId.value = connectionTabs.value[connectionTabs.value.length - 1].id.toString()
   }
 }
 

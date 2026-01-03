@@ -2,7 +2,7 @@
   <div class="telnet-terminal">
     <div class="terminal-header">
       <span class="connection-info">
-        {{ connection.host }}:{{ connection.port }}({{ connection.name || connection.id }})
+        {{ connection.host }}:{{ connection.port }}({{ connection.name || connection.sessionId }})
         <span class="connection-status" :class="isConnected ? 'connected' : 'disconnected'">
           {{ isConnected ? '已连接' : '已断开' }}
         </span>
@@ -96,7 +96,7 @@ const MAX_CLEAR_INTERVAL_SIZE = 1024 * 1024 * 30
 
 const emit = defineEmits(['onClose', 'commandSent'])
 const props = defineProps<{
-  connection: { id: number; host: string; port: number; name?: string }
+  connection: { id: number; host: string; port: number; name?: string; sessionId: string }
   onClose?: () => void
 }>()
 
@@ -126,7 +126,7 @@ const presetCommandsRef = ref<InstanceType<typeof PresetCommands>>()
 const initEditor = async () => {
   if (!editorContainer.value) return
 
-  const uniqueUri = monaco.Uri.parse(`telnet-terminal:///output-${props.connection.id}.txt`)
+  const uniqueUri = monaco.Uri.parse(`telnet-terminal:///output-${props.connection.sessionId}.txt`)
   editorModel = monaco.editor.createModel(
     `try to connect ${props.connection.host}:${props.connection.port}\n`,
     'plaintext',
@@ -246,7 +246,7 @@ const scrollToStart = () => {
 
 const openLogFile = async () => {
   try {
-    const result = await window.telnetApi.openTelnetLog(TelnetInfo.buildWithValue(props.connection))
+    const result = await window.telnetApi.openTelnetLog(props.connection.sessionId)
     if (!result.success) {
       ElMessage.error(`打开日志失败：${result.message}`)
     }
@@ -325,9 +325,10 @@ const connect = async () => {
     }
 
     try {
-      const result = await window.telnetApi.connectTelnet(
-        TelnetInfo.buildWithValue(props.connection)
-      )
+      const result = await window.telnetApi.connectTelnet({
+        ...TelnetInfo.buildWithValue(props.connection),
+        sessionId: props.connection.sessionId
+      })
       if (result.success) {
         if (removeDataListener) {
           removeDataListener()
@@ -406,7 +407,10 @@ const sendCommand = async () => {
 
   try {
     await window.telnetApi.telnetSend({
-      conn: TelnetInfo.buildWithValue(props.connection),
+      conn: {
+        ...TelnetInfo.buildWithValue(props.connection),
+        sessionId: props.connection.sessionId
+      },
       command: sendData.trim()
     })
   } catch (error) {

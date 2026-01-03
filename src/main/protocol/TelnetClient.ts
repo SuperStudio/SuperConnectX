@@ -8,9 +8,7 @@ const DEFAULT_TERMINAL_TYPE = 'vt100' /* cmd 中默认常用 vt100 */
 export default class TelnetClient {
   telnetConnections = new Map<number, Telnet>()
 
-  constructor() {}
-
-  async start(host, port, id, onData, onClose) {
+  async start(host, port, sessionId, onData, onClose): Promise<object> {
     const connection = new Telnet()
     try {
       const params = {
@@ -23,19 +21,19 @@ export default class TelnetClient {
         stripShellPrompt: false // 不剥离shell提示符（避免干扰连接）
       }
 
-      logger.info(`start to connect: ${host}:${port}`)
+      logger.info(`start to connect: ${host}:${port} (session: ${sessionId})`)
       logger.debug(JSON.stringify(params))
 
       await connection.connect(params)
-      this.telnetConnections.set(id, connection)
+      this.telnetConnections.set(sessionId, connection)
       connection.on('data', (data) => onData?.(String(data)))
       connection.on('close', () => {
-        this.telnetConnections.delete(id)
+        this.telnetConnections.delete(sessionId)
         onClose?.()
       })
 
       logger.info(`connect ok`)
-      return { success: true, message: '连接成功', connId: id }
+      return { success: true, message: '连接成功', connId: sessionId }
     } catch (error) {
       console.error(error)
       return {
