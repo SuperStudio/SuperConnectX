@@ -5,7 +5,8 @@ export default class TelnetInfo {
       type: 'telnet',
       host: '',
       port: 23,
-      username: ''
+      username: '',
+      password: ''
     }
   }
 
@@ -17,7 +18,8 @@ export default class TelnetInfo {
         type: conn.type,
         host: conn.host,
         port: conn.port,
-        username: conn.username
+        username: conn.username,
+        password: conn.password
       }
     } else {
       return {
@@ -25,7 +27,8 @@ export default class TelnetInfo {
         type: conn.type,
         host: conn.host,
         port: conn.port,
-        username: conn.username
+        username: conn.username,
+        password: conn.password
       }
     }
   }

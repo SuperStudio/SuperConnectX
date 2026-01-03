@@ -91,6 +91,7 @@
           <el-select v-model="groupForm.connectionType" placeholder="选择连接类型">
             <el-option label="Telnet" value="telnet" />
             <el-option label="SSH" value="ssh" disabled />
+            <el-option label="FTP" value="ftp" />
           </el-select>
         </el-form-item>
 

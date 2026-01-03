@@ -35,6 +35,10 @@ export default class ConnectionStorage extends BaseStorage {
     con[0].type = conn.type
     con[0].host = conn.host
     con[0].username = conn.username
+    // 新增：添加FTP所需的密码字段
+    if (conn.type === 'ftp') {
+      con[0].password = conn.password
+    }
 
     this.saveAll(connections as never[])
     logger.info(`update connection ${conn.host}:${conn.port}`)

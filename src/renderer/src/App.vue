@@ -114,9 +114,14 @@
     >
       <el-form :model="newConnForm" :rules="newConnRules" ref="connFormRef" label-width="120px">
         <el-form-item label="协议类型" prop="type">
-          <el-select v-model="newConnForm.type" placeholder="选择协议">
+          <el-select
+            v-model="newConnForm.type"
+            @change="handleProtocolChange"
+            placeholder="选择协议"
+          >
             <el-option label="Telnet" value="telnet" />
             <el-option label="SSH" value="ssh" disabled />
+            <el-option label="FTP" value="ftp" />
             <!-- 预留 SSH 选项 -->
           </el-select>
         </el-form-item>
@@ -141,6 +146,9 @@
             prefix="UserFilled"
           />
         </el-form-item>
+        <el-form-item label="密码" prop="password" v-if="newConnForm.type === 'ftp'">
+          <el-input v-model="newConnForm.password" placeholder="输入密码" type="password" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button type="danger" style="width: 100px" @click="isCreateDialogOpen = false"
@@ -155,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, reactive } from 'vue'
+import { ref, onMounted, watch, reactive, computed } from 'vue'
 import { ElMessage, ElForm, ElMessageBox } from 'element-plus'
 import TelnetTerminal from './components/TelnetTerminal.vue'
 import CustomTitleBar from './components/CustomTitleBar.vue'
@@ -169,8 +177,7 @@ const filterConnection = ref<any[]>([])
 const connections = ref<any[]>([])
 const isCreateDialogOpen = ref(false)
 const connFormRef = ref<InstanceType<typeof ElForm> | null>(null)
-const newConnForm = ref(TelnetInfo.build())
-const newConnRules = FormUtils.buildTelnet()
+const newConnForm = reactive(TelnetInfo.build())
 const activeConnection = ref<any>(null)
 const showConnectionList = ref(true)
 const lastSentCommand = ref('')
@@ -181,6 +188,61 @@ const activeTabId = ref('')
 const refreshHandler = () => {
   if (activeTabId.value) {
     telnetTerminalRefs[Number(activeTabId.value)]?.refreshGroupsCmds()
+  }
+}
+
+const newConnRules = computed(() => {
+  const baseRules = {
+    type: [{ required: true, message: '请选择协议类型', trigger: 'change' }],
+    name: [{ required: true, message: '请输入连接名称', trigger: 'blur' }],
+    host: [{ required: true, message: '请输入服务器地址', trigger: 'blur' }],
+    port: [
+      {
+        required: true,
+        message: '请输入端口',
+        trigger: 'blur',
+        // 补充：端口必须是数字且在合理范围
+        validator: (rule, value) => {
+          if (!/^[0-9]+$/.test(value)) return Promise.reject('端口必须为数字')
+          if (value < 1 || value > 65535) return Promise.reject('端口需在1-65535之间')
+          return Promise.resolve()
+        }
+      }
+    ],
+    username: [{ required: false }]
+  }
+
+  // FTP协议时添加密码必填验证
+  if (newConnForm.type === 'ftp') {
+    baseRules.password = [
+      {
+        required: false,
+        message: '请输入FTP密码',
+        trigger: 'blur'
+      }
+    ]
+  }
+
+  return baseRules
+})
+
+const handleProtocolChange = (value) => {
+  // 清空密码（切换非FTP时）
+  if (value !== 'ftp') {
+    newConnForm.password = ''
+  }
+
+  // 自动设置默认端口
+  switch (value) {
+    case 'ftp':
+      newConnForm.port = 21 // FTP默认21
+      break
+    case 'telnet':
+      newConnForm.port = 23 // Telnet默认23
+      break
+    default:
+      newConnForm.port = '' // 其他协议清空端口
+      break
   }
 }
 
@@ -217,8 +279,18 @@ const loadConnections = async () => {
   }
 }
 
+const setConnFormData = (defaultData) => {
+  newConnForm.id = defaultData.id
+  newConnForm.name = defaultData.name
+  newConnForm.type = defaultData.type
+  newConnForm.host = defaultData.host
+  newConnForm.port = defaultData.port
+  newConnForm.username = defaultData.username
+  newConnForm.password = defaultData.password
+}
+
 const openCreateDialog = () => {
-  newConnForm.value = TelnetInfo.build()
+  setConnFormData(TelnetInfo.build())
   if (connFormRef.value) {
     connFormRef.value.clearValidate()
   }
@@ -226,7 +298,7 @@ const openCreateDialog = () => {
 }
 
 const editCreateDialog = (conn) => {
-  newConnForm.value = TelnetInfo.buildWithValue(conn)
+  setConnFormData(TelnetInfo.buildWithValue(conn))
   isCreateDialogOpen.value = true
 }
 
@@ -235,15 +307,15 @@ const submitNewConn = async () => {
 
   try {
     await connFormRef.value.validate()
-    if (newConnForm.value.id) {
-      await window.storageApi.updateConnection(TelnetInfo.buildWithValue(newConnForm.value))
+    if (newConnForm.id) {
+      await window.storageApi.updateConnection(TelnetInfo.buildWithValue(newConnForm))
     } else {
-      await window.storageApi.addConnection(TelnetInfo.buildWithValue(newConnForm.value))
+      await window.storageApi.addConnection(TelnetInfo.buildWithValue(newConnForm))
     }
 
     loadConnections()
     isCreateDialogOpen.value = false
-    ElMessage.success(`连接 "${newConnForm.value.name}" 已保存`)
+    ElMessage.success(`连接 "${newConnForm.name}" 已保存`)
   } catch (error) {
     console.error(error)
     ElMessage.error('请完善表单信息并修正错误')
