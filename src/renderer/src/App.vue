@@ -360,7 +360,7 @@ const connectToServer = async (conn) => {
 
   // 连接服务器
   try {
-    const result = await window.telnetApi.connectTelnet(newTab)
+    const result = await window.connectApi.startConnect(newTab)
     if (!result.success) {
       ElMessage.error(`连接失败: ${result.message}`)
       // 移除失败的标签
@@ -378,7 +378,7 @@ const closeTab = async (tabId) => {
   const tab = connectionTabs.value.find((t) => t.id === tabId)
   if (tab) {
     // 断开对应的会话连接
-    await window.telnetApi.telnetDisconnect(tab.sessionId)
+    await window.connectApi.stopConnect(tab.sessionId)
   }
 
   // 从标签列表中移除

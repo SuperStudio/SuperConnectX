@@ -23,23 +23,23 @@ contextBridge.exposeInMainWorld('storageApi', {
   importCommands: (filePath: string) => ipcRenderer.invoke('import-commands', filePath)
 })
 
-contextBridge.exposeInMainWorld('telnetApi', {
-  connectTelnet: (conn: any) => ipcRenderer.invoke('connect-telnet', conn),
-  telnetSend: (data: { conn: any; command: string }) => ipcRenderer.invoke('telnet-send', data),
-  telnetDisconnect: (connId: number) => ipcRenderer.invoke('telnet-disconnect', connId),
+contextBridge.exposeInMainWorld('connectApi', {
+  startConnect: (conn: any) => ipcRenderer.invoke('start-connect', conn),
+  sendData: (data: { conn: any; command: string }) => ipcRenderer.invoke('send-data', data),
+  stopConnect: (connId: number) => ipcRenderer.invoke('stop-connect', connId),
 
-  onTelnetData: (callback: (data: { connId: number; data: string }) => void) => {
+  onRecvData: (callback: (data: { connId: number; data: string }) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, data: { connId: number; data: string }) =>
       callback(data)
-    ipcRenderer.on('telnet-data', listener)
-    return () => ipcRenderer.removeListener('telnet-data', listener)
+    ipcRenderer.on('on-recv-data', listener)
+    return () => ipcRenderer.removeListener('on-recv-data', listener)
   },
-  onTelnetClose: (callback: (connId: number) => void) => {
+  onConnectClose: (callback: (connId: number) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, connId: number) => callback(connId)
-    ipcRenderer.on('telnet-close', listener)
-    return () => ipcRenderer.removeListener('telnet-close', listener)
+    ipcRenderer.on('on-connect-close', listener)
+    return () => ipcRenderer.removeListener('on-connect-close', listener)
   },
-  openTelnetLog: (sessionId: string) => ipcRenderer.invoke('open-telnet-log', sessionId)
+  openConnectLog: (sessionId: string) => ipcRenderer.invoke('open-connect-log', sessionId)
 })
 
 contextBridge.exposeInMainWorld('dialogApi', {
@@ -84,13 +84,13 @@ declare global {
       exportCommands: (filePath: string) => Promise<any>
       importCommands: (filePath: string) => Promise<any>
     }
-    telnetApi: {
-      connectTelnet: (conn: any) => Promise<any>
-      telnetSend: (data: { conn: any; command: string }) => Promise<any>
-      telnetDisconnect: (connId: number) => Promise<any>
-      onTelnetData: (callback: (data: { connId: number; data: string }) => void) => () => void
-      onTelnetClose: (callback: (connId: number) => void) => () => void
-      openTelnetLog: (sessionId: string) => Promise<{ success: boolean; message?: string }>
+    connectApi: {
+      startConnect: (conn: any) => Promise<any>
+      sendData: (data: { conn: any; command: string }) => Promise<any>
+      stopConnect: (connId: number) => Promise<any>
+      onRecvData: (callback: (data: { connId: number; data: string }) => void) => () => void
+      onConnectClose: (callback: (connId: number) => void) => () => void
+      openConnectLog: (sessionId: string) => Promise<{ success: boolean; message?: string }>
     }
     windowApi: {
       minimizeWindow: () => Promise<void>

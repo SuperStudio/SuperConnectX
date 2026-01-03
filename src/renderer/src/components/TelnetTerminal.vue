@@ -246,7 +246,7 @@ const scrollToStart = () => {
 
 const openLogFile = async () => {
   try {
-    const result = await window.telnetApi.openTelnetLog(props.connection.sessionId)
+    const result = await window.connectApi.openConnectLog(props.connection.sessionId)
     if (!result.success) {
       ElMessage.error(`打开日志失败：${result.message}`)
     }
@@ -264,7 +264,7 @@ const handleClose = async () => {
 
   if (currentConnId) {
     try {
-      await window.telnetApi.telnetDisconnect(currentConnId)
+      await window.connectApi.stopConnect(currentConnId)
       isConnected.value = false
       emit('onClose')
       if (typeof props.onClose === 'function') {
@@ -325,7 +325,7 @@ const connect = async () => {
     }
 
     try {
-      const result = await window.telnetApi.connectTelnet({
+      const result = await window.connectApi.startConnect({
         ...TelnetInfo.buildWithValue(props.connection),
         sessionId: props.connection.sessionId
       })
@@ -342,7 +342,7 @@ const connect = async () => {
         currentConnId = result.connId
         isConnected.value = true
 
-        removeDataListener = window.telnetApi.onTelnetData((data) => {
+        removeDataListener = window.connectApi.onRecvData((data) => {
           if (data.connId !== currentConnId) return
           calcRecvSize(data.data.length)
           if (isShowLog.value) {
@@ -366,7 +366,7 @@ const connect = async () => {
           }
         })
 
-        removeCloseListener = window.telnetApi.onTelnetClose(handleTelnetClose)
+        removeCloseListener = window.connectApi.onConnectClose(handleTelnetClose)
         commandInput.value?.focus()
         appendToTerminal(`connect success, retry count: ${retryCount + 1}\n`)
         retryCount = 0
@@ -406,7 +406,7 @@ const sendCommand = async () => {
   appendToTerminal(`\n[${new Date().toISOString()}] SEND >>>>>>>>>> ${sendData}\n`)
 
   try {
-    await window.telnetApi.telnetSend({
+    await window.connectApi.sendData({
       conn: {
         ...TelnetInfo.buildWithValue(props.connection),
         sessionId: props.connection.sessionId
@@ -511,7 +511,7 @@ onUnmounted(() => {
   }
 
   if (currentConnId && isConnected.value) {
-    window.telnetApi.telnetDisconnect(currentConnId).catch((err) => {
+    window.connectApi.stopConnect(currentConnId).catch((err) => {
       console.error('卸载时断开失败:', err)
     })
   }
