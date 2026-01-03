@@ -2,19 +2,19 @@ import TelnetClient from '../protocol/TelnetClient'
 import { ipcMain } from 'electron'
 import logger from './IpcAppLogger'
 
-export default class IpcTelnet {
-  private static sInstance: IpcTelnet
+export default class IpcConnector {
+  private static sInstance: IpcConnector
   /* telnet 连接处理 */
   private telnetClient = new TelnetClient()
 
   constructor() {}
 
-  static getInstance(): IpcTelnet {
-    if (IpcTelnet.sInstance == null) {
-      IpcTelnet.sInstance = new IpcTelnet()
+  static getInstance(): IpcConnector {
+    if (IpcConnector.sInstance == null) {
+      IpcConnector.sInstance = new IpcConnector()
     }
 
-    return IpcTelnet.sInstance
+    return IpcConnector.sInstance
   }
 
   init(_logger, windows): void {
