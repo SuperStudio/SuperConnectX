@@ -1,7 +1,9 @@
+import ConnectionInfo from './ConnectionInfo'
+
 export default class BaseClient {
-  async start(host, port, sessionId, onData, onClose): Promise<object> {}
+  async start(info: ConnectionInfo, onData: any, onClose: any): Promise<object> {}
 
-  async send(connId, command, onComplete): Promise<object> {}
+  async send(connId: string, command: string, onComplete: any): Promise<object> {}
 
-  async disconnect(connId): Promise<object> {}
+  async disconnect(connId: string): Promise<object> {}
 }

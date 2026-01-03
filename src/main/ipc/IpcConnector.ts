@@ -1,4 +1,5 @@
 import TelnetClient from '../protocol/TelnetClient'
+import ConnectionInfo from '../protocol/ConnectionInfo'
 import BaseClient from '../protocol/BaseClient'
 import { ipcMain } from 'electron'
 import logger from './IpcAppLogger'
@@ -23,15 +24,25 @@ export default class IpcConnector {
     return IpcConnector.sInstance
   }
 
+  buildConnectInfo(conn): ConnectionInfo {
+    const connInfo: ConnectionInfo = {
+      host: conn.host,
+      port: conn.port,
+      username: conn.username,
+      password: conn.password,
+      sessionId: conn.sessionId
+    }
+
+    return connInfo
+  }
+
   init(_logger, windows): void {
     ipcMain.handle('start-connect', async (_, conn: any) => {
       logger.info(`start connect telnet: ${conn.name}`)
       logger.debug(JSON.stringify(conn))
       _logger.createConnLogFile(conn.sessionId, conn.name)
       return await this.CONNECT_TYPE_DATA.get(conn.connectionType)?.start(
-        conn.host,
-        conn.port,
-        conn.sessionId,
+        this.buildConnectInfo(conn),
         (dataStr) => {
           _logger.writeToConnLog(dataStr, conn.sessionId)
           windows.mainWindow?.webContents.send('on-recv-data', {
