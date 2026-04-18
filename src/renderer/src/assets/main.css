@@ -43,6 +43,18 @@ body {
   color: #c5c5c5 !important;
 }
 
+.el-select .el-select__wrapper .el-select__placeholder {
+  color: #9e9e9e !important;
+}
+
+.el-select .el-select__wrapper .el-select__selected-item {
+  color: #c5c5c5 !important;
+}
+
+.el-select .el-select__wrapper .el-select__tags-text {
+  color: #c5c5c5 !important;
+}
+
 .el-select .el-select__wrapper:focus-within,
 .el-select.is-focused .el-select__wrapper {
   border-color: #007fd4 !important;
@@ -77,13 +89,14 @@ body {
 
 .el-select-dropdown {
   border-radius: 6px !important;
-  border: 1px solid #374151 !important;
-  background-color: #cccccc !important;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.5) !important;
+  border: 1px solid #3c3c3c !important;
+  background-color: #3c3c3c !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
 }
 
 .el-select-dropdown__item {
-  color: #000 !important;
+  color: #c5c5c5 !important;
+  background-color: #3c3c3c !important;
   height: 36px !important;
   line-height: 36px !important;
   padding: 0 16px !important;
@@ -252,8 +265,15 @@ div[class*="popper"] {
   border: none !important;
   border-width: 0 !important;
   outline: none !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   border-radius: 6px !important;
+}
+
+/* 下拉菜单 popper 保留阴影 */
+.el-select-dropdown__popper,
+.el-select-dropdown__popper[role="listbox"] {
+  overflow: visible !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
 }
 
 div[class*="popper"]::before,
@@ -275,12 +295,23 @@ div[class*="popper"]::after {
 .el-dropdown__popper:hover,
 .el-dropdown__popper:focus,
 .el-dropdown-menu:hover,
-.el-dropdown-menu:focus,
-.el-popper:hover,
-.el-popper:focus {
+.el-dropdown-menu:focus {
   outline: none !important;
   box-shadow: none !important;
   border: none !important;
+}
+
+/* 下拉菜单悬停时保留阴影 */
+.el-popper:hover,
+.el-popper:focus {
+  outline: none !important;
+  border: none !important;
+}
+
+.el-select-dropdown__popper:hover,
+.el-select-dropdown__popper:focus-within {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  border-color: #007fd4 !important;
 }
 
 /* 确保悬停和焦点状态下都没有边框 */
