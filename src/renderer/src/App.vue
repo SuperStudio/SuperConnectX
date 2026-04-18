@@ -200,38 +200,7 @@ const refreshHandler = () => {
 }
 
 const newConnRules = computed(() => {
-  const baseRules = {
-    connectionType: [{ required: true, message: '请选择协议类型', trigger: 'change' }],
-    name: [{ required: true, message: '请输入连接名称', trigger: 'blur' }],
-    host: [{ required: true, message: '请输入服务器地址', trigger: 'blur' }],
-    port: [
-      {
-        required: true,
-        message: '请输入端口',
-        trigger: 'blur',
-        // 补充：端口必须是数字且在合理范围
-        validator: (rule, value) => {
-          if (!/^[0-9]+$/.test(value)) return Promise.reject('端口必须为数字')
-          if (value < 1 || value > 65535) return Promise.reject('端口需在1-65535之间')
-          return Promise.resolve()
-        }
-      }
-    ],
-    username: [{ required: false }]
-  }
-
-  // FTP协议时添加密码必填验证
-  if (newConnForm.connectionType === 'ftp') {
-    baseRules.password = [
-      {
-        required: false,
-        message: '请输入FTP密码',
-        trigger: 'blur'
-      }
-    ]
-  }
-
-  return baseRules
+  return {}
 })
 
 const handleProtocolChange = (value) => {
