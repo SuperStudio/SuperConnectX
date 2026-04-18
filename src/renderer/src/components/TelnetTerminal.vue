@@ -96,6 +96,16 @@
         ref="commandInput"
         :disabled="!isConnected"
       />
+      <el-button
+        type="primary"
+        icon="Promotion"
+        size="small"
+        class="send-btn"
+        @click="sendCommand"
+        :disabled="!isConnected"
+      >
+        发送
+      </el-button>
     </div>
   </div>
 </template>
@@ -734,6 +744,23 @@ onUnmounted(() => {
   padding: 8px 10px;
   outline: none;
   font-family: monospace;
+}
+
+.send-btn {
+  margin-right: 8px;
+  background-color: #165dff !important;
+  border-color: #3370ff !important;
+  color: white !important;
+}
+
+.send-btn:hover:not(:disabled) {
+  background-color: #4080ff !important;
+  border-color: #5599ff !important;
+}
+
+.send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .auto-scroll-checkbox,

@@ -131,3 +131,124 @@ body {
 .el-message-box__btns {
   padding: 12px 20px !important;
 }
+
+/* 重置 Element Plus dropdown 边框 */
+:root {
+  --el-dropdown-menu-box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+  --el-dropdown-menu-border-radius: 6px !important;
+}
+
+.el-dropdown-menu {
+  border: none !important;
+  outline: none !important;
+  overflow: hidden !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+  /* 强制移除任何边框 */
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-image: none !important;
+}
+
+.el-dropdown-menu * {
+  border: none !important;
+}
+
+.el-popper.is-light,
+.el-popper.is-light .el-popper__arrow {
+  border: none !important;
+  outline: none !important;
+  overflow: hidden !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+  border-width: 0 !important;
+}
+
+.el-popper {
+  overflow: hidden !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+}
+
+/* 针对 el-dropdown 的特殊处理 */
+.el-dropdown__popper {
+  border: none !important;
+  border-width: 0 !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+}
+
+.el-dropdown__popper .el-popper__arrow {
+  display: none !important;
+  border: none !important;
+}
+
+.el-dropdown__popper.is-light {
+  border: none !important;
+  border-width: 0 !important;
+}
+
+.el-popper .el-popper__arrow,
+.el-popper__arrow,
+.el-popper__arrow::before,
+.el-popper__arrow::after {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  background: none !important;
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+  filter: none !important;
+  clip: none !important;
+  position: absolute !important;
+  z-index: -1 !important;
+}
+
+.el-dropdown-menu__wrap {
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  border: none !important;
+}
+
+/* 隐藏 dropdown popper 的箭头 */
+.el-dropdown-menu__wrapper {
+  overflow: hidden !important;
+  border-radius: 6px !important;
+  border: none !important;
+}
+
+.el-dropdown-menu__wrapper > .el-popper {
+  overflow: hidden !important;
+  border: none !important;
+}
+
+/* 直接隐藏 popper 的箭头渲染 */
+div[class*="popper"] {
+  border: none !important;
+  border-width: 0 !important;
+  outline: none !important;
+  overflow: hidden !important;
+  border-radius: 6px !important;
+}
+
+div[class*="popper"]::before,
+div[class*="popper"]::after {
+  display: none !important;
+  visibility: hidden !important;
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  background: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
