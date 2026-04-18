@@ -34,8 +34,25 @@
           打开日志
         </el-button>
 
-        <el-button type="danger" icon="Close" size="small" class="close-btn" @click="handleClose">
+        <el-button
+          v-if="isConnected"
+          type="danger"
+          icon="Close"
+          size="small"
+          class="close-btn"
+          @click="handleClose"
+        >
           关闭连接
+        </el-button>
+        <el-button
+          v-else
+          type="primary"
+          icon="Refresh"
+          size="small"
+          class="reconnect-btn toggle-btn"
+          @click="handleReconnect"
+        >
+          重连
         </el-button>
       </div>
     </div>
@@ -276,10 +293,7 @@ const handleClose = async () => {
         sessionId: props.connection.sessionId
       })
       isConnected.value = false
-      emit('onClose')
-      if (typeof props.onClose === 'function') {
-        props.onClose()
-      }
+      appendToTerminal(`连接已手动关闭\n`)
     } catch (error) {
       console.error('关闭连接失败:', error)
       ElMessage.error('关闭连接失败')
@@ -298,11 +312,14 @@ const handleClose = async () => {
       allRecvSize = 0
     }
   } else {
-    emit('onClose')
-    if (typeof props.onClose === 'function') {
-      props.onClose()
-    }
+    isConnected.value = false
+    appendToTerminal(`连接已关闭\n`)
   }
+}
+
+const handleReconnect = () => {
+  appendToTerminal(`正在重新连接...\n`)
+  connect()
 }
 
 const handleTelnetClose = (connId: number) => {
@@ -608,6 +625,11 @@ onUnmounted(() => {
   color: #e0e0e0 !important;
 }
 
+.close-btn,
+.reconnect-btn {
+  min-width: 88px;
+}
+
 .log-btn:hover,
 .clear-btn:hover {
   background-color: #4a4a4a !important;
@@ -624,6 +646,18 @@ onUnmounted(() => {
 .close-btn:hover {
   background-color: #ff6b6b !important;
   border-color: #ff8080 !important;
+  transform: translateY(-1px);
+}
+
+.reconnect-btn {
+  background-color: #165dff !important;
+  border-color: #3370ff !important;
+  color: white !important;
+}
+
+.reconnect-btn:hover {
+  background-color: #4080ff !important;
+  border-color: #5599ff !important;
   transform: translateY(-1px);
 }
 
