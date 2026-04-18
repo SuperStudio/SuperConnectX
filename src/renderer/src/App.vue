@@ -778,11 +778,13 @@ onMounted(() => loadConnections())
 .telnet-tabs :deep(.el-tabs__item) {
   color: #ccc;
   background-color: #2d2d2d;
-  border: none;
+  border: none !important;
   border-radius: 0px;
   margin: 0px;
   padding: 0 16px;
+  padding-right: 40px !important;
   height: 32px;
+  transition: none !important;
 }
 
 .telnet-tabs :deep(.el-tabs__item.is-active) {
@@ -827,16 +829,20 @@ onMounted(() => loadConnections())
 .telnet-tabs :deep(.el-tabs__item) {
   color: #ccc;
   background-color: #2d2d2d;
-  border: 1px solid #ccc !important; /* 移除原有边框 */
+  border: none !important;
   border-left: none !important;
-  border-bottom: none !important; /* 双重保险，确保底部无框 */
+  border-right: none !important;
+  border-bottom: none !important;
   border-radius: 0px;
   margin: 0px;
-  padding: 0 16px;
-  height: 100%;
+  padding: 0 16px !important;
+  padding-right: 45px !important;
+  height: 32px;
   min-width: 150px;
-  transition: all 0.2s ease;
-  position: relative; /* 为激活态的底部线条保留定位 */
+  transition: none !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 /* 激活的选项卡：移除 border 相关，仅保留底部高亮条（可选，若不需要也可删除） */
@@ -892,36 +898,55 @@ onMounted(() => loadConnections())
 }
 
 .telnet-tabs :deep(.el-tabs__header .el-tabs__item .is-icon-close) {
-  visibility: hidden;
-  width: 25px;
-  height: 25px;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 25px !important;
+  height: 25px !important;
   border-radius: 2px;
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  transition: opacity 0.15s ease !important;
+  z-index: 1;
 }
 
 .telnet-tabs :deep(.el-tabs__header .el-tabs__item .is-icon-close:hover) {
-  background-color: #3b3c3c;
-  width: 25px;
+  background-color: #3b3c3c !important;
 }
 
 .telnet-tabs :deep(.el-tabs__header .el-tabs__item.is-active .is-icon-close) {
-  visibility: visible;
-  width: 25px;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
-/* 修正选择器，匹配同时包含两个类的元素 */
-.telnet-tabs :deep(.el-tabs__header .el-tabs__item:hover .el-icon.is-icon-close) {
-  visibility: visible;
-  width: 25px !important; /* 强制生效 */
-  height: 25px;
+/* 鼠标悬停时显示关闭按钮 */
+.telnet-tabs :deep(.el-tabs__header .el-tabs__item:hover .is-icon-close) {
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 /* 调整选项卡内部布局 - 核心修改 */
 .telnet-tabs :deep(.el-tabs__item) {
   /* 启用弹性布局 */
-  display: flex;
-  align-items: center;
-  justify-content: space-between; /* 文本左对齐，关闭按钮右对齐 */
-  padding: 0 16px; /* 保持左右内边距 */
-  position: relative;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  position: relative !important;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+/* 选项卡标签容器 */
+.telnet-tabs :deep(.el-tabs__item > span:first-child) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+  margin-right: 8px;
 }
 </style>
