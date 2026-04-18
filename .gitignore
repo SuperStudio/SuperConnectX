@@ -4,7 +4,6 @@ out
 .DS_Store
 .eslintcache
 *.log*
-.vscode
 release
 package-lock.json
 ICON.pptx
