@@ -355,12 +355,27 @@ onMounted(async () => {
   window.windowApi.getWindowState().then((state) => (isMaximized.value = state))
   window.addEventListener('window-maximized', handleWindowMaximized)
   window.addEventListener('window-unmaximized', handleWindowUnmaximized)
+  // 点击其他地方关闭菜单
+  document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
   window.removeEventListener('window-maximized', handleWindowMaximized)
   window.removeEventListener('window-unmaximized', handleWindowUnmaximized)
+  document.removeEventListener('click', handleClickOutside)
 })
+
+// 点击菜单外部关闭所有菜单
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  // 如果点击的不是菜单按钮也不是下拉菜单，则关闭所有菜单
+  if (!target.closest('.menu-button') && !target.closest('.dropdown-menu')) {
+    showFileMenu.value = false
+    showEditMenu.value = false
+    showHelpMenu.value = false
+    showFontSubmenu.value = false
+  }
+}
 </script>
 
 <style scoped>
