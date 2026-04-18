@@ -111,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, onMounted } from 'vue'
+import { ref, onUnmounted, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as monaco from 'monaco-editor'
 import PresetCommands from './PresetCommands.vue'
@@ -156,6 +156,9 @@ let totalRecvSize = 0 //当前显示的总大小
 let allRecvSize = 0 //实际总大小
 
 const presetCommandsRef = ref<InstanceType<typeof PresetCommands>>()
+
+// 暴露给父组件的连接状态（使用 computed 获取值而不是 ref 对象）
+const isConnectedValue = computed(() => isConnected.value)
 
 const initEditor = async () => {
   if (!editorContainer.value) return
@@ -508,7 +511,8 @@ defineExpose({
   refreshGroupsCmds,
   handleFontChange,
   handleFontSizeChange,
-  refreshLayout
+  refreshLayout,
+  isConnected: isConnectedValue
 })
 
 onMounted(() => {

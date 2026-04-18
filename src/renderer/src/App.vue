@@ -80,10 +80,18 @@
             <el-tab-pane
               v-for="tab in connectionTabs"
               :key="tab.id"
-              :label="tab.name || `${tab.host}:${tab.port}`"
               :name="tab.id.toString()"
               class="telnet-tab-pane"
             >
+              <template #label>
+                <span class="tab-label">
+                  <span
+                    class="connection-dot"
+                    :class="telnetTerminalRefs[tab.id]?.isConnected ? 'connected' : 'disconnected'"
+                  ></span>
+                  <span class="tab-title">{{ tab.name || `${tab.host}:${tab.port}` }}</span>
+                </span>
+              </template>
               <TelnetTerminal
                 :connection="tab"
                 :ref="(el) => (telnetTerminalRefs[tab.id] = el)"
@@ -749,6 +757,34 @@ onMounted(() => loadConnections())
   width: 100%;
   margin: 0 !important;
   padding: 0 !important;
+}
+
+/* 选项卡标签样式 */
+.tab-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.connection-dot.connected {
+  background-color: #18c138;
+}
+
+.connection-dot.disconnected {
+  background-color: #ff5f58;
 }
 
 .telnet-terminal {
