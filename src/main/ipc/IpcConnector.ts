@@ -52,7 +52,7 @@ export default class IpcConnector {
         },
         () => {
           windows.mainWindow?.webContents.send('on-connect-close', conn.sessionId)
-          _logger.clearConnLogFile(conn.sessionId)
+          _logger.flushConnLog(conn.sessionId)
         }
       )
     })

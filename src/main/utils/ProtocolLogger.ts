@@ -128,8 +128,8 @@ export default class ProtocolLogger {
     this.logCache.set(connId, currentLogs)
   }
 
-  // 连接关闭时清理并刷入日志
-  clearConnLogFile(connId: number): void {
+  // 连接关闭时刷入日志（保留记录以便后续打开日志）
+  flushConnLog(connId: number): void {
     const remainingLogs = this.logCache.get(connId)
     if (remainingLogs && remainingLogs.length > 0) {
       const fileName = this.connLogFiles.get(connId)
@@ -143,8 +143,13 @@ export default class ProtocolLogger {
         }
       }
     }
-    this.connLogFiles.delete(connId)
     this.logCache.delete(connId)
+  }
+
+  // 真正清理日志记录（选项卡关闭时调用）
+  clearConnLogFile(connId: number): void {
+    this.flushConnLog(connId)
+    this.connLogFiles.delete(connId)
   }
 
   async openConnLog(connId: number): Promise<{ success: boolean; message: string } | null> {

@@ -53,7 +53,7 @@
       icon="Plus"
       size="small"
       @click="openAddPresetDialog"
-      :disabled="!isConnected || !selectedGroupId"
+      :disabled="!selectedGroupId"
       class="add-preset-btn"
     >
       新增命令
