@@ -3,15 +3,14 @@ import ConnectionInfo from '../protocol/ConnectionInfo'
 import BaseClient from '../protocol/BaseClient'
 import { ipcMain } from 'electron'
 import logger from './IpcAppLogger'
+import FtpClient from '../protocol/FtpClient'
 
 export default class IpcConnector {
   private static sInstance: IpcConnector
-  /* telnet 连接处理 */
-  private telnetClient = new TelnetClient()
 
   private CONNECT_TYPE_DATA = new Map<string, BaseClient>([
     ['telnet', new TelnetClient()],
-    ['ftp', new TelnetClient()]
+    ['ftp', new FtpClient()]
   ])
 
   constructor() {}
@@ -41,7 +40,8 @@ export default class IpcConnector {
       logger.info(`start connect telnet: ${conn.name}`)
       logger.debug(JSON.stringify(conn))
       _logger.createConnLogFile(conn.sessionId, conn.name)
-      return await this.CONNECT_TYPE_DATA.get(conn.connectionType)?.start(
+      const client = this.CONNECT_TYPE_DATA.get(conn.connectionType)
+      return await client?.start(
         this.buildConnectInfo(conn),
         (dataStr) => {
           _logger.writeToConnLog(dataStr, conn.sessionId)
