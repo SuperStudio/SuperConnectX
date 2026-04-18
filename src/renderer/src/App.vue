@@ -324,9 +324,14 @@ const submitNewConn = async () => {
     loadConnections()
     isCreateDialogOpen.value = false
     ElMessage.success(`连接 "${newConnForm.name}" 已保存`)
-  } catch (error) {
+  } catch (error: any) {
     console.error(error)
-    ElMessage.error('请完善表单信息并修正错误')
+    // 检查是否是重复连接错误
+    if (error?.message?.includes('已存在相同的连接')) {
+      ElMessage.error('该连接已存在，请修改连接名称或地址')
+    } else {
+      ElMessage.error('请完善表单信息并修正错误')
+    }
   }
 }
 

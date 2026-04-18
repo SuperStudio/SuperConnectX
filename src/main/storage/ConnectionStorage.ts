@@ -3,6 +3,14 @@ import BaseStorage from './BaseStorage'
 
 const STORAGE_NAME = 'connections'
 
+// 自定义错误类
+export class DuplicateConnectionError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'DuplicateConnectionError'
+  }
+}
+
 export default class ConnectionStorage extends BaseStorage {
   constructor() {
     super(STORAGE_NAME, {
@@ -10,8 +18,34 @@ export default class ConnectionStorage extends BaseStorage {
     })
   }
 
+  // 检查是否存在重复连接（协议类型、连接名称、地址、端口都相同）
+  private isDuplicateConnection(conn: any, connections: any[], excludeId?: number): boolean {
+    return connections.some((existing) => {
+      // 排除自身（编辑场景）
+      if (excludeId !== undefined && existing.id === excludeId) {
+        return false
+      }
+      return (
+        existing.connectionType === conn.connectionType &&
+        existing.name === conn.name &&
+        existing.host === conn.host &&
+        existing.port === conn.port
+      )
+    })
+  }
+
   add(conn: any) {
     const connections = this.getAll() as any[]
+
+    // 检查重复连接
+    if (this.isDuplicateConnection(conn, connections)) {
+      const error = new DuplicateConnectionError(
+        `已存在相同的连接：${conn.connectionType} - ${conn.name} (${conn.host}:${conn.port})`
+      )
+      logger.warn(error.message)
+      throw error
+    }
+
     const newId = connections.length ? Math.max(...connections.map((c) => c.id)) + 1 : 1
     const newConn = { id: newId, ...conn }
     connections.push(newConn)
@@ -28,6 +62,15 @@ export default class ConnectionStorage extends BaseStorage {
     if (!con.length) {
       console.log(`con not found`)
       return
+    }
+
+    // 检查重复连接（排除自身）
+    if (this.isDuplicateConnection(conn, connections, conn.id)) {
+      const error = new DuplicateConnectionError(
+        `已存在相同的连接：${conn.connectionType} - ${conn.name} (${conn.host}:${conn.port})`
+      )
+      logger.warn(error.message)
+      throw error
     }
 
     con[0].name = conn.name

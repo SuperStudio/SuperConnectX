@@ -38,14 +38,30 @@ body {
 .el-select .el-select__wrapper {
   height: 36px !important;
   border-radius: 6px !important;
-  border: 1px solid #60a5fa !important;
-  background-color: #cccccc !important;
-  color: #000 !important;
+  border: 1px solid #3c3c3c !important;
+  background-color: #3c3c3c !important;
+  color: #c5c5c5 !important;
 }
 
-.el-select .el-select__wrapper:focus-within {
-  border-color: #60a5fa !important;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5) !important;
+.el-select .el-select__wrapper:focus-within,
+.el-select.is-focused .el-select__wrapper {
+  border-color: #007fd4 !important;
+  box-shadow: 0 0 0 1px #007fd4 inset !important;
+}
+
+/* 输入框样式 */
+.el-input__wrapper {
+  background-color: #3c3c3c !important;
+  box-shadow: 0 0 0 1px #3c3c3c inset !important;
+}
+
+.el-input__wrapper:focus-within,
+.el-input.is-focused .el-input__wrapper {
+  box-shadow: 0 0 0 1px #007fd4 inset !important;
+}
+
+.el-input__inner {
+  color: #c5c5c5 !important;
 }
 
 .el-select .el-select__caret {
