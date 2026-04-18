@@ -252,3 +252,24 @@ div[class*="popper"]::after {
   width: 0 !important;
   height: 0 !important;
 }
+
+/* 移除下拉菜单悬停时的白色边框/outline */
+.el-dropdown-menu__item:hover,
+.el-dropdown-menu__item:focus,
+.el-dropdown__popper:hover,
+.el-dropdown__popper:focus,
+.el-dropdown-menu:hover,
+.el-dropdown-menu:focus,
+.el-popper:hover,
+.el-popper:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* 确保悬停和焦点状态下都没有边框 */
+*:focus,
+*:hover {
+  outline-color: transparent !important;
+  outline: none !important;
+}
