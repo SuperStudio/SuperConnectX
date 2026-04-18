@@ -919,8 +919,8 @@ onMounted(() => loadConnections())
 }
 
 .telnet-tabs :deep(.el-tabs__header .el-tabs__item.is-active .is-icon-close) {
-  opacity: 0 !important;
-  pointer-events: none !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 /* 鼠标悬停时显示关闭按钮 */
