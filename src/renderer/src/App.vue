@@ -44,10 +44,11 @@
                 >
                   <div class="serial-port-content">
                     <div class="serial-port-left">
+                      <span
+                        class="connection-dot"
+                        :class="isSerialPortConnected(port.path) ? 'connected' : 'disconnected'"
+                      ></span>
                       <div class="conn-name">{{ port.path }}</div>
-                      <div class="conn-detail">
-                        <span>{{ getSerialPortStatus(port.path) }}</span>
-                      </div>
                     </div>
                     <div class="serial-port-right">
                       <el-button
@@ -520,11 +521,10 @@ const handleFontSizeChange = (action: string) => {
 }
 
 const getConnectionStatus = (tab: any) => {
-  const tabId = Number(tab.id)
   if (tab.connectionType === 'com') {
-    return comTerminalRefs[tabId]?.isConnected ? 'connected' : 'disconnected'
+    return comTerminalRefs[tab.id]?.isConnected ? 'connected' : 'disconnected'
   }
-  return telnetTerminalRefs[tabId]?.isConnected ? 'connected' : 'disconnected'
+  return telnetTerminalRefs[tab.id]?.isConnected ? 'connected' : 'disconnected'
 }
 
 const toggleConnectionList = () => (showConnectionList.value = !showConnectionList.value)
@@ -735,6 +735,9 @@ onMounted(() => {
 .serial-port-left {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .serial-port-right {
@@ -761,9 +764,8 @@ onMounted(() => {
 
 .conn-name {
   font-size: 16px;
-  font-weight: 1000;
+  font-weight: 600;
   color: #e0e0e0;
-  margin-bottom: 8px;
 }
 
 .conn-detail {
