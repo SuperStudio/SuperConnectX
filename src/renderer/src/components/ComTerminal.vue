@@ -122,7 +122,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="showMoreDialog = false">关闭</el-button>
+        <el-button v-if="isConnected" type="primary" size="small" @click="saveAndReconnect">保存并重连</el-button>
+        <el-button size="small" @click="showMoreDialog = false">{{ isConnected ? '取消' : '关闭' }}</el-button>
       </template>
     </el-dialog>
 
@@ -491,6 +492,14 @@ const reconnect = () => {
   if (!isConnected.value && !isConnecting.value) {
     handleConnect()
   }
+}
+
+const saveAndReconnect = () => {
+  showMoreDialog.value = false
+  handleClose()
+  setTimeout(() => {
+    handleConnect()
+  }, 300)
 }
 
 defineExpose({
