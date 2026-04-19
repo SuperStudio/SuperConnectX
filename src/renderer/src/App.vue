@@ -54,53 +54,75 @@
             </div>
           </div>
 
-          <el-card
-            shadow="never"
-            class="connection-card"
-            v-for="conn in filterConnection"
-            :key="conn.id"
-            @dblclick="connectToServer(conn)"
-          >
-            <div class="connection-info">
-              <div class="conn-name">{{ conn.name }}</div>
-              <div class="conn-detail">
-                <span>协议：{{ conn.connectionType?.toUpperCase() }}</span>
-                <span>地址：{{ conn.host }}:{{ conn.port }}</span>
-                <span v-if="conn.username">用户：{{ conn.username }}</span>
+          <!-- 连接列表 - 按协议分组 -->
+          <div class="connection-groups">
+            <div
+              v-for="(conns, type) in connectionGroups"
+              :key="type"
+              class="connection-group"
+            >
+              <div
+                class="section-header"
+                @click="connectionGroupExpanded[type] = !connectionGroupExpanded[type]"
+              >
+                <span class="section-title">
+                  <el-icon class="expand-icon" :class="{ collapsed: !connectionGroupExpanded[type] }"><ArrowRight /></el-icon>
+                  {{ type.toUpperCase() }} ({{ conns.length }})
+                </span>
+              </div>
+              <div class="connection-group-list" v-show="connectionGroupExpanded[type]">
+                <el-card
+                  shadow="never"
+                  class="connection-card"
+                  v-for="conn in conns"
+                  :key="conn.id"
+                  @dblclick="connectToServer(conn)"
+                >
+                  <div class="connection-info">
+                    <div class="conn-name">{{ conn.name }}</div>
+                    <div class="conn-detail">
+                      <span>地址：{{ conn.host }}:{{ conn.port }}</span>
+                      <span v-if="conn.username">用户：{{ conn.username }}</span>
+                    </div>
+                  </div>
+                  <div class="connection-actions">
+                    <div class="connection-btn">
+                      <el-button
+                        type="text"
+                        class="el-button--primary"
+                        icon="Link"
+                        @click="connectToServer(conn)"
+                        >连接</el-button
+                      >
+                    </div>
+                    <div class="connection-btn">
+                      <el-button
+                        class="el-button--primary"
+                        type="text"
+                        style="color: #cccccc"
+                        icon="edit"
+                        @click="editCreateDialog(conn)"
+                        >编辑</el-button
+                      >
+                    </div>
+                    <div class="connection-btn">
+                      <el-button
+                        type="text"
+                        class="el-button--primary"
+                        icon="Delete"
+                        @click="deleteConnection(conn)"
+                        style="color: #b23f3f"
+                        >删除</el-button
+                      >
+                    </div>
+                  </div>
+                </el-card>
               </div>
             </div>
-            <div class="connection-actions">
-              <div class="connection-btn">
-                <el-button
-                  type="text"
-                  class="el-button--primary"
-                  icon="Link"
-                  @click="connectToServer(conn)"
-                  >连接</el-button
-                >
-              </div>
-              <div class="connection-btn">
-                <el-button
-                  class="el-button--primary"
-                  type="text"
-                  style="color: #cccccc"
-                  icon="edit"
-                  @click="editCreateDialog(conn)"
-                  >编辑</el-button
-                >
-              </div>
-              <div class="connection-btn">
-                <el-button
-                  type="text"
-                  class="el-button--primary"
-                  icon="Delete"
-                  @click="deleteConnection(conn)"
-                  style="color: #b23f3f"
-                  >删除</el-button
-                >
-              </div>
+            <div v-if="Object.keys(connectionGroups).length === 0 && connections.length > 0" class="no-ports-tip">
+              无匹配连接
             </div>
-          </el-card>
+          </div>
         </div>
       </div>
       <div class="terminal-wrapper" :class="{ expanded: !showConnectionList }">
@@ -238,6 +260,21 @@ const filteredSerialPorts = computed(() => {
   if (!searchKeyword.value) return serialPorts.value
   const keyword = searchKeyword.value.toLowerCase()
   return serialPorts.value.filter((port) => port.path.toLowerCase().includes(keyword))
+})
+// 连接分组相关状态
+const connectionGroupExpanded = ref<Record<string, boolean>>({
+  telnet: true,
+  ftp: true,
+  ssh: true
+})
+const connectionGroups = computed(() => {
+  const groups: Record<string, any[]> = {}
+  filterConnection.value.forEach((conn) => {
+    const type = conn.connectionType || 'other'
+    if (!groups[type]) groups[type] = []
+    groups[type].push(conn)
+  })
+  return groups
 })
 const refreshHandler = () => {
   if (activeTabId.value) {
@@ -673,6 +710,20 @@ onMounted(() => {
   font-size: 12px;
   text-align: center;
   padding: 8px 0;
+}
+
+.connection-groups {
+  margin-top: 12px;
+}
+
+.connection-group {
+  margin-bottom: 8px;
+}
+
+.connection-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .el-dialog {
