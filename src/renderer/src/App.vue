@@ -33,35 +33,33 @@
               <div class="connection-group-list" v-show="serialPortExpanded">
                 <el-card
                   shadow="never"
-                  class="connection-card"
+                  class="connection-card serial-port-card"
                   v-for="port in filteredSerialPorts"
                   :key="port.path"
                   @dblclick="connectToSerialPort(port)"
                 >
-                  <div class="connection-info">
-                    <div class="conn-name">{{ port.path }}</div>
-                    <div class="conn-detail">
-                      <span>{{ getSerialPortStatus(port.path) }}</span>
+                  <div class="serial-port-content">
+                    <div class="serial-port-left">
+                      <div class="conn-name">{{ port.path }}</div>
+                      <div class="conn-detail">
+                        <span>{{ getSerialPortStatus(port.path) }}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div class="connection-actions">
-                    <div class="connection-btn">
+                    <div class="serial-port-right">
                       <el-button
                         v-if="!isSerialPortConnected(port.path)"
                         type="text"
-                        class="el-button--primary"
+                        class="el-button--primary serial-port-btn"
                         icon="Link"
                         @click="connectToSerialPort(port)"
-                        >连接</el-button
-                      >
+                      >连接</el-button>
                       <el-button
                         v-else
                         type="text"
-                        class="el-button--danger"
+                        class="el-button--danger serial-port-btn"
                         icon="Close"
                         @click="disconnectSerialPort(port.path)"
-                        >断开</el-button
-                      >
+                      >断开</el-button>
                     </div>
                   </div>
                 </el-card>
@@ -632,6 +630,50 @@ onMounted(() => {
 .connection-card:hover {
   border: 1px solid rgb(64, 158, 255) !important;
   transform: translateY(-2px);
+}
+
+/* 串口卡片样式 */
+.serial-port-card {
+  padding: 0 !important;
+  margin-top: 6px;
+  min-height: auto !important;
+}
+
+.serial-port-card :deep(.el-card__body) {
+  padding: 8px 12px !important;
+}
+
+.serial-port-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.serial-port-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.serial-port-right {
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.serial-port-card:hover .serial-port-right {
+  opacity: 1;
+}
+
+.serial-port-btn {
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+}
+
+.serial-port-card:hover {
+  border: 1px solid #409eff !important;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3) !important;
+  transform: translateY(-1px) !important;
 }
 
 .conn-name {
