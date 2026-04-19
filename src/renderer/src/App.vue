@@ -281,8 +281,8 @@ const showConnectionList = ref(true)
 const lastSentCommand = ref('')
 // 新增选项卡相关状态
 const connectionTabs = ref<any[]>([])
-const telnetTerminalRefs = reactive<Record<number, InstanceType<typeof TelnetTerminal>>>({})
-const comTerminalRefs = reactive<Record<number, InstanceType<typeof ComTerminal>>>({})
+const telnetTerminalRefs = reactive<Record<string, InstanceType<typeof TelnetTerminal>>>({})
+const comTerminalRefs = reactive<Record<string, InstanceType<typeof ComTerminal>>>({})
 const activeTabId = ref('')
 // 串口相关状态
 const serialPorts = ref<SerialPortInfo[]>([])
@@ -310,7 +310,7 @@ const connectionGroups = computed(() => {
 })
 const refreshHandler = () => {
   if (activeTabId.value) {
-    const tabId = Number(activeTabId.value)
+    const tabId = activeTabId.value
     if (comTerminalRefs[tabId]) {
       comTerminalRefs[tabId]?.refreshGroupsCmds?.()
     } else {
@@ -485,7 +485,7 @@ const closeTab = async (tabId) => {
 const switchTab = (tab: any) => {
   activeTabId.value = tab.paneName
   setTimeout(() => {
-    const tabId = Number(tab.paneName)
+    const tabId = tab.paneName
     if (comTerminalRefs[tabId]) {
       comTerminalRefs[tabId]?.refreshLayout?.()
     } else {
@@ -494,13 +494,13 @@ const switchTab = (tab: any) => {
   }, 0)
 }
 
-const handleTerminalClose = async (connId: number) => {
+const handleTerminalClose = async (connId: string | number) => {
   closeTab(connId.toString())
 }
 
 const handleFontChange = (fontFamily: string) => {
   if (activeTabId.value) {
-    const tabId = Number(activeTabId.value)
+    const tabId = activeTabId.value
     if (comTerminalRefs[tabId]) {
       comTerminalRefs[tabId]?.handleFontChange?.(fontFamily)
     } else {
@@ -511,7 +511,7 @@ const handleFontChange = (fontFamily: string) => {
 
 const handleFontSizeChange = (action: string) => {
   if (activeTabId.value) {
-    const tabId = Number(activeTabId.value)
+    const tabId = activeTabId.value
     if (comTerminalRefs[tabId]) {
       comTerminalRefs[tabId]?.handleFontSizeChange?.(action)
     } else {
@@ -561,7 +561,21 @@ const getSerialPortStatus = (path: string) => {
 }
 
 const connectToSerialPort = async (port: SerialPortInfo) => {
-  const sessionId = Date.now() + Math.floor(Math.random() * 1000)
+  // 检查是否已存在该串口的选项卡
+  const existingTab = connectionTabs.value.find((t) => t.comName === port.path && t.connectionType === 'com')
+  if (existingTab) {
+    // 已存在，选中并尝试重连
+    activeTabId.value = existingTab.id
+    // 等待组件渲染完成后调用重连
+    setTimeout(() => {
+      comTerminalRefs[existingTab.id]?.reconnect?.()
+    }, 100)
+    return
+  }
+
+  // 使用串口名称作为 sessionId
+  const sessionId = port.path
+  const newTabId = `com-${sessionId}`
   const newTab = {
     connectionType: 'com',
     name: port.path,
@@ -572,12 +586,12 @@ const connectToSerialPort = async (port: SerialPortInfo) => {
     username: '',
     password: '',
     sessionId: sessionId,
-    id: `com-${sessionId}`
+    id: newTabId
   }
 
   // 直接添加 tab，让 ComTerminal 自己负责连接
   connectionTabs.value.push(newTab)
-  activeTabId.value = newTab.id.toString()
+  activeTabId.value = newTabId
   connectedSerialPorts[port.path] = true
 }
 

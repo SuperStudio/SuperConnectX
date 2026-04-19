@@ -69,20 +69,14 @@ export default class ComClient extends BaseClient {
 
         port.once('error', (err: Error) => {
           logger.error(`serial port open failed: ${err.message}`)
-          reject({
-            success: false,
-            message: err.message || '打开串口失败'
-          })
+          reject(new Error(err.message || '打开串口失败'))
         })
 
         // 打开串口
         port.open((err: Error | null) => {
           if (err) {
             logger.error(`serial port open error: ${err.message}`)
-            reject({
-              success: false,
-              message: err.message || '打开串口失败'
-            })
+            reject(new Error(err.message || '打开串口失败'))
           }
           // 如果成功，'open' 事件会被触发，resolve 会在那里调用
         })

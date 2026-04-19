@@ -453,8 +453,15 @@ const appendCommandToTerminal = (content: string) => {
 
 const refreshGroupsCmds = () => presetCommandsRef.value.refreshGroupsCmds()
 
+const reconnect = () => {
+  if (!isConnected.value && !isConnecting.value) {
+    handleConnect()
+  }
+}
+
 defineExpose({
   refreshGroupsCmds,
+  reconnect,
   isConnected: isConnectedValue
 })
 
