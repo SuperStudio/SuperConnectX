@@ -11,12 +11,16 @@
     <main class="app-main">
       <div class="connection-list-wrapper" :class="{ collapsed: !showConnectionList }">
         <div class="connection-list">
-          <el-button type="primary" class="vscode-btn" icon="Plus" @click="openCreateDialog"
-            >新建连接</el-button
-          >
+          <!-- 固定区域：新建连接 + 搜索 -->
+          <div class="connection-list-fixed">
+            <el-button type="primary" class="vscode-btn" icon="Plus" @click="openCreateDialog"
+              >新建连接</el-button
+            >
+            <SearchInput @search="handleSearch" />
+          </div>
 
-          <SearchInput @search="handleSearch" />
-
+          <!-- 可滚动区域：连接分组列表 -->
+          <div class="connection-list-scroll">
           <!-- 连接列表 - 按协议分组 -->
           <div class="connection-groups">
             <!-- 串口分组 -->
@@ -134,6 +138,7 @@
             <div v-if="Object.keys(connectionGroups).length === 0 && connections.length > 0" class="no-ports-tip">
               无匹配连接
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -599,10 +604,42 @@ onMounted(() => {
 
 .connection-list {
   width: 320px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   border-right: 1px solid #333;
-  padding: 20px;
-  overflow-y: auto;
   background: #252526;
+}
+
+.connection-list-fixed {
+  flex-shrink: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.connection-list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 8px 8px;
+}
+
+.connection-list-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.connection-list-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.connection-list-scroll::-webkit-scrollbar-thumb {
+  background: #464647;
+  border-radius: 4px;
+}
+
+.connection-list-scroll::-webkit-scrollbar-thumb:hover {
+  background: #6f6f70;
 }
 
 .connection-list h3 {
@@ -829,42 +866,6 @@ onMounted(() => {
   transition: padding-left 0.3s ease-in-out;
   height: 100%;
   overflow: auto;
-}
-
-.connection-list {
-  height: 100%;
-  padding: 8px;
-  overflow: auto;
-  box-sizing: border-box;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.connection-list::-webkit-scrollbar {
-  width: 10px !important;
-  height: 6px !important;
-  background: transparent !important;
-}
-
-.connection-list::-webkit-scrollbar-track {
-  background: transparent !important;
-  border-radius: 3px !important;
-}
-
-.connection-list::-webkit-scrollbar-thumb {
-  background: #464647 !important;
-  border-radius: 0px !important;
-  border: 0 !important;
-  transition: background 1s ease !important;
-}
-
-.connection-list::-webkit-scrollbar-thumb:hover {
-  background: #515151 !important;
-  transform: scale(1.05) !important;
-}
-
-.connection-list::-webkit-scrollbar-thumb:active {
-  background: #626263 !important;
 }
 
 .highlight {
