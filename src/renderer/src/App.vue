@@ -18,7 +18,7 @@
           <SearchInput @search="handleSearch" />
 
           <!-- 串口列表 -->
-          <div class="serial-port-section">
+          <div class="serial-port-section" v-if="serialPorts.length > 0">
             <div class="section-header">
               <span class="section-title">串口</span>
               <el-button type="text" icon="Refresh" @click="loadSerialPorts" size="small"
@@ -26,7 +26,7 @@
               >
             </div>
             <div class="serial-port-list">
-              <div class="serial-port-item" v-for="port in serialPorts" :key="port.path">
+              <div class="serial-port-item" v-for="port in filteredSerialPorts" :key="port.path">
                 <span class="serial-port-name">{{ port.path }}</span>
                 <el-button
                   v-if="!isSerialPortConnected(port.path)"
@@ -47,7 +47,7 @@
                   >断开</el-button
                 >
               </div>
-              <div v-if="serialPorts.length === 0" class="no-ports-tip">未检测到串口设备</div>
+              <div v-if="filteredSerialPorts.length === 0" class="no-ports-tip">无匹配串口</div>
             </div>
           </div>
 
@@ -230,6 +230,11 @@ const activeTabId = ref('')
 // 串口相关状态
 const serialPorts = ref<SerialPortInfo[]>([])
 const connectedSerialPorts = ref<Set<string>>(new Set())
+const filteredSerialPorts = computed(() => {
+  if (!searchKeyword.value) return serialPorts.value
+  const keyword = searchKeyword.value.toLowerCase()
+  return serialPorts.value.filter((port) => port.path.toLowerCase().includes(keyword))
+})
 const refreshHandler = () => {
   if (activeTabId.value) {
     telnetTerminalRefs[Number(activeTabId.value)]?.refreshGroupsCmds()
