@@ -231,24 +231,17 @@ const initEditor = async () => {
   editor.updateOptions({ readOnly: true })
 }
 const appendToTerminal = (content: string) => {
-  console.log('ComTerminal appendToTerminal called with:', content.substring(0, 50))
-  if (!editorModel) {
-    console.warn('ComTerminal: editorModel is null')
-    return
-  }
+  if (!editorModel) return
 
   const lastLine = editorModel.getLineCount()
-  console.log('ComTerminal: lastLine =', lastLine)
   let lastCol = 1
   if (lastLine > 0) {
     const lineContent = editorModel.getLineContent(lastLine)
-    console.log('ComTerminal: lastLineContent =', lineContent)
     lastCol = (lineContent ? lineContent.length : 0) + 1
   }
-  console.log('ComTerminal: lastCol =', lastCol)
 
   try {
-    const editResult = editorModel.pushEditOperations(
+    editorModel.pushEditOperations(
       [],
       [
         {
@@ -259,9 +252,8 @@ const appendToTerminal = (content: string) => {
       ],
       () => null
     )
-    console.log('ComTerminal: pushEditOperations result:', editResult)
   } catch (err) {
-    console.error('ComTerminal: pushEditOperations error:', err)
+    console.error('appendToTerminal error:', err)
     return
   }
 
@@ -286,7 +278,6 @@ const scrollToStart = () => {
 
 const handleConnect = async () => {
   isConnecting.value = true
-  console.log('ComTerminal handleConnect called, sessionId:', props.connection.sessionId)
   appendToTerminal(`正在连接 ${props.connection.comName}...\n`)
 
   try {
@@ -301,25 +292,16 @@ const handleConnect = async () => {
       sessionId: props.connection.sessionId
     })
 
-    console.log('ComTerminal handleConnect result:', JSON.stringify(result))
-
     if (result.success) {
       currentSessionId.value = props.connection.sessionId
       isConnected.value = true
       isConnecting.value = false
-      console.log('ComTerminal: about to append 连接成功')
       appendToTerminal(`连接成功!\n`)
-      console.log('ComTerminal: after append 连接成功')
 
       // 注册数据监听
       if (removeDataListener) removeDataListener()
       removeDataListener = window.connectApi.onRecvData((data) => {
-        console.log('ComTerminal onRecvData:', data)
-        // 检查 connId 是否匹配
-        if (data.connId !== currentSessionId.value) {
-          console.log('ComTerminal: connId mismatch', data.connId, '!=', currentSessionId.value)
-          return
-        }
+        if (data.connId !== currentSessionId.value) return
         calcRxSize(data.data.length)
         if (isHexMode.value) {
           const hexStr = data.data.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ')
@@ -333,8 +315,7 @@ const handleConnect = async () => {
       })
 
       if (removeCloseListener) removeCloseListener()
-      removeCloseListener = window.connectApi.onConnectClose((connId) => {
-        console.log('ComTerminal onConnectClose:', connId)
+      removeCloseListener = window.connectApi.onConnectClose(() => {
         handleClose()
       })
 

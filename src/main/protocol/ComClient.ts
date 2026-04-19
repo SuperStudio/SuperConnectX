@@ -51,7 +51,6 @@ export default class ComClient extends BaseClient {
           // 直接监听串口数据，不使用 ReadlineParser
           port.on('data', (data: Buffer) => {
             const dataStr = data.toString('utf8')
-            logger.debug(`ComClient recv data: "${dataStr}", length: ${data.length}`)
             onData?.(dataStr)
           })
 
@@ -65,10 +64,7 @@ export default class ComClient extends BaseClient {
             logger.error(`serial port error: ${err.message}`)
           })
 
-          const result = { success: true, message: '连接成功', connId: sessionId }
-          logger.info(`ComClient about to resolve: ${JSON.stringify(result)}`)
-          resolve(result)
-          logger.info(`ComClient resolve called`)
+          resolve({ success: true, message: '连接成功', connId: sessionId })
         })
 
         port.once('error', (err: Error) => {

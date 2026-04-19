@@ -49,33 +49,20 @@ export default class IpcConnector {
       logger.debug(JSON.stringify(conn))
       _logger.createConnLogFile(conn.sessionId, conn.name)
       const client = this.CONNECT_TYPE_DATA.get(conn.connectionType)
-      logger.info(`IpcConnector: client type = ${conn.connectionType}, client = ${client?.constructor.name}`)
-      try {
-        const result = await client?.start(
-          this.buildConnectInfo(conn),
-          (dataStr) => {
-            logger.debug(`IpcConnector onData: ${dataStr.substring(0, 50)}...`)
-            _logger.writeToConnLog(dataStr, conn.sessionId)
-            if (windows.mainWindow) {
-              windows.mainWindow.webContents.send('on-recv-data', {
-                connId: conn.sessionId,
-                data: dataStr
-              })
-            } else {
-              logger.warn('IpcConnector: windows.mainWindow is null, cannot send data')
-            }
-          },
-          () => {
-            windows.mainWindow?.webContents.send('on-connect-close', conn.sessionId)
-            _logger.flushConnLog(conn.sessionId)
-          }
-        )
-        logger.info(`IpcConnector startConnect result: ${JSON.stringify(result)}`)
-        return result
-      } catch (err) {
-        logger.error(`IpcConnector startConnect error: ${err}`)
-        return { success: false, message: String(err) }
-      }
+      return await client?.start(
+        this.buildConnectInfo(conn),
+        (dataStr) => {
+          _logger.writeToConnLog(dataStr, conn.sessionId)
+          windows.mainWindow?.webContents.send('on-recv-data', {
+            connId: conn.sessionId,
+            data: dataStr
+          })
+        },
+        () => {
+          windows.mainWindow?.webContents.send('on-connect-close', conn.sessionId)
+          _logger.flushConnLog(conn.sessionId)
+        }
+      )
     })
     ipcMain.handle('send-data', async (_, { conn, command }: { conn: any; command: string }) =>
       this.CONNECT_TYPE_DATA.get(conn.connectionType)?.send(conn.sessionId, command, (dataStr) =>
