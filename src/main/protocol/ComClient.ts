@@ -1,5 +1,4 @@
 import { SerialPort } from 'serialport'
-import { ReadlineParser } from '@serialport/parser-readline'
 import logger from '../ipc/IpcAppLogger'
 import BaseClient from './BaseClient'
 import ConnectionInfo from './ConnectionInfo'
@@ -11,7 +10,6 @@ const DEFAULT_PARITY = 'none' as const
 
 interface SerialConnection {
   port: SerialPort
-  parser: ReadlineParser
 }
 
 export default class ComClient extends BaseClient {
@@ -38,29 +36,23 @@ export default class ComClient extends BaseClient {
         baudRate: baudRate,
         dataBits: dataBits,
         stopBits: stopBits,
-        parity: parity
+        parity: parity,
+        autoOpen: false
       })
 
-      const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }))
-
-      return new Promise((resolve) => {
-        port.open((err: Error | null) => {
-          if (err) {
-            logger.error(`serial port open failed: ${err.message}`)
-            resolve({
-              success: false,
-              message: err.message || '打开串口失败'
-            })
-            return
-          }
-
+      return new Promise((resolve, reject) => {
+        // 使用事件监听方式
+        port.once('open', () => {
           logger.info(`serial port opened successfully`)
 
-          const connection: SerialConnection = { port, parser }
+          const connection: SerialConnection = { port }
           this.serialConnections.set(sessionId, connection)
 
-          parser.on('data', (data: string) => {
-            onData?.(data)
+          // 直接监听串口数据，不使用 ReadlineParser
+          port.on('data', (data: Buffer) => {
+            const dataStr = data.toString('utf8')
+            logger.debug(`ComClient recv data: "${dataStr}", length: ${data.length}`)
+            onData?.(dataStr)
           })
 
           port.on('close', () => {
@@ -73,7 +65,30 @@ export default class ComClient extends BaseClient {
             logger.error(`serial port error: ${err.message}`)
           })
 
-          resolve({ success: true, message: '连接成功', connId: sessionId })
+          const result = { success: true, message: '连接成功', connId: sessionId }
+          logger.info(`ComClient about to resolve: ${JSON.stringify(result)}`)
+          resolve(result)
+          logger.info(`ComClient resolve called`)
+        })
+
+        port.once('error', (err: Error) => {
+          logger.error(`serial port open failed: ${err.message}`)
+          reject({
+            success: false,
+            message: err.message || '打开串口失败'
+          })
+        })
+
+        // 打开串口
+        port.open((err: Error | null) => {
+          if (err) {
+            logger.error(`serial port open error: ${err.message}`)
+            reject({
+              success: false,
+              message: err.message || '打开串口失败'
+            })
+          }
+          // 如果成功，'open' 事件会被触发，resolve 会在那里调用
         })
       })
     } catch (error) {

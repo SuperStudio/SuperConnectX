@@ -163,12 +163,22 @@
                 <span class="tab-label">
                   <span
                     class="connection-dot"
-                    :class="telnetTerminalRefs[tab.id]?.isConnected ? 'connected' : 'disconnected'"
+                    :class="getConnectionStatus(tab)"
                   ></span>
-                  <span class="tab-title">{{ tab.name || `${tab.host}:${tab.port}` }}</span>
+                  <span class="tab-title">{{ tab.name || `${tab.host || tab.comName}:${tab.port || ''}` }}</span>
                 </span>
               </template>
+              <ComTerminal
+                v-if="tab.connectionType === 'com'"
+                :connection="tab"
+                :ref="(el) => (comTerminalRefs[tab.id] = el)"
+                :auto-connect="true"
+                @onClose="handleTerminalClose(tab.id)"
+                @commandSent="handleCommandSent"
+                class="telnet-terminal"
+              />
               <TelnetTerminal
+                v-else
                 :connection="tab"
                 :ref="(el) => (telnetTerminalRefs[tab.id] = el)"
                 @onClose="handleTerminalClose(tab.id)"
@@ -250,6 +260,7 @@
 import { ref, onMounted, watch, reactive, computed } from 'vue'
 import { ElMessage, ElForm, ElMessageBox } from 'element-plus'
 import TelnetTerminal from './components/TelnetTerminal.vue'
+import ComTerminal from './components/ComTerminal.vue'
 import CustomTitleBar from './components/CustomTitleBar.vue'
 import SearchInput from './components/SearchInput.vue'
 import ResourceMonitor from './components/ResourceMonitor.vue'
@@ -268,6 +279,7 @@ const lastSentCommand = ref('')
 // 新增选项卡相关状态
 const connectionTabs = ref<any[]>([])
 const telnetTerminalRefs = reactive<Record<number, InstanceType<typeof TelnetTerminal>>>({})
+const comTerminalRefs = reactive<Record<number, InstanceType<typeof ComTerminal>>>({})
 const activeTabId = ref('')
 // 串口相关状态
 const serialPorts = ref<SerialPortInfo[]>([])
@@ -295,7 +307,12 @@ const connectionGroups = computed(() => {
 })
 const refreshHandler = () => {
   if (activeTabId.value) {
-    telnetTerminalRefs[Number(activeTabId.value)]?.refreshGroupsCmds()
+    const tabId = Number(activeTabId.value)
+    if (comTerminalRefs[tabId]) {
+      comTerminalRefs[tabId]?.refreshGroupsCmds?.()
+    } else {
+      telnetTerminalRefs[tabId]?.refreshGroupsCmds()
+    }
   }
 }
 
@@ -465,7 +482,12 @@ const closeTab = async (tabId) => {
 const switchTab = (tab: any) => {
   activeTabId.value = tab.paneName
   setTimeout(() => {
-    telnetTerminalRefs[Number(tab.paneName)]?.refreshLayout()
+    const tabId = Number(tab.paneName)
+    if (comTerminalRefs[tabId]) {
+      comTerminalRefs[tabId]?.refreshLayout?.()
+    } else {
+      telnetTerminalRefs[tabId]?.refreshLayout()
+    }
   }, 0)
 }
 
@@ -475,14 +497,32 @@ const handleTerminalClose = async (connId: number) => {
 
 const handleFontChange = (fontFamily: string) => {
   if (activeTabId.value) {
-    telnetTerminalRefs[Number(activeTabId.value)]?.handleFontChange(fontFamily)
+    const tabId = Number(activeTabId.value)
+    if (comTerminalRefs[tabId]) {
+      comTerminalRefs[tabId]?.handleFontChange?.(fontFamily)
+    } else {
+      telnetTerminalRefs[tabId]?.handleFontChange(fontFamily)
+    }
   }
 }
 
 const handleFontSizeChange = (action: string) => {
   if (activeTabId.value) {
-    telnetTerminalRefs[Number(activeTabId.value)]?.handleFontSizeChange(action)
+    const tabId = Number(activeTabId.value)
+    if (comTerminalRefs[tabId]) {
+      comTerminalRefs[tabId]?.handleFontSizeChange?.(action)
+    } else {
+      telnetTerminalRefs[tabId]?.handleFontSizeChange(action)
+    }
   }
+}
+
+const getConnectionStatus = (tab: any) => {
+  const tabId = Number(tab.id)
+  if (tab.connectionType === 'com') {
+    return comTerminalRefs[tabId]?.isConnected ? 'connected' : 'disconnected'
+  }
+  return telnetTerminalRefs[tabId]?.isConnected ? 'connected' : 'disconnected'
 }
 
 const toggleConnectionList = () => (showConnectionList.value = !showConnectionList.value)
@@ -533,14 +573,10 @@ const connectToSerialPort = async (port: SerialPortInfo) => {
     id: `com-${sessionId}`
   }
 
-  const result = await window.connectApi.startConnect(newTab)
-  if (result.success) {
-    connectedSerialPorts.value.add(port.path)
-    connectionTabs.value.push(newTab)
-    activeTabId.value = newTab.id.toString()
-  } else {
-    ElMessage.error(result.message || '连接失败')
-  }
+  // 直接添加 tab，让 ComTerminal 自己负责连接
+  connectionTabs.value.push(newTab)
+  activeTabId.value = newTab.id.toString()
+  connectedSerialPorts.value.add(port.path)
 }
 
 const disconnectSerialPort = async (path: string) => {
