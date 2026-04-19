@@ -1,9 +1,10 @@
-import { BrowserWindow, ipcMain } from 'electron'
+import { BrowserWindow } from 'electron'
 import ProtocolLogger from './utils/ProtocolLogger'
 import IpcStorage from './ipc/IpcStorage'
 import IpcConnector from './ipc/IpcConnector'
 import IpcWindow from './ipc/IpcWindow'
 import IpcTools from './ipc/IpcTools'
+import IpcSerialPort from './ipc/IpcSerialPort'
 import IpcMain from './ipc/IpcMain'
 import logger from './ipc/IpcAppLogger'
 
@@ -16,5 +17,6 @@ IpcStorage.getInstance().init()
 IpcConnector.getInstance().init(protocolLogger, windows)
 IpcWindow.getInstance().init(windows)
 IpcTools.getInstance().init(windows)
+IpcSerialPort.getInstance().init(protocolLogger, windows)
 IpcMain.getInstance().init(protocolLogger, windows)
 logger.info(`======== start superconnect-x ok ========`)

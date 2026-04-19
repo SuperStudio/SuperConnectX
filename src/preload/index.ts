@@ -39,7 +39,8 @@ contextBridge.exposeInMainWorld('connectApi', {
     ipcRenderer.on('on-connect-close', listener)
     return () => ipcRenderer.removeListener('on-connect-close', listener)
   },
-  openConnectLog: (sessionId: string) => ipcRenderer.invoke('open-connect-log', sessionId)
+  openConnectLog: (sessionId: string) => ipcRenderer.invoke('open-connect-log', sessionId),
+  listSerialPorts: () => ipcRenderer.invoke('list-serial-ports')
 })
 
 contextBridge.exposeInMainWorld('dialogApi', {
@@ -62,6 +63,17 @@ contextBridge.exposeInMainWorld('toolApi', {
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   openAppDir: () => ipcRenderer.invoke('open-app-dir')
 })
+
+interface SerialPortInfo {
+  path: string
+  manufacturer?: string
+  serialNumber?: string
+  pnpId?: string
+  locationId?: string
+  friendlyName?: string
+  vendorId?: string
+  productId?: string
+}
 
 declare global {
   interface Window {
@@ -91,6 +103,7 @@ declare global {
       onRecvData: (callback: (data: { connId: number; data: string }) => void) => () => void
       onConnectClose: (callback: (connId: number) => void) => () => void
       openConnectLog: (sessionId: string) => Promise<{ success: boolean; message?: string }>
+      listSerialPorts: () => Promise<SerialPortInfo[]>
     }
     windowApi: {
       minimizeWindow: () => Promise<void>

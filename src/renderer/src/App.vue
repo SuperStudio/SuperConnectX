@@ -15,7 +15,41 @@
             >新建连接</el-button
           >
 
-          <SearchInput @search="handleSearch" v-if="filterConnection.length >= 2" />
+          <SearchInput @search="handleSearch" />
+
+          <!-- 串口列表 -->
+          <div class="serial-port-section">
+            <div class="section-header">
+              <span class="section-title">串口</span>
+              <el-button type="text" icon="Refresh" @click="loadSerialPorts" size="small"
+                >刷新</el-button
+              >
+            </div>
+            <div class="serial-port-list">
+              <div class="serial-port-item" v-for="port in serialPorts" :key="port.path">
+                <span class="serial-port-name">{{ port.path }}</span>
+                <el-button
+                  v-if="!isSerialPortConnected(port.path)"
+                  type="text"
+                  class="el-button--primary"
+                  icon="Link"
+                  size="small"
+                  @click="connectToSerialPort(port)"
+                  >连接</el-button
+                >
+                <el-button
+                  v-else
+                  type="text"
+                  class="el-button--danger"
+                  icon="Close"
+                  size="small"
+                  @click="disconnectSerialPort(port.path)"
+                  >断开</el-button
+                >
+              </div>
+              <div v-if="serialPorts.length === 0" class="no-ports-tip">未检测到串口设备</div>
+            </div>
+          </div>
 
           <el-card
             shadow="never"
@@ -193,6 +227,9 @@ const lastSentCommand = ref('')
 const connectionTabs = ref<any[]>([])
 const telnetTerminalRefs = reactive<Record<number, InstanceType<typeof TelnetTerminal>>>({})
 const activeTabId = ref('')
+// 串口相关状态
+const serialPorts = ref<SerialPortInfo[]>([])
+const connectedSerialPorts = ref<Set<string>>(new Set())
 const refreshHandler = () => {
   if (activeTabId.value) {
     telnetTerminalRefs[Number(activeTabId.value)]?.refreshGroupsCmds()
@@ -400,7 +437,61 @@ watch([() => connections.value, () => searchKeyword.value], () => filtereList(),
   deep: true
 })
 
-onMounted(() => loadConnections())
+// 串口相关函数
+const loadSerialPorts = async () => {
+  try {
+    const ports = await window.connectApi.listSerialPorts()
+    serialPorts.value = ports
+    console.log('已扫描串口:', ports)
+  } catch (error) {
+    console.error('扫描串口失败:', error)
+    serialPorts.value = []
+  }
+}
+
+const isSerialPortConnected = (path: string) => connectedSerialPorts.value.has(path)
+
+const connectToSerialPort = async (port: SerialPortInfo) => {
+  const sessionId = Date.now() + Math.floor(Math.random() * 1000)
+  const newTab = {
+    connectionType: 'com',
+    name: port.path,
+    comName: port.path,
+    baudRate: 9600,
+    host: '',
+    port: 0,
+    username: '',
+    password: '',
+    sessionId: sessionId,
+    id: `com-${sessionId}`
+  }
+
+  const result = await window.connectApi.startConnect(newTab)
+  if (result.success) {
+    connectedSerialPorts.value.add(port.path)
+    connectionTabs.value.push(newTab)
+    activeTabId.value = newTab.id.toString()
+  } else {
+    ElMessage.error(result.message || '连接失败')
+  }
+}
+
+const disconnectSerialPort = async (path: string) => {
+  const tab = connectionTabs.value.find((t) => t.comName === path && t.connectionType === 'com')
+  if (tab) {
+    await window.connectApi.stopConnect(tab)
+    connectedSerialPorts.value.delete(path)
+    connectionTabs.value = connectionTabs.value.filter((t) => t.sessionId !== tab.sessionId)
+    if (activeTabId.value === tab.id.toString() && connectionTabs.value.length > 0) {
+      activeTabId.value = connectionTabs.value[connectionTabs.value.length - 1].id.toString()
+    }
+  }
+}
+
+onMounted(() => {
+  loadConnections()
+  loadSerialPorts()
+})
 </script>
 
 <style scoped>
@@ -506,6 +597,54 @@ onMounted(() => loadConnections())
 
 .connection-actions button {
   margin-left: 8px;
+}
+
+.serial-port-section {
+  margin-top: 12px;
+  padding: 10px;
+  background: #2d2d2d;
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.serial-port-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.serial-port-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: #333;
+  border-radius: 4px;
+}
+
+.serial-port-name {
+  font-size: 13px;
+  color: #e0e0e0;
+}
+
+.no-ports-tip {
+  color: #888;
+  font-size: 12px;
+  text-align: center;
+  padding: 8px 0;
 }
 
 .el-dialog {

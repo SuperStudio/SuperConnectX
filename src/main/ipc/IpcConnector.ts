@@ -4,13 +4,15 @@ import BaseClient from '../protocol/BaseClient'
 import { ipcMain } from 'electron'
 import logger from './IpcAppLogger'
 import FtpClient from '../protocol/FtpClient'
+import ComClient from '../protocol/ComClient'
 
 export default class IpcConnector {
   private static sInstance: IpcConnector
 
   private CONNECT_TYPE_DATA = new Map<string, BaseClient>([
     ['telnet', new TelnetClient()],
-    ['ftp', new FtpClient()]
+    ['ftp', new FtpClient()],
+    ['com', new ComClient()]
   ])
 
   constructor() {}
@@ -29,7 +31,13 @@ export default class IpcConnector {
       port: conn.port,
       username: conn.username,
       password: conn.password,
-      sessionId: conn.sessionId
+      sessionId: conn.sessionId,
+      // 串口参数
+      comName: conn.comName,
+      baudRate: conn.baudRate,
+      dataBits: conn.dataBits,
+      stopBits: conn.stopBits,
+      parity: conn.parity
     }
 
     return connInfo
