@@ -6,7 +6,7 @@ import { printAppInfo } from '../utils/PrintAppInfo'
 import fs from 'fs'
 import path from 'path'
 
-app.isQuitting = false
+(app as any).isQuitting = false
 let isQuitting = false
 
 const packageJsonPath = path.join(app.getAppPath(), 'package.json')
@@ -100,7 +100,7 @@ export default class IpcMain {
     app.on('window-all-closed', async () => {
       if (isQuitting) return
       isQuitting = true
-      app.isQuitting = true
+      ;(app as any).isQuitting = true
 
       _logger.flush()
 
@@ -111,10 +111,10 @@ export default class IpcMain {
       }, 300)
     })
 
-    app.on('before-quit', (event) => {
+    app.on('before-quit', (_event) => {
       if (isQuitting) return
       isQuitting = true
-      app.isQuitting = true
+      ;(app as any).isQuitting = true
       _logger.flush()
     })
 
@@ -122,7 +122,7 @@ export default class IpcMain {
     process.on('SIGINT', () => {
       if (isQuitting) return
       isQuitting = true
-      app.isQuitting = true
+      ;(app as any).isQuitting = true
 
       _logger.flush()
       process.exit(0)
@@ -131,7 +131,7 @@ export default class IpcMain {
     process.on('SIGTERM', () => {
       if (isQuitting) return
       isQuitting = true
-      app.isQuitting = true
+      ;(app as any).isQuitting = true
 
       _logger.flush()
       process.exit(0)

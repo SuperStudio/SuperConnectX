@@ -172,18 +172,18 @@
               <ComTerminal
                 v-if="tab.connectionType === 'com'"
                 :connection="tab"
-                :ref="(el) => (comTerminalRefs[tab.id] = el)"
+                :ref="(el: any) => { if (el) comTerminalRefs[tab.id] = el as any }"
                 :auto-connect="true"
                 @onClose="handleTerminalClose(tab.id)"
                 @commandSent="handleCommandSent"
-                @onConnect="(sessionId) => { if (tab.comName) connectedSerialPorts[tab.comName] = true }"
-                @onDisconnect="(sessionId) => { if (tab.comName) delete connectedSerialPorts[tab.comName] }"
+                @onConnect="(_sessionId: any) => { if (tab.comName) connectedSerialPorts[tab.comName] = true }"
+                @onDisconnect="(_sessionId: any) => { if (tab.comName) delete connectedSerialPorts[tab.comName] }"
                 class="telnet-terminal"
               />
               <TelnetTerminal
                 v-else
                 :connection="tab"
-                :ref="(el) => (telnetTerminalRefs[tab.id] = el)"
+                :ref="(el: any) => { if (el) telnetTerminalRefs[tab.id] = el as any }"
                 @onClose="handleTerminalClose(tab.id)"
                 @commandSent="handleCommandSent"
                 class="telnet-terminal"
@@ -267,7 +267,6 @@ import ComTerminal from './components/ComTerminal.vue'
 import CustomTitleBar from './components/CustomTitleBar.vue'
 import SearchInput from './components/SearchInput.vue'
 import ResourceMonitor from './components/ResourceMonitor.vue'
-import FormUtils from './utils/FormUtils'
 import TelnetInfo from './entity/protocol/TelnetInfo'
 
 const searchKeyword = ref('')
@@ -276,13 +275,12 @@ const connections = ref<any[]>([])
 const isCreateDialogOpen = ref(false)
 const connFormRef = ref<InstanceType<typeof ElForm> | null>(null)
 const newConnForm = reactive(TelnetInfo.build())
-const activeConnection = ref<any>(null)
 const showConnectionList = ref(true)
 const lastSentCommand = ref('')
 // 新增选项卡相关状态
 const connectionTabs = ref<any[]>([])
-const telnetTerminalRefs = reactive<Record<string, InstanceType<typeof TelnetTerminal>>>({})
-const comTerminalRefs = reactive<Record<string, InstanceType<typeof ComTerminal>>>({})
+const telnetTerminalRefs = reactive<Record<string, any>>({})
+const comTerminalRefs = reactive<Record<string, any>>({})
 const activeTabId = ref('')
 // 串口相关状态
 const serialPorts = ref<SerialPortInfo[]>([])
@@ -338,13 +336,9 @@ const handleProtocolChange = (value) => {
       newConnForm.port = 23 // Telnet默认23
       break
     default:
-      newConnForm.port = '' // 其他协议清空端口
+      newConnForm.port = 0 // 其他协议清空端口
       break
   }
-}
-
-const generateSessionId = () => {
-  return Date.now() + Math.floor(Math.random() * 10000).toString()
 }
 
 const filtereList = () => {
@@ -555,10 +549,6 @@ const loadSerialPorts = async () => {
 }
 
 const isSerialPortConnected = (path: string) => !!connectedSerialPorts[path]
-
-const getSerialPortStatus = (path: string) => {
-  return isSerialPortConnected(path) ? '已连接' : '未连接'
-}
 
 const connectToSerialPort = async (port: SerialPortInfo) => {
   // 检查是否已存在该串口的选项卡

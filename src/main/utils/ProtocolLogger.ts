@@ -166,7 +166,7 @@ export default class ProtocolLogger {
         await fs.writeFile(logFilePath, '', 'utf-8')
       }
 
-      if (shell && !app.isQuitting) {
+      if (shell && !(app as any).isQuitting) {
         await shell.showItemInFolder(logFilePath)
       }
       return { success: true, message: '' }
@@ -187,7 +187,7 @@ export default class ProtocolLogger {
         return { success: false, message: '日志目录不存在' }
       }
 
-      if (shell && !app.isQuitting) {
+      if (shell && !(app as any).isQuitting) {
         await shell.openPath(this.logDir)
       }
       return { success: true, message: '' }

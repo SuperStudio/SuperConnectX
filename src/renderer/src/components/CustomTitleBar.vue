@@ -161,7 +161,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { defineEmits, defineProps } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getSystemFonts, formatFontName } from '../utils/FontDetector'
 
@@ -172,7 +171,7 @@ const showHelpMenu = ref(false)
 // 字体子菜单状态
 const showFontSubmenu = ref(false)
 const fontsLoaded = ref(false)
-const systemFonts = ref([])
+const systemFonts = ref<string[]>([])
 const emit = defineEmits([
   'toggle-connection-list',
   'refreshCommands',
@@ -200,29 +199,12 @@ const hideFileMenu = () => {
   }, 200)
 }
 
-const hideEditMenu = () => {
-  setTimeout(() => {
-    showEditMenu.value = false
-  }, 200)
-}
-
 const hideHelpMenu = () => {
   setTimeout(() => {
     showHelpMenu.value = false
   }, 200)
 }
 
-const handleNewWindow = () => {
-  showFileMenu.value = false
-}
-
-const handleImport = () => {
-  showFileMenu.value = false
-}
-
-const handleExport = () => {
-  showFileMenu.value = false
-}
 const importCmd = async () => {
   try {
     const result = await window.dialogApi.openFileDialog({
@@ -281,10 +263,6 @@ const openAppDir = async () => {
 
 const handleExit = () => {
   window.windowApi.closeWindow()
-}
-
-const handleUndo = () => {
-  showEditMenu.value = false
 }
 
 const handleAbout = () => {

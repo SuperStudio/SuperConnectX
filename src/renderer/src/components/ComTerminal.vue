@@ -181,6 +181,10 @@ const props = withDefaults(defineProps<{
     stopBits?: number
     parity?: string
     name?: string
+    host?: string
+    port?: number
+    username?: string
+    password?: string
     sessionId: string
   }
   autoConnect?: boolean
@@ -194,7 +198,7 @@ const MAX_CLEAR_INTERVAL_SIZE = 1024 * 1024 * 30
 const currentCommand = ref('')
 const rxBytes = ref('0 B')
 const txBytes = ref('0 B')
-const commandInput = ref<HTMLInputElement>(null)
+const commandInput = ref<HTMLInputElement | null>(null)
 const isConnected = ref(false)
 const isConnecting = ref(false)
 const isPinned = ref(false)
@@ -205,7 +209,6 @@ const encoding = ref('utf8')
 const readTimeout = ref(0)
 const writeTimeout = ref(0)
 const editorContainer = ref<HTMLElement | null>(null)
-const output = ref('')
 
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 let editorModel: monaco.editor.ITextModel | null = null
@@ -333,7 +336,7 @@ const handleConnect = async () => {
       // 注册数据监听
       if (removeDataListener) removeDataListener()
       removeDataListener = window.connectApi.onRecvData((data) => {
-        if (data.connId !== currentSessionId.value) return
+        if (String(data.connId) !== String(currentSessionId.value)) return
         calcRxSize(data.data.length)
         if (isHexMode.value) {
           const hexStr = data.data.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ')
@@ -398,9 +401,8 @@ const sendCommand = async () => {
   currentCommand.value = ''
   commandInput.value?.focus()
 
-  let displayData = sendData
   if (isHexMode.value) {
-    displayData = sendData.replace(/[^0-9a-fA-F\s]/g, '')
+    sendData = sendData.replace(/[^0-9a-fA-F\s]/g, '')
   }
 
   appendToTerminal(`[TX] ${sendData}\n`)
@@ -456,11 +458,16 @@ const saveLog = async () => {
   if (!editorModel) return
   const content = editorModel.getValue()
   try {
-    const result = await window.toolApi.saveFile({
+    const result = await window.dialogApi.saveFileDialog({
+      title: '保存日志',
       defaultPath: `com_${props.connection.comName}_${Date.now()}.log`,
-      content: content
+      filters: [{ name: '日志文件', extensions: ['log', 'txt'] }]
     })
-    if (result.success) {
+    if (result.filePath) {
+      await window.toolApi.writeFile({
+        path: result.filePath,
+        content: content
+      })
       ElMessage.success('日志保存成功')
     }
   } catch (error) {
@@ -486,7 +493,7 @@ const appendCommandToTerminal = (content: string) => {
   commandInput.value?.focus()
 }
 
-const refreshGroupsCmds = () => presetCommandsRef.value.refreshGroupsCmds()
+const refreshGroupsCmds = () => presetCommandsRef.value?.refreshGroupsCmds?.()
 
 const reconnect = () => {
   if (!isConnected.value && !isConnecting.value) {

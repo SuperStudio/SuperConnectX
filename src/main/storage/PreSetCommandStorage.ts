@@ -95,8 +95,9 @@ export default class PreSetCommandStorage extends BaseStorage {
       fs.writeFileSync(filePath, JSON.stringify(exportData, null, 2), 'utf8')
       return { success: true, count: commands.length }
     } catch (error) {
-      logger.error(`export commands error: ${error}`)
-      return { success: false, message: error.message }
+      const err = error as Error
+      logger.error(`export commands error: ${err.message}`)
+      return { success: false, message: err.message }
     }
   }
 
@@ -179,8 +180,9 @@ export default class PreSetCommandStorage extends BaseStorage {
         skipped: skippedCount
       }
     } catch (error) {
-      logger.error(`import commands error: ${error}`)
-      return { success: false, message: error }
+      const err = error as Error
+      logger.error(`import commands error: ${err.message}`)
+      return { success: false, message: err.message }
     }
   }
 }

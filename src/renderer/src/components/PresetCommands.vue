@@ -212,7 +212,12 @@ const loopStatus = ref<Record<number, boolean>>({})
 const presetRules = FormUtils.buildPresetCmd()
 const presetFormRef = ref<InstanceType<typeof ElForm> | null>(null)
 const nameInputRef = ref<InstanceType<typeof ElInput> | null>(null)
-const presetForm = ref({
+const presetForm = ref<{
+  name: string
+  command: string
+  delay: number
+  groupId: number | null
+}>({
   name: '',
   command: '',
   delay: 0,
@@ -224,8 +229,8 @@ const props = defineProps<{
   isConnected: boolean
   connection: {
     id: number
-    host: string
-    port: number
+    host?: string
+    port?: number
     name?: string
     connectionType?: string
     sessionId: string
@@ -366,7 +371,8 @@ const editGroup = (group: any) => {
   currentEditingGroup.value = group
   groupForm.value = {
     name: group.name,
-    connectionType: group.connectionType
+    connectionType: group.connectionType,
+    copyFromGroupId: null
   }
   isGroupDialogOpen.value = true
 }

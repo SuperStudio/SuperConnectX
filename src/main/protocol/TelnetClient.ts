@@ -7,8 +7,14 @@ const DEFAULT_TELNET_PORT = 23
 const DEFAULT_TIMOUT_MS = 10 * 1000
 const DEFAULT_TERMINAL_TYPE = 'vt100' /* cmd 中默认常用 vt100 */
 
+interface TelnetConnectionInfo {
+  host: string
+  port: number
+}
+
 export default class TelnetClient extends BaseClient {
   telnetConnections = new Map<string, Telnet>()
+  connectionInfos = new Map<string, TelnetConnectionInfo>()
 
   async start(info: ConnectionInfo, onData: any, onClose: any): Promise<object> {
     const host = info.host
@@ -31,6 +37,7 @@ export default class TelnetClient extends BaseClient {
 
       await connection.connect(params)
       this.telnetConnections.set(sessionId, connection)
+      this.connectionInfos.set(sessionId, { host, port: port || DEFAULT_TELNET_PORT })
       connection.on('data', (data) => onData?.(String(data)))
       connection.on('close', () => {
         this.telnetConnections.delete(sessionId)
@@ -71,11 +78,13 @@ export default class TelnetClient extends BaseClient {
 
   async disconnect(connId: string): Promise<object> {
     const connection = this.telnetConnections.get(connId)
+    const info = this.connectionInfos.get(connId)
     if (connection) {
-      logger.info(`disconnect: ${connection.opts?.host}:${connection.opts?.port}`)
-      logger.debug(JSON.stringify(connection.opts))
+      logger.info(`disconnect: ${info?.host}:${info?.port}`)
+      logger.debug(JSON.stringify(info))
       connection.destroy()
       this.telnetConnections.delete(connId)
+      this.connectionInfos.delete(connId)
     } else {
       console.warn('not find connId:', connId)
     }

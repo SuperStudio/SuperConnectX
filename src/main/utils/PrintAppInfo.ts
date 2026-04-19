@@ -26,7 +26,7 @@ export const printAppInfo = (mainWindow?: BrowserWindow) => {
     appName: app.getName(),
     appVersion: app.getVersion(),
     packageVersion: packageJson.version,
-    vueVersion: packageJson.dependencies?.vue?.replace(/^\^|~/, ''),
+    vueVersion: (packageJson.dependencies as any)?.vue?.replace(/^\^|~/, '') || 'unknown',
     electronVersion: process.versions?.electron,
     nodeVersion: process.versions?.node,
     chromeVersion: process.versions?.chrome,

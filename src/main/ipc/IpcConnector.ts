@@ -3,7 +3,6 @@ import ConnectionInfo from '../protocol/ConnectionInfo'
 import BaseClient from '../protocol/BaseClient'
 import { ipcMain } from 'electron'
 import logger from './IpcAppLogger'
-import FtpClient from '../protocol/FtpClient'
 import ComClient from '../protocol/ComClient'
 
 export default class IpcConnector {
@@ -11,7 +10,6 @@ export default class IpcConnector {
 
   private CONNECT_TYPE_DATA = new Map<string, BaseClient>([
     ['telnet', new TelnetClient()],
-    ['ftp', new FtpClient()],
     ['com', new ComClient()]
   ])
 

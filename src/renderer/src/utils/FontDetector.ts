@@ -3,7 +3,7 @@ const isPageVisible = () => {
 }
 
 const waitForPageVisible = () => {
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     if (isPageVisible()) {
       resolve()
     } else {
@@ -18,8 +18,8 @@ const waitForPageVisible = () => {
   })
 }
 
-export const formatFontName = (fontName) => {
-  const fontNameMap = {
+export const formatFontName = (fontName: string) => {
+  const fontNameMap: Record<string, string> = {
     SimSun: '宋体',
     SimHei: '黑体',
     'Microsoft YaHei': '微软雅黑',
@@ -37,7 +37,7 @@ export const formatFontName = (fontName) => {
   return fontNameMap[fontName] || fontName
 }
 
-export const getSystemFonts = async () => {
+export const getSystemFonts = async (): Promise<string[]> => {
   const defaultFonts = [
     'Consolas',
     'Fira Code',
@@ -61,9 +61,10 @@ export const getSystemFonts = async () => {
 
   try {
     await waitForPageVisible()
-    const localFonts = await window.queryLocalFonts()
-    const fontNames = [...new Set(localFonts.map((font) => font.family))]
-    return [...new Set([...fontNames, ...defaultFonts])].sort()
+    // @ts-ignore - queryLocalFonts 是 Chrome 特有的 API
+    const localFonts = await (window as any).queryLocalFonts()
+    const fontNames = [...new Set<string>(localFonts.map((font: any) => font.family))]
+    return [...new Set<string>([...fontNames, ...defaultFonts])].sort()
   } catch (error) {
     console.error('获取系统字体失败：', error)
     return defaultFonts

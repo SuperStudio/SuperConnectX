@@ -5,14 +5,14 @@ import path from 'path'
 
 const SAVE_DIR_NAME = 'userdata'
 
-export default class BaseStorage {
-  storageData: Store
+export default class BaseStorage<T = any> {
+  storageData: Store<any>
 
   storageName: string
 
-  constructor(storeName, defaultData) {
+  constructor(storeName: string, defaultData: any) {
     this.storageName = storeName
-    this.storageData = new Store({
+    this.storageData = new Store<any>({
       name: storeName,
       cwd: this.getAppUserDataPath(),
       defaults: defaultData
@@ -34,17 +34,17 @@ export default class BaseStorage {
     return userDataPath
   }
 
-  getAll() {
-    return this.storageData.get(this.storageName) || []
+  getAll(): T[] {
+    return (this.storageData.get(this.storageName) as T[]) || []
   }
 
-  saveAll(data: never[]) {
+  saveAll(data: T[]) {
     this.storageData.set(this.storageName, data)
   }
 
-  add(data: any) {}
+  add(_data: T) {}
 
-  update(data: any) {}
+  update(_data: T) {}
 
-  delete(id: number) {}
+  delete(_id: number) {}
 }

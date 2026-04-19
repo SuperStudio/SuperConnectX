@@ -34,7 +34,7 @@ export default class IpcSerialPort {
     }
   }
 
-  init(_logger, windows): void {
+  init(_logger: any, _windows: any): void {
     ipcMain.handle('list-serial-ports', async () => {
       return await this.listSerialPorts()
     })

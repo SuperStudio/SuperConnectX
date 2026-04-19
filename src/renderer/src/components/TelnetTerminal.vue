@@ -25,7 +25,6 @@
           size="small"
           class="clear-btn"
           @click="clearTerminal"
-          :disabled="output === ''"
         >
           清空屏幕
         </el-button>
@@ -137,7 +136,7 @@ const props = defineProps<{
 
 const currentCommand = ref('')
 const recvDataSize = ref('')
-const commandInput = ref<HTMLInputElement>(null)
+const commandInput = ref<HTMLInputElement | null>(null)
 const isConnected = ref(true)
 const isConnecting = ref(false)
 let removeDataListener: (() => void) | null = null
@@ -480,7 +479,7 @@ const appendCommandToTerminal = (content: string) => {
   commandInput.value?.focus()
 }
 
-const refreshGroupsCmds = () => presetCommandsRef.value.refreshGroupsCmds()
+const refreshGroupsCmds = () => presetCommandsRef.value?.refreshGroupsCmds?.()
 
 const autoScrollChange = (autoScroll) => {
   if (autoScroll) {
