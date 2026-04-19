@@ -17,45 +17,59 @@
 
           <SearchInput @search="handleSearch" />
 
-          <!-- 串口列表 -->
-          <div class="serial-port-section" v-if="serialPorts.length > 0">
-            <div class="section-header" @click="serialPortExpanded = !serialPortExpanded">
-              <span class="section-title">
-                <el-icon class="expand-icon" :class="{ collapsed: !serialPortExpanded }"><ArrowRight /></el-icon>
-                串口 ({{ filteredSerialPorts.length }})
-              </span>
-              <el-button type="text" icon="Refresh" @click.stop="loadSerialPorts" size="small"
-                >刷新</el-button
-              >
-            </div>
-            <div class="serial-port-list" v-show="serialPortExpanded">
-              <div class="serial-port-item" v-for="port in filteredSerialPorts" :key="port.path">
-                <span class="serial-port-name">{{ port.path }}</span>
-                <el-button
-                  v-if="!isSerialPortConnected(port.path)"
-                  type="text"
-                  class="el-button--primary"
-                  icon="Link"
-                  size="small"
-                  @click="connectToSerialPort(port)"
-                  >连接</el-button
-                >
-                <el-button
-                  v-else
-                  type="text"
-                  class="el-button--danger"
-                  icon="Close"
-                  size="small"
-                  @click="disconnectSerialPort(port.path)"
-                  >断开</el-button
-                >
-              </div>
-              <div v-if="filteredSerialPorts.length === 0" class="no-ports-tip">无匹配串口</div>
-            </div>
-          </div>
-
           <!-- 连接列表 - 按协议分组 -->
           <div class="connection-groups">
+            <!-- 串口分组 -->
+            <div class="connection-group" v-if="serialPorts.length > 0">
+              <div class="section-header" @click="serialPortExpanded = !serialPortExpanded">
+                <span class="section-title">
+                  <el-icon class="expand-icon" :class="{ collapsed: !serialPortExpanded }"><ArrowRight /></el-icon>
+                  COM ({{ filteredSerialPorts.length }})
+                </span>
+                <el-button type="text" icon="Refresh" @click.stop="loadSerialPorts" size="small"
+                  >刷新</el-button
+                >
+              </div>
+              <div class="connection-group-list" v-show="serialPortExpanded">
+                <el-card
+                  shadow="never"
+                  class="connection-card"
+                  v-for="port in filteredSerialPorts"
+                  :key="port.path"
+                  @dblclick="connectToSerialPort(port)"
+                >
+                  <div class="connection-info">
+                    <div class="conn-name">{{ port.path }}</div>
+                    <div class="conn-detail">
+                      <span>{{ getSerialPortStatus(port.path) }}</span>
+                    </div>
+                  </div>
+                  <div class="connection-actions">
+                    <div class="connection-btn">
+                      <el-button
+                        v-if="!isSerialPortConnected(port.path)"
+                        type="text"
+                        class="el-button--primary"
+                        icon="Link"
+                        @click="connectToSerialPort(port)"
+                        >连接</el-button
+                      >
+                      <el-button
+                        v-else
+                        type="text"
+                        class="el-button--danger"
+                        icon="Close"
+                        @click="disconnectSerialPort(port.path)"
+                        >断开</el-button
+                      >
+                    </div>
+                  </div>
+                </el-card>
+                <div v-if="filteredSerialPorts.length === 0" class="no-ports-tip">无匹配串口</div>
+              </div>
+            </div>
+
+            <!-- 其他协议分组 -->
             <div
               v-for="(conns, type) in connectionGroups"
               :key="type"
@@ -497,6 +511,10 @@ const loadSerialPorts = async () => {
 
 const isSerialPortConnected = (path: string) => connectedSerialPorts.value.has(path)
 
+const getSerialPortStatus = (path: string) => {
+  return isSerialPortConnected(path) ? '已连接' : '未连接'
+}
+
 const connectToSerialPort = async (port: SerialPortInfo) => {
   const sessionId = Date.now() + Math.floor(Math.random() * 1000)
   const newTab = {
@@ -645,14 +663,6 @@ onMounted(() => {
   margin-left: 8px;
 }
 
-.serial-port-section {
-  margin-top: 12px;
-  padding: 10px;
-  background: #2d2d2d;
-  border-radius: 8px;
-  border: 1px solid #3a3a3a;
-}
-
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -683,26 +693,6 @@ onMounted(() => {
 
 .expand-icon:not(.collapsed) {
   transform: rotate(90deg);
-}
-
-.serial-port-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.serial-port-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
-  background: #333;
-  border-radius: 4px;
-}
-
-.serial-port-name {
-  font-size: 13px;
-  color: #e0e0e0;
 }
 
 .no-ports-tip {
