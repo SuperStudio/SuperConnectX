@@ -51,8 +51,9 @@
           size="small"
           class="reconnect-btn toggle-btn"
           @click="handleReconnect"
+          :disabled="isConnecting"
         >
-          重连
+          {{ isConnecting ? '连接中...' : '重连' }}
         </el-button>
       </div>
     </div>
@@ -138,6 +139,7 @@ const currentCommand = ref('')
 const recvDataSize = ref('')
 const commandInput = ref<HTMLInputElement>(null)
 const isConnected = ref(true)
+const isConnecting = ref(false)
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
 let currentConnId = 0
@@ -353,6 +355,7 @@ const connect = async () => {
   stopRetry.value = false
   retryCount = 0
   isConnected.value = false
+  isConnecting.value = true
   currentConnId = 0
   recvDataSize.value = ''
   allRecvSize = 0
@@ -361,6 +364,7 @@ const connect = async () => {
   const attemptConnect = async () => {
     if (stopRetry.value) {
       console.log(`\n已手动停止重连，终止尝试\n`)
+      isConnecting.value = false
       return
     }
 
@@ -381,6 +385,7 @@ const connect = async () => {
 
         currentConnId = result.connId
         isConnected.value = true
+        isConnecting.value = false
 
         removeDataListener = window.connectApi.onRecvData((data) => {
           if (data.connId !== currentConnId) return
@@ -423,6 +428,7 @@ const connect = async () => {
         retryTimer = setTimeout(attemptConnect, RETRY_INTERVAL_MS)
       } else if (retryCount >= MAX_RETRY_COUNT) {
         appendToTerminal(`reach max retry count: (${MAX_RETRY_COUNT}\n`)
+        isConnecting.value = false
         emit('onClose')
         if (typeof props.onClose === 'function') props.onClose()
       }
@@ -673,6 +679,13 @@ onUnmounted(() => {
   background-color: #4080ff !important;
   border-color: #5599ff !important;
   transform: translateY(-1px);
+}
+
+.reconnect-btn:disabled {
+  background-color: #555 !important;
+  border-color: #666 !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
 }
 
 .terminal-output {
