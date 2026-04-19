@@ -175,6 +175,8 @@
                 :auto-connect="true"
                 @onClose="handleTerminalClose(tab.id)"
                 @commandSent="handleCommandSent"
+                @onConnect="(sessionId) => { if (tab.comName) connectedSerialPorts[tab.comName] = true }"
+                @onDisconnect="(sessionId) => { if (tab.comName) delete connectedSerialPorts[tab.comName] }"
                 class="telnet-terminal"
               />
               <TelnetTerminal
@@ -283,7 +285,7 @@ const comTerminalRefs = reactive<Record<number, InstanceType<typeof ComTerminal>
 const activeTabId = ref('')
 // 串口相关状态
 const serialPorts = ref<SerialPortInfo[]>([])
-const connectedSerialPorts = ref<Set<string>>(new Set())
+const connectedSerialPorts = reactive<Record<string, boolean>>({})
 const serialPortExpanded = ref(true)
 const filteredSerialPorts = computed(() => {
   if (!searchKeyword.value) return serialPorts.value
@@ -552,7 +554,7 @@ const loadSerialPorts = async () => {
   }
 }
 
-const isSerialPortConnected = (path: string) => connectedSerialPorts.value.has(path)
+const isSerialPortConnected = (path: string) => !!connectedSerialPorts[path]
 
 const getSerialPortStatus = (path: string) => {
   return isSerialPortConnected(path) ? '已连接' : '未连接'
@@ -576,24 +578,32 @@ const connectToSerialPort = async (port: SerialPortInfo) => {
   // 直接添加 tab，让 ComTerminal 自己负责连接
   connectionTabs.value.push(newTab)
   activeTabId.value = newTab.id.toString()
-  connectedSerialPorts.value.add(port.path)
+  connectedSerialPorts[port.path] = true
 }
 
 const disconnectSerialPort = async (path: string) => {
   const tab = connectionTabs.value.find((t) => t.comName === path && t.connectionType === 'com')
   if (tab) {
-    await window.connectApi.stopConnect(tab)
-    connectedSerialPorts.value.delete(path)
-    connectionTabs.value = connectionTabs.value.filter((t) => t.sessionId !== tab.sessionId)
-    if (activeTabId.value === tab.id.toString() && connectionTabs.value.length > 0) {
-      activeTabId.value = connectionTabs.value[connectionTabs.value.length - 1].id.toString()
-    }
+    await window.connectApi.stopConnect({
+      connectionType: 'com',
+      comName: tab.comName,
+      sessionId: tab.sessionId
+    })
+    delete connectedSerialPorts[path]
   }
 }
 
 onMounted(() => {
   loadConnections()
   loadSerialPorts()
+
+  // 监听连接意外断开，更新串口连接状态
+  window.connectApi.onConnectClose((sessionId: number | string) => {
+    const tab = connectionTabs.value.find((t) => String(t.sessionId) === String(sessionId))
+    if (tab && tab.connectionType === 'com') {
+      delete connectedSerialPorts[tab.comName]
+    }
+  })
 })
 </script>
 

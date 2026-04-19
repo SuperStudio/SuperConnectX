@@ -145,7 +145,7 @@ import * as monaco from 'monaco-editor'
 import PresetCommands from './PresetCommands.vue'
 import FileUtils from '../utils/FileUtils'
 
-const emit = defineEmits(['onClose', 'commandSent'])
+const emit = defineEmits(['onClose', 'commandSent', 'onConnect', 'onDisconnect'])
 const props = withDefaults(defineProps<{
   connection: {
     id: number
@@ -297,6 +297,7 @@ const handleConnect = async () => {
       isConnected.value = true
       isConnecting.value = false
       appendToTerminal(`连接成功!\n`)
+      emit('onConnect', props.connection.sessionId)
 
       // 注册数据监听
       if (removeDataListener) removeDataListener()
@@ -352,6 +353,7 @@ const handleClose = async () => {
 
   isConnected.value = false
   appendToTerminal(`连接已关闭\n`)
+  emit('onDisconnect', props.connection.sessionId)
 }
 
 const sendCommand = async () => {
@@ -458,6 +460,16 @@ defineExpose({
 
 onMounted(() => {
   initEditor()
+
+  // 监听连接关闭事件，更新连接状态（无论从哪里断开）
+  window.connectApi.onConnectClose((sessionId: number | string) => {
+    if (String(sessionId) === String(props.connection.sessionId)) {
+      isConnected.value = false
+      appendToTerminal(`连接已断开\n`)
+      emit('onDisconnect', sessionId)
+    }
+  })
+
   if (props.autoConnect) {
     handleConnect()
   }
