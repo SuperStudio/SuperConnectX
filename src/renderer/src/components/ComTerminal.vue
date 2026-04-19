@@ -33,7 +33,7 @@
         {{ isConnecting ? '连接中...' : '连接' }}
       </el-button>
 
-      <el-button icon="Delete" size="small" class="tool-btn" @click="clearTerminal" :disabled="output === ''">
+      <el-button icon="Delete" size="small" class="tool-btn" @click="clearTerminal">
         清屏
       </el-button>
 
@@ -65,14 +65,14 @@
     <div class="param-row">
       <div class="param-item">
         <span class="param-label">波特率</span>
-        <el-select v-model="baudRate" size="small" class="param-select" :disabled="isConnected">
+        <el-select v-model="baudRate" size="small" class="param-select">
           <el-option v-for="br in baudRates" :key="br" :label="br" :value="br" />
         </el-select>
       </div>
 
       <div class="param-item">
         <span class="param-label">数据位</span>
-        <el-select v-model="dataBits" size="small" class="param-select" :disabled="isConnected">
+        <el-select v-model="dataBits" size="small" class="param-select">
           <el-option label="5" :value="5" />
           <el-option label="6" :value="6" />
           <el-option label="7" :value="7" />
@@ -82,7 +82,7 @@
 
       <div class="param-item">
         <span class="param-label">校验位</span>
-        <el-select v-model="parity" size="small" class="param-select" :disabled="isConnected">
+        <el-select v-model="parity" size="small" class="param-select">
           <el-option label="无" value="none" />
           <el-option label="偶校验" value="even" />
           <el-option label="奇校验" value="odd" />
@@ -91,7 +91,7 @@
 
       <div class="param-item">
         <span class="param-label">停止位</span>
-        <el-select v-model="stopBits" size="small" class="param-select" :disabled="isConnected">
+        <el-select v-model="stopBits" size="small" class="param-select">
           <el-option label="1" :value="1" />
           <el-option label="2" :value="2" />
         </el-select>
@@ -119,10 +119,10 @@
       <input
         v-model="currentCommand"
         @keydown.enter="sendCommand"
-        placeholder="输入命令并按回车发送..."
+        :placeholder="isConnected ? '输入命令并按回车发送...' : '连接后可发送命令'"
         ref="commandInput"
-        :disabled="!isConnected"
         class="command-input"
+        :class="{ 'not-connected': !isConnected }"
       />
       <el-button
         type="primary"
@@ -682,7 +682,7 @@ onUnmounted(() => {
   color: #666;
 }
 
-.command-input:disabled {
+.command-input.not-connected {
   opacity: 0.7;
   cursor: not-allowed;
 }
