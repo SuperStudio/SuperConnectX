@@ -19,13 +19,16 @@
 
           <!-- 串口列表 -->
           <div class="serial-port-section" v-if="serialPorts.length > 0">
-            <div class="section-header">
-              <span class="section-title">串口</span>
-              <el-button type="text" icon="Refresh" @click="loadSerialPorts" size="small"
+            <div class="section-header" @click="serialPortExpanded = !serialPortExpanded">
+              <span class="section-title">
+                <el-icon class="expand-icon" :class="{ collapsed: !serialPortExpanded }"><ArrowRight /></el-icon>
+                串口 ({{ filteredSerialPorts.length }})
+              </span>
+              <el-button type="text" icon="Refresh" @click.stop="loadSerialPorts" size="small"
                 >刷新</el-button
               >
             </div>
-            <div class="serial-port-list">
+            <div class="serial-port-list" v-show="serialPortExpanded">
               <div class="serial-port-item" v-for="port in filteredSerialPorts" :key="port.path">
                 <span class="serial-port-name">{{ port.path }}</span>
                 <el-button
@@ -230,6 +233,7 @@ const activeTabId = ref('')
 // 串口相关状态
 const serialPorts = ref<SerialPortInfo[]>([])
 const connectedSerialPorts = ref<Set<string>>(new Set())
+const serialPortExpanded = ref(true)
 const filteredSerialPorts = computed(() => {
   if (!searchKeyword.value) return serialPorts.value
   const keyword = searchKeyword.value.toLowerCase()
@@ -617,12 +621,31 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-header:hover .section-title {
+  color: #409eff;
 }
 
 .section-title {
   font-size: 13px;
   font-weight: 600;
   color: #e0e0e0;
+}
+
+.expand-icon {
+  transition: transform 0.2s;
+  margin-right: 4px;
+}
+
+.expand-icon.collapsed {
+  transform: rotate(0deg);
+}
+
+.expand-icon:not(.collapsed) {
+  transform: rotate(90deg);
 }
 
 .serial-port-list {
