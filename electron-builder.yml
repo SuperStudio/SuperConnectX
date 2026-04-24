@@ -3,12 +3,16 @@ productName: superconnectx
 directories:
   buildResources: build
 files:
+  - 'out/**/*'
+  - '!out/**/*.map'
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!**/node_modules/{CHANGELOG.md,README.md,readme.md,test,__tests__,tests,powered-test,example,examples}'
+  - '!**/node_modules/.bin'
 asarUnpack:
   - resources/**
 win:
@@ -18,6 +22,7 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  compression: lzma
 mac:
   target: dmg
   entitlementsInherit: build/entitlements.mac.plist

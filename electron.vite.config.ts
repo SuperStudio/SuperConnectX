@@ -25,7 +25,15 @@ export default defineConfig({
     plugins: [vue()],
     base: './', // 关键：Vue 静态资源相对路径
     build: {
-      outDir: resolve('out/renderer') // 明确渲染进程输出到 out/renderer
+      outDir: resolve('out/renderer'), // 明确渲染进程输出到 out/renderer
+      minify: 'esbuild',
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'monaco-editor': ['monaco-editor']
+          }
+        }
+      }
     }
   }
 })
