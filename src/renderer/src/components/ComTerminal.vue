@@ -309,7 +309,7 @@ const scrollToStart = () => {
 
 const handleConnect = async () => {
   isConnecting.value = true
-  appendToTerminal(`正在连接 ${props.connection.comName}...\n`)
+  appendToTerminal(`\n正在连接 ${props.connection.comName}...\n`)
 
   try {
     const result = await window.connectApi.startConnect({
@@ -330,7 +330,7 @@ const handleConnect = async () => {
       currentSessionId.value = props.connection.sessionId
       isConnected.value = true
       isConnecting.value = false
-      appendToTerminal(`连接成功!\n`)
+      appendToTerminal(`\n连接成功!\n`)
       emit('onConnect', props.connection.sessionId)
 
       // 注册数据监听
@@ -340,7 +340,7 @@ const handleConnect = async () => {
         calcRxSize(data.data.length)
         if (isHexMode.value) {
           const hexStr = data.data.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ')
-          appendToTerminal(hexStr + '\n')
+          appendToTerminal(`\n${hexStr}\n`)
         } else {
           // 后端已经添加了时间戳 [HH:MM:SS.mmm]
           // 如果前端不需要时间戳，移除后端添加的时间戳前缀
@@ -349,7 +349,7 @@ const handleConnect = async () => {
             // 移除 [HH:MM:SS.mmm] 前缀
             displayData = data.data.replace(/^\[\d{2}:\d{2}:\d{2}\.\d{3}\]\s*/, '')
           }
-          appendToTerminal(displayData)
+          appendToTerminal(`\n${displayData}`)
         }
       })
 
@@ -364,7 +364,7 @@ const handleConnect = async () => {
     }
   } catch (error) {
     isConnecting.value = false
-    appendToTerminal(`连接失败: ${(error as Error).message}\n`)
+    appendToTerminal(`\n连接失败: ${(error as Error).message}\n`)
     ElMessage.error('连接失败')
   }
 }
@@ -390,7 +390,7 @@ const handleClose = async () => {
   }
 
   isConnected.value = false
-  appendToTerminal(`连接已关闭\n`)
+  appendToTerminal(`\n连接已关闭\n`)
   emit('onDisconnect', props.connection.sessionId)
 }
 
@@ -405,7 +405,7 @@ const sendCommand = async () => {
     sendData = sendData.replace(/[^0-9a-fA-F\s]/g, '')
   }
 
-  appendToTerminal(`[TX] ${sendData}\n`)
+  appendToTerminal(`\n[TX] ${sendData}\n`)
   calcTxSize(sendData.length)
 
   try {
@@ -488,7 +488,7 @@ const calcTxSize = (len: number) => {
 const handleCommandSent = (cmdName: string) => emit('commandSent', cmdName)
 
 const appendCommandToTerminal = (content: string) => {
-  appendToTerminal(`[TX] ${content}\n`)
+  appendToTerminal(`\n[TX] ${content}\n`)
   calcTxSize(content.length)
   commandInput.value?.focus()
 }
@@ -522,7 +522,7 @@ onMounted(() => {
   window.connectApi.onConnectClose((sessionId: number | string) => {
     if (String(sessionId) === String(props.connection.sessionId)) {
       isConnected.value = false
-      appendToTerminal(`连接已断开\n`)
+      appendToTerminal(`\n连接已断开\n`)
       emit('onDisconnect', sessionId)
     }
   })

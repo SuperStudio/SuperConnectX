@@ -307,7 +307,7 @@ const handleClose = async () => {
         sessionId: props.connection.sessionId
       })
       isConnected.value = false
-      appendToTerminal(`连接已手动关闭\n`)
+      appendToTerminal(`\n连接已手动关闭\n`)
     } catch (error) {
       console.error('关闭连接失败:', error)
       ElMessage.error('关闭连接失败')
@@ -327,12 +327,12 @@ const handleClose = async () => {
     }
   } else {
     isConnected.value = false
-    appendToTerminal(`连接已关闭\n`)
+    appendToTerminal(`\n连接已关闭\n`)
   }
 }
 
 const handleReconnect = () => {
-  appendToTerminal(`正在重新连接...\n`)
+  appendToTerminal(`\n正在重新连接...\n`)
   connect()
 }
 
@@ -343,7 +343,7 @@ const handleTelnetClose = (connId: number) => {
     currentConnId = 0
     recvDataSize.value = ''
     allRecvSize = 0
-    appendToTerminal(`连接已关闭，将在${RETRY_INTERVAL_MS / 1000}秒后尝试重连...\n`)
+    appendToTerminal(`\n连接已关闭，将在${RETRY_INTERVAL_MS / 1000}秒后尝试重连...\n`)
     if (!stopRetry.value) {
       setTimeout(connect, 1000)
     }
@@ -401,18 +401,18 @@ const connect = async () => {
 
             if (isInitMessage) {
               if (isFirstConnect) {
-                appendToTerminal(formattedData)
+                appendToTerminal(`\n${formattedData}`)
                 isFirstConnect = false
               }
             } else {
-              appendToTerminal(formattedData)
+              appendToTerminal(`\n${formattedData}`)
             }
           }
         })
 
         removeCloseListener = window.connectApi.onConnectClose(handleTelnetClose)
         commandInput.value?.focus()
-        appendToTerminal(`connect success, retry count: ${retryCount + 1}\n`)
+        appendToTerminal(`\nconnect success, retry count: ${retryCount + 1}\n`)
         retryCount = 0
         isFirstConnect = false
       } else {
@@ -421,12 +421,12 @@ const connect = async () => {
     } catch (error) {
       retryCount++
       const errMsg = (error as Error).message
-      appendToTerminal(`connect failed: (${retryCount}/${MAX_RETRY_COUNT}): ${errMsg}\n`)
+      appendToTerminal(`\nconnect failed: (${retryCount}/${MAX_RETRY_COUNT}): ${errMsg}\n`)
 
       if (retryCount < MAX_RETRY_COUNT && !stopRetry.value) {
         retryTimer = setTimeout(attemptConnect, RETRY_INTERVAL_MS)
       } else if (retryCount >= MAX_RETRY_COUNT) {
-        appendToTerminal(`reach max retry count: (${MAX_RETRY_COUNT}\n`)
+        appendToTerminal(`\nreach max retry count: (${MAX_RETRY_COUNT}\n`)
         isConnecting.value = false
         emit('onClose')
         if (typeof props.onClose === 'function') props.onClose()
