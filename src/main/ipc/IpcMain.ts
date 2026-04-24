@@ -35,6 +35,7 @@ export default class IpcMain {
         minHeight: 600, // 最小高度
         title: 'SuperConnectX',
         autoHideMenuBar: false, // 显示菜单栏（方便操作）
+        backgroundColor: '#1e1e1e', // 防止最小化时白色闪烁（Windows 11）
         ...(process.platform === 'linux' ? { icon: join(__dirname, '../../build/icon.png') } : {}),
         webPreferences: {
           preload: join(__dirname, '../preload/index.js'),
