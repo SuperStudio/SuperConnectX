@@ -176,7 +176,8 @@ const emit = defineEmits([
   'toggle-connection-list',
   'refreshCommands',
   'change-font',
-  'change-font-size'
+  'change-font-size',
+  'open-about'
 ])
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps({
@@ -267,6 +268,7 @@ const handleExit = () => {
 
 const handleAbout = () => {
   showHelpMenu.value = false
+  emit('open-about')
 }
 
 const handleDevelop = () => {

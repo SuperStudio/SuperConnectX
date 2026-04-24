@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, app } from 'electron'
 import logger from './IpcAppLogger'
 
 export default class IpcWindow {
@@ -24,6 +24,7 @@ export default class IpcWindow {
         ? windows.mainWindow?.unmaximize()
         : windows.mainWindow?.maximize()
     )
+    ipcMain.handle('get-app-version', () => app.getVersion())
 
     logger.info(`init IpcWindow done`)
   }

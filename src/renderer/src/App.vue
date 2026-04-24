@@ -5,6 +5,7 @@
       @refreshCommands="refreshHandler"
       @change-font="handleFontChange"
       @change-font-size="handleFontSizeChange"
+      @open-about="isAboutDialogOpen = true"
       :show-connection-list="showConnectionList"
     />
     <!-- 主内容区：左侧连接列表 + 右侧终端 -->
@@ -256,6 +257,9 @@
         >
       </template>
     </el-dialog>
+
+    <!-- 关于弹窗 -->
+    <AboutDialog v-model:modelValue="isAboutDialogOpen" />
   </div>
 </template>
 
@@ -267,12 +271,14 @@ import ComTerminal from './components/ComTerminal.vue'
 import CustomTitleBar from './components/CustomTitleBar.vue'
 import SearchInput from './components/SearchInput.vue'
 import ResourceMonitor from './components/ResourceMonitor.vue'
+import AboutDialog from './components/AboutDialog.vue'
 import TelnetInfo from './entity/protocol/TelnetInfo'
 
 const searchKeyword = ref('')
 const filterConnection = ref<any[]>([])
 const connections = ref<any[]>([])
 const isCreateDialogOpen = ref(false)
+const isAboutDialogOpen = ref(false)
 const connFormRef = ref<InstanceType<typeof ElForm> | null>(null)
 const newConnForm = reactive(TelnetInfo.build())
 const showConnectionList = ref(true)
