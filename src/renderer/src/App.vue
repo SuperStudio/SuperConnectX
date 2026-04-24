@@ -465,6 +465,11 @@ const closeTab = async (tabId) => {
       ...TelnetInfo.buildWithValue(tab),
       sessionId: tab.sessionId
     })
+
+    // 如果是 COM 口连接，更新连接状态
+    if (tab.connectionType === 'com' && tab.comName) {
+      delete connectedSerialPorts[tab.comName]
+    }
   }
 
   // 从标签列表中移除
