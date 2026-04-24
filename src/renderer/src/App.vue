@@ -714,6 +714,10 @@ onMounted(() => {
   overflow: hidden;
 }
 
+.connection-card :deep(.el-card__body) {
+  padding: 12px 12px 0 12px !important;
+}
+
 .connection-card:hover {
   border: 1px solid rgb(64, 158, 255) !important;
   transform: translateY(-2px);
@@ -786,7 +790,8 @@ onMounted(() => {
 .connection-actions {
   display: flex;
   justify-content: left;
-  padding: 8px 12px;
+  padding: 8px 0;
+  margin-top: 8px;
   border-top: 1px solid #3a3a3a;
 }
 
