@@ -44,6 +44,7 @@ declare global {
       maximizeWindow: () => Promise<void>
       closeWindow: () => Promise<void>
       getWindowState: () => Promise<boolean>
+      getAppVersion: () => Promise<string>
     }
     toolApi: {
       openDevtools: () => Promise<void>
