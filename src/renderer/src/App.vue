@@ -718,9 +718,17 @@ onMounted(() => {
   padding: 12px 12px 0 12px !important;
 }
 
+.connection-card {
+  cursor: pointer;
+}
+
 .connection-card:hover {
   border: 1px solid rgb(64, 158, 255) !important;
   transform: translateY(-2px);
+}
+
+.connection-info {
+  user-select: none;
 }
 
 /* 串口卡片样式 */
