@@ -877,17 +877,17 @@ onUnmounted(() => {
 }
 
 .el-dialog {
-  background: #2d2d2d !important;
+  background: #252526 !important;
   border-radius: 8px !important;
 }
 
 .el-dialog__title {
-  color: #fff !important;
+  color: #f0f0f0 !important;
   font-size: 18px !important;
 }
 
 .el-form-item__label {
-  color: #ccc !important;
+  color: #e8e8e8 !important;
   width: 100px;
 }
 
