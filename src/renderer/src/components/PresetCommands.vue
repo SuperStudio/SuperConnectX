@@ -136,9 +136,7 @@
             type="textarea"
             placeholder="输入命令内容"
             :rows="4"
-            input-style="background-color: #ccc;max-height: 200px;"
             class="custom-textarea"
-            resize="vertical"
           />
         </el-form-item>
         <el-form-item label="循环时延(ms)" prop="delay">
@@ -919,10 +917,23 @@ const handlePresetCommandsChanged = (connectionType: string) => {
   --el-border-color: #42b983 !important;
 }
 
-.custom-textarea,
-.el-textarea__inner {
-  background-color: transparent;
+:deep(.custom-textarea .el-textarea__inner),
+:deep(.el-textarea__inner) {
+  background: #3a3a3a;
+  box-shadow: 0 0 0 1px #444 inset;
+  color: #e0e0e0;
+  resize: vertical;
   max-height: 200px;
+}
+
+:deep(.custom-textarea .el-textarea__inner:hover),
+:deep(.el-textarea__inner:hover) {
+  box-shadow: 0 0 0 1px #1A97ED inset;
+}
+
+:deep(.custom-textarea .el-textarea__inner:focus),
+:deep(.el-textarea__inner:focus) {
+  box-shadow: 0 0 0 1px #1A97ED inset;
 }
 
 .custom-dropdown-menu {

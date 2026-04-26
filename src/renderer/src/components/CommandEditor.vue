@@ -892,8 +892,31 @@ onMounted(() => {
   box-shadow: 0 0 0 1px #444 inset;
 }
 
+:deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #1A97ED inset;
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #1A97ED inset;
+}
+
 :deep(.el-input__inner) {
   color: #e0e0e0;
+}
+
+:deep(.el-textarea__inner) {
+  background: #3a3a3a;
+  box-shadow: 0 0 0 1px #444 inset;
+  color: #e0e0e0;
+  resize: vertical;
+}
+
+:deep(.el-textarea__inner:hover) {
+  box-shadow: 0 0 0 1px #1A97ED inset;
+}
+
+:deep(.el-textarea__inner:focus) {
+  box-shadow: 0 0 0 1px #1A97ED inset;
 }
 
 :deep(.el-select .el-input__wrapper) {
