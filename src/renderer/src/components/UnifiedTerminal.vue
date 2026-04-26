@@ -239,8 +239,6 @@ const appendCommandToTerminal = (content: string) => {
   appendToTerminal(`\n[TX] ${content}\n`)
   totalTxSize += content.length
   txBytes.value = formatBytes(totalTxSize)
-  currentCommand.value = ''
-  commandInput.value?.focus()
 }
 
 const formatBytes = (bytes: number): string => {
