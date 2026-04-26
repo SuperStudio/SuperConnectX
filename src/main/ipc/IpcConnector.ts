@@ -82,6 +82,16 @@ export default class IpcConnector {
       }
     })
 
+    // 获取日志文件路径
+    ipcMain.handle('get-log-file-path', async (_, sessionId: string) => {
+      return await _logger.getLogFilePath(sessionId)
+    })
+
+    // 复制日志文件
+    ipcMain.handle('copy-log-file', async (_, { sessionId, destPath }: { sessionId: string; destPath: string }) => {
+      return await _logger.copyLogFile(sessionId, destPath)
+    })
+
     logger.info(`init IpcTelnet done`)
   }
 }

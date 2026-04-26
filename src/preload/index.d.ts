@@ -36,7 +36,9 @@ declare global {
       stopConnect: (conn: any) => Promise<any>
       onRecvData: (callback: (data: { connId: number; data: string }) => void) => () => void
       onConnectClose: (callback: (connId: number) => void) => () => void
-      openConnectLog: (sessionId: string) => Promise<{ success: boolean; message?: string }>
+      openConnectLog: (sessionId: string) => Promise<{ success: boolean; message?: string; filePath?: string }>
+      getLogFilePath: (sessionId: string) => Promise<{ success: boolean; filePath?: string; message?: string }>
+      copyLogFile: (sessionId: string, destPath: string) => Promise<{ success: boolean; message?: string }>
       listSerialPorts: () => Promise<SerialPortInfo[]>
     }
     windowApi: {
@@ -52,6 +54,7 @@ declare global {
       openExternalUrl: (url: string) => Promise<any>
       openAppDir: () => Promise<any>
       writeFile: (options: { path: string; content: string }) => Promise<{ success: boolean }>
+      readFile: (options: { path: string }) => Promise<{ success: boolean; content?: string; message?: string }>
       showItemInFolder: (filePath: string) => Promise<void>
     }
     dialogApi: {

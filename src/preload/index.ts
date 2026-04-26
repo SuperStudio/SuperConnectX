@@ -40,6 +40,8 @@ contextBridge.exposeInMainWorld('connectApi', {
     return () => ipcRenderer.removeListener('on-connect-close', listener)
   },
   openConnectLog: (sessionId: string) => ipcRenderer.invoke('open-connect-log', sessionId),
+  getLogFilePath: (sessionId: string) => ipcRenderer.invoke('get-log-file-path', sessionId),
+  copyLogFile: (sessionId: string, destPath: string) => ipcRenderer.invoke('copy-log-file', { sessionId, destPath }),
   listSerialPorts: () => ipcRenderer.invoke('list-serial-ports')
 })
 
@@ -63,5 +65,7 @@ contextBridge.exposeInMainWorld('toolApi', {
   openAppDir: () => ipcRenderer.invoke('open-app-dir'),
   writeFile: ({ path: filePath, content }: { path: string; content: string }) =>
     ipcRenderer.invoke('write-file', { path: filePath, content }),
+  readFile: ({ path: filePath }: { path: string }) =>
+    ipcRenderer.invoke('read-file', { path: filePath }),
   showItemInFolder: (filePath: string) => ipcRenderer.invoke('show-item-in-folder', filePath)
 })

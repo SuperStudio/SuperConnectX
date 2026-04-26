@@ -1,4 +1,4 @@
-import { appendFile, appendFileSync, existsSync, mkdirSync } from 'fs'
+import { appendFile, appendFileSync, existsSync, mkdirSync, copyFile } from 'fs'
 import { shell } from 'electron'
 import fs from 'fs/promises'
 import { join } from 'path'
@@ -196,6 +196,50 @@ export default class ProtocolLogger {
       return {
         success: false,
         message: error instanceof Error ? error.message : '打开日志目录失败'
+      }
+    }
+  }
+
+  async getLogFilePath(connId: number): Promise<{ success: boolean; filePath?: string; message?: string }> {
+    try {
+      this.flushAllLogs(false)
+
+      const fileName = this.connLogFiles.get(connId)
+      if (!fileName) {
+        return { success: false, message: '未找到日志文件' }
+      }
+
+      const logFilePath = join(this.logDir, fileName)
+      return { success: true, filePath: logFilePath }
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '获取日志路径失败'
+      }
+    }
+  }
+
+  async copyLogFile(connId: number, destPath: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      this.flushAllLogs(true) // 确保所有日志都已写入
+
+      const fileName = this.connLogFiles.get(connId)
+      if (!fileName) {
+        return { success: false, message: '未找到日志文件' }
+      }
+
+      const sourcePath = join(this.logDir, fileName)
+      if (!existsSync(sourcePath)) {
+        return { success: false, message: '源日志文件不存在' }
+      }
+
+      await fs.copyFile(sourcePath, destPath)
+      return { success: true }
+    } catch (error) {
+      console.error('复制日志文件失败:', error)
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '复制日志文件失败'
       }
     }
   }

@@ -69,7 +69,6 @@ const openLogFile = async () => {
 }
 
 const saveLogFile = async () => {
-  const content = unifiedTerminalRef.value?.getEditorContent() || ''
   try {
     const result = await window.dialogApi.saveFileDialog({
       title: '保存日志',
@@ -77,15 +76,12 @@ const saveLogFile = async () => {
       filters: [{ name: '日志文件', extensions: ['log', 'txt'] }]
     })
     if (result.filePath) {
-      const writeResult = await window.toolApi.writeFile({
-        path: result.filePath,
-        content: content
-      })
-      if (writeResult.success) {
+      const copyResult = await window.connectApi.copyLogFile(props.connection.sessionId, result.filePath)
+      if (copyResult.success) {
         ElMessage.success('日志保存成功')
         window.toolApi.showItemInFolder(result.filePath)
       } else {
-        ElMessage.error('保存失败：' + writeResult.message)
+        ElMessage.error('保存失败：' + (copyResult.message || '未知错误'))
       }
     }
   } catch (error) {

@@ -61,6 +61,16 @@ export default class IpcTools {
       }
     })
 
+    ipcMain.handle('read-file', async (_, { path: filePath }) => {
+      try {
+        const content = fs.readFileSync(filePath, 'utf-8')
+        return { success: true, content }
+      } catch (error) {
+        logger.error(`read-file failed: ${error.message}`)
+        return { success: false, message: error.message }
+      }
+    })
+
     ipcMain.handle('show-item-in-folder', async (_, filePath) => {
       shell.showItemInFolder(filePath)
     })
