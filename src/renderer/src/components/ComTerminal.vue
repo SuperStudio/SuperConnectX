@@ -139,7 +139,39 @@ const currentSessionId = ref<string>('')
 // 监听串口设置变化，自动保存
 watch([baudRate, dataBits, stopBits, parity, encoding, readTimeout, writeTimeout], () => {
   saveComSettings()
+  // 如果已连接，立即应用新配置
+  if (isConnected.value) {
+    applyComConfig()
+  }
 })
+
+// 应用串口配置（热更新）
+const applyComConfig = async () => {
+  try {
+    const result = await window.connectApi.updateConnect(
+      {
+        connectionType: 'com',
+        comName: props.connection.comName,
+        sessionId: props.connection.sessionId
+      },
+      {
+        baudRate: baudRate.value,
+        dataBits: dataBits.value,
+        stopBits: stopBits.value,
+        parity: parity.value,
+        encoding: encoding.value,
+        readTimeout: readTimeout.value,
+        writeTimeout: writeTimeout.value
+      }
+    )
+    if (!result.success) {
+      ElMessage.error(result.message || '更新配置失败')
+    }
+  } catch (error) {
+    console.error('applyComConfig error:', error)
+    ElMessage.error('更新串口配置失败')
+  }
+}
 
 // 加载保存的串口设置
 const loadComSettings = async () => {

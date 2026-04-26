@@ -15,6 +15,8 @@ interface SerialConnection {
   buffer: string
   timer: NodeJS.Timeout | null
   writeTimeout: number
+  onData: any
+  onClose: any
 }
 
 export default class ComClient extends BaseClient {
@@ -90,7 +92,14 @@ export default class ComClient extends BaseClient {
         port.once('open', () => {
           logger.info(`serial port opened successfully`)
 
-          const connection: SerialConnection = { port, buffer: '', timer: null, writeTimeout: writeTimeout }
+          const connection: SerialConnection = {
+            port,
+            buffer: '',
+            timer: null,
+            writeTimeout: writeTimeout,
+            onData: onData,
+            onClose: onClose
+          }
           this.serialConnections.set(sessionId, connection)
 
           // 收集数据到缓冲区
@@ -100,7 +109,7 @@ export default class ComClient extends BaseClient {
 
           // 使用固定间隔处理数据
           connection.timer = setInterval(() => {
-            this.processBuffer(connection, onData)
+            this.processBuffer(connection, connection.onData)
           }, READ_INTERVAL_MS)
 
           port.on('close', () => {
@@ -112,11 +121,11 @@ export default class ComClient extends BaseClient {
             // 关闭前输出缓冲区中剩余的数据
             if (connection.buffer) {
               const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false }) + '.' + String(Date.now() % 1000).padStart(3, '0')
-              onData?.(`[${timestamp}] ${connection.buffer}\n`)
+              connection.onData?.(`[${timestamp}] ${connection.buffer}\n`)
               connection.buffer = ''
             }
             this.serialConnections.delete(sessionId)
-            onClose?.()
+            connection.onClose?.()
           })
 
           port.on('error', (err: Error) => {
@@ -199,5 +208,170 @@ export default class ComClient extends BaseClient {
       console.warn('not find connId:', connId)
     }
     return { success: true }
+  }
+
+  async updateConfig(connId: string, config: {
+    baudRate?: number
+    dataBits?: number
+    stopBits?: number
+    parity?: string
+    encoding?: string
+    readTimeout?: number
+    writeTimeout?: number
+  }): Promise<object> {
+    const connection = this.serialConnections.get(connId)
+    if (!connection) {
+      return { success: false, message: '连接不存在' }
+    }
+
+    const port = connection.port
+    const comName = port.path
+
+    // 更新配置
+    const newBaudRate = config.baudRate || DEFAULT_BAUD_RATE
+    const newDataBits = config.dataBits || DEFAULT_DATA_BITS
+    const newStopBits = config.stopBits || DEFAULT_STOP_BITS
+    const newParity = config.parity || DEFAULT_PARITY
+
+    logger.info(`update serial config: ${comName} @ ${newBaudRate}, dataBits: ${newDataBits}, stopBits: ${newStopBits}, parity: ${newParity}`)
+
+    return new Promise((resolve) => {
+      // 保存回调
+      const savedOnData = connection.onData
+      const savedOnClose = connection.onClose
+
+      // 停止定时器
+      if (connection.timer) {
+        clearInterval(connection.timer)
+        connection.timer = null
+      }
+
+      // 移除原来的事件监听器，避免触发 onClose
+      port.removeAllListeners('close')
+      port.removeAllListeners('error')
+      port.removeAllListeners('data')
+
+      // 关闭当前端口
+      port.close((err: Error | null) => {
+        if (err) {
+          logger.error(`close port error: ${err.message}`)
+        }
+
+        // 重新打开新配置的端口
+        const newPort = new SerialPort({
+          path: comName,
+          baudRate: newBaudRate,
+          dataBits: newDataBits,
+          stopBits: newStopBits,
+          parity: newParity,
+          autoOpen: false
+        })
+
+        newPort.once('open', () => {
+          logger.info(`serial port reopened successfully with new config`)
+
+          // 更新连接信息
+          const newConnection: SerialConnection = {
+            port: newPort,
+            buffer: '',
+            timer: null,
+            writeTimeout: config.writeTimeout ?? connection.writeTimeout,
+            onData: savedOnData,
+            onClose: savedOnClose
+          }
+          this.serialConnections.set(connId, newConnection)
+
+          // 收集数据到缓冲区
+          newPort.on('data', (data: Buffer) => {
+            newConnection.buffer += data.toString()
+          })
+
+          // 重新启动数据收集定时器
+          newConnection.timer = setInterval(() => {
+            this.processBuffer(newConnection, newConnection.onData)
+          }, READ_INTERVAL_MS)
+
+          newPort.on('close', () => {
+            logger.info(`serial port closed after update: ${comName}`)
+            if (newConnection.timer) {
+              clearInterval(newConnection.timer)
+              newConnection.timer = null
+            }
+            this.serialConnections.delete(connId)
+          })
+
+          newPort.on('error', (err: Error) => {
+            logger.error(`serial port error after update: ${err.message}`)
+          })
+
+          resolve({ success: true, message: '配置更新成功' })
+        })
+
+        newPort.once('error', (err: Error) => {
+          logger.error(`reopen port error: ${err.message}`)
+          // 尝试恢复原来的连接
+          this.reopenPort(connId, connection)
+          resolve({ success: false, message: err.message || '更新配置失败' })
+        })
+
+        newPort.open((err: Error | null) => {
+          if (err) {
+            logger.error(`open port error: ${err.message}`)
+            this.reopenPort(connId, connection)
+            resolve({ success: false, message: err.message || '打开串口失败' })
+          }
+        })
+      })
+    })
+  }
+
+  private reopenPort(connId: string, oldConnection: SerialConnection): void {
+    const port = oldConnection.port
+    const comName = port.path
+    const baudRate = port.baudRate
+
+    const recoveryPort = new SerialPort({
+      path: comName,
+      baudRate: baudRate,
+      dataBits: 8,
+      stopBits: 1,
+      parity: 'none',
+      autoOpen: false
+    })
+
+    recoveryPort.open((err: Error | null) => {
+      if (!err) {
+        const newConnection: SerialConnection = {
+          port: recoveryPort,
+          buffer: '',
+          timer: null,
+          writeTimeout: oldConnection.writeTimeout,
+          onData: oldConnection.onData,
+          onClose: oldConnection.onClose
+        }
+        this.serialConnections.set(connId, newConnection)
+
+        // 收集数据到缓冲区
+        recoveryPort.on('data', (data: Buffer) => {
+          newConnection.buffer += data.toString()
+        })
+
+        newConnection.timer = setInterval(() => {
+          this.processBuffer(newConnection, newConnection.onData)
+        }, READ_INTERVAL_MS)
+
+        recoveryPort.on('close', () => {
+          if (newConnection.timer) {
+            clearInterval(newConnection.timer)
+            newConnection.timer = null
+          }
+          this.serialConnections.delete(connId)
+        })
+
+        logger.info(`serial port recovered: ${comName} @ ${baudRate}`)
+      } else {
+        logger.error(`cannot recover serial port: ${err.message}`)
+      }
+    })
   }
 }

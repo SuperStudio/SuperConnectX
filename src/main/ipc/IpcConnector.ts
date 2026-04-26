@@ -72,6 +72,12 @@ export default class IpcConnector {
       async (_, conn: any) =>
         await this.CONNECT_TYPE_DATA.get(conn.connectionType)?.disconnect(conn.sessionId)
     )
+
+    // 更新连接配置（主要用于串口参数热更新）
+    ipcMain.handle('update-connect', async (_, { conn, config }: { conn: any; config: any }) => {
+      logger.info(`update connect config: ${conn.name}, sessionId: ${conn.sessionId}`)
+      return await this.CONNECT_TYPE_DATA.get(conn.connectionType)?.updateConfig(conn.sessionId, config)
+    })
     // 新增：IPC 监听「打开日志」请求
     ipcMain.handle('open-connect-log', async (_, sessionId: string) => {
       logger.info(`open telnet log: ${sessionId}`)

@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('connectApi', {
   startConnect: (conn: any) => ipcRenderer.invoke('start-connect', conn),
   sendData: (data: { conn: any; command: string }) => ipcRenderer.invoke('send-data', data),
   stopConnect: (conn: any) => ipcRenderer.invoke('stop-connect', conn),
+  updateConnect: (conn: any, config: any) => ipcRenderer.invoke('update-connect', { conn, config }),
 
   onRecvData: (callback: (data: { connId: number; data: string }) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, data: { connId: number; data: string }) =>
