@@ -32,11 +32,14 @@ declare global {
 
       getComSettings: (comName: string) => Promise<any>
       saveComSettings: (comName: string, settings: any) => Promise<boolean>
+      getBaudRates: () => Promise<number[]>
+      saveBaudRates: (baudRates: number[]) => Promise<boolean>
     }
     connectApi: {
       startConnect: (conn: any) => Promise<any>
       sendData: (data: { conn: any; command: string }) => Promise<any>
       stopConnect: (conn: any) => Promise<any>
+      updateConnect: (conn: any, config: any) => Promise<{ success: boolean; message?: string }>
       onRecvData: (callback: (data: { connId: number; data: string }) => void) => () => void
       onConnectClose: (callback: (connId: number) => void) => () => void
       openConnectLog: (sessionId: string) => Promise<{ success: boolean; message?: string; filePath?: string }>

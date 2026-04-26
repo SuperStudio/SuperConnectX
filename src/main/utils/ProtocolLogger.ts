@@ -1,4 +1,4 @@
-import { appendFile, appendFileSync, existsSync, mkdirSync, copyFile } from 'fs'
+import { appendFile, appendFileSync, existsSync, mkdirSync } from 'fs'
 import { shell } from 'electron'
 import fs from 'fs/promises'
 import { join } from 'path'

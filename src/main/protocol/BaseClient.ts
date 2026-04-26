@@ -12,4 +12,8 @@ export default class BaseClient {
   async disconnect(_connId: string): Promise<object> {
     return { success: false, message: 'Not implemented' }
   }
+
+  async updateConfig(_connId: string, _config: any): Promise<object> {
+    return { success: false, message: 'Not implemented' }
+  }
 }

@@ -181,7 +181,7 @@ export default class ComClient extends BaseClient {
     try {
       const dataStr = `[${new Date().toISOString()}] SEND >>>>>>>>>> ${command}`
       const commandWithNewline = command.endsWith('\n') ? command : command + '\n'
-      connection.port.write(commandWithNewline, connection.encoding, (err: Error | null | undefined) => {
+      connection.port.write(commandWithNewline, connection.encoding as BufferEncoding, (err: Error | null | undefined) => {
         if (err) {
           logger.error(`serial write error: ${err.message}`)
           return

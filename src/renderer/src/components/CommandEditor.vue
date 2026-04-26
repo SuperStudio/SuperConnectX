@@ -263,16 +263,6 @@ const handleRowClick = (row: PresetCommand) => {
   currentRow.value = row
 }
 
-const editCommand = (cmd: PresetCommand) => {
-  isEditingCommand.value = true
-  editingCommandId.value = cmd.id
-  commandForm.name = cmd.name
-  commandForm.command = cmd.command
-  commandForm.delay = cmd.delay ?? 0
-  commandForm.seqNum = cmd.seqNum ?? 1
-  showCommandDialog.value = true
-}
-
 const updateCommand = async (row: PresetCommand) => {
   try {
     await window.storageApi.updatePresetCommand({
@@ -362,11 +352,6 @@ const addCommand = () => {
   isInsertingAbove.value = false
   resetCommandForm()
   showCommandDialog.value = true
-}
-
-const insertCommand = () => {
-  // 插入到当前选中的命令之前
-  addCommand()
 }
 
 const insertCommandAbove = () => {

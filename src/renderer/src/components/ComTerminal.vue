@@ -209,7 +209,7 @@ const currentSessionId = ref<string>('')
 // 监听波特率变化
 watch(baudRate, (newVal) => {
   console.log('baudRate watch triggered, newVal:', newVal)
-  if (newVal === '__add__') {
+  if (newVal === '__add__' as any) {
     console.log('Showing add dialog')
     showAddBaudRateDialog.value = true
     nextTick(() => {
@@ -268,6 +268,7 @@ const applyComConfig = async () => {
 // 加载保存的串口设置
 const loadComSettings = async () => {
   try {
+    if (!props.connection.comName) return
     const settings = await window.storageApi.getComSettings(props.connection.comName)
     if (settings) {
       baudRate.value = settings.baudRate || 9600
@@ -289,6 +290,7 @@ const loadComSettings = async () => {
 // 保存串口设置
 const saveComSettings = async () => {
   try {
+    if (!props.connection.comName) return
     await window.storageApi.saveComSettings(props.connection.comName, {
       baudRate: baudRate.value,
       dataBits: dataBits.value,
@@ -314,17 +316,6 @@ const loadBaudRates = async () => {
   } catch (error) {
     console.error('加载波特率列表失败:', error)
     baudRates.value = [9600, 19200, 115200, 15000000]
-  }
-}
-
-// 保存全局波特率列表
-const saveBaudRates = async () => {
-  try {
-    const rates = [...baudRates.value] // 转为普通数组
-    console.log('saveBaudRates, sending:', rates)
-    await window.storageApi.saveBaudRates(rates)
-  } catch (error) {
-    console.error('保存波特率列表失败:', error)
   }
 }
 
@@ -513,18 +504,6 @@ const reconnect = () => {
   if (!isConnected.value && !isConnecting.value) {
     handleConnect()
   }
-}
-
-const saveAndReconnect = () => {
-  showMoreDialog.value = false
-  handleClose()
-  // 重连时清空 rx/tx 统计
-  totalRxSize = 0
-  totalTxSize = 0
-  unifiedTerminalRef.value?.resetRxTx()
-  setTimeout(() => {
-    handleConnect()
-  }, 300)
 }
 
 defineExpose({

@@ -20,10 +20,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, onMounted, computed, watch } from 'vue'
+import { ref, onUnmounted, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import UnifiedTerminal from './UnifiedTerminal.vue'
 import TelnetInfo from '../entity/protocol/TelnetInfo'
+import * as monaco from 'monaco-editor'
 
 const MAX_RETRY_COUNT = 1000
 const RETRY_INTERVAL_MS = 3000
@@ -52,6 +53,7 @@ let retryTimer: NodeJS.Timeout | null = null
 let stopRetry = ref(false)
 let allRecvSize = 0
 let totalTxSize = 0
+void retryCount // suppress unused warning
 
 const unifiedTerminalRef = ref<InstanceType<typeof UnifiedTerminal>>()
 
@@ -158,7 +160,6 @@ const connect = async () => {
   allRecvSize = 0
   totalTxSize = 0
 
-  let isFirstConnect = true
   const attemptConnect = async () => {
     if (stopRetry.value) {
       isConnecting.value = false
@@ -188,7 +189,6 @@ const connect = async () => {
         unifiedTerminalRef.value?.focusInput()
         unifiedTerminalRef.value?.appendToTerminal(`\nconnect success, retry count: ${retryCount + 1}\n`)
         retryCount = 0
-        isFirstConnect = false
       } else {
         throw new Error(result.message || '连接失败')
       }
@@ -236,25 +236,25 @@ const handleCommandSent = (cmdName: string) => emit('commandSent', cmdName)
 const refreshGroupsCmds = () => unifiedTerminalRef.value?.refreshGroupsCmds?.()
 
 const handleFontChange = (font: string) => {
-  unifiedTerminalRef.value?.editor?.updateOptions({ fontFamily: font })
+  ;(unifiedTerminalRef.value?.editor as any)?.updateOptions?.({ fontFamily: font })
 }
 
 const handleFontSizeChange = (action: string) => {
-  const editor = unifiedTerminalRef.value?.editor
+  const editor = unifiedTerminalRef.value?.editor as any
   if (editor) {
-    const currentSize = editor.getOption(monaco.editor.EditorOption.fontSize)
+    const currentSize = editor.getOption?.(monaco.editor.EditorOption.fontSize)
     let newSize = currentSize
     if (action === 'increase') {
       newSize = Math.min(currentSize + 2, 30)
     } else {
       newSize = Math.max(currentSize - 2, 8)
     }
-    editor.updateOptions({ fontSize: newSize })
+    editor.updateOptions?.({ fontSize: newSize })
   }
 }
 
 const refreshLayout = () => {
-  unifiedTerminalRef.value?.editor?.layout()
+  ;(unifiedTerminalRef.value?.editor as any)?.layout?.()
 }
 
 defineExpose({

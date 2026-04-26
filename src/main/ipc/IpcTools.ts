@@ -1,5 +1,5 @@
 import os from 'os'
-import { shell, ipcMain, app, dialog } from 'electron'
+import { shell, ipcMain, app } from 'electron'
 import logger from './IpcAppLogger'
 import fs from 'fs'
 import path from 'path'
@@ -56,8 +56,9 @@ export default class IpcTools {
         fs.writeFileSync(filePath, content, 'utf-8')
         return { success: true }
       } catch (error) {
-        logger.error(`write-file failed: ${error.message}`)
-        return { success: false, message: error.message }
+        const err = error as Error
+        logger.error(`write-file failed: ${err.message}`)
+        return { success: false, message: err.message }
       }
     })
 
@@ -66,8 +67,9 @@ export default class IpcTools {
         const content = fs.readFileSync(filePath, 'utf-8')
         return { success: true, content }
       } catch (error) {
-        logger.error(`read-file failed: ${error.message}`)
-        return { success: false, message: error.message }
+        const err = error as Error
+        logger.error(`read-file failed: ${err.message}`)
+        return { success: false, message: err.message }
       }
     })
 
