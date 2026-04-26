@@ -500,6 +500,18 @@ onMounted(() => {
   width: 100%;
   background-color: #1A97ED !important;
   border-color: #1A97ED !important;
+  color: white !important;
+}
+
+.add-group-btn:hover {
+  filter: brightness(0.85);
+  transform: translateY(-1px);
+}
+
+.add-group-btn:disabled {
+  background-color: #444 !important;
+  border-color: #555 !important;
+  cursor: not-allowed;
 }
 
 .sidebar-search {
@@ -576,18 +588,30 @@ onMounted(() => {
 }
 
 .toolbar .el-button {
-  background-color: #3a3a3a;
-  border-color: #444;
-  color: #e0e0e0;
+  background-color: #1A97ED !important;
+  border-color: #1A97ED !important;
+  color: white !important;
 }
 
 .toolbar .el-button:hover {
-  background-color: #4a4a4a;
+  filter: brightness(0.85);
+  transform: translateY(-1px);
+}
+
+.toolbar .el-button:disabled {
+  background-color: #444 !important;
+  border-color: #555 !important;
+  cursor: not-allowed;
 }
 
 .toolbar .el-button--primary {
   background-color: #1A97ED !important;
   border-color: #1A97ED !important;
+}
+
+.toolbar .el-button--primary:hover {
+  filter: brightness(0.85);
+  transform: translateY(-1px);
 }
 
 .command-table {
