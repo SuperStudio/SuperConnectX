@@ -803,13 +803,28 @@ onUnmounted(() => {
   background: #555;
 }
 
-:deep(.el-select) {
-  --el-select-border-color-hover: #409eff;
+/* 下拉框和输入框边框样式 */
+:deep(.el-select .el-select__wrapper) {
+  border: 1px solid #4a4a4a !important;
+  background-color: #3a3a3a !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-select .el-select__wrapper:hover),
+:deep(.el-select .el-select__wrapper:focus-within),
+:deep(.el-select.is-focused .el-select__wrapper) {
+  border-color: #007fd4 !important;
+  box-shadow: 0 0 0 1px #007fd4 inset !important;
 }
 
 :deep(.el-input__wrapper) {
   background-color: #3a3a3a !important;
-  box-shadow: none !important;
+  box-shadow: 0 0 0 1px #4a4a4a inset !important;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-input__wrapper:focus-within) {
+  box-shadow: 0 0 0 1px #007fd4 inset !important;
 }
 
 :deep(.el-input__inner) {
