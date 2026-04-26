@@ -87,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, onMounted, computed } from 'vue'
+import { ref, onUnmounted, onMounted, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import UnifiedTerminal from './UnifiedTerminal.vue'
 
@@ -135,6 +135,46 @@ const parity = ref(props.connection.parity || 'none')
 
 const isConnectedValue = computed(() => isConnected.value)
 const currentSessionId = ref<string>('')
+
+// 监听串口设置变化，自动保存
+watch([baudRate, dataBits, stopBits, parity, encoding, readTimeout, writeTimeout], () => {
+  saveComSettings()
+})
+
+// 加载保存的串口设置
+const loadComSettings = async () => {
+  try {
+    const settings = await window.storageApi.getComSettings(props.connection.comName)
+    if (settings) {
+      baudRate.value = settings.baudRate || 9600
+      dataBits.value = settings.dataBits || 8
+      stopBits.value = settings.stopBits || 1
+      parity.value = settings.parity || 'none'
+      encoding.value = settings.encoding || 'utf8'
+      readTimeout.value = settings.readTimeout || 0
+      writeTimeout.value = settings.writeTimeout || 0
+    }
+  } catch (error) {
+    console.error('加载串口设置失败:', error)
+  }
+}
+
+// 保存串口设置
+const saveComSettings = async () => {
+  try {
+    await window.storageApi.saveComSettings(props.connection.comName, {
+      baudRate: baudRate.value,
+      dataBits: dataBits.value,
+      stopBits: stopBits.value,
+      parity: parity.value,
+      encoding: encoding.value,
+      readTimeout: readTimeout.value,
+      writeTimeout: writeTimeout.value
+    })
+  } catch (error) {
+    console.error('保存串口设置失败:', error)
+  }
+}
 
 const handleConnect = async () => {
   isConnecting.value = true
@@ -287,7 +327,10 @@ defineExpose({
   isConnected: isConnectedValue
 })
 
-onMounted(() => {
+onMounted(async () => {
+  // 加载保存的串口设置
+  await loadComSettings()
+
   // 监听连接关闭事件，更新连接状态（无论从哪里断开）
   window.connectApi.onConnectClose((sessionId: number | string) => {
     if (String(sessionId) === String(props.connection.sessionId)) {

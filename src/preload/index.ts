@@ -20,7 +20,11 @@ contextBridge.exposeInMainWorld('storageApi', {
   updateCommandGroup: (group: any) => ipcRenderer.invoke('update-command-group', group),
   deleteCommandGroup: (groupId: number) => ipcRenderer.invoke('delete-command-group', groupId),
   exportCommands: (filePath: string) => ipcRenderer.invoke('export-commands', filePath),
-  importCommands: (filePath: string) => ipcRenderer.invoke('import-commands', filePath)
+  importCommands: (filePath: string) => ipcRenderer.invoke('import-commands', filePath),
+
+  /* COM 串口设置 */
+  getComSettings: (comName: string) => ipcRenderer.invoke('get-com-settings', comName),
+  saveComSettings: (comName: string, settings: any) => ipcRenderer.invoke('save-com-settings', comName, settings)
 })
 
 contextBridge.exposeInMainWorld('connectApi', {

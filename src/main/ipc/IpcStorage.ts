@@ -3,6 +3,7 @@ import PreSetCommandStorage from '../storage/PreSetCommandStorage'
 import { ipcMain } from 'electron'
 import logger from './IpcAppLogger'
 import CommandGroupStorage from '../storage/CommandGroupStorage'
+import ComSettingsStorage from '../storage/ComSettingsStorage'
 
 export default class IpcStorage {
   private static sInstance: IpcStorage
@@ -50,6 +51,14 @@ export default class IpcStorage {
     ipcMain.handle('import-commands', (_, filePath: string) =>
       preSetCommandStorage.importCommands(groupStorage, filePath)
     )
+
+    /* COM 串口设置持久化 */
+    const comSettingsStorage = new ComSettingsStorage()
+    ipcMain.handle('get-com-settings', (_, comName: string) => comSettingsStorage.getSettings(comName))
+    ipcMain.handle('save-com-settings', (_, comName: string, settings: any) => {
+      comSettingsStorage.saveSettings(comName, settings)
+      return true
+    })
 
     logger.info(`init IpcStorage done`)
   }

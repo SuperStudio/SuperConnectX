@@ -29,6 +29,9 @@ declare global {
 
       exportCommands: (filePath: string) => Promise<any>
       importCommands: (filePath: string) => Promise<any>
+
+      getComSettings: (comName: string) => Promise<any>
+      saveComSettings: (comName: string, settings: any) => Promise<boolean>
     }
     connectApi: {
       startConnect: (conn: any) => Promise<any>
