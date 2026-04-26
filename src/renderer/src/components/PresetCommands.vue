@@ -1,10 +1,26 @@
 <template>
   <div class="preset-commands">
     <!-- 编辑命令按钮 -->
-    <el-button type="default" size="small" class="edit-commands-btn" @click="openCommandEditor">
+    <el-button type="primary" size="small" class="edit-commands-btn" @click="openCommandEditor">
       <el-icon><Edit /></el-icon>
       编辑命令
     </el-button>
+
+    <!-- 运行/停止按钮（移到组选择左边） -->
+    <div class="group-actions-buttons">
+      <el-tooltip :content="isRunningAll ? '停止循环' : '循环运行'" placement="bottom">
+        <el-button
+          :type="isRunningAll ? 'danger' : 'default'"
+          size="small"
+          circle
+          :disabled="!selectedGroupId || filteredCommands.length === 0"
+          @click="toggleRunAllCommands"
+        >
+          <el-icon v-if="!isRunningAll"><VideoPlay /></el-icon>
+          <el-icon v-else><VideoPause /></el-icon>
+        </el-button>
+      </el-tooltip>
+    </div>
 
     <!-- 组选择下拉框 -->
     <el-dropdown
@@ -51,22 +67,6 @@
         </el-dropdown-menu>
       </template>
     </el-dropdown>
-
-    <!-- 运行/停止按钮 -->
-    <div class="group-actions-buttons">
-      <el-tooltip :content="isRunningAll ? '停止循环' : '循环运行'" placement="bottom">
-        <el-button
-          :type="isRunningAll ? 'danger' : 'default'"
-          size="small"
-          circle
-          :disabled="!selectedGroupId || filteredCommands.length === 0"
-          @click="toggleRunAllCommands"
-        >
-          <el-icon v-if="!isRunningAll"><VideoPlay /></el-icon>
-          <el-icon v-else><VideoPause /></el-icon>
-        </el-button>
-      </el-tooltip>
-    </div>
 
     <!-- 新增命令按钮 -->
     <el-button
@@ -742,6 +742,36 @@ watch(selectedGroupId, () => {
   filterCommandsByGroup()
 })
 
+// 监听连接状态，断开时停止所有循环发送
+watch(
+  () => props.isConnected,
+  (connected) => {
+    if (!connected) {
+      stopAllLoopSend()
+    }
+  }
+)
+
+// 停止所有循环发送
+const stopAllLoopSend = () => {
+  // 停止单个命令的循环发送
+  Object.keys(loopIntervals.value).forEach((cmdId) => {
+    if (loopIntervals.value[Number(cmdId)]) {
+      clearInterval(loopIntervals.value[Number(cmdId)])
+    }
+  })
+  loopIntervals.value = {}
+  loopStatus.value = {}
+
+  // 停止运行所有命令
+  if (runAllInterval.value) {
+    clearTimeout(runAllInterval.value)
+    runAllInterval.value = null
+  }
+  isRunningAll.value = false
+  runAllCommandIndex.value = 0
+}
+
 // 组件生命周期
 onMounted(() => {
   loadGroups()
@@ -804,8 +834,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 
 <style scoped>
 .preset-commands {
-  padding: 8px 15px;
-  border-bottom: 1px solid #333;
+  padding: 8px 15px 8px 5px;
   background: #252526;
   display: flex;
   gap: 8px;
@@ -826,14 +855,16 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .edit-commands-btn {
-  background-color: #3a3a3a !important;
-  border-color: #444 !important;
-  color: #e0e0e0 !important;
+  background-color: #1A97ED !important;
+  border-color: #1A97ED !important;
+  color: white !important;
+  width: 90px !important;
   flex-shrink: 0;
 }
 
 .edit-commands-btn:hover {
-  background-color: #4a4a4a !important;
+  filter: brightness(0.85);
+  transform: translateY(-1px);
 }
 
 .el-drop-down {
@@ -913,7 +944,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-left: 8px;
+  margin-left: 4px;
 }
 
 .group-actions-buttons .el-button {
