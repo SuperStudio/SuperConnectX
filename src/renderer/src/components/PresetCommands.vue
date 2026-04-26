@@ -268,6 +268,7 @@ const props = defineProps<{
     port?: number
     name?: string
     connectionType?: string
+    comName?: string
     sessionId: string
   }
 }>()
@@ -381,14 +382,20 @@ const loadGroups = async () => {
 }
 
 const getCurrentConnect = () => {
-  return {
-    id: props.connection.id,
-    host: props.connection.host,
-    port: props.connection.port,
-    name: props.connection.name,
-    connectionType: props.connection.connectionType,
-    sessionId: props.connection.sessionId
+  const conn: any = {
+    id: props.connection?.id,
+    name: props.connection?.name,
+    connectionType: props.connection?.connectionType,
+    sessionId: props.connection?.sessionId
   }
+  if (props.connection?.connectionType === 'com') {
+    conn.comName = props.connection.comName
+    conn.encoding = 'utf8'
+  } else {
+    conn.host = props.connection?.host
+    conn.port = props.connection?.port
+  }
+  return conn
 }
 
 // 根据连接类型过滤组
@@ -691,15 +698,24 @@ const closeContextMenuOnClickOutside = (event: MouseEvent) => {
 }
 
 const sendPresetCommand = async (cmd: any) => {
-  if (!props.isConnected) return
+  if (!props.isConnected) {
+    ElMessage.warning('请先建立连接')
+    return
+  }
 
   try {
     emit('commandSent', cmd.name.trim())
     emit('commandSentContent', cmd.command)
-    window.connectApi.sendData({
-      conn: getCurrentConnect(),
+    const conn = getCurrentConnect()
+    console.log('发送命令 - 连接信息:', JSON.stringify(conn), '命令:', cmd.command.trim())
+    const result = await window.connectApi.sendData({
+      conn: conn,
       command: cmd.command.trim()
     })
+    console.log('发送结果:', JSON.stringify(result))
+    if (!result.success) {
+      ElMessage.error(result.message || '命令发送失败')
+    }
   } catch (error) {
     ElMessage.error('命令发送失败')
     console.error('发送失败:', error)

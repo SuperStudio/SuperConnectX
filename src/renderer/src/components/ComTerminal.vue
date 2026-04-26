@@ -457,12 +457,13 @@ const handleSendCommand = async (command: string) => {
   unifiedTerminalRef.value?.updateTxBytes(command.length)
 
   try {
+    const connObj = {
+      connectionType: 'com',
+      comName: props.connection.comName,
+      sessionId: props.connection.sessionId
+    }
     await window.connectApi.sendData({
-      conn: {
-        connectionType: 'com',
-        comName: props.connection.comName,
-        sessionId: props.connection.sessionId
-      },
+      conn: connObj,
       command: command
     })
   } catch (error) {

@@ -35,7 +35,13 @@ export default class IpcConnector {
       baudRate: conn.baudRate,
       dataBits: conn.dataBits,
       stopBits: conn.stopBits,
-      parity: conn.parity
+      parity: conn.parity,
+      encoding: conn.encoding,
+      readTimeout: conn.readTimeout,
+      writeTimeout: conn.writeTimeout,
+      flowControl: conn.flowControl,
+      rts: conn.rts,
+      dtr: conn.dtr
     }
 
     return connInfo

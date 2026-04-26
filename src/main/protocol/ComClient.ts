@@ -65,7 +65,7 @@ export default class ComClient extends BaseClient {
     const dataBits = info.dataBits || DEFAULT_DATA_BITS
     const stopBits = info.stopBits || DEFAULT_STOP_BITS
     const parity = info.parity || DEFAULT_PARITY
-    const encoding = info.encoding || DEFAULT_ENCODING
+    const encoding = (typeof info.encoding === 'string' && info.encoding.length > 0) ? info.encoding : DEFAULT_ENCODING
     const readTimeout = info.readTimeout || 0
     const writeTimeout = info.writeTimeout || 0
     const sessionId = info.sessionId
@@ -94,7 +94,6 @@ export default class ComClient extends BaseClient {
         stopBits: stopBits,
         parity: parity,
         autoOpen: false,
-        encoding: encoding,
         rtscts: rtscts,
         dsrdtr: dsrdtr,
         xon: xon,
@@ -182,11 +181,7 @@ export default class ComClient extends BaseClient {
     try {
       const dataStr = `[${new Date().toISOString()}] SEND >>>>>>>>>> ${command}`
       const commandWithNewline = command.endsWith('\n') ? command : command + '\n'
-      const writeOptions: any = {}
-      if (connection.writeTimeout > 0) {
-        writeOptions.timeout = connection.writeTimeout
-      }
-      connection.port.write(commandWithNewline, writeOptions, (err: Error | null | undefined) => {
+      connection.port.write(commandWithNewline, connection.encoding, (err: Error | null | undefined) => {
         if (err) {
           logger.error(`serial write error: ${err.message}`)
           return
@@ -288,7 +283,6 @@ export default class ComClient extends BaseClient {
           dataBits: newDataBits,
           stopBits: newStopBits,
           parity: newParity,
-          encoding: newEncoding,
           autoOpen: false,
           rtscts: newFlowControl === 'hardware',
           dsrdtr: newFlowControl === 'hardware',
@@ -369,7 +363,6 @@ export default class ComClient extends BaseClient {
       dataBits: 8,
       stopBits: 1,
       parity: 'none',
-      encoding: encoding,
       autoOpen: false
     })
 
