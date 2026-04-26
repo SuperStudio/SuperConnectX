@@ -60,7 +60,6 @@
           :highlight-current-row="true"
           empty-text="暂无命令，请点击上方按钮添加"
           @row-click="handleRowClick"
-          @row-dblclick="handleRowDblClick"
         >
           <el-table-column label="操作" width="80" align="center">
             <template #default="{ row }">
@@ -71,15 +70,16 @@
               </el-tooltip>
             </template>
           </el-table-column>
-          <el-table-column label="序号" width="70" align="center" prop="seqNum">
+          <el-table-column label="序号" width="80" align="center" prop="seqNum">
             <template #default="{ row }">
               <el-input-number
                 v-model="row.seqNum"
                 size="small"
                 :min="1"
                 :max="999"
-                class="cell-number"
-                controls-position="right"
+                :step="1"
+                :controls="false"
+                class="cell-seqnum"
                 @change="updateCommand(row)"
                 @click.stop
               />
@@ -96,15 +96,15 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="延时(ms)" width="100" align="center" prop="delay">
+          <el-table-column label="延时(ms)" width="120" align="center" prop="delay">
             <template #default="{ row }">
               <el-input-number
                 v-model="row.delay"
                 size="small"
                 :min="0"
                 :step="100"
-                class="cell-number"
-                controls-position="right"
+                :controls="false"
+                class="cell-input cell-delay-input"
                 @change="updateCommand(row)"
               />
             </template>
@@ -114,9 +114,7 @@
               <el-input
                 v-model="row.command"
                 size="small"
-                type="textarea"
-                :rows="1"
-                class="cell-input cell-textarea"
+                class="cell-command"
                 @change="updateCommand(row)"
                 @blur="updateCommand(row)"
               />
@@ -261,10 +259,6 @@ const tableRowClassName = ({ rowIndex }: { rowIndex: number }) => {
 
 const handleRowClick = (row: PresetCommand) => {
   currentRow.value = row
-}
-
-const handleRowDblClick = (row: PresetCommand) => {
-  editCommand(row)
 }
 
 const editCommand = (cmd: PresetCommand) => {
@@ -686,56 +680,90 @@ onMounted(() => {
   background: #094771 !important;
 }
 
-/* 单元格输入框样式 */
-.command-table .el-table :deep(.cell-input .el-input__wrapper) {
+/* 单元格输入框统一样式 */
+.command-table .el-table :deep(.cell-input .el-input__wrapper),
+.command-table .el-table :deep(.cell-seqnum .el-input__wrapper),
+.command-table .el-table :deep(.cell-command .el-input__wrapper) {
   background: transparent;
   box-shadow: none;
-  padding: 0;
+  padding: 6px 0;
+  height: auto;
+}
+
+.command-table .el-table :deep(.cell-input .el-input__inner),
+.command-table .el-table :deep(.cell-seqnum .el-input__inner),
+.command-table .el-table :deep(.cell-command .el-input__inner) {
+  background: transparent;
+  padding: 0 12px;
+  height: auto;
+  line-height: 20px;
+}
+
+/* el-input-number 样式 */
+.command-table .el-table :deep(.cell-seqnum .el-input-number) {
+  padding: 6px 0;
+  height: auto;
+}
+
+.command-table .el-table :deep(.cell-seqnum .el-input-number__inner) {
+  padding: 6px 0 !important;
+  height: auto !important;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.command-table .el-table :deep(.cell-input .el-input__inner:focus),
+.command-table .el-table :deep(.cell-seqnum .el-input__inner:focus),
+.command-table .el-table :deep(.cell-command .el-input__inner:focus) {
+  background: transparent;
 }
 
 .command-table .el-table :deep(.cell-input .el-input__inner) {
   color: #e0e0e0;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 0 6px;
-  height: 28px;
 }
 
-.command-table .el-table :deep(.cell-input .el-input__inner:focus) {
-  border-color: #007FD4;
-  background: #2d2d2d;
+.command-table .el-table :deep(.cell-seqnum) {
+  width: 40px;
 }
 
-.command-table .el-table :deep(.cell-number) {
-  width: 80px;
+.command-table .el-table :deep(.cell-seqnum .el-input-number__inner) {
+  width: 40px;
 }
 
-.command-table .el-table :deep(.cell-number .el-input__wrapper) {
-  background: transparent;
-  box-shadow: none;
-  padding: 0;
+.command-table .el-table :deep(.cell-input .el-input-number) {
+  width: 60px !important;
+  min-width: 60px !important;
+  max-width: 60px !important;
 }
 
-.command-table .el-table :deep(.cell-number .el-input__inner) {
+.command-table .el-table :deep(.cell-input .el-input-number__inner) {
+  width: 60px !important;
+  min-width: 60px !important;
+}
+
+.command-table .el-table :deep(.cell-delay-input) {
+  width: 80px !important;
+}
+
+.command-table .el-table :deep(.cell-delay-input .el-input-number__inner) {
+  width: 60px !important;
+}
+
+.command-table .el-table :deep(.cell-seqnum .el-input__inner) {
   color: #7ec699;
-  background: transparent;
   text-align: center;
+  width: 20px;
 }
 
-.command-table .el-table :deep(.cell-textarea .el-textarea__inner) {
+.command-table .el-table :deep(.cell-command .el-input__inner) {
   color: #ce9178;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 0 6px;
-  resize: none;
   font-family: 'Consolas', 'Monaco', monospace;
 }
 
-.command-table .el-table :deep(.cell-textarea .el-textarea__inner:focus) {
-  border-color: #007FD4;
-  background: #2d2d2d;
+.command-table .el-table :deep(.cell-command .el-input__inner:focus) {
+  background: transparent;
 }
 
 .command-table .el-table__empty-text {
