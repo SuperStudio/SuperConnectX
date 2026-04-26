@@ -9,57 +9,22 @@
       <el-button icon="ArrowDown" size="mini" circle @click="scrollToEnd" class="scroll-btn down-btn" />
     </div>
 
-    <!-- 第2行：基础操作按钮 -->
-    <div class="toolbar-row">
-      <el-button
-        v-if="isConnected"
-        type="danger"
-        icon="Close"
-        size="small"
-        class="close-btn"
-        @click="handleClose"
-      >
-        断开
-      </el-button>
-      <el-button
-        v-else
-        type="primary"
-        icon="Link"
-        size="small"
-        class="connect-btn"
-        @click="handleConnect"
-        :disabled="isConnecting"
-      >
-        {{ isConnecting ? '连接中...' : '连接' }}
-      </el-button>
-
-      <el-button icon="Delete" size="small" class="tool-btn" @click="clearTerminal">
-        清屏
-      </el-button>
-
-      <el-button icon="SetUp" size="small" class="tool-btn" @click="togglePin">
-        {{ isPinned ? '取消固定' : '固定显示' }}
-      </el-button>
-
-      <el-button icon="FolderOpened" size="small" class="tool-btn" @click="openLogFolder">
-        打开日志
-      </el-button>
-
-      <el-button icon="Document" size="small" class="tool-btn" @click="openLogFile">
-        打开文件
-      </el-button>
-
-      <el-checkbox v-model="showTimestamp" size="small" class="tool-checkbox">时间戳</el-checkbox>
-
-      <el-switch v-model="isHexMode" size="small" active-text="HEX" inactive-text="字符串" class="tool-switch" />
-
-      <el-button icon="Download" size="small" class="tool-btn" @click="saveLog">另存为</el-button>
-
-      <div class="rx-tx-info">
-        <span class="rx">RX: {{ rxBytes }}</span>
-        <span class="tx">TX: {{ txBytes }}</span>
-      </div>
-    </div>
+    <!-- 基础操作按钮 -->
+    <TerminalControl
+      :is-connected="isConnected"
+      :is-connecting="isConnecting"
+      :is-auto-scroll="isAutoScroll"
+      :is-show-log="isShowLog"
+      :rx-bytes="rxBytes"
+      :tx-bytes="txBytes"
+      @on-close="handleClose"
+      @on-reconnect="reconnect"
+      @on-clear-terminal="clearTerminal"
+      @on-open-log="openLogFolder"
+      @on-save-log="saveLog"
+      @update:is-auto-scroll="isAutoScroll = $event"
+      @update:is-show-log="isShowLog = $event"
+    />
 
     <!-- 第3行：串口参数设置 -->
     <div class="param-row">
@@ -168,6 +133,7 @@ import { ref, onUnmounted, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as monaco from 'monaco-editor'
 import PresetCommands from './PresetCommands.vue'
+import TerminalControl from './TerminalControl.vue'
 import FileUtils from '../utils/FileUtils'
 
 const emit = defineEmits(['onClose', 'commandSent', 'onConnect', 'onDisconnect'])
@@ -202,8 +168,8 @@ const commandInput = ref<HTMLInputElement | null>(null)
 const isConnected = ref(false)
 const isConnecting = ref(false)
 const isPinned = ref(false)
-const showTimestamp = ref(true)
-const isHexMode = ref(false)
+const isAutoScroll = ref(true)
+const isShowLog = ref(false)
 const showMoreDialog = ref(false)
 const encoding = ref('utf8')
 const readTimeout = ref(0)
@@ -338,19 +304,7 @@ const handleConnect = async () => {
       removeDataListener = window.connectApi.onRecvData((data) => {
         if (String(data.connId) !== String(currentSessionId.value)) return
         calcRxSize(data.data.length)
-        if (isHexMode.value) {
-          const hexStr = data.data.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ')
-          appendToTerminal(`\n${hexStr}\n`)
-        } else {
-          // 后端已经添加了时间戳 [HH:MM:SS.mmm]
-          // 如果前端不需要时间戳，移除后端添加的时间戳前缀
-          let displayData = data.data
-          if (!showTimestamp.value) {
-            // 移除 [HH:MM:SS.mmm] 前缀
-            displayData = data.data.replace(/^\[\d{2}:\d{2}:\d{2}\.\d{3}\]\s*/, '')
-          }
-          appendToTerminal(`\n${displayData}`)
-        }
+        appendToTerminal(`\n${data.data}`)
       })
 
       if (removeCloseListener) removeCloseListener()
@@ -401,10 +355,6 @@ const sendCommand = async () => {
   currentCommand.value = ''
   commandInput.value?.focus()
 
-  if (isHexMode.value) {
-    sendData = sendData.replace(/[^0-9a-fA-F\s]/g, '')
-  }
-
   appendToTerminal(`\n[TX] ${sendData}\n`)
   calcTxSize(sendData.length)
 
@@ -431,26 +381,11 @@ const clearTerminal = () => {
   totalRecvSize = 0
 }
 
-const togglePin = () => {
-  isPinned.value = !isPinned.value
-  if (isPinned.value) {
-    scrollToEnd()
-  }
-}
-
 const openLogFolder = async () => {
   try {
     await window.connectApi.openConnectLog(props.connection.sessionId)
   } catch (error) {
     ElMessage.error('打开日志文件夹失败')
-  }
-}
-
-const openLogFile = async () => {
-  try {
-    await window.connectApi.openConnectLog(props.connection.sessionId)
-  } catch (error) {
-    ElMessage.error('打开日志文件失败')
   }
 }
 
@@ -596,16 +531,6 @@ onUnmounted(() => {
   border-color: #007fd4;
 }
 
-.toolbar-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 8px 12px;
-  background-color: #252526;
-  border-bottom: 1px solid #333;
-  flex-wrap: wrap;
-}
-
 .param-row {
   display: flex;
   gap: 12px;
@@ -642,70 +567,6 @@ onUnmounted(() => {
   padding: 8px 12px;
   background-color: #252526;
   border-bottom: 1px solid #333;
-}
-
-.tool-btn {
-  background-color: #3a3a3a !important;
-  border-color: #444 !important;
-  color: #e0e0e0 !important;
-  padding: 6px 12px !important;
-}
-
-.tool-btn:hover:not(:disabled) {
-  background-color: #4a4a4a !important;
-  border-color: #555 !important;
-}
-
-.connect-btn {
-  background-color: #165dff !important;
-  border-color: #3370ff !important;
-  color: white !important;
-  min-width: 80px;
-}
-
-.connect-btn:hover:not(:disabled) {
-  background-color: #4080ff !important;
-}
-
-.connect-btn:disabled {
-  background-color: #555 !important;
-  border-color: #666 !important;
-  color: #999 !important;
-}
-
-.close-btn {
-  background-color: #ff4d4f !important;
-  border-color: #ff6767 !important;
-  color: white !important;
-  min-width: 80px;
-}
-
-.close-btn:hover {
-  background-color: #ff6b6b !important;
-}
-
-.tool-checkbox {
-  color: #e0e0e0 !important;
-}
-
-.tool-switch {
-  --el-switch-on-color: #165dff;
-  --el-switch-off-color: #444;
-}
-
-.rx-tx-info {
-  display: flex;
-  gap: 12px;
-  margin-left: auto;
-  font-size: 12px;
-}
-
-.rx-tx-info .rx {
-  color: #4ade80;
-}
-
-.rx-tx-info .tx {
-  color: #60a5fa;
 }
 
 .terminal-input {
