@@ -22,6 +22,7 @@ export default class PreSetCommandStorage extends BaseStorage {
         name: pureCmd.name || '',
         command: pureCmd.command || '',
         delay: Number(pureCmd.delay) || 0,
+        seqNum: Number(pureCmd.seqNum) || 1,
         groupId: Number(pureCmd.groupId) || 0
       }
 
@@ -47,6 +48,7 @@ export default class PreSetCommandStorage extends BaseStorage {
           name: pureCmd.name || '',
           command: pureCmd.command || '',
           delay: Number(pureCmd.delay) || 0,
+          seqNum: Number(pureCmd.seqNum) || 1,
           groupId: Number(pureCmd.groupId) || 0
         }
         this.saveAll(commands)
@@ -168,6 +170,7 @@ export default class PreSetCommandStorage extends BaseStorage {
           name: cmd.name,
           command: cmd.command,
           delay: cmd.delay,
+          seqNum: cmd.seqNum || 1,
           groupId: targetGroup.groupId
         })
 

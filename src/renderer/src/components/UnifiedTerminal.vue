@@ -37,6 +37,7 @@
         ref="presetCommandsRef"
         @commandSent="handleCommandSent"
         @commandSentContent="appendCommandToTerminal"
+        @openCommandEditor="(connectionType: string) => emit('onOpenCommandEditor', connectionType)"
       />
     </div>
 
@@ -107,6 +108,7 @@ const emit = defineEmits<{
   onCommandSent: [cmdName: string]
   onDataReceived: [data: string]
   'update:isConnected': [value: boolean]
+  onOpenCommandEditor: [connectionType: string]
 }>()
 
 const currentCommand = ref('')

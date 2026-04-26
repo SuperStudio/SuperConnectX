@@ -179,15 +179,22 @@
                 @commandSent="handleCommandSent"
                 @onConnect="(_sessionId: any) => { if (tab.comName) connectedSerialPorts[tab.comName] = true }"
                 @onDisconnect="(_sessionId: any) => { if (tab.comName) delete connectedSerialPorts[tab.comName] }"
+                @openCommandEditor="openCommandEditorTab"
                 class="telnet-terminal"
               />
               <TelnetTerminal
-                v-else
+                v-else-if="tab.connectionType === 'telnet'"
                 :connection="tab"
                 :ref="(el: any) => { if (el) telnetTerminalRefs[tab.id] = el as any }"
                 @onClose="handleTerminalClose(tab.id)"
                 @commandSent="handleCommandSent"
+                @openCommandEditor="openCommandEditorTab"
                 class="telnet-terminal"
+              />
+              <CommandEditor
+                v-else-if="tab.connectionType === 'commandEditor'"
+                :connection-type="tab.editorConnectionType"
+                class="command-editor-terminal"
               />
             </el-tab-pane>
           </el-tabs>
@@ -272,6 +279,7 @@ import CustomTitleBar from './components/CustomTitleBar.vue'
 import SearchInput from './components/SearchInput.vue'
 import ResourceMonitor from './components/ResourceMonitor.vue'
 import AboutDialog from './components/AboutDialog.vue'
+import CommandEditor from './components/CommandEditor.vue'
 import TelnetInfo from './entity/protocol/TelnetInfo'
 
 const searchKeyword = ref('')
@@ -606,6 +614,33 @@ const disconnectSerialPort = async (path: string) => {
     })
     delete connectedSerialPorts[path]
   }
+}
+
+// 打开命令编辑器选项卡
+const openCommandEditorTab = (connectionType: string = 'telnet') => {
+  // 获取协议类型的显示名称
+  const typeDisplayName = connectionType.toUpperCase()
+  
+  // 检查是否已存在该协议类型的命令编辑器选项卡
+  const existingTab = connectionTabs.value.find(
+    (t) => t.connectionType === 'commandEditor' && t.name === `编辑命令-${typeDisplayName}`
+  )
+  if (existingTab) {
+    activeTabId.value = existingTab.id
+    return
+  }
+
+  const newTabId = 'commandEditor-' + Date.now()
+  const newTab = {
+    connectionType: 'commandEditor',
+    name: `编辑命令-${typeDisplayName}`,
+    editorConnectionType: connectionType,
+    id: newTabId,
+    sessionId: newTabId
+  }
+
+  connectionTabs.value.push(newTab)
+  activeTabId.value = newTabId
 }
 
 onMounted(() => {
@@ -1285,5 +1320,10 @@ onMounted(() => {
   flex-shrink: 1;
   min-width: 0;
   margin-right: 8px;
+}
+
+.command-editor-terminal {
+  width: 100%;
+  height: 100%;
 }
 </style>

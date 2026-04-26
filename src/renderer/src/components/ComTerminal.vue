@@ -14,6 +14,7 @@
       @on-save-log="saveLog"
       @on-send="handleSendCommand"
       @on-command-sent="handleCommandSent"
+      @on-open-command-editor="emit('openCommandEditor', connection.connectionType)"
     >
       <!-- 波特率等设置放到下面 -->
       <template #extra>
@@ -155,7 +156,7 @@ import { ref, onUnmounted, onMounted, computed, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import UnifiedTerminal from './UnifiedTerminal.vue'
 
-const emit = defineEmits(['onClose', 'commandSent', 'onConnect', 'onDisconnect'])
+const emit = defineEmits(['onClose', 'commandSent', 'onConnect', 'onDisconnect', 'openCommandEditor'])
 const props = withDefaults(defineProps<{
   connection: {
     id: number

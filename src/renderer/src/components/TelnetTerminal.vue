@@ -14,6 +14,7 @@
       @on-save-log="saveLogFile"
       @on-send="handleSend"
       @on-command-sent="handleCommandSent"
+      @on-open-command-editor="emit('openCommandEditor', connection.connectionType)"
     />
   </div>
 </template>
@@ -27,7 +28,7 @@ import TelnetInfo from '../entity/protocol/TelnetInfo'
 const MAX_RETRY_COUNT = 1000
 const RETRY_INTERVAL_MS = 3000
 
-const emit = defineEmits(['onClose', 'commandSent'])
+const emit = defineEmits(['onClose', 'commandSent', 'openCommandEditor'])
 const props = defineProps<{
   connection: {
     id: number

@@ -1,5 +1,11 @@
 <template>
   <div class="preset-commands">
+    <!-- 编辑命令按钮 -->
+    <el-button type="default" size="small" class="edit-commands-btn" @click="openCommandEditor">
+      <el-icon><Edit /></el-icon>
+      编辑
+    </el-button>
+
     <!-- 组选择下拉框 -->
     <el-dropdown
       class="el-drop-down"
@@ -33,7 +39,6 @@
             :class="{ 'active-group': selectedGroupId === group.groupId }"
           >
             <span class="group-name">{{ group.name }}</span>
-            <span class="group-type-badge">{{ group.connectionType }}</span>
             <span class="group-actions">
               <el-icon size="16" class="action-icon edit-icon" @click.stop="editGroup(group)"
                 ><Edit
@@ -143,6 +148,14 @@
             placeholder="命令发送后等待时间"
           />
         </el-form-item>
+        <el-form-item label="序号" prop="seqNum">
+          <el-input-number
+            v-model="presetForm.seqNum"
+            :min="1"
+            :max="999"
+            placeholder="命令顺序"
+          />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="isPresetDialogOpen = false">取消</el-button>
@@ -183,6 +196,7 @@ import { ElMessage, ElForm, ElInput, ElMessageBox } from 'element-plus'
 import { ElSelect, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon } from 'element-plus'
 import { Plus, Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
 import FormUtils from '../utils/FormUtils'
+import eventBus from '../utils/EventBus'
 
 // 组相关状态
 const groups = ref<any[]>([])
@@ -216,11 +230,13 @@ const presetForm = ref<{
   name: string
   command: string
   delay: number
+  seqNum: number
   groupId: number | null
 }>({
   name: '',
   command: '',
   delay: 0,
+  seqNum: 1,
   groupId: null
 })
 
@@ -241,7 +257,14 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'commandSent', cmdName: string): void
   (e: 'commandSentContent', content: string): void
+  (e: 'openCommandEditor', connectionType: string): void
 }>()
+
+// 打开命令编辑器
+const openCommandEditor = () => {
+  const connType = props.connection?.connectionType || 'telnet'
+  emit('openCommandEditor', connType)
+}
 
 const copyableGroups = computed(() => {
   const connType = props.connection?.connectionType || 'telnet'
@@ -334,7 +357,9 @@ const loadPresetCommands = async () => {
 // 根据选中的组过滤命令
 const filterCommandsByGroup = () => {
   filteredCommands.value = selectedGroupId.value
-    ? presetCommands.value.filter((cmd) => cmd.groupId === selectedGroupId.value)
+    ? presetCommands.value
+        .filter((cmd) => cmd.groupId === selectedGroupId.value)
+        .sort((a, b) => (a.seqNum ?? 999) - (b.seqNum ?? 999))
     : []
 }
 
@@ -485,10 +510,15 @@ const saveGroup = async () => {
 const openAddPresetDialog = () => {
   isEditing.value = false
   currentEditingCmd.value = null
+  // 默认序号为当前组内命令数量 + 1
+  const currentCmdCount = presetCommands.value.filter(
+    (cmd) => cmd.groupId === selectedGroupId.value
+  ).length
   presetForm.value = {
     name: '',
     command: '',
     delay: 0,
+    seqNum: currentCmdCount + 1,
     groupId: selectedGroupId.value
   }
   isPresetDialogOpen.value = true
@@ -499,14 +529,16 @@ const editPresetCommand = (cmd: any) => {
   contextMenuVisible.value = false
   isEditing.value = true
   currentEditingCmd.value = cmd
-  presetForm.value = {
-    name: cmd.name,
-    command: cmd.command,
-    delay: cmd.delay,
-    groupId: cmd.groupId
-  }
+  console.log('编辑命令 seqNum:', cmd.seqNum, '类型:', typeof cmd.seqNum)
+  presetForm.value.name = cmd.name
+  presetForm.value.command = cmd.command
+  presetForm.value.delay = cmd.delay ?? 0
+  presetForm.value.seqNum = Number(cmd.seqNum) || 1
+  presetForm.value.groupId = cmd.groupId
   isPresetDialogOpen.value = true
-  focusInput()
+  nextTick(() => {
+    focusInput()
+  })
 }
 
 const savePresetCommand = async () => {
@@ -515,21 +547,29 @@ const savePresetCommand = async () => {
   try {
     await presetFormRef.value.validate()
 
+    console.log('保存命令 - presetForm:', presetForm.value)
+    console.log('保存命令 - seqNum 值:', presetForm.value.seqNum, '类型:', typeof presetForm.value.seqNum)
+
     const pureFormData = {
       name: presetForm.value.name.trim(),
       command: presetForm.value.command.trim(),
       delay: Number(presetForm.value.delay) || 0,
+      seqNum: Number(presetForm.value.seqNum) || 1,
       groupId: selectedGroupId.value
     }
+
+    console.log('保存命令 - pureFormData:', pureFormData)
 
     if (isEditing.value && currentEditingCmd.value) {
       const updatedCmd = {
         id: currentEditingCmd.value.id,
         ...pureFormData
       }
+      console.log('更新命令 - updatedCmd:', updatedCmd)
       await window.storageApi.updatePresetCommand(JSON.parse(JSON.stringify(updatedCmd)))
       ElMessage.success('命令已更新')
     } else {
+      console.log('新增命令 - pureFormData:', pureFormData)
       await window.storageApi.addPresetCommand(JSON.parse(JSON.stringify(pureFormData)))
       ElMessage.success('命令已添加')
     }
@@ -630,6 +670,10 @@ onMounted(() => {
   document.addEventListener('contextmenu', () => {
     contextMenuVisible.value = false
   })
+  // 监听命令组变化事件
+  eventBus.on('commandGroupsChanged', handleCommandGroupsChanged)
+  // 监听预设命令变化事件
+  eventBus.on('presetCommandsChanged', handlePresetCommandsChanged)
 })
 
 onBeforeUnmount(() => {
@@ -637,11 +681,31 @@ onBeforeUnmount(() => {
   document.removeEventListener('contextmenu', () => {
     contextMenuVisible.value = false
   })
+  // 移除命令组变化事件监听
+  eventBus.off('commandGroupsChanged', handleCommandGroupsChanged)
+  // 移除预设命令变化事件监听
+  eventBus.off('presetCommandsChanged', handlePresetCommandsChanged)
 
   Object.values(loopIntervals.value).forEach((interval) => {
     clearInterval(interval)
   })
 })
+
+// 处理命令组变化事件
+const handleCommandGroupsChanged = (connectionType: string) => {
+  // 只刷新当前协议类型的分组
+  if (props.connection?.connectionType === connectionType) {
+    loadGroups()
+  }
+}
+
+// 处理预设命令变化事件
+const handlePresetCommandsChanged = (connectionType: string) => {
+  // 只刷新当前协议类型的命令
+  if (props.connection?.connectionType === connectionType) {
+    loadPresetCommands()
+  }
+}
 </script>
 
 <style scoped>
@@ -665,6 +729,17 @@ onBeforeUnmount(() => {
 .preset-commands::-webkit-scrollbar-thumb {
   background-color: #444;
   border-radius: 3px;
+}
+
+.edit-commands-btn {
+  background-color: #3a3a3a !important;
+  border-color: #444 !important;
+  color: #e0e0e0 !important;
+  flex-shrink: 0;
+}
+
+.edit-commands-btn:hover {
+  background-color: #4a4a4a !important;
 }
 
 .el-drop-down {
