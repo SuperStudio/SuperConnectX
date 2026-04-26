@@ -52,6 +52,17 @@
             </el-select>
           </div>
 
+          <div class="param-item">
+            <span class="param-label">编码</span>
+            <el-select v-model="encoding" size="small" class="param-select-encoding">
+              <el-option label="UTF-8" value="utf8" />
+              <el-option label="GB2312" value="gb2312" />
+              <el-option label="GBK" value="gbk" />
+              <el-option label="ASCII" value="ascii" />
+              <el-option label="ISO-8859-1" value="latin1" />
+            </el-select>
+          </div>
+
           <el-button icon="More" size="small" class="more-btn" @click="showMoreDialog = true">
             更多
           </el-button>
@@ -60,15 +71,6 @@
         <!-- 更多设置对话框 -->
         <el-dialog v-model="showMoreDialog" title="串口高级设置" width="400px">
           <el-form label-width="100px">
-            <el-form-item label="编码">
-              <el-select v-model="encoding" size="small" class="full-width">
-                <el-option label="UTF-8" value="utf8" />
-                <el-option label="GB2312" value="gb2312" />
-                <el-option label="GBK" value="gbk" />
-                <el-option label="ASCII" value="ascii" />
-                <el-option label="ISO-8859-1" value="latin1" />
-              </el-select>
-            </el-form-item>
             <el-form-item label="读超时(ms)">
               <el-input-number v-model="readTimeout" :min="0" :step="100" size="small" class="full-width" controls-position="right" />
             </el-form-item>
@@ -77,8 +79,7 @@
             </el-form-item>
           </el-form>
           <template #footer>
-            <el-button v-if="isConnected" type="primary" size="small" @click="saveAndReconnect">保存并重连</el-button>
-            <el-button size="small" @click="showMoreDialog = false">{{ isConnected ? '取消' : '关闭' }}</el-button>
+            <el-button size="small" @click="showMoreDialog = false">关闭</el-button>
           </template>
         </el-dialog>
       </template>
@@ -438,6 +439,10 @@ onUnmounted(() => {
 
 .param-select {
   width: 100px;
+}
+
+.param-select-encoding {
+  width: 90px;
 }
 
 .more-btn {

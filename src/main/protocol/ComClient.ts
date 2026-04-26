@@ -15,6 +15,7 @@ interface SerialConnection {
   buffer: string
   timer: NodeJS.Timeout | null
   writeTimeout: number
+  encoding: string
   onData: any
   onClose: any
 }
@@ -97,6 +98,7 @@ export default class ComClient extends BaseClient {
             buffer: '',
             timer: null,
             writeTimeout: writeTimeout,
+            encoding: encoding,
             onData: onData,
             onClose: onClose
           }
@@ -232,8 +234,9 @@ export default class ComClient extends BaseClient {
     const newDataBits = config.dataBits || DEFAULT_DATA_BITS
     const newStopBits = config.stopBits || DEFAULT_STOP_BITS
     const newParity = config.parity || DEFAULT_PARITY
+    const newEncoding = config.encoding || connection.encoding || DEFAULT_ENCODING
 
-    logger.info(`update serial config: ${comName} @ ${newBaudRate}, dataBits: ${newDataBits}, stopBits: ${newStopBits}, parity: ${newParity}`)
+    logger.info(`update serial config: ${comName} @ ${newBaudRate}, dataBits: ${newDataBits}, stopBits: ${newStopBits}, parity: ${newParity}, encoding: ${newEncoding}`)
 
     return new Promise((resolve) => {
       // 保存回调
@@ -264,6 +267,7 @@ export default class ComClient extends BaseClient {
           dataBits: newDataBits,
           stopBits: newStopBits,
           parity: newParity,
+          encoding: newEncoding,
           autoOpen: false
         })
 
@@ -276,10 +280,11 @@ export default class ComClient extends BaseClient {
             buffer: '',
             timer: null,
             writeTimeout: config.writeTimeout ?? connection.writeTimeout,
+            encoding: newEncoding,
             onData: savedOnData,
             onClose: savedOnClose
           }
-          this.serialConnections.set(connId, newConnection)
+            this.serialConnections.set(connId, newConnection)
 
           // 收集数据到缓冲区
           newPort.on('data', (data: Buffer) => {
@@ -329,6 +334,7 @@ export default class ComClient extends BaseClient {
     const port = oldConnection.port
     const comName = port.path
     const baudRate = port.baudRate
+    const encoding = oldConnection.encoding || DEFAULT_ENCODING
 
     const recoveryPort = new SerialPort({
       path: comName,
@@ -336,6 +342,7 @@ export default class ComClient extends BaseClient {
       dataBits: 8,
       stopBits: 1,
       parity: 'none',
+      encoding: encoding,
       autoOpen: false
     })
 
@@ -346,6 +353,7 @@ export default class ComClient extends BaseClient {
           buffer: '',
           timer: null,
           writeTimeout: oldConnection.writeTimeout,
+          encoding: encoding,
           onData: oldConnection.onData,
           onClose: oldConnection.onClose
         }
