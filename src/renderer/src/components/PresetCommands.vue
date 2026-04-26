@@ -3,7 +3,7 @@
     <!-- 编辑命令按钮 -->
     <el-button type="default" size="small" class="edit-commands-btn" @click="openCommandEditor">
       <el-icon><Edit /></el-icon>
-      编辑
+      编辑命令
     </el-button>
 
     <!-- 组选择下拉框 -->
@@ -51,6 +51,22 @@
         </el-dropdown-menu>
       </template>
     </el-dropdown>
+
+    <!-- 运行/停止按钮 -->
+    <div class="group-actions-buttons">
+      <el-tooltip :content="isRunningAll ? '停止循环' : '循环运行'" placement="bottom">
+        <el-button
+          :type="isRunningAll ? 'danger' : 'default'"
+          size="small"
+          circle
+          :disabled="!selectedGroupId || filteredCommands.length === 0"
+          @click="toggleRunAllCommands"
+        >
+          <el-icon v-if="!isRunningAll"><VideoPlay /></el-icon>
+          <el-icon v-else><VideoPause /></el-icon>
+        </el-button>
+      </el-tooltip>
+    </div>
 
     <!-- 新增命令按钮 -->
     <el-button
@@ -192,7 +208,7 @@
 import { ref, nextTick, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { ElMessage, ElForm, ElInput, ElMessageBox } from 'element-plus'
 import { ElSelect, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon } from 'element-plus'
-import { Plus, Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, ArrowDown, VideoPlay, VideoPause } from '@element-plus/icons-vue'
 import FormUtils from '../utils/FormUtils'
 import eventBus from '../utils/EventBus'
 
@@ -221,6 +237,11 @@ const contextMenuTop = ref(0)
 // 循环发送相关
 const loopIntervals = ref<Record<number, NodeJS.Timeout>>({})
 const loopStatus = ref<Record<number, boolean>>({})
+
+// 循环运行所有命令相关
+const isRunningAll = ref(false)
+const runAllInterval = ref<NodeJS.Timeout | null>(null)
+const runAllCommandIndex = ref(0)
 const presetRules = FormUtils.buildPresetCmd()
 const presetFormRef = ref<InstanceType<typeof ElForm> | null>(null)
 const nameInputRef = ref<InstanceType<typeof ElInput> | null>(null)
@@ -293,6 +314,51 @@ const toggleLoopSend = (cmd: any) => {
   }, intervalTime)
 
   ElMessage.success(`已开始循环发送: ${cmd.name} (间隔${intervalTime}ms)`)
+}
+
+// 循环运行所有命令
+const toggleRunAllCommands = () => {
+  if (isRunningAll.value) {
+    // 停止
+    if (runAllInterval.value) {
+      clearInterval(runAllInterval.value)
+      runAllInterval.value = null
+    }
+    isRunningAll.value = false
+    runAllCommandIndex.value = 0
+    ElMessage.success('已停止循环运行')
+  } else {
+    // 开始运行
+    if (filteredCommands.value.length === 0) {
+      ElMessage.warning('当前组没有命令')
+      return
+    }
+    isRunningAll.value = true
+    runAllCommandIndex.value = 0
+    runNextCommand()
+  }
+}
+
+const runNextCommand = () => {
+  if (!isRunningAll.value || filteredCommands.value.length === 0) {
+    return
+  }
+
+  const cmd = filteredCommands.value[runAllCommandIndex.value]
+  sendPresetCommand(cmd)
+
+  // 更新下一个命令索引
+  runAllCommandIndex.value = (runAllCommandIndex.value + 1) % filteredCommands.value.length
+
+  // 获取当前命令的延时，作为下一个命令的间隔
+  const delay = Math.max(cmd.delay, 100)
+
+  // 设置定时器运行下一个命令
+  runAllInterval.value = setTimeout(() => {
+    if (isRunningAll.value) {
+      runNextCommand()
+    }
+  }, delay)
 }
 
 // 加载组数据
@@ -687,6 +753,11 @@ onBeforeUnmount(() => {
   Object.values(loopIntervals.value).forEach((interval) => {
     clearInterval(interval)
   })
+  if (runAllInterval.value) {
+    clearTimeout(runAllInterval.value)
+    runAllInterval.value = null
+  }
+  isRunningAll.value = false
 })
 
 // 处理命令组变化事件
@@ -820,6 +891,32 @@ const handlePresetCommandsChanged = (connectionType: string) => {
   background-color: #444 !important;
   border-color: #555 !important;
   cursor: not-allowed;
+}
+
+.group-actions-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.group-actions-buttons .el-button {
+  background-color: #3a3a3a;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+.group-actions-buttons .el-button:hover:not(:disabled) {
+  background-color: #4a4a4a;
+}
+
+.group-actions-buttons .el-button--danger {
+  background-color: #c45656 !important;
+  border-color: #c45656 !important;
+}
+
+.group-actions-buttons .el-button--danger:hover:not(:disabled) {
+  background-color: #d66a6a !important;
 }
 
 .preset-btn {
