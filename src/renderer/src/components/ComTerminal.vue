@@ -69,8 +69,19 @@
               <el-option label="UTF-8" value="utf8" />
               <el-option label="GB2312" value="gb2312" />
               <el-option label="GBK" value="gbk" />
+              <el-option label="GB18030" value="gb18030" />
+              <el-option label="BIG5" value="big5" />
+              <el-option label="Shift-JIS" value="shift-jis" />
+              <el-option label="EUC-KR" value="euc-kr" />
               <el-option label="ASCII" value="ascii" />
               <el-option label="ISO-8859-1" value="latin1" />
+              <el-option label="ISO-8859-2" value="latin2" />
+              <el-option label="KOI8-R" value="koi8-r" />
+              <el-option label="windows-1251" value="windows-1251" />
+              <el-option label="windows-1252" value="windows-1252" />
+              <el-option label="ISO-8859-5" value="iso-8859-5" />
+              <el-option label="UTF-16LE" value="utf16le" />
+              <el-option label="UTF-16BE" value="utf16be" />
             </el-select>
           </div>
 
@@ -566,8 +577,19 @@ onUnmounted(() => {
   width: 100px;
 }
 
+.com-terminal .param-row .el-select.param-select .el-input__wrapper {
+  height: 26px !important;
+  min-height: 26px !important;
+  padding: 0 8px !important;
+}
+
+.com-terminal .param-row .el-select.param-select .el-input__inner {
+  height: 26px !important;
+  line-height: 26px !important;
+}
+
 .param-select-encoding {
-  width: 90px;
+  width: 110px;
 }
 
 .baud-option {
