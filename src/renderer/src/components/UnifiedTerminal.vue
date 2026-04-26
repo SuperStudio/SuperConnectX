@@ -1,12 +1,12 @@
 <template>
   <div class="unified-terminal">
     <!-- 终端输出区域 -->
-    <div ref="editorContainer" class="terminal-output"></div>
-
-    <!-- 滚动按钮 -->
-    <div class="scroll-wrapper">
-      <el-button icon="ArrowUp" size="mini" circle @click="scrollToStart" class="scroll-btn up-btn" />
-      <el-button icon="ArrowDown" size="mini" circle @click="scrollToEnd" class="scroll-btn down-btn" />
+    <div ref="editorContainer" class="terminal-output">
+      <!-- 滚动按钮 -->
+      <div class="scroll-wrapper">
+        <el-button icon="ArrowUp" size="mini" circle @click="handleScrollToTop" class="scroll-btn up-btn" />
+        <el-button icon="ArrowDown" size="mini" circle @click="handleScrollToBottom" class="scroll-btn down-btn" />
+      </div>
     </div>
 
     <!-- 基础操作按钮 -->
@@ -122,6 +122,7 @@ let editor: monaco.editor.IStandaloneCodeEditor | null = null
 let editorModel: monaco.editor.ITextModel | null = null
 let totalRecvSize = 0
 let totalTxSize = 0
+let isInternalChange = false // 标记是否由内部触发的 isAutoScroll 变化
 
 const presetCommandsRef = ref<InstanceType<typeof PresetCommands>>()
 
@@ -131,6 +132,18 @@ watch(() => props.isConnected, (val) => {
 
 watch(() => props.isConnecting, (val) => {
   isConnecting.value = val
+})
+
+// 监听自动滚动开关的变化
+watch(isAutoScroll, (newVal) => {
+  if (newVal && !isInternalChange) {
+    // 用户打开自动滚动，执行滚动到底部
+    scrollToEnd()
+  }
+  // 如果是由按钮点击触发的变化，重置标记
+  if (isInternalChange) {
+    isInternalChange = false
+  }
 })
 
 const initEditor = async () => {
@@ -209,12 +222,27 @@ const appendToTerminal = (content: string) => {
 }
 
 const scrollToEnd = () => {
-  const newLastLine = editorModel!.getLineCount()
+  if (!editorModel) return
+  const newLastLine = editorModel.getLineCount()
   editor?.revealLine(newLastLine)
 }
 
 const scrollToStart = () => {
-  editor?.revealLine(0)
+  editor?.revealLine(1)
+}
+
+// 点击滚动到底部按钮：滚动到底部，然后取消自动滚动
+const handleScrollToBottom = () => {
+  scrollToEnd()
+  isInternalChange = true
+  isAutoScroll.value = false
+}
+
+// 点击滚动到顶部按钮：滚动到顶部，然后取消自动滚动
+const handleScrollToTop = () => {
+  scrollToStart()
+  isInternalChange = true
+  isAutoScroll.value = false
 }
 
 const clearTerminal = () => {
@@ -409,7 +437,7 @@ onUnmounted(() => {
 .scroll-wrapper {
   position: absolute;
   right: 40px;
-  bottom: 150px;
+  bottom: 10px;
   z-index: 10;
   width: 32px;
   display: flex;
