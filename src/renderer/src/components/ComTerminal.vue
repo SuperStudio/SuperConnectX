@@ -20,8 +20,19 @@
         <div class="param-row">
           <div class="param-item">
             <span class="param-label">波特率</span>
-            <el-select v-model="baudRate" size="small" class="param-select">
-              <el-option v-for="br in baudRates" :key="br" :label="br" :value="br" />
+            <el-select v-model="baudRate" size="small" class="param-select" :popper-append-to-body="false">
+              <el-option label="新增..." value="__add__" />
+              <el-option
+                v-for="br in baudRates"
+                :key="br"
+                :label="br"
+                :value="br"
+              >
+                <div class="baud-option">
+                  <span>{{ br }}</span>
+                  <el-icon class="delete-icon" @click.prevent.stop="deleteBaudRate(br)"><Close /></el-icon>
+                </div>
+              </el-option>
             </el-select>
           </div>
 
@@ -82,13 +93,36 @@
             <el-button size="small" @click="showMoreDialog = false">关闭</el-button>
           </template>
         </el-dialog>
+
+        <!-- 新增波特率对话框 -->
+        <el-dialog v-model="showAddBaudRateDialog" title="新增波特率" width="300px">
+          <el-form label-width="80px">
+            <el-form-item label="波特率">
+              <el-input-number
+                v-model="newBaudRate"
+                :min="1"
+                :max="99999999"
+                :step="1"
+                size="small"
+                class="full-width"
+                controls-position="right"
+                :controls="false"
+                placeholder="输入波特率"
+              />
+            </el-form-item>
+          </el-form>
+          <template #footer>
+            <el-button size="small" @click="showAddBaudRateDialog = false">取消</el-button>
+            <el-button size="small" type="primary" @click="addBaudRate">确定</el-button>
+          </template>
+        </el-dialog>
       </template>
     </UnifiedTerminal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, onMounted, computed, watch } from 'vue'
+import { ref, onUnmounted, onMounted, computed, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import UnifiedTerminal from './UnifiedTerminal.vue'
 
@@ -119,6 +153,8 @@ const unifiedTerminalRef = ref<InstanceType<typeof UnifiedTerminal>>()
 const isConnected = ref(false)
 const isConnecting = ref(false)
 const showMoreDialog = ref(false)
+const showAddBaudRateDialog = ref(false)
+const newBaudRate = ref(9600)
 const encoding = ref('utf8')
 const readTimeout = ref(0)
 const writeTimeout = ref(0)
@@ -128,7 +164,7 @@ let totalRxSize = 0
 let totalTxSize = 0
 
 // 串口参数
-const baudRates = [300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600]
+const baudRates = ref<number[]>([])
 const baudRate = ref(props.connection.baudRate || 9600)
 const dataBits = ref(props.connection.dataBits || 8)
 const stopBits = ref(props.connection.stopBits || 1)
@@ -137,8 +173,27 @@ const parity = ref(props.connection.parity || 'none')
 const isConnectedValue = computed(() => isConnected.value)
 const currentSessionId = ref<string>('')
 
+// 监听波特率变化
+watch(baudRate, (newVal) => {
+  console.log('baudRate watch triggered, newVal:', newVal)
+  if (newVal === '__add__') {
+    console.log('Showing add dialog')
+    showAddBaudRateDialog.value = true
+    nextTick(() => {
+      if (baudRates.value.length > 0) {
+        baudRate.value = baudRates.value[0]
+      }
+    })
+  } else {
+    saveComSettings()
+    if (isConnected.value) {
+      applyComConfig()
+    }
+  }
+})
+
 // 监听串口设置变化，自动保存
-watch([baudRate, dataBits, stopBits, parity, encoding, readTimeout, writeTimeout], () => {
+watch([dataBits, stopBits, parity, encoding, readTimeout, writeTimeout], () => {
   saveComSettings()
   // 如果已连接，立即应用新配置
   if (isConnected.value) {
@@ -206,6 +261,73 @@ const saveComSettings = async () => {
     })
   } catch (error) {
     console.error('保存串口设置失败:', error)
+  }
+}
+
+// 加载全局波特率列表
+const loadBaudRates = async () => {
+  try {
+    const rates = await window.storageApi.getBaudRates()
+    baudRates.value = rates || [9600, 19200, 115200, 15000000]
+  } catch (error) {
+    console.error('加载波特率列表失败:', error)
+    baudRates.value = [9600, 19200, 115200, 15000000]
+  }
+}
+
+// 保存全局波特率列表
+const saveBaudRates = async () => {
+  try {
+    const rates = [...baudRates.value] // 转为普通数组
+    console.log('saveBaudRates, sending:', rates)
+    await window.storageApi.saveBaudRates(rates)
+  } catch (error) {
+    console.error('保存波特率列表失败:', error)
+  }
+}
+
+// 新增波特率
+const addBaudRate = async () => {
+  const rate = newBaudRate.value
+  console.log('addBaudRate called, rate:', rate)
+  console.log('baudRates before:', [...baudRates.value])
+  if (rate && !baudRates.value.includes(rate)) {
+    baudRates.value.push(rate)
+    baudRates.value.sort((a, b) => a - b)
+    baudRate.value = rate
+    console.log('baudRates after push:', [...baudRates.value])
+    try {
+      await window.storageApi.saveBaudRates([...baudRates.value])
+      console.log('saveBaudRates called successfully')
+    } catch (error) {
+      console.error('saveBaudRates error:', error)
+    }
+    ElMessage.success(`已添加波特率 ${rate}`)
+  } else if (baudRates.value.includes(rate)) {
+    ElMessage.warning('该波特率已存在')
+    baudRate.value = rate
+  }
+  showAddBaudRateDialog.value = false
+}
+
+// 删除波特率
+const deleteBaudRate = async (rate: number) => {
+  if (baudRates.value.length <= 1) {
+    ElMessage.warning('至少保留一个波特率')
+    return
+  }
+  const index = baudRates.value.indexOf(rate)
+  if (index > -1) {
+    baudRates.value.splice(index, 1)
+    if (baudRate.value === rate) {
+      baudRate.value = baudRates.value[0]
+    }
+    try {
+      await window.storageApi.saveBaudRates([...baudRates.value])
+    } catch (error) {
+      console.error('saveBaudRates error:', error)
+    }
+    ElMessage.success(`已删除波特率 ${rate}`)
   }
 }
 
@@ -361,6 +483,9 @@ defineExpose({
 })
 
 onMounted(async () => {
+  // 加载全局波特率列表
+  await loadBaudRates()
+
   // 加载保存的串口设置
   await loadComSettings()
 
@@ -443,6 +568,29 @@ onUnmounted(() => {
 
 .param-select-encoding {
   width: 90px;
+}
+
+.baud-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.delete-icon {
+  font-size: 12px;
+  color: #999;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.baud-option:hover .delete-icon {
+  opacity: 1;
+}
+
+.delete-icon:hover {
+  color: #f56c6c;
 }
 
 .more-btn {

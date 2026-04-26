@@ -60,6 +60,18 @@ export default class IpcStorage {
       return true
     })
 
+    /* 全局波特率列表持久化 */
+    ipcMain.handle('get-baud-rates', () => {
+      const rates = comSettingsStorage.getBaudRates()
+      console.log('[IpcStorage] get-baud-rates:', rates)
+      return rates
+    })
+    ipcMain.handle('save-baud-rates', (_, baudRates: number[]) => {
+      console.log('[IpcStorage] save-baud-rates called with:', baudRates)
+      comSettingsStorage.saveBaudRates(baudRates)
+      return true
+    })
+
     logger.info(`init IpcStorage done`)
   }
 }

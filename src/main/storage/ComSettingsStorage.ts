@@ -17,17 +17,19 @@ interface ComPortSettings {
 
 interface StoredData {
   ports: { [comName: string]: ComPortSettings }
+  baudRates: number[]
 }
 
 export default class ComSettingsStorage {
   private storageData: Store<any>
   private readonly STORAGE_NAME = 'com-settings'
+  private static readonly DEFAULT_BAUD_RATES = [9600, 19200, 115200, 15000000]
 
   constructor() {
     this.storageData = new Store<any>({
       name: this.STORAGE_NAME,
       cwd: this.getAppUserDataPath(),
-      defaults: { ports: {} }
+      defaults: { ports: {}, baudRates: ComSettingsStorage.DEFAULT_BAUD_RATES }
     })
   }
 
@@ -55,5 +57,15 @@ export default class ComSettingsStorage {
     const all = this.storageData.get('ports') as StoredData['ports'] || {}
     all[comName] = settings
     this.storageData.set('ports', all)
+  }
+
+  getBaudRates(): number[] {
+    const rates = this.storageData.get('baudRates') as number[]
+    return rates || ComSettingsStorage.DEFAULT_BAUD_RATES
+  }
+
+  saveBaudRates(baudRates: number[]): void {
+    console.log('[ComSettingsStorage] saveBaudRates called with:', baudRates)
+    this.storageData.set('baudRates', baudRates)
   }
 }
