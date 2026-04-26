@@ -13,6 +13,9 @@ interface ComPortSettings {
   encoding: string
   readTimeout: number
   writeTimeout: number
+  rts?: boolean
+  dtr?: boolean
+  flowControl?: 'none' | 'hardware' | 'software'
 }
 
 interface StoredData {

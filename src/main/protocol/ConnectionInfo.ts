@@ -14,4 +14,8 @@ export default interface ConnectionInfo {
   encoding?: string
   readTimeout?: number
   writeTimeout?: number
+  // 流控制参数
+  flowControl?: 'none' | 'hardware' | 'software'
+  rts?: boolean
+  dtr?: boolean
 }

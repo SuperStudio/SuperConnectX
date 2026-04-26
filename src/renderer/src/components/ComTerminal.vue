@@ -83,21 +83,39 @@
               <el-option label="UTF-16LE" value="utf16le" />
               <el-option label="UTF-16BE" value="utf16be" />
             </el-select>
+            <el-button type="primary" icon="More" size="small" class="more-btn" @click="showMoreDialog = true">
+              更多
+            </el-button>
           </div>
-
-          <el-button icon="More" size="small" class="more-btn" @click="showMoreDialog = true">
-            更多
-          </el-button>
         </div>
 
         <!-- 更多设置对话框 -->
         <el-dialog v-model="showMoreDialog" title="串口高级设置" width="400px">
           <el-form label-width="100px">
-            <el-form-item label="读超时(ms)">
-              <el-input-number v-model="readTimeout" :min="0" :step="100" size="small" class="full-width" controls-position="right" />
+            <el-form-item label="打开超时">
+              <div class="input-with-unit">
+                <el-input-number v-model="readTimeout" :min="0" :step="100" size="small" class="full-width" :controls="false" placeholder="ms" />
+                <span class="unit-label">ms</span>
+              </div>
             </el-form-item>
-            <el-form-item label="写超时(ms)">
-              <el-input-number v-model="writeTimeout" :min="0" :step="100" size="small" class="full-width" controls-position="right" />
+            <el-form-item label="写超时">
+              <div class="input-with-unit">
+                <el-input-number v-model="writeTimeout" :min="0" :step="100" size="small" class="full-width" :controls="false" placeholder="ms" />
+                <span class="unit-label">ms</span>
+              </div>
+            </el-form-item>
+            <el-form-item label="流控制">
+              <el-select v-model="flowControl" size="small" class="full-width">
+                <el-option label="无" value="none" />
+                <el-option label="硬件(RTS/CTS)" value="hardware" />
+                <el-option label="软件(XON/XOFF)" value="software" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="DTR初始">
+              <el-switch v-model="dtr" />
+            </el-form-item>
+            <el-form-item label="RTS初始">
+              <el-switch v-model="rts" />
             </el-form-item>
           </el-form>
           <template #footer>
@@ -169,6 +187,9 @@ const newBaudRate = ref(9600)
 const encoding = ref('utf8')
 const readTimeout = ref(0)
 const writeTimeout = ref(0)
+const flowControl = ref<'none' | 'hardware' | 'software'>('none')
+const dtr = ref(true)
+const rts = ref(true)
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
 let totalRxSize = 0
@@ -204,7 +225,7 @@ watch(baudRate, (newVal) => {
 })
 
 // 监听串口设置变化，自动保存
-watch([dataBits, stopBits, parity, encoding, readTimeout, writeTimeout], () => {
+watch([dataBits, stopBits, parity, encoding, readTimeout, writeTimeout, flowControl, dtr, rts], () => {
   saveComSettings()
   // 如果已连接，立即应用新配置
   if (isConnected.value) {
@@ -228,7 +249,10 @@ const applyComConfig = async () => {
         parity: parity.value,
         encoding: encoding.value,
         readTimeout: readTimeout.value,
-        writeTimeout: writeTimeout.value
+        writeTimeout: writeTimeout.value,
+        flowControl: flowControl.value,
+        dtr: dtr.value,
+        rts: rts.value
       }
     )
     if (!result.success) {
@@ -252,6 +276,9 @@ const loadComSettings = async () => {
       encoding.value = settings.encoding || 'utf8'
       readTimeout.value = settings.readTimeout || 0
       writeTimeout.value = settings.writeTimeout || 0
+      flowControl.value = settings.flowControl || 'none'
+      dtr.value = settings.dtr !== undefined ? settings.dtr : true
+      rts.value = settings.rts !== undefined ? settings.rts : true
     }
   } catch (error) {
     console.error('加载串口设置失败:', error)
@@ -268,7 +295,10 @@ const saveComSettings = async () => {
       parity: parity.value,
       encoding: encoding.value,
       readTimeout: readTimeout.value,
-      writeTimeout: writeTimeout.value
+      writeTimeout: writeTimeout.value,
+      flowControl: flowControl.value,
+      dtr: dtr.value,
+      rts: rts.value
     })
   } catch (error) {
     console.error('保存串口设置失败:', error)
@@ -592,6 +622,23 @@ onUnmounted(() => {
   width: 110px;
 }
 
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.input-with-unit .el-input-number {
+  flex: 1;
+}
+
+.unit-label {
+  margin-left: 8px;
+  color: #999;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .baud-option {
   display: flex;
   justify-content: space-between;
@@ -617,9 +664,17 @@ onUnmounted(() => {
 
 .more-btn {
   margin-left: auto;
-  background-color: #3a3a3a !important;
-  border-color: #444 !important;
-  color: #e0e0e0 !important;
+  background-color: #1A97ED !important;
+  border-color: #1A97ED !important;
+  color: white !important;
+  width: 90px !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+}
+
+.more-btn:hover {
+  filter: brightness(0.85);
+  transform: translateY(-1px);
 }
 
 /* 下拉框和输入框边框样式 */

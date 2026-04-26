@@ -78,6 +78,15 @@ export default class ComClient extends BaseClient {
       logger.info(`start to connect serial port: ${comName} @ ${baudRate} (session: ${sessionId})`)
       logger.debug(`dataBits: ${dataBits}, stopBits: ${stopBits}, parity: ${parity}, encoding: ${encoding}, readTimeout: ${readTimeout}`)
 
+      // 获取流控制配置
+      const flowControl = info.flowControl || 'none'
+      const rtscts = flowControl === 'hardware'
+      const dsrdtr = flowControl === 'hardware'
+      const xon = flowControl === 'software'
+      const xoff = flowControl === 'software'
+      const rtsInitial = info.rts !== undefined ? info.rts : true
+      const dtrInitial = info.dtr !== undefined ? info.dtr : true
+
       const port = new SerialPort({
         path: comName,
         baudRate: baudRate,
@@ -86,6 +95,12 @@ export default class ComClient extends BaseClient {
         parity: parity,
         autoOpen: false,
         encoding: encoding,
+        rtscts: rtscts,
+        dsrdtr: dsrdtr,
+        xon: xon,
+        xoff: xoff,
+        rts: rtsInitial,
+        dtr: dtrInitial,
         timeout: readTimeout
       })
 
@@ -220,6 +235,9 @@ export default class ComClient extends BaseClient {
     encoding?: string
     readTimeout?: number
     writeTimeout?: number
+    rts?: boolean
+    dtr?: boolean
+    flowControl?: 'none' | 'hardware' | 'software'
   }): Promise<object> {
     const connection = this.serialConnections.get(connId)
     if (!connection) {
@@ -235,8 +253,11 @@ export default class ComClient extends BaseClient {
     const newStopBits = config.stopBits || DEFAULT_STOP_BITS
     const newParity = config.parity || DEFAULT_PARITY
     const newEncoding = config.encoding || connection.encoding || DEFAULT_ENCODING
+    const newFlowControl = config.flowControl || 'none'
+    const newRts = config.rts !== undefined ? config.rts : true
+    const newDtr = config.dtr !== undefined ? config.dtr : true
 
-    logger.info(`update serial config: ${comName} @ ${newBaudRate}, dataBits: ${newDataBits}, stopBits: ${newStopBits}, parity: ${newParity}, encoding: ${newEncoding}`)
+    logger.info(`update serial config: ${comName} @ ${newBaudRate}, dataBits: ${newDataBits}, stopBits: ${newStopBits}, parity: ${newParity}, encoding: ${newEncoding}, flowControl: ${newFlowControl}, rts: ${newRts}, dtr: ${newDtr}`)
 
     return new Promise((resolve) => {
       // 保存回调
@@ -268,7 +289,13 @@ export default class ComClient extends BaseClient {
           stopBits: newStopBits,
           parity: newParity,
           encoding: newEncoding,
-          autoOpen: false
+          autoOpen: false,
+          rtscts: newFlowControl === 'hardware',
+          dsrdtr: newFlowControl === 'hardware',
+          xon: newFlowControl === 'software',
+          xoff: newFlowControl === 'software',
+          rts: newRts,
+          dtr: newDtr
         })
 
         newPort.once('open', () => {
