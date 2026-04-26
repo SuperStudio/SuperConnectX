@@ -41,9 +41,9 @@
           <el-icon><Plus /></el-icon>
           添加命令
         </el-button>
-        <el-button size="small" :disabled="!currentRow" @click="editCurrentCommand">
+        <el-button size="small" :disabled="!currentRow" @click="insertCommandAbove">
           <el-icon><Edit /></el-icon>
-          编辑命令
+          插入命令
         </el-button>
       </div>
 
@@ -216,6 +216,8 @@ const commandForm = reactive({
   seqNum: 1
 })
 
+const isInsertingAbove = ref(false)
+
 const filteredGroups = computed(() => {
   // 先按协议类型过滤
   let filtered = groups.value.filter(g => g.connectionType === props.connectionType)
@@ -357,6 +359,7 @@ const deleteGroup = async (group: CommandGroup) => {
 const addCommand = () => {
   isEditingCommand.value = false
   editingCommandId.value = null
+  isInsertingAbove.value = false
   resetCommandForm()
   showCommandDialog.value = true
 }
@@ -366,9 +369,16 @@ const insertCommand = () => {
   addCommand()
 }
 
-const editCurrentCommand = () => {
+const insertCommandAbove = () => {
   if (currentRow.value) {
-    editCommand(currentRow.value)
+    isEditingCommand.value = false
+    editingCommandId.value = null
+    isInsertingAbove.value = true
+    commandForm.name = ''
+    commandForm.command = ''
+    commandForm.delay = 0
+    commandForm.seqNum = currentRow.value.seqNum
+    showCommandDialog.value = true
   }
 }
 
@@ -389,6 +399,22 @@ const saveCommand = async () => {
       })
       ElMessage.success('命令已更新')
     } else {
+      // 如果是插入命令，需要把被插入位置及之后的命令序号+1
+      if (isInsertingAbove.value) {
+        const insertSeq = commandForm.seqNum
+        for (const cmd of commands.value) {
+          if ((cmd.seqNum ?? 999) >= insertSeq) {
+            await window.storageApi.updatePresetCommand({
+              id: cmd.id,
+              name: cmd.name,
+              command: cmd.command,
+              delay: cmd.delay,
+              seqNum: (cmd.seqNum ?? 999) + 1,
+              groupId: cmd.groupId
+            })
+          }
+        }
+      }
       await window.storageApi.addPresetCommand({
         name: commandForm.name,
         command: commandForm.command,
@@ -441,6 +467,7 @@ const resetCommandForm = () => {
   commandForm.seqNum = commands.value.length + 1
   isEditingCommand.value = false
   editingCommandId.value = null
+  isInsertingAbove.value = false
 }
 
 onMounted(() => {
