@@ -726,11 +726,11 @@ onBeforeUnmount(() => {
   background-color: #1A97ED !important;
   border-color: #1A97ED !important;
   color: white !important;
+  width: 90px !important;
 }
 
 .add-preset-btn:hover {
-  background-color: #4db3f7 !important;
-  border-color: #4db3f7 !important;
+  filter: brightness(0.85);
   transform: translateY(-1px);
 }
 

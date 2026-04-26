@@ -18,9 +18,6 @@
         class="scroll-btn down-btn"
       />
     </div>
-    <div class="telminal-status-bar">
-      <span>接收 {{ recvDataSize }}</span>
-    </div>
 
     <div class="terminal-header">
       <div class="header-left">
@@ -35,7 +32,7 @@
           class="close-btn"
           @click="handleClose"
         >
-          关闭连接
+          断开
         </el-button>
         <el-button
           v-else
@@ -67,6 +64,10 @@
           active-text="自动滚动"
         />
         <el-switch v-model="isShowLog" size="small" active-text="显示日志" />
+      </div>
+      <div class="rx-tx-info">
+        <span class="rx">RX: {{ rxBytes }}</span>
+        <span class="tx">TX: {{ txBytes }}</span>
       </div>
     </div>
 
@@ -127,7 +128,8 @@ const props = defineProps<{
 }>()
 
 const currentCommand = ref('')
-const recvDataSize = ref('')
+const rxBytes = ref('0 B')
+const txBytes = ref('0 B')
 const commandInput = ref<HTMLInputElement | null>(null)
 const isConnected = ref(true)
 const isConnecting = ref(false)
@@ -147,6 +149,7 @@ let retryTimer: NodeJS.Timeout | null = null
 let stopRetry = ref(false)
 let totalRecvSize = 0 //当前显示的总大小
 let allRecvSize = 0 //实际总大小
+let totalTxSize = 0
 
 const presetCommandsRef = ref<InstanceType<typeof PresetCommands>>()
 
@@ -314,8 +317,10 @@ const handleClose = async () => {
       }
       isConnected.value = false
       currentConnId = 0
-      recvDataSize.value = ''
+      rxBytes.value = '0 B'
       allRecvSize = 0
+      txBytes.value = '0 B'
+      totalTxSize = 0
     }
   } else {
     isConnected.value = false
@@ -333,8 +338,10 @@ const handleTelnetClose = (connId: number) => {
     ElMessage.info('连接已关闭，将尝试重新连接...')
     isConnected.value = false
     currentConnId = 0
-    recvDataSize.value = ''
+    rxBytes.value = '0 B'
     allRecvSize = 0
+    txBytes.value = '0 B'
+    totalTxSize = 0
     appendToTerminal(`\n连接已关闭，将在${RETRY_INTERVAL_MS / 1000}秒后尝试重连...\n`)
     if (!stopRetry.value) {
       setTimeout(connect, 1000)
@@ -348,8 +355,10 @@ const connect = async () => {
   isConnected.value = false
   isConnecting.value = true
   currentConnId = 0
-  recvDataSize.value = ''
+  rxBytes.value = '0 B'
   allRecvSize = 0
+  txBytes.value = '0 B'
+  totalTxSize = 0
 
   let isFirstConnect = true
   const attemptConnect = async () => {
@@ -431,7 +440,12 @@ const connect = async () => {
 
 const calcRecvSize = (len: number): void => {
   allRecvSize += len
-  recvDataSize.value = FileUtils.formatBytes(allRecvSize)
+  rxBytes.value = FileUtils.formatBytes(allRecvSize)
+}
+
+const calcTxSize = (len: number): void => {
+  totalTxSize += len
+  txBytes.value = FileUtils.formatBytes(totalTxSize)
 }
 
 const sendCommand = async () => {
@@ -441,6 +455,7 @@ const sendCommand = async () => {
   currentCommand.value = ''
   commandInput.value?.focus()
   appendToTerminal(`\n[${new Date().toISOString()}] SEND >>>>>>>>>> ${sendData}\n`)
+  calcTxSize(sendData.length)
 
   try {
     await window.connectApi.sendData({
@@ -592,6 +607,22 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  flex: 1;
+}
+
+.rx-tx-info {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.rx-tx-info .rx {
+  color: #4ade80;
+}
+
+.rx-tx-info .tx {
+  color: #60a5fa;
 }
 
 .connection-status {
@@ -614,6 +645,7 @@ onUnmounted(() => {
 .close-btn,
 .clear-btn,
 .add-preset-btn {
+  width: 90px !important;
   padding: 6px 12px !important;
   border-radius: 4px !important;
   transition: all 0.2s ease !important;
@@ -623,14 +655,15 @@ onUnmounted(() => {
   background-color: #1A97ED !important;
   border-color: #4db3f7 !important;
   color: white !important;
+  width: 90px !important;
   padding: 6px 12px !important;
   border-radius: 4px !important;
   transition: all 0.2s ease !important;
+  margin-left: 0 !important;
 }
 
 .log-btn:hover {
-  background-color: #4db3f7 !important;
-  border-color: #7cc4fb !important;
+  filter: brightness(0.85);
   transform: translateY(-1px);
 }
 
@@ -638,17 +671,18 @@ onUnmounted(() => {
   background-color: #F56C6C !important;
   border-color: #f78989 !important;
   color: white !important;
+  margin-left: 0 !important;
 }
 
 .clear-btn:hover {
-  background-color: #f78989 !important;
-  border-color: #fab6b6 !important;
+  filter: brightness(0.85);
   transform: translateY(-1px);
 }
 
 .close-btn,
 .reconnect-btn {
-  min-width: 88px;
+  width: 90px !important;
+  padding: 6px 12px !important;
 }
 
 .close-btn {
@@ -658,8 +692,7 @@ onUnmounted(() => {
 }
 
 .close-btn:hover {
-  background-color: #ff3333 !important;
-  border-color: #ff6666 !important;
+  filter: brightness(0.85);
   transform: translateY(-1px);
 }
 
@@ -928,13 +961,6 @@ onUnmounted(() => {
 
 :deep(.el-switch__label) {
   color: #e0e0e0;
-}
-
-.telminal-status-bar {
-  width: 100%;
-  background-color: #323233;
-  padding: 10px;
-  opacity: 0.9;
 }
 
 .scroll-btn {
