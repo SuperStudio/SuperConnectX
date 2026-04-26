@@ -19,60 +19,21 @@
       />
     </div>
 
-    <div class="terminal-header">
-      <div class="header-left">
-        <span class="connection-status" :class="isConnected ? 'connected' : 'disconnected'">
-          {{ isConnected ? '已连接' : '已断开' }}
-        </span>
-        <el-button
-          v-if="isConnected"
-          type="danger"
-          icon="Close"
-          size="small"
-          class="close-btn"
-          @click="handleClose"
-        >
-          断开
-        </el-button>
-        <el-button
-          v-else
-          type="primary"
-          icon="Refresh"
-          size="small"
-          class="reconnect-btn toggle-btn"
-          @click="handleReconnect"
-          :disabled="isConnecting"
-        >
-          {{ isConnecting ? '连接中...' : '重连' }}
-        </el-button>
-        <el-button
-          type="default"
-          icon="Delete"
-          size="small"
-          class="clear-btn"
-          @click="clearTerminal"
-        >
-          清空屏幕
-        </el-button>
-        <el-button type="default" icon="Document" size="small" class="log-btn" @click="openLogFile">
-          打开日志
-        </el-button>
-        <el-button type="default" icon="DocumentAdd" size="small" class="log-btn" @click="saveLogFile">
-          日志另存为
-        </el-button>
-        <el-switch
-          v-model="isAutoScroll"
-          @change="autoScrollChange"
-          size="small"
-          active-text="自动滚动"
-        />
-        <el-switch v-model="isShowLog" size="small" active-text="显示日志" />
-      </div>
-      <div class="rx-tx-info">
-        <span class="rx">RX: {{ rxBytes }}</span>
-        <span class="tx">TX: {{ txBytes }}</span>
-      </div>
-    </div>
+    <TerminalControl
+      :is-connected="isConnected"
+      :is-connecting="isConnecting"
+      :is-auto-scroll="isAutoScroll"
+      :is-show-log="isShowLog"
+      :rx-bytes="rxBytes"
+      :tx-bytes="txBytes"
+      @on-close="handleClose"
+      @on-reconnect="handleReconnect"
+      @on-clear-terminal="clearTerminal"
+      @on-open-log="openLogFile"
+      @on-save-log="saveLogFile"
+      v-model:is-auto-scroll="isAutoScroll"
+      v-model:is-show-log="isShowLog"
+    />
 
     <PresetCommands
       :is-connected="isConnected"
@@ -107,10 +68,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, onMounted, computed } from 'vue'
+import { ref, onUnmounted, onMounted, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as monaco from 'monaco-editor'
 import PresetCommands from './PresetCommands.vue'
+import TerminalControl from './TerminalControl.vue'
 import TelnetInfo from '../entity/protocol/TelnetInfo'
 import FileUtils from '../utils/FileUtils'
 const MAX_RETRY_COUNT = 1000
@@ -155,6 +117,12 @@ let allRecvSize = 0 //实际总大小
 let totalTxSize = 0
 
 const presetCommandsRef = ref<InstanceType<typeof PresetCommands>>()
+
+watch(isAutoScroll, (newVal) => {
+  if (newVal) {
+    scrollToEnd()
+  }
+})
 
 // 暴露给父组件的连接状态（使用 computed 获取值而不是 ref 对象）
 const isConnectedValue = computed(() => isConnected.value)
@@ -518,12 +486,6 @@ const appendCommandToTerminal = (content: string) => {
 
 const refreshGroupsCmds = () => presetCommandsRef.value?.refreshGroupsCmds?.()
 
-const autoScrollChange = (autoScroll) => {
-  if (autoScroll) {
-    scrollToEnd()
-  }
-}
-
 const handleFontChange = (font) => {
   editor?.updateOptions({ fontFamily: font })
   editor?.layout()
@@ -620,129 +582,6 @@ onUnmounted(() => {
   border-radius: 0px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.terminal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  border-bottom: 1px solid #333;
-  background-color: #1e1e1e;
-  box-sizing: border-box;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  flex: 1;
-}
-
-.rx-tx-info {
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-  margin-left: auto;
-}
-
-.rx-tx-info .rx {
-  color: #4ade80;
-}
-
-.rx-tx-info .tx {
-  color: #60a5fa;
-}
-
-.connection-status {
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: normal;
-}
-
-.connection-status.connected {
-  background-color: rgba(24, 193, 56, 0.2);
-  color: #18c138;
-}
-
-.connection-status.disconnected {
-  background-color: rgba(255, 95, 88, 0.2);
-  color: #ff5f58;
-}
-
-.close-btn,
-.clear-btn,
-.add-preset-btn {
-  width: 90px !important;
-  padding: 6px 12px !important;
-  border-radius: 4px !important;
-  transition: all 0.2s ease !important;
-}
-
-.log-btn {
-  background-color: #1A97ED !important;
-  border-color: #4db3f7 !important;
-  color: white !important;
-  width: 90px !important;
-  padding: 6px 12px !important;
-  border-radius: 4px !important;
-  transition: all 0.2s ease !important;
-  margin-left: 0 !important;
-}
-
-.log-btn:hover {
-  filter: brightness(0.85);
-  transform: translateY(-1px);
-}
-
-.clear-btn {
-  background-color: #F56C6C !important;
-  border-color: #f78989 !important;
-  color: white !important;
-  margin-left: 0 !important;
-}
-
-.clear-btn:hover {
-  filter: brightness(0.85);
-  transform: translateY(-1px);
-}
-
-.close-btn,
-.reconnect-btn {
-  width: 90px !important;
-  padding: 6px 12px !important;
-}
-
-.close-btn {
-  background-color: #FF0000 !important;
-  border-color: #ff3333 !important;
-  color: white !important;
-}
-
-.close-btn:hover {
-  filter: brightness(0.85);
-  transform: translateY(-1px);
-}
-
-.reconnect-btn {
-  background-color: #165dff !important;
-  border-color: #3370ff !important;
-  color: white !important;
-}
-
-.reconnect-btn:hover {
-  background-color: #4080ff !important;
-  border-color: #5599ff !important;
-  transform: translateY(-1px);
-}
-
-.reconnect-btn:disabled {
-  background-color: #555 !important;
-  border-color: #666 !important;
-  color: #999 !important;
-  cursor: not-allowed !important;
 }
 
 .terminal-output {
