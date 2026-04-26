@@ -60,5 +60,8 @@ contextBridge.exposeInMainWorld('toolApi', {
   openDevtools: () => ipcRenderer.invoke('open-devtools'),
   getAppResource: () => ipcRenderer.invoke('get-app-resource'),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
-  openAppDir: () => ipcRenderer.invoke('open-app-dir')
+  openAppDir: () => ipcRenderer.invoke('open-app-dir'),
+  writeFile: ({ path: filePath, content }: { path: string; content: string }) =>
+    ipcRenderer.invoke('write-file', { path: filePath, content }),
+  showItemInFolder: (filePath: string) => ipcRenderer.invoke('show-item-in-folder', filePath)
 })

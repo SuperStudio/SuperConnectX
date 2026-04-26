@@ -52,6 +52,7 @@ declare global {
       openExternalUrl: (url: string) => Promise<any>
       openAppDir: () => Promise<any>
       writeFile: (options: { path: string; content: string }) => Promise<{ success: boolean }>
+      showItemInFolder: (filePath: string) => Promise<void>
     }
     dialogApi: {
       openFileDialog: (options: any) => Promise<any>

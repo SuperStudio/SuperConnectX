@@ -57,6 +57,9 @@
         <el-button type="default" icon="Document" size="small" class="log-btn" @click="openLogFile">
           打开日志
         </el-button>
+        <el-button type="default" icon="DocumentAdd" size="small" class="log-btn" @click="saveLogFile">
+          日志另存为
+        </el-button>
         <el-switch
           v-model="isAutoScroll"
           @change="autoScrollChange"
@@ -285,6 +288,32 @@ const openLogFile = async () => {
     }
   } catch (error) {
     ElMessage.error('打开日志失败：' + (error instanceof Error ? error.message : '未知错误'))
+  }
+}
+
+const saveLogFile = async () => {
+  if (!editorModel) return
+  const content = editorModel.getValue()
+  try {
+    const result = await window.dialogApi.saveFileDialog({
+      title: '保存日志',
+      defaultPath: `telnet_${props.connection.host}_${props.connection.port}_${Date.now()}.log`,
+      filters: [{ name: '日志文件', extensions: ['log', 'txt'] }]
+    })
+    if (result.filePath) {
+      const writeResult = await window.toolApi.writeFile({
+        path: result.filePath,
+        content: content
+      })
+      if (writeResult.success) {
+        ElMessage.success('日志保存成功')
+        window.toolApi.showItemInFolder(result.filePath)
+      } else {
+        ElMessage.error('保存失败：' + writeResult.message)
+      }
+    }
+  } catch (error) {
+    ElMessage.error('保存失败：' + (error instanceof Error ? error.message : '未知错误'))
   }
 }
 
