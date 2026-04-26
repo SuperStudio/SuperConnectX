@@ -162,7 +162,7 @@
               class="telnet-tab-pane"
             >
               <template #label>
-                <span class="tab-label">
+                <span class="tab-label" :title="tab.connectionType === 'telnet' ? `${tab.host}:${tab.port}` : tab.comName">
                   <span
                     class="connection-dot"
                     :class="getConnectionStatus(tab)"

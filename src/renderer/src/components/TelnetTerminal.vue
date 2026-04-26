@@ -1,62 +1,5 @@
 <template>
   <div class="telnet-terminal">
-    <div class="terminal-header">
-      <span class="connection-info">
-        {{ connection.host }}:{{ connection.port }}({{ connection.name || connection.sessionId }})
-        <span class="connection-status" :class="isConnected ? 'connected' : 'disconnected'">
-          {{ isConnected ? '已连接' : '已断开' }}
-        </span>
-      </span>
-      <div class="header-buttons">
-        <div class="switch-item">
-          <el-switch v-model="isShowLog" size="small" active-text="显示日志" />
-        </div>
-        <div class="switch-item">
-          <el-switch
-            v-model="isAutoScroll"
-            @change="autoScrollChange"
-            size="small"
-            active-text="自动滚动"
-          />
-        </div>
-        <el-button
-          type="default"
-          icon="Delete"
-          size="small"
-          class="clear-btn"
-          @click="clearTerminal"
-        >
-          清空屏幕
-        </el-button>
-
-        <el-button type="default" icon="Document" size="small" class="log-btn" @click="openLogFile">
-          打开日志
-        </el-button>
-
-        <el-button
-          v-if="isConnected"
-          type="danger"
-          icon="Close"
-          size="small"
-          class="close-btn"
-          @click="handleClose"
-        >
-          关闭连接
-        </el-button>
-        <el-button
-          v-else
-          type="primary"
-          icon="Refresh"
-          size="small"
-          class="reconnect-btn toggle-btn"
-          @click="handleReconnect"
-          :disabled="isConnecting"
-        >
-          {{ isConnecting ? '连接中...' : '重连' }}
-        </el-button>
-      </div>
-    </div>
-
     <!-- 终端输出区域 -->
     <div ref="editorContainer" class="terminal-output"></div>
     <div class="scroll-wrapper">
@@ -78,6 +21,55 @@
     <div class="telminal-status-bar">
       <span>接收 {{ recvDataSize }}</span>
     </div>
+
+    <div class="terminal-header">
+      <div class="header-left">
+        <span class="connection-status" :class="isConnected ? 'connected' : 'disconnected'">
+          {{ isConnected ? '已连接' : '已断开' }}
+        </span>
+        <el-button
+          v-if="isConnected"
+          type="danger"
+          icon="Close"
+          size="small"
+          class="close-btn"
+          @click="handleClose"
+        >
+          关闭连接
+        </el-button>
+        <el-button
+          v-else
+          type="primary"
+          icon="Refresh"
+          size="small"
+          class="reconnect-btn toggle-btn"
+          @click="handleReconnect"
+          :disabled="isConnecting"
+        >
+          {{ isConnecting ? '连接中...' : '重连' }}
+        </el-button>
+        <el-button
+          type="default"
+          icon="Delete"
+          size="small"
+          class="clear-btn"
+          @click="clearTerminal"
+        >
+          清空屏幕
+        </el-button>
+        <el-button type="default" icon="Document" size="small" class="log-btn" @click="openLogFile">
+          打开日志
+        </el-button>
+        <el-switch
+          v-model="isAutoScroll"
+          @change="autoScrollChange"
+          size="small"
+          active-text="自动滚动"
+        />
+        <el-switch v-model="isShowLog" size="small" active-text="显示日志" />
+      </div>
+    </div>
+
     <PresetCommands
       :is-connected="isConnected"
       :connection="connection"
@@ -589,22 +581,20 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 8px 12px;
   border-bottom: 1px solid #333;
   background-color: #1e1e1e;
-  height: 42px;
   box-sizing: border-box;
 }
 
-.connection-info {
-  font-size: 14px;
-  color: #e0e0e0;
-  flex: 1;
-  padding: 0 10px;
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .connection-status {
-  margin-left: 10px;
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 12px;
@@ -621,14 +611,6 @@ onUnmounted(() => {
   color: #ff5f58;
 }
 
-.header-buttons {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-right: 10px;
-}
-
-.log-btn,
 .close-btn,
 .clear-btn,
 .add-preset-btn {
@@ -637,11 +619,31 @@ onUnmounted(() => {
   transition: all 0.2s ease !important;
 }
 
-.log-btn,
+.log-btn {
+  background-color: #1A97ED !important;
+  border-color: #4db3f7 !important;
+  color: white !important;
+  padding: 6px 12px !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+}
+
+.log-btn:hover {
+  background-color: #4db3f7 !important;
+  border-color: #7cc4fb !important;
+  transform: translateY(-1px);
+}
+
 .clear-btn {
-  background-color: #3a3a3a !important;
-  border-color: #444 !important;
-  color: #e0e0e0 !important;
+  background-color: #F56C6C !important;
+  border-color: #f78989 !important;
+  color: white !important;
+}
+
+.clear-btn:hover {
+  background-color: #f78989 !important;
+  border-color: #fab6b6 !important;
+  transform: translateY(-1px);
 }
 
 .close-btn,
@@ -649,22 +651,15 @@ onUnmounted(() => {
   min-width: 88px;
 }
 
-.log-btn:hover,
-.clear-btn:hover {
-  background-color: #4a4a4a !important;
-  border-color: #555 !important;
-  transform: translateY(-1px);
-}
-
 .close-btn {
-  background-color: #ff4d4f !important;
-  border-color: #ff6767 !important;
+  background-color: #FF0000 !important;
+  border-color: #ff3333 !important;
   color: white !important;
 }
 
 .close-btn:hover {
-  background-color: #ff6b6b !important;
-  border-color: #ff8080 !important;
+  background-color: #ff3333 !important;
+  border-color: #ff6666 !important;
   transform: translateY(-1px);
 }
 

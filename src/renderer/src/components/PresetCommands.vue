@@ -723,12 +723,14 @@ onBeforeUnmount(() => {
 }
 
 .add-preset-btn {
-  background-color: #165dff !important;
-  border-color: #165dff !important;
+  background-color: #1A97ED !important;
+  border-color: #1A97ED !important;
+  color: white !important;
 }
 
 .add-preset-btn:hover {
-  background-color: #0e4ada !important;
+  background-color: #4db3f7 !important;
+  border-color: #4db3f7 !important;
   transform: translateY(-1px);
 }
 
