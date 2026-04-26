@@ -8,7 +8,7 @@
       placement="bottom-start"
     >
       <el-button type="default" size="small" class="group-selector">
-        <span class="group-selector-text">{{ selectedGroupName || '点击新建组' }}</span>
+        <span class="group-selector-text">{{ selectedGroupName || '暂无命令组' }}</span>
         <el-icon class="el-icon--right"> <ArrowDown /></el-icon>
       </el-button>
       <template #dropdown>
@@ -16,7 +16,7 @@
           <!-- 新建组选项 -->
           <el-dropdown-item command="new" class="group-menu-item new-group-item">
             <el-icon size="16" class="action-icon add-icon"><Plus /></el-icon>
-            <span class="group-name-new">新建组</span>
+            <span class="group-name-new">新建命令组</span>
           </el-dropdown-item>
 
           <!-- 分隔线 -->
@@ -77,15 +77,15 @@
 
     <!-- 组编辑对话框 -->
     <el-dialog
-      :title="isEditingGroup ? '编辑组' : '新建组'"
+      :title="isEditingGroup ? '编辑命令组' : '新建命令组'"
       v-model="isGroupDialogOpen"
       width="400px"
       :close-on-click-modal="false"
       @keydown.enter.native="saveGroup"
     >
       <el-form :model="groupForm" :rules="groupRules" ref="groupFormRef" label-width="120px">
-        <el-form-item label="组名称" prop="name">
-          <el-input v-model="groupForm.name" placeholder="输入组名称" />
+        <el-form-item label="命令组名称" prop="name">
+          <el-input v-model="groupForm.name" placeholder="命令组名称" />
         </el-form-item>
         <el-form-item label="连接类型" prop="connectionType">
           <el-select v-model="groupForm.connectionType" placeholder="选择连接类型">
@@ -95,7 +95,7 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="拷贝组" v-if="!isEditingGroup">
+        <el-form-item label="拷贝命令组" v-if="!isEditingGroup">
           <el-select v-model="groupForm.copyFromGroupId" placeholder="（可选）" clearable>
             <el-option
               v-for="group in copyableGroups"

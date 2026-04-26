@@ -45,7 +45,7 @@
       <span class="prompt">></span>
       <input
         v-model="currentCommand"
-        @keydown.enter="emit('onSend', currentCommand)"
+        @keydown.enter="handleSendCommand"
         :placeholder="isConnected ? placeholder : '连接后可发送命令'"
         ref="commandInput"
         class="command-input"
@@ -57,7 +57,7 @@
         icon="Promotion"
         size="small"
         class="send-btn"
-        @click="emit('onSend', currentCommand)"
+        @click="handleSendCommand"
         :disabled="!isConnected"
       >
         发送
@@ -226,6 +226,14 @@ const clearTerminal = () => {
 }
 
 const handleCommandSent = (cmdName: string) => emit('onCommandSent', cmdName)
+
+const handleSendCommand = () => {
+  const cmd = currentCommand.value
+  if (cmd.trim()) {
+    emit('onSend', cmd)
+  }
+  currentCommand.value = ''
+}
 
 const appendCommandToTerminal = (content: string) => {
   appendToTerminal(`\n[TX] ${content}\n`)
