@@ -512,6 +512,7 @@ const handleCommandSent = (cmdName: string) => emit('commandSent', cmdName)
 
 const appendCommandToTerminal = (content: string) => {
   appendToTerminal(`\n[${new Date().toISOString()}] SEND >>>>>>>>>> ${content}\n`)
+  calcTxSize(content.length)
   commandInput.value?.focus()
 }
 
