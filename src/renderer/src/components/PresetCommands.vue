@@ -693,7 +693,16 @@ onBeforeUnmount(() => {
 const handleCommandGroupsChanged = (connectionType: string) => {
   // 只刷新当前协议类型的分组
   if (props.connection?.connectionType === connectionType) {
-    loadGroups()
+    const prevSelectedId = selectedGroupId.value
+    loadGroups().then(() => {
+      // 如果之前有选中的组，刷新后同步组名称
+      if (prevSelectedId) {
+        const updatedGroup = groups.value.find((g) => g.groupId === prevSelectedId)
+        if (updatedGroup) {
+          selectedGroupName.value = updatedGroup.name
+        }
+      }
+    })
   }
 }
 
