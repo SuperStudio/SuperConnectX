@@ -588,6 +588,12 @@ onUnmounted(() => {
   line-height: 1.5;
   background-color: #1e1e1e;
   position: relative;
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.terminal-output:focus-within {
+  border-color: #007fd4;
 }
 
 .toolbar-row {
@@ -706,7 +712,17 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   background-color: #333;
-  padding: 8px 0;
+  padding: 0 10px;
+  margin-bottom: 8px;
+  margin-right: 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  height: 38px;
+  transition: border-color 0.2s;
+}
+
+.terminal-input:focus-within {
+  border-color: #007fd4;
 }
 
 .prompt {
@@ -719,10 +735,9 @@ onUnmounted(() => {
 
 .command-input {
   flex: 1;
-  background: #333;
+  background: transparent;
   border: none;
   color: #fff;
-  padding: 8px 10px;
   outline: none;
   font-family: monospace;
   font-size: 14px;
