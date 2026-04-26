@@ -171,6 +171,9 @@ const initEditor = async () => {
 const appendToTerminal = (content: string) => {
   if (!editorModel) return
 
+  // 如果不显示日志，直接返回
+  if (!isShowLog.value) return
+
   const lastLine = editorModel.getLineCount()
   let lastCol = 1
   if (lastLine > 0) {
@@ -280,7 +283,8 @@ defineExpose({
   focusInput,
   getEditorContent,
   editor,
-  refreshGroupsCmds: () => presetCommandsRef.value?.refreshGroupsCmds?.()
+  refreshGroupsCmds: () => presetCommandsRef.value?.refreshGroupsCmds?.(),
+  isShowLog
 })
 
 onMounted(() => {
