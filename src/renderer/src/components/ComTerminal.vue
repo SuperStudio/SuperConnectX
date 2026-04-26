@@ -504,6 +504,10 @@ const handleCommandSent = (cmdName: string) => emit('commandSent', cmdName)
 const refreshGroupsCmds = () => unifiedTerminalRef.value?.refreshGroupsCmds?.()
 
 const reconnect = () => {
+  // 重连时清空 rx/tx 统计
+  totalRxSize = 0
+  totalTxSize = 0
+  unifiedTerminalRef.value?.resetRxTx()
   if (!isConnected.value && !isConnecting.value) {
     handleConnect()
   }
@@ -512,6 +516,10 @@ const reconnect = () => {
 const saveAndReconnect = () => {
   showMoreDialog.value = false
   handleClose()
+  // 重连时清空 rx/tx 统计
+  totalRxSize = 0
+  totalTxSize = 0
+  unifiedTerminalRef.value?.resetRxTx()
   setTimeout(() => {
     handleConnect()
   }, 300)

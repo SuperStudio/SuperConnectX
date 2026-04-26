@@ -129,6 +129,10 @@ const cleanup = () => {
 }
 
 const handleReconnect = () => {
+  // 重连时清空 rx/tx 统计
+  totalTxSize = 0
+  allRecvSize = 0
+  unifiedTerminalRef.value?.resetRxTx()
   unifiedTerminalRef.value?.appendToTerminal(`\n正在重新连接...\n`)
   connect()
 }

@@ -287,6 +287,13 @@ const updateTxBytes = (len: number) => {
   txBytes.value = formatBytes(totalTxSize)
 }
 
+const resetRxTx = () => {
+  totalRecvSize = 0
+  totalTxSize = 0
+  rxBytes.value = '0 B'
+  txBytes.value = '0 B'
+}
+
 const setConnected = (val: boolean) => {
   isConnected.value = val
   emit('update:isConnected', val)
@@ -309,6 +316,7 @@ defineExpose({
   appendToTerminal,
   updateRxBytes,
   updateTxBytes,
+  resetRxTx,
   clearTerminal,
   scrollToEnd,
   scrollToStart,
