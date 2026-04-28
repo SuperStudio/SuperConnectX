@@ -193,6 +193,7 @@ const dtr = ref(true)
 const rts = ref(true)
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
+let removeMountedCloseListener: (() => void) | null = null
 let totalRxSize = 0
 let totalTxSize = 0
 
@@ -400,7 +401,8 @@ const handleConnect = async () => {
       })
 
       if (removeCloseListener) removeCloseListener()
-      removeCloseListener = window.connectApi.onConnectClose(() => {
+      removeCloseListener = window.connectApi.onConnectClose((sessionId: number | string) => {
+        if (String(sessionId) !== String(props.connection.sessionId)) return
         handleClose()
       })
 
@@ -520,7 +522,8 @@ onMounted(async () => {
   await loadComSettings()
 
   // 监听连接关闭事件，更新连接状态（无论从哪里断开）
-  window.connectApi.onConnectClose((sessionId: number | string) => {
+  if (removeMountedCloseListener) removeMountedCloseListener()
+  removeMountedCloseListener = window.connectApi.onConnectClose((sessionId: number | string) => {
     if (String(sessionId) === String(props.connection.sessionId)) {
       isConnected.value = false
       unifiedTerminalRef.value?.appendToTerminal(`\n连接已断开\n`)
@@ -541,6 +544,10 @@ onUnmounted(() => {
   if (removeCloseListener) {
     removeCloseListener()
     removeCloseListener = null
+  }
+  if (removeMountedCloseListener) {
+    removeMountedCloseListener()
+    removeMountedCloseListener = null
   }
 
   if (isConnected.value) {
