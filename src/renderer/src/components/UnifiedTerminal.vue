@@ -251,7 +251,6 @@ const clearTerminal = () => {
   if (editorModel) {
     editorModel.setValue('')
   }
-  commandInput.value?.focus()
   totalRecvSize = 0
 }
 

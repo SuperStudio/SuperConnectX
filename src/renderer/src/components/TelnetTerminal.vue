@@ -186,7 +186,6 @@ const connect = async () => {
         })
 
         removeCloseListener = window.connectApi.onConnectClose(handleTelnetClose)
-        unifiedTerminalRef.value?.focusInput()
         unifiedTerminalRef.value?.appendToTerminal(`\nconnect success, retry count: ${retryCount + 1}\n`)
         retryCount = 0
       } else {
