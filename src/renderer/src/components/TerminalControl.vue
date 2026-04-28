@@ -138,8 +138,8 @@ const showLog = computed({
 }
 
 .connection-status.disconnected {
-  background-color: rgba(255, 95, 88, 0.2);
-  color: #ff5f58;
+  background-color: rgba(128, 128, 128, 0.2);
+  color: #888888;
 }
 
 .close-btn,

@@ -1120,7 +1120,7 @@ onMounted(() => {
 }
 
 .connection-dot.disconnected {
-  background-color: #ff5f58;
+  background-color: #888888;
 }
 
 .telnet-terminal {
