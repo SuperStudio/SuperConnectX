@@ -53,6 +53,8 @@
               <el-option label="无" value="none" />
               <el-option label="偶校验" value="even" />
               <el-option label="奇校验" value="odd" />
+              <el-option label="Mark" value="mark" />
+              <el-option label="Space" value="space" />
             </el-select>
           </div>
 
