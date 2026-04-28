@@ -53,7 +53,7 @@
           :data="commands"
           size="small"
           stripe
-          style="width: 100%"
+          style="width: 100%; height: 100%"
           row-key="id"
           :header-cell-style="{ background: '#2d2d2d', color: '#e0e0e0', fontWeight: '600' }"
           :row-class-name="tableRowClassName"
@@ -611,25 +611,22 @@ onMounted(() => {
 .command-table {
   flex: 1;
   padding: 12px;
-  overflow: auto;
-}
-
-.command-table {
-  flex: 1;
-  padding: 12px;
   overflow: hidden;
+  min-height: 0;
 }
 
 .command-table .el-table {
+  height: 100%;
   background: #1e1e1e;
   color: #e0e0e0;
   border-radius: 0;
-  overflow: hidden;
   border: none !important;
   box-shadow: none !important;
   --el-table-border: none !important;
   --el-table-border-color: transparent !important;
   border-spacing: 0 !important;
+  display: flex;
+  flex-direction: column;
 }
 
 .command-table .el-table * {
@@ -685,6 +682,11 @@ onMounted(() => {
   padding: 12px 8px;
   border: none !important;
   border-bottom: none !important;
+}
+
+.command-table .el-table :deep(.el-table__body-wrapper) {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .command-table .el-table :deep(.el-table__body) {
