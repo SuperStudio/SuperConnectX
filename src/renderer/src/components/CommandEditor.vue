@@ -4,7 +4,7 @@
     <div class="sidebar">
       <!-- 添加组按钮 -->
       <div class="sidebar-header">
-        <el-button type="primary" size="small" class="add-group-btn" @click="showGroupDialog = true">
+        <el-button type="primary" size="small" class="add-group-btn" @click="openGroupDialog">
           <el-icon><Plus /></el-icon>
           新建分组
         </el-button>
@@ -204,6 +204,11 @@ const editingGroupId = ref<number | null>(null)
 const editingCommandId = ref<number | null>(null)
 const currentRow = ref<PresetCommand | null>(null)
 const groupNameInputRef = ref<HTMLInputElement | null>(null)
+
+const openGroupDialog = () => {
+  resetGroupForm()
+  showGroupDialog.value = true
+}
 
 const onGroupDialogOpened = () => {
   // 弹窗打开时，选中输入框内容
