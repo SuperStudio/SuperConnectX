@@ -164,6 +164,7 @@
               <template #label>
                 <span class="tab-label" :title="tab.connectionType === 'telnet' ? `${tab.host}:${tab.port}` : tab.comName">
                   <span
+                    v-if="tab.connectionType !== 'commandEditor'"
                     class="connection-dot"
                     :class="getConnectionStatus(tab)"
                   ></span>
