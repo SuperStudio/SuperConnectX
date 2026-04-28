@@ -205,8 +205,8 @@ const encoding = ref('utf8')
 const readTimeout = ref(0)
 const writeTimeout = ref(0)
 const flowControl = ref<'none' | 'hardware' | 'software'>('none')
-const dtr = ref(true)
-const rts = ref(true)
+const dtr = ref(false)
+const rts = ref(false)
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
 let removeMountedCloseListener: (() => void) | null = null
@@ -296,8 +296,8 @@ const loadComSettings = async () => {
       readTimeout.value = settings.readTimeout || 0
       writeTimeout.value = settings.writeTimeout || 0
       flowControl.value = settings.flowControl || 'none'
-      dtr.value = settings.dtr !== undefined ? settings.dtr : true
-      rts.value = settings.rts !== undefined ? settings.rts : true
+      dtr.value = settings.dtr !== undefined ? settings.dtr : false
+      rts.value = settings.rts !== undefined ? settings.rts : false
     }
   } catch (error) {
     console.error('加载串口设置失败:', error)
