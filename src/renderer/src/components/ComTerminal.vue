@@ -313,10 +313,10 @@ const saveComSettings = async () => {
 const loadBaudRates = async () => {
   try {
     const rates = await window.storageApi.getBaudRates()
-    baudRates.value = rates || [9600, 19200, 115200, 15000000]
+    baudRates.value = rates || [9600, 19200, 115200, 1500000]
   } catch (error) {
     console.error('加载波特率列表失败:', error)
-    baudRates.value = [9600, 19200, 115200, 15000000]
+    baudRates.value = [9600, 19200, 115200, 1500000]
   }
 }
 

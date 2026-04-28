@@ -26,7 +26,7 @@ interface StoredData {
 export default class ComSettingsStorage {
   private storageData: Store<any>
   private readonly STORAGE_NAME = 'com-settings'
-  private static readonly DEFAULT_BAUD_RATES = [9600, 19200, 115200, 15000000]
+  private static readonly DEFAULT_BAUD_RATES = [9600, 19200, 115200, 1500000]
 
   constructor() {
     this.storageData = new Store<any>({
