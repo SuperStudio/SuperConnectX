@@ -62,6 +62,7 @@
             <span class="param-label">停止位</span>
             <el-select v-model="stopBits" size="small" class="param-select">
               <el-option label="1" :value="1" />
+              <el-option label="1.5" :value="1.5" />
               <el-option label="2" :value="2" />
             </el-select>
           </div>
