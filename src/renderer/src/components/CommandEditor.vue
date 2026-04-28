@@ -125,10 +125,10 @@
     </div>
 
     <!-- 分组编辑对话框 -->
-    <el-dialog v-model="showGroupDialog" :title="isEditingGroup ? '编辑分组' : '新建分组'" width="400px">
+    <el-dialog v-model="showGroupDialog" :title="isEditingGroup ? '编辑分组' : '新建分组'" width="400px" @opened="onGroupDialogOpened">
       <el-form :model="groupForm" label-width="80px">
         <el-form-item label="分组名称">
-          <el-input v-model="groupForm.name" placeholder="请输入分组名称" />
+          <el-input ref="groupNameInputRef" v-model="groupForm.name" placeholder="请输入分组名称" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -167,7 +167,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import eventBus from '../utils/EventBus'
 
@@ -203,6 +203,15 @@ const isEditingCommand = ref(false)
 const editingGroupId = ref<number | null>(null)
 const editingCommandId = ref<number | null>(null)
 const currentRow = ref<PresetCommand | null>(null)
+const groupNameInputRef = ref<HTMLInputElement | null>(null)
+
+const onGroupDialogOpened = () => {
+  // 弹窗打开时，选中输入框内容
+  nextTick(() => {
+    groupNameInputRef.value?.select()
+    groupNameInputRef.value?.focus()
+  })
+}
 
 const groupForm = reactive({
   name: '',

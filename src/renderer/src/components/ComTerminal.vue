@@ -125,10 +125,11 @@
         </el-dialog>
 
         <!-- 新增波特率对话框 -->
-        <el-dialog v-model="showAddBaudRateDialog" title="新增波特率" width="300px">
+        <el-dialog v-model="showAddBaudRateDialog" title="新增波特率" width="300px" @opened="onBaudRateDialogOpened">
           <el-form label-width="80px">
             <el-form-item label="波特率">
               <el-input-number
+                ref="baudRateInputRef"
                 v-model="newBaudRate"
                 :min="1"
                 :max="99999999"
@@ -185,6 +186,18 @@ const isConnecting = ref(false)
 const showMoreDialog = ref(false)
 const showAddBaudRateDialog = ref(false)
 const newBaudRate = ref(9600)
+const baudRateInputRef = ref<any>(null)
+
+const onBaudRateDialogOpened = () => {
+  // 弹窗打开时，选中输入框内容
+  nextTick(() => {
+    const input = baudRateInputRef.value?.$el?.querySelector('input')
+    if (input) {
+      input.select()
+      input.focus()
+    }
+  })
+}
 const encoding = ref('utf8')
 const readTimeout = ref(0)
 const writeTimeout = ref(0)
