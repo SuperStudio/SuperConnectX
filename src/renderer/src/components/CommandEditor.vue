@@ -524,6 +524,24 @@ onMounted(() => {
   padding: 4px 0;
 }
 
+/* 左侧组列表滚动条美化 */
+.sidebar-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-list::-webkit-scrollbar-track {
+  background: #252526;
+}
+
+.sidebar-list::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 3px;
+}
+
+.sidebar-list::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
 .sidebar-item {
   display: flex;
   align-items: center;
