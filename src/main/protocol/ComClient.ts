@@ -8,7 +8,7 @@ const DEFAULT_DATA_BITS = 8
 const DEFAULT_STOP_BITS = 1
 const DEFAULT_PARITY = 'none' as const
 const DEFAULT_ENCODING = 'utf8'
-const READ_INTERVAL_MS = 20 // 固定20ms读取间隔
+const READ_INTERVAL_MS = 10 // 固定10ms读取间隔
 
 interface SerialConnection {
   port: SerialPort
