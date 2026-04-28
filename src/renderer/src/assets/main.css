@@ -1,3 +1,33 @@
+/* 全局禁止文本选中，但保留输入区域的选择功能 */
+* {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+/* 允许输入框和文本域中的文本被选中 */
+input,
+textarea,
+.el-input__inner,
+.el-textarea__inner,
+[contenteditable="true"],
+[contenteditable=""] {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+}
+
+/* 允许下拉选择框中的文本被选中 */
+.el-select-dropdown__item {
+  user-select: none !important;
+}
+
+.el-select-dropdown__item.is-selected {
+  user-select: none !important;
+}
+
 #app,
 body {
   margin: 0px;
