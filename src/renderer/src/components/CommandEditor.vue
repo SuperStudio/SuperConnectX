@@ -484,7 +484,7 @@ onMounted(() => {
 
 .sidebar {
   width: 250px;
-  background: #252526;
+  background: #2d2d2d;
   border-right: 1px solid #3c3c3c;
   display: flex;
   flex-direction: column;
@@ -530,7 +530,7 @@ onMounted(() => {
 }
 
 .sidebar-list::-webkit-scrollbar-track {
-  background: #252526;
+  background: #2d2d2d;
 }
 
 .sidebar-list::-webkit-scrollbar-thumb {
@@ -551,7 +551,7 @@ onMounted(() => {
 }
 
 .sidebar-item:hover {
-  background: #2a2d2e;
+  background: #383838;
 }
 
 .sidebar-item.active {
