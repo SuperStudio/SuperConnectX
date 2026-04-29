@@ -145,7 +145,7 @@
         </div>
       </div>
       <div class="terminal-wrapper" :class="{ expanded: !showConnectionList }">
-        <div class="tabs-container">
+        <div v-if="connectionTabs.length > 0" class="tabs-container">
           <el-tabs
             v-model="activeTabId"
             type="card"
