@@ -1075,18 +1075,24 @@ onMounted(() => {
   height: 100%;
   width: 100%;
   --el-tabs-padding: 0 !important;
+  display: flex;
+  flex-direction: column;
 }
 
 .telnet-tabs :deep(.el-tabs__header) {
   margin: 0 !important;
-  border: none;
+  border: none !important;
   background: #252526;
+  height: 32px;
+  flex-shrink: 0;
 }
 
 .telnet-tabs :deep(.el-tabs__content) {
-  height: 100% !important;
+  flex: 1;
+  height: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
+  overflow: hidden;
 }
 
 .telnet-tab-pane {
@@ -1094,6 +1100,8 @@ onMounted(() => {
   width: 100%;
   margin: 0 !important;
   padding: 0 !important;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 选项卡标签样式 */
@@ -1130,22 +1138,12 @@ onMounted(() => {
 }
 
 /* 选项卡美化样式 */
-.telnet-tabs {
-  height: 100%;
-  width: 100%;
-  --el-tabs-padding: 0 !important;
-}
-
-.telnet-tabs :deep(.el-tabs__header) {
-  margin: 0 !important;
-  border: none;
-  background: #252526;
-  border-radius: 0px;
-}
-
 .telnet-tabs :deep(.el-tabs__nav) {
   background-color: #1e1e1e;
   border: none;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
 }
 
 .telnet-tabs :deep(.el-tabs__item) {
@@ -1156,7 +1154,9 @@ onMounted(() => {
   margin: 0px;
   padding: 0 16px;
   padding-right: 40px !important;
-  height: 32px;
+  height: auto;
+  display: flex;
+  align-items: center;
   transition: none !important;
 }
 
@@ -1190,12 +1190,13 @@ onMounted(() => {
   border: none !important; /* 移除底部边框 + 所有边框 */
   background: #252526;
   padding-left: 0px;
+  height: 32px;
 }
 
 .telnet-tabs :deep(.el-tabs__nav) {
   background-color: transparent;
   border: none; /* 确保导航区无边框 */
-  height: 40px;
+  height: 32px;
 }
 
 /* 单个选项卡：移除所有 border 相关样式 */
@@ -1211,6 +1212,7 @@ onMounted(() => {
   padding: 0 16px !important;
   padding-right: 45px !important;
   height: 32px;
+  line-height: 32px;
   min-width: 150px;
   transition: none !important;
   position: relative !important;
@@ -1229,10 +1231,12 @@ onMounted(() => {
 
 /* 内容区域样式 */
 .telnet-tabs :deep(.el-tabs__content) {
-  height: calc(100% - 36px) !important;
+  flex: 1;
+  height: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
   border: none !important; /* 确保内容区无边框 */
+  overflow: hidden;
 }
 
 /* 激活的选项卡额外样式：移除 border 相关 */
