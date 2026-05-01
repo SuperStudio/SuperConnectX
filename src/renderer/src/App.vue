@@ -145,34 +145,35 @@
         </div>
       </div>
       <div class="terminal-wrapper" :class="{ expanded: !showConnectionList }">
-        <div v-if="connectionTabs.length > 0" class="tabs-container">
-          <el-tabs
-            v-model="activeTabId"
-            type="card"
-            closable
-            @tab-remove="closeTab"
-            @tab-click="switchTab"
-            draggable
-            class="telnet-tabs"
-          >
-            <el-tab-pane
-              v-for="tab in connectionTabs"
-              :key="tab.id"
-              :name="tab.id.toString()"
-              class="telnet-tab-pane"
-            >
-              <template #label>
-                <span class="tab-label" :title="tab.connectionType === 'telnet' ? `${tab.host}:${tab.port}` : tab.comName">
-                  <span
-                    v-if="tab.connectionType !== 'commandEditor'"
-                    class="connection-dot"
-                    :class="getConnectionStatus(tab)"
-                  ></span>
-                  <span class="tab-title">{{ tab.name || `${tab.host || tab.comName}:${tab.port || ''}` }}</span>
+        <!-- 自定义选项卡栏 -->
+        <div v-if="connectionTabs.length > 0" class="custom-tabs">
+          <div class="tabs-header" ref="tabsHeaderRef" @wheel="handleTabsWheel">
+            <div class="tabs-nav">
+              <div
+                v-for="tab in connectionTabs"
+                :key="tab.id"
+                class="tab-item"
+                :class="{ active: activeTabId === tab.id.toString() }"
+                @click="switchTabById(tab.id)"
+              >
+                <span
+                  v-if="tab.connectionType !== 'commandEditor'"
+                  class="connection-dot"
+                  :class="getConnectionStatus(tab)"
+                ></span>
+                <span class="tab-name" :title="tab.name || `${tab.host || tab.comName}:${tab.port || ''}`">
+                  {{ tab.name || `${tab.host || tab.comName}:${tab.port || ''}` }}
                 </span>
-              </template>
+                <span class="tab-close" @click.stop="closeTab(tab.id.toString())">×</span>
+              </div>
+            </div>
+          </div>
+          <!-- 选项卡内容 -->
+          <div class="tabs-content">
+            <template v-for="tab in connectionTabs" :key="tab.id">
               <ComTerminal
                 v-if="tab.connectionType === 'com'"
+                v-show="activeTabId === tab.id.toString()"
                 :connection="tab"
                 :ref="(el: any) => { if (el) comTerminalRefs[tab.id] = el as any }"
                 :auto-connect="true"
@@ -184,7 +185,8 @@
                 class="telnet-terminal"
               />
               <TelnetTerminal
-                v-else-if="tab.connectionType === 'telnet'"
+                v-if="tab.connectionType === 'telnet'"
+                v-show="activeTabId === tab.id.toString()"
                 :connection="tab"
                 :ref="(el: any) => { if (el) telnetTerminalRefs[tab.id] = el as any }"
                 @onClose="handleTerminalClose(tab.id)"
@@ -193,12 +195,13 @@
                 class="telnet-terminal"
               />
               <CommandEditor
-                v-else-if="tab.connectionType === 'commandEditor'"
+                v-if="tab.connectionType === 'commandEditor'"
+                v-show="activeTabId === tab.id.toString()"
                 :connection-type="tab.editorConnectionType"
                 class="command-editor-terminal"
               />
-            </el-tab-pane>
-          </el-tabs>
+            </template>
+          </div>
         </div>
       </div>
     </main>
@@ -272,8 +275,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, reactive, computed } from 'vue'
-import { ElMessage, ElForm, ElMessageBox } from 'element-plus'
+import { ref, onMounted, watch, reactive, computed, nextTick } from 'vue'
+import { ElMessage, ElForm, ElMessageBox, ElTabs } from 'element-plus'
 import TelnetTerminal from './components/TelnetTerminal.vue'
 import ComTerminal from './components/ComTerminal.vue'
 import CustomTitleBar from './components/CustomTitleBar.vue'
@@ -294,9 +297,32 @@ const showConnectionList = ref(true)
 const lastSentCommand = ref('')
 // 新增选项卡相关状态
 const connectionTabs = ref<any[]>([])
+const tabsHeaderRef = ref<HTMLElement | null>(null)
 const telnetTerminalRefs = reactive<Record<string, any>>({})
 const comTerminalRefs = reactive<Record<string, any>>({})
 const activeTabId = ref('')
+
+// 选项卡滚轮滚动处理
+const handleTabsWheel = (e: WheelEvent) => {
+  if (tabsHeaderRef.value) {
+    e.preventDefault()
+    tabsHeaderRef.value.scrollLeft += e.deltaY
+  }
+}
+
+// 根据 ID 切换选项卡
+const switchTabById = (tabId: string | number) => {
+  activeTabId.value = tabId.toString()
+  setTimeout(() => {
+    const id = tabId.toString()
+    if (comTerminalRefs[id]) {
+      comTerminalRefs[id]?.refreshLayout?.()
+    } else if (telnetTerminalRefs[id]) {
+      telnetTerminalRefs[id]?.refreshLayout()
+    }
+  }, 0)
+}
+
 // 串口相关状态
 const serialPorts = ref<SerialPortInfo[]>([])
 const connectedSerialPorts = reactive<Record<string, boolean>>({})
@@ -494,18 +520,6 @@ const closeTab = async (tabId) => {
   if (activeTabId.value === tabId.toString() && connectionTabs.value.length > 0) {
     activeTabId.value = connectionTabs.value[connectionTabs.value.length - 1].id.toString()
   }
-}
-
-const switchTab = (tab: any) => {
-  activeTabId.value = tab.paneName
-  setTimeout(() => {
-    const tabId = tab.paneName
-    if (comTerminalRefs[tabId]) {
-      comTerminalRefs[tabId]?.refreshLayout?.()
-    } else {
-      telnetTerminalRefs[tabId]?.refreshLayout()
-    }
-  }, 0)
 }
 
 const handleTerminalClose = async (connId: string | number) => {
@@ -1063,268 +1077,128 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.tabs-container {
+/* 自定义选项卡样式 */
+.custom-tabs {
   height: 100%;
   width: 100%;
-  margin: 0;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
   background-color: #1e1e1e;
 }
 
-.telnet-tabs {
-  height: 100%;
-  width: 100%;
-  --el-tabs-padding: 0 !important;
-  display: flex;
-  flex-direction: column;
-}
-
-.telnet-tabs :deep(.el-tabs__header) {
-  margin: 0 !important;
-  border: none !important;
-  background: #252526;
+.tabs-header {
   height: 32px;
+  background: #252526;
   flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
 }
 
-.telnet-tabs :deep(.el-tabs__content) {
-  flex: 1;
-  height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden;
+.tabs-header::-webkit-scrollbar {
+  height: 4px;
 }
 
-.telnet-tab-pane {
+.tabs-header::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tabs-header::-webkit-scrollbar-thumb {
+  background: #464647;
+  border-radius: 2px;
+}
+
+.tabs-header::-webkit-scrollbar-thumb:hover {
+  background: #6f6f70;
+}
+
+.tabs-nav {
+  display: flex;
+  align-items: stretch;
   height: 100%;
-  width: 100%;
-  margin: 0 !important;
-  padding: 0 !important;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 选项卡标签样式 */
-.tab-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.tab-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.connection-dot {
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 36px 0 10px;
+  min-width: 100px;
+  max-width: 160px;
+  height: 100%;
+  background-color: #2d2d2d;
+  color: #ccc;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  border-right: 1px solid #1e1e1e;
+}
+
+.tab-item:hover {
+  background-color: #353535;
+}
+
+.tab-item.active {
+  background-color: #1e1e1e;
+  color: #fff;
+}
+
+.tab-item .tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.tab-item .connection-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.connection-dot.connected {
+.tab-item .connection-dot.connected {
   background-color: #18c138;
 }
 
-.connection-dot.disconnected {
+.tab-item .connection-dot.disconnected {
   background-color: #888888;
+}
+
+.tab-close {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  line-height: 18px;
+  text-align: center;
+  font-size: 16px;
+  color: #888;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.tab-item:hover .tab-close {
+  opacity: 1;
+}
+
+.tab-close:hover {
+  background-color: #3b3c3c;
+  color: #fff;
+}
+
+.tabs-content {
+  flex: 1;
+  overflow: hidden;
 }
 
 .telnet-terminal {
   width: 100%;
   height: 100%;
-}
-
-/* 选项卡美化样式 */
-.telnet-tabs :deep(.el-tabs__nav) {
-  background-color: #1e1e1e;
-  border: none;
-  height: 100%;
-  display: flex;
-  align-items: stretch;
-}
-
-.telnet-tabs :deep(.el-tabs__item) {
-  color: #ccc;
-  background-color: #2d2d2d;
-  border: none !important;
-  border-radius: 0px;
-  margin: 0px;
-  padding: 0 16px;
-  padding-right: 40px !important;
-  height: auto;
-  display: flex;
-  align-items: center;
-  transition: none !important;
-}
-
-.telnet-tabs :deep(.el-tabs__item.is-active) {
-  color: #fff;
-
-  border: none;
-}
-
-/* 标签内容样式 */
-.tab-label-container {
-  display: flex;
-  align-items: center;
-}
-
-.tab-name {
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.active-tab {
-  background-color: #1e1e1e !important;
-  border: none;
-}
-
-/* 标签栏头部：移除原有 border-bottom，重置所有边框 */
-.telnet-tabs :deep(.el-tabs__header) {
-  margin: 0 !important;
-  border: none !important; /* 移除底部边框 + 所有边框 */
-  background: #252526;
-  padding-left: 0px;
-  height: 32px;
-}
-
-.telnet-tabs :deep(.el-tabs__nav) {
-  background-color: transparent;
-  border: none; /* 确保导航区无边框 */
-  height: 32px;
-}
-
-/* 单个选项卡：移除所有 border 相关样式 */
-.telnet-tabs :deep(.el-tabs__item) {
-  color: #ccc;
-  background-color: #2d2d2d;
-  border: none !important;
-  border-left: none !important;
-  border-right: none !important;
-  border-bottom: none !important;
-  border-radius: 0px;
-  margin: 0px;
-  padding: 0 16px !important;
-  padding-right: 45px !important;
-  height: 32px;
-  line-height: 32px;
-  min-width: 150px;
-  transition: none !important;
-  position: relative !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-}
-
-/* 激活的选项卡：移除 border 相关，仅保留底部高亮条（可选，若不需要也可删除） */
-.telnet-tabs :deep(.el-tabs__item.is-active) {
-  color: #fff;
-  background-color: #1e1e1e;
-  border: none !important; /* 移除激活态的边框 */
-  border-bottom-color: transparent !important; /* 确保底部无框 */
-  font-weight: 500;
-}
-
-/* 内容区域样式 */
-.telnet-tabs :deep(.el-tabs__content) {
-  flex: 1;
-  height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important; /* 确保内容区无边框 */
-  overflow: hidden;
-}
-
-/* 激活的选项卡额外样式：移除 border 相关 */
-.active-tab {
-  background-color: #1e1e1e !important;
-  border: none !important;
-}
-
-/* 选项卡基础样式 */
-.telnet-tabs {
-  height: 100%;
-  width: 100%;
-  --el-tabs-padding: 0 !important;
-  /* 新增：重置 Element Plus 内置的边框变量 */
-  --el-tabs-border-color: transparent !important;
-  --el-tabs-header-border-color: transparent !important;
-}
-
-/* 针对 el-tabs__nav.is-top 及父元素的边框清零 */
-.telnet-tabs :deep(.el-tabs__nav-wrap) {
-  border: none !important;
-}
-.telnet-tabs :deep(.el-tabs__nav.is-top) {
-  border: none !important;
-  border-bottom: none !important; /* 重点：强制移除顶部导航的底部边框 */
-}
-/* 移除 Element Plus 自带的激活条（如果不需要） */
-.telnet-tabs :deep(.el-tabs__active-bar) {
-  display: none !important; /* 或设置为 height: 0 !important */
-}
-/* 移除所有可能的伪元素边框 */
-.telnet-tabs :deep(.el-tabs__nav.is-top)::before,
-.telnet-tabs :deep(.el-tabs__nav.is-top)::after {
-  border: none !important;
-  content: none !important;
-}
-
-.telnet-tabs :deep(.el-tabs__header .el-tabs__item .is-icon-close) {
-  opacity: 0 !important;
-  pointer-events: none !important;
-  width: 25px !important;
-  height: 25px !important;
-  border-radius: 2px;
-  position: absolute !important;
-  right: 8px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background: transparent !important;
-  transition: opacity 0.15s ease !important;
-  z-index: 1;
-}
-
-.telnet-tabs :deep(.el-tabs__header .el-tabs__item .is-icon-close:hover) {
-  background-color: #3b3c3c !important;
-}
-
-.telnet-tabs :deep(.el-tabs__header .el-tabs__item.is-active .is-icon-close) {
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
-
-/* 鼠标悬停时显示关闭按钮 */
-.telnet-tabs :deep(.el-tabs__header .el-tabs__item:hover .is-icon-close) {
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
-
-/* 调整选项卡内部布局 - 核心修改 */
-.telnet-tabs :deep(.el-tabs__item) {
-  /* 启用弹性布局 */
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  position: relative !important;
-  user-select: none;
-  box-sizing: border-box;
-}
-
-/* 选项卡标签容器 */
-.telnet-tabs :deep(.el-tabs__item > span:first-child) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex-shrink: 1;
-  min-width: 0;
-  margin-right: 8px;
 }
 
 .command-editor-terminal {
