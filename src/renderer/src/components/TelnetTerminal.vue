@@ -142,6 +142,10 @@ const handleReconnect = () => {
   connect()
 }
 
+const reconnect = () => {
+  handleReconnect()
+}
+
 const handleTelnetClose = (connId: number) => {
   if (connId === currentConnId) {
     cleanup()
@@ -270,6 +274,7 @@ defineExpose({
   refreshLayout,
   isConnected: isConnectedValue,
   disconnect: handleClose,
+  reconnect,
   preventAutoReconnect: () => { preventAutoReconnect = true }
 })
 

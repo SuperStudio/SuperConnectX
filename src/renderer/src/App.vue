@@ -374,6 +374,8 @@ const connectAllTabs = async () => {
   for (const tab of connectionTabs.value) {
     if (tab.connectionType === 'com' && !comTerminalRefs[tab.id]?.isConnected) {
       comTerminalRefs[tab.id]?.reconnect?.()
+    } else if (tab.connectionType === 'telnet' && !telnetTerminalRefs[tab.id]?.isConnected) {
+      telnetTerminalRefs[tab.id]?.reconnect?.()
     }
   }
   hideTabMenu()
