@@ -186,6 +186,7 @@ const props = withDefaults(defineProps<{
 const unifiedTerminalRef = ref<InstanceType<typeof UnifiedTerminal>>()
 const isConnected = ref(false)
 const isConnecting = ref(false)
+const preventAutoReconnect = ref(false) // 主动断开时禁止自动重连
 const showMoreDialog = ref(false)
 const showAddBaudRateDialog = ref(false)
 const newBaudRate = ref(9600)
@@ -419,6 +420,8 @@ const handleConnect = async () => {
       if (removeCloseListener) removeCloseListener()
       removeCloseListener = window.connectApi.onConnectClose((sessionId: number | string) => {
         if (String(sessionId) !== String(props.connection.sessionId)) return
+        // 如果是主动禁止重连，则不自动重连
+        if (preventAutoReconnect.value) return
         handleClose()
       })
 
@@ -527,7 +530,9 @@ const reconnect = () => {
 defineExpose({
   refreshGroupsCmds,
   reconnect,
-  isConnected: isConnectedValue
+  disconnect: handleClose,
+  isConnected: isConnectedValue,
+  preventAutoReconnect: () => { preventAutoReconnect.value = true }
 })
 
 onMounted(async () => {

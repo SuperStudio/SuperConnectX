@@ -177,7 +177,8 @@
               :style="{ left: tabMenuPosition.x + 'px', top: tabMenuPosition.y + 'px' }"
               @click.stop
             >
-              <div class="menu-item" @click="connectAllTabs">连接全部</div>
+              <div v-if="hasAnyConnected" class="menu-item" @click="disconnectAllTabs">断开全部</div>
+              <div v-else class="menu-item" @click="connectAllTabs">连接全部</div>
               <div class="menu-divider"></div>
               <div class="menu-item" @click="closeSingleTab(rightClickedTab)">关闭</div>
               <div class="menu-item" @click="closeOtherTabs">关闭其它</div>
@@ -373,6 +374,42 @@ const connectAllTabs = async () => {
   for (const tab of connectionTabs.value) {
     if (tab.connectionType === 'com' && !comTerminalRefs[tab.id]?.isConnected) {
       comTerminalRefs[tab.id]?.reconnect?.()
+    }
+  }
+  hideTabMenu()
+}
+
+// 检查是否有任何连接是打开的
+const hasAnyConnected = computed(() => {
+  return connectionTabs.value.some((tab) => {
+    if (tab.connectionType === 'com') {
+      return comTerminalRefs[tab.id]?.isConnected
+    } else if (tab.connectionType === 'telnet') {
+      return telnetTerminalRefs[tab.id]?.isConnected
+    }
+    return false
+  })
+})
+
+// 断开全部
+const disconnectAllTabs = async () => {
+  for (const tab of connectionTabs.value) {
+    const isConnected = tab.connectionType === 'com' 
+      ? comTerminalRefs[tab.id]?.isConnected 
+      : telnetTerminalRefs[tab.id]?.isConnected
+    
+    if (isConnected) {
+      // 禁止自动重连
+      if (tab.connectionType === 'com') {
+        comTerminalRefs[tab.id]?.preventAutoReconnect?.()
+      } else {
+        telnetTerminalRefs[tab.id]?.preventAutoReconnect?.()
+      }
+      
+      await window.connectApi.stopConnect({
+        ...TelnetInfo.buildWithValue(tab),
+        sessionId: tab.sessionId
+      })
     }
   }
   hideTabMenu()

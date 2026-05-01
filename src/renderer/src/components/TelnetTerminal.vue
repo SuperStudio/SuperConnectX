@@ -51,6 +51,7 @@ let removeCloseListener: (() => void) | null = null
 let retryCount = 0
 let retryTimer: NodeJS.Timeout | null = null
 let stopRetry = ref(false)
+let preventAutoReconnect = false // 主动断开时禁止自动重连
 let allRecvSize = 0
 let totalTxSize = 0
 void retryCount // suppress unused warning
@@ -94,6 +95,7 @@ const saveLogFile = async () => {
 
 const handleClose = async () => {
   stopRetry.value = true
+  preventAutoReconnect = true
   if (retryTimer) {
     clearTimeout(retryTimer)
     retryTimer = null
@@ -142,8 +144,13 @@ const handleReconnect = () => {
 
 const handleTelnetClose = (connId: number) => {
   if (connId === currentConnId) {
-    ElMessage.info('连接已关闭，将尝试重新连接...')
     cleanup()
+    // 如果是主动禁止重连，则不自动重连
+    if (preventAutoReconnect) {
+      unifiedTerminalRef.value?.appendToTerminal(`\n连接已关闭\n`)
+      return
+    }
+    ElMessage.info('连接已关闭，将尝试重新连接...')
     unifiedTerminalRef.value?.appendToTerminal(`\n连接已关闭，将在${RETRY_INTERVAL_MS / 1000}秒后尝试重连...\n`)
     if (!stopRetry.value) {
       setTimeout(connect, 1000)
@@ -261,7 +268,9 @@ defineExpose({
   handleFontChange,
   handleFontSizeChange,
   refreshLayout,
-  isConnected: isConnectedValue
+  isConnected: isConnectedValue,
+  disconnect: handleClose,
+  preventAutoReconnect: () => { preventAutoReconnect = true }
 })
 
 onMounted(() => {
