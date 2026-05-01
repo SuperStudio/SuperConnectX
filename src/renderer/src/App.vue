@@ -153,8 +153,9 @@
                 v-for="tab in connectionTabs"
                 :key="tab.id"
                 class="tab-item"
-                :class="{ active: activeTabId === tab.id.toString() }"
+                :class="{ active: activeTabId === tab.id.toString(), pinned: pinnedTabs.has(tab.id) }"
                 @click="switchTabById(tab.id)"
+                @contextmenu="handleTabContextMenu($event, tab)"
               >
                 <span
                   v-if="tab.connectionType !== 'commandEditor'"
@@ -168,6 +169,32 @@
               </div>
             </div>
           </div>
+          <!-- 右键菜单 -->
+          <Teleport to="body">
+            <div
+              v-if="showTabMenu"
+              class="tab-context-menu"
+              :style="{ left: tabMenuPosition.x + 'px', top: tabMenuPosition.y + 'px' }"
+              @click.stop
+            >
+              <div class="menu-item" @click="connectAllTabs">连接全部</div>
+              <div class="menu-divider"></div>
+              <div class="menu-item" @click="closeSingleTab(rightClickedTab)">关闭</div>
+              <div class="menu-item" @click="closeOtherTabs">关闭其它</div>
+              <div class="menu-item" @click="closeLeftTabs">关闭左边所有</div>
+              <div class="menu-item" @click="closeRightTabs">关闭右边所有</div>
+              <div class="menu-item danger" @click="closeAllTabs">关闭全部</div>
+              <div class="menu-divider"></div>
+              <div class="menu-item" @click="moveTabToFirst">移到最前</div>
+              <div class="menu-item" @click="moveTabToLast">移到最后</div>
+              <div class="menu-divider"></div>
+              <div class="menu-item" @click="togglePinTab">
+                {{ pinnedTabs.has(rightClickedTab?.id) ? '取消固定' : '固定' }}
+              </div>
+            </div>
+            <div v-if="showTabMenu" class="menu-overlay" @click="hideTabMenu"></div>
+          </Teleport>
+
           <!-- 选项卡内容 -->
           <div class="tabs-content">
             <template v-for="tab in connectionTabs" :key="tab.id">
@@ -302,6 +329,11 @@ const telnetTerminalRefs = reactive<Record<string, any>>({})
 const comTerminalRefs = reactive<Record<string, any>>({})
 const activeTabId = ref('')
 
+// 右键菜单相关状态
+const showTabMenu = ref(false)
+const tabMenuPosition = ref({ x: 0, y: 0 })
+const rightClickedTab = ref<any>(null)
+
 // 选项卡滚轮滚动处理
 const handleTabsWheel = (e: WheelEvent) => {
   if (tabsHeaderRef.value) {
@@ -321,6 +353,110 @@ const switchTabById = (tabId: string | number) => {
       telnetTerminalRefs[id]?.refreshLayout()
     }
   }, 0)
+}
+
+// 右键菜单处理
+const handleTabContextMenu = (e: MouseEvent, tab: any) => {
+  e.preventDefault()
+  rightClickedTab.value = tab
+  tabMenuPosition.value = { x: e.clientX, y: e.clientY }
+  showTabMenu.value = true
+}
+
+const hideTabMenu = () => {
+  showTabMenu.value = false
+  rightClickedTab.value = null
+}
+
+// 连接全部
+const connectAllTabs = async () => {
+  for (const tab of connectionTabs.value) {
+    if (tab.connectionType === 'com' && !comTerminalRefs[tab.id]?.isConnected) {
+      comTerminalRefs[tab.id]?.reconnect?.()
+    }
+  }
+  hideTabMenu()
+}
+
+// 关闭指定选项卡
+const closeSingleTab = async (tab: any) => {
+  await closeTab(tab.id.toString(), true) // 强制关闭
+  hideTabMenu()
+}
+
+// 关闭其它
+const closeOtherTabs = async () => {
+  if (!rightClickedTab.value) return
+  const tabsToClose = connectionTabs.value.filter(t => t.id !== rightClickedTab.value.id)
+  for (const tab of tabsToClose) {
+    await closeTabOnly(tab.id.toString()) // 使用批量关闭模式，不触发断开消息
+  }
+  hideTabMenu()
+}
+
+// 关闭左边所有
+const closeLeftTabs = async () => {
+  if (!rightClickedTab.value) return
+  const currentIndex = connectionTabs.value.findIndex(t => t.id === rightClickedTab.value.id)
+  const tabsToClose = connectionTabs.value.slice(0, currentIndex)
+  for (const tab of tabsToClose) {
+    await closeTabOnly(tab.id.toString()) // 使用批量关闭模式
+  }
+  hideTabMenu()
+}
+
+// 关闭右边所有
+const closeRightTabs = async () => {
+  if (!rightClickedTab.value) return
+  const currentIndex = connectionTabs.value.findIndex(t => t.id === rightClickedTab.value.id)
+  const tabsToClose = connectionTabs.value.slice(currentIndex + 1)
+  for (const tab of tabsToClose) {
+    await closeTabOnly(tab.id.toString()) // 使用批量关闭模式
+  }
+  hideTabMenu()
+}
+
+// 关闭全部
+const closeAllTabs = async () => {
+  for (const tab of [...connectionTabs.value]) {
+    await closeTabOnly(tab.id.toString()) // 使用批量关闭模式
+  }
+  hideTabMenu()
+}
+
+// 移到最前
+const moveTabToFirst = () => {
+  if (!rightClickedTab.value) return
+  const index = connectionTabs.value.findIndex(t => t.id === rightClickedTab.value.id)
+  if (index > 0) {
+    const tab = connectionTabs.value.splice(index, 1)[0]
+    connectionTabs.value.unshift(tab)
+  }
+  hideTabMenu()
+}
+
+// 移到最后
+const moveTabToLast = () => {
+  if (!rightClickedTab.value) return
+  const index = connectionTabs.value.findIndex(t => t.id === rightClickedTab.value.id)
+  if (index < connectionTabs.value.length - 1) {
+    const tab = connectionTabs.value.splice(index, 1)[0]
+    connectionTabs.value.push(tab)
+  }
+  hideTabMenu()
+}
+
+// 固定/取消固定（这里简化处理，固定只是阻止关闭）
+const pinnedTabs = reactive<Set<string>>(new Set())
+const togglePinTab = () => {
+  if (!rightClickedTab.value) return
+  const tabId = rightClickedTab.value.id
+  if (pinnedTabs.has(tabId)) {
+    pinnedTabs.delete(tabId)
+  } else {
+    pinnedTabs.add(tabId)
+  }
+  hideTabMenu()
 }
 
 // 串口相关状态
@@ -496,8 +632,42 @@ const connectToServer = async (conn) => {
   activeTabId.value = newTab.id.toString()
 }
 
+// 关闭单个选项卡（批量关闭模式）
+const closeTabOnly = async (tabId: string) => {
+  const tab = connectionTabs.value.find((t) => t.id === tabId)
+  if (!tab) return
+
+  // 先从标签列表中移除（销毁组件，移除监听器，避免触发断开消息）
+  connectionTabs.value = connectionTabs.value.filter((t) => t.id !== tabId)
+
+  // 如果关闭的是当前激活的标签，切换到最后一个标签
+  if (activeTabId.value === tabId && connectionTabs.value.length > 0) {
+    activeTabId.value = connectionTabs.value[connectionTabs.value.length - 1].id.toString()
+  }
+
+  // 如果是 COM 口连接，更新连接状态
+  if (tab.connectionType === 'com' && tab.comName) {
+    delete connectedSerialPorts[tab.comName]
+  }
+
+  // 移除固定标记
+  pinnedTabs.delete(tabId)
+
+  // 断开连接
+  await window.connectApi.stopConnect({
+    ...TelnetInfo.buildWithValue(tab),
+    sessionId: tab.sessionId
+  }).catch(() => {})
+}
+
 // 关闭选项卡逻辑调整
-const closeTab = async (tabId) => {
+const closeTab = async (tabId, force = false) => {
+  // 如果选项卡被固定且不是强制关闭，则不关闭
+  if (pinnedTabs.has(tabId) && !force) {
+    ElMessage.warning('此选项卡已固定，请先取消固定')
+    return
+  }
+
   // 找到对应的标签
   const tab = connectionTabs.value.find((t) => t.id === tabId)
   if (tab) {
@@ -511,6 +681,9 @@ const closeTab = async (tabId) => {
     if (tab.connectionType === 'com' && tab.comName) {
       delete connectedSerialPorts[tab.comName]
     }
+
+    // 移除固定标记
+    pinnedTabs.delete(tabId)
   }
 
   // 从标签列表中移除
@@ -1204,5 +1377,65 @@ onMounted(() => {
 .command-editor-terminal {
   width: 100%;
   height: 100%;
+}
+
+/* 右键菜单样式 */
+.tab-context-menu {
+  position: fixed;
+  background: #252526;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 4px 0;
+  min-width: 140px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+}
+
+.menu-item {
+  padding: 6px 16px;
+  cursor: pointer;
+  color: #ccc;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.menu-item:hover {
+  background: #094771;
+  color: #fff;
+}
+
+.menu-item.danger {
+  color: #f56c6c;
+}
+
+.menu-item.danger:hover {
+  background: #f56c6c;
+  color: #fff;
+}
+
+.menu-divider {
+  height: 1px;
+  background: #3a3a3a;
+  margin: 4px 0;
+}
+
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9998;
+}
+
+/* 固定选项卡样式 */
+.tab-item.pinned::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #409eff;
 }
 </style>
