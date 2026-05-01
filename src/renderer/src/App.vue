@@ -466,10 +466,34 @@ const closeAllTabs = async () => {
 // 移到最前
 const moveTabToFirst = () => {
   if (!rightClickedTab.value) return
-  const index = connectionTabs.value.findIndex(t => t.id === rightClickedTab.value.id)
-  if (index > 0) {
-    const tab = connectionTabs.value.splice(index, 1)[0]
-    connectionTabs.value.unshift(tab)
+  const tabId = rightClickedTab.value.id
+  const currentIndex = connectionTabs.value.findIndex(t => t.id === tabId)
+  if (currentIndex === -1) return
+
+  const isPinned = pinnedTabs.has(tabId)
+
+  if (isPinned) {
+    // 固定的：在固定列表最前
+    const firstPinnedIndex = connectionTabs.value.findIndex(t => pinnedTabs.has(t.id))
+    if (currentIndex !== firstPinnedIndex) {
+      const tab = connectionTabs.value.splice(currentIndex, 1)[0]
+      connectionTabs.value.splice(firstPinnedIndex, 0, tab)
+    }
+  } else {
+    // 不固定的：在不固定列表最前
+    // 先找到第一个不固定的索引
+    let firstUnpinnedIndex = -1
+    for (let i = 0; i < connectionTabs.value.length; i++) {
+      if (!pinnedTabs.has(connectionTabs.value[i].id)) {
+        firstUnpinnedIndex = i
+        break
+      }
+    }
+    if (firstUnpinnedIndex === -1) firstUnpinnedIndex = connectionTabs.value.length
+    if (currentIndex !== firstUnpinnedIndex) {
+      const tab = connectionTabs.value.splice(currentIndex, 1)[0]
+      connectionTabs.value.splice(firstUnpinnedIndex, 0, tab)
+    }
   }
   hideTabMenu()
 }
@@ -477,23 +501,85 @@ const moveTabToFirst = () => {
 // 移到最后
 const moveTabToLast = () => {
   if (!rightClickedTab.value) return
-  const index = connectionTabs.value.findIndex(t => t.id === rightClickedTab.value.id)
-  if (index < connectionTabs.value.length - 1) {
-    const tab = connectionTabs.value.splice(index, 1)[0]
-    connectionTabs.value.push(tab)
+  const tabId = rightClickedTab.value.id
+  const currentIndex = connectionTabs.value.findIndex(t => t.id === tabId)
+  if (currentIndex === -1) return
+
+  const isPinned = pinnedTabs.has(tabId)
+
+  if (isPinned) {
+    // 固定的：在固定列表最后
+    let lastPinnedIndex = -1
+    for (let i = connectionTabs.value.length - 1; i >= 0; i--) {
+      if (pinnedTabs.has(connectionTabs.value[i].id)) {
+        lastPinnedIndex = i
+        break
+      }
+    }
+    if (currentIndex !== lastPinnedIndex) {
+      const tab = connectionTabs.value.splice(currentIndex, 1)[0]
+      connectionTabs.value.splice(lastPinnedIndex, 0, tab)
+    }
+  } else {
+    // 不固定的：在不固定列表最后
+    let lastUnpinnedIndex = -1
+    for (let i = connectionTabs.value.length - 1; i >= 0; i--) {
+      if (!pinnedTabs.has(connectionTabs.value[i].id)) {
+        lastUnpinnedIndex = i
+        break
+      }
+    }
+    if (currentIndex !== lastUnpinnedIndex) {
+      const tab = connectionTabs.value.splice(currentIndex, 1)[0]
+      connectionTabs.value.splice(lastUnpinnedIndex, 0, tab)
+    }
   }
   hideTabMenu()
 }
 
-// 固定/取消固定（这里简化处理，固定只是阻止关闭）
+// 固定/取消固定
 const pinnedTabs = reactive<Set<string>>(new Set())
 const togglePinTab = () => {
   if (!rightClickedTab.value) return
   const tabId = rightClickedTab.value.id
+  const currentIndex = connectionTabs.value.findIndex(t => t.id === tabId)
+  if (currentIndex === -1) return
+
+  // 获取最后一个固定项的位置
+  const getLastPinnedIndex = () => {
+    let lastIndex = -1
+    connectionTabs.value.forEach((tab, index) => {
+      if (pinnedTabs.has(tab.id) && index > lastIndex) {
+        lastIndex = index
+      }
+    })
+    return lastIndex
+  }
+
   if (pinnedTabs.has(tabId)) {
+    // 取消固定：先获取最后一个固定项的位置，再删除固定状态
+    const lastPinnedIndex = getLastPinnedIndex()
     pinnedTabs.delete(tabId)
+    
+    // 移到最后一个固定项后面
+    if (lastPinnedIndex >= 0 && currentIndex !== lastPinnedIndex) {
+      const tab = connectionTabs.value.splice(currentIndex, 1)[0]
+      connectionTabs.value.splice(lastPinnedIndex, 0, tab)
+    }
   } else {
+    // 固定：移到所有固定项的最后（获取最后一个固定项位置后再添加）
+    const lastPinnedIndex = getLastPinnedIndex()
     pinnedTabs.add(tabId)
+    
+    if (lastPinnedIndex >= 0 && currentIndex !== lastPinnedIndex) {
+      // 移到最后一个固定项后面
+      const tab = connectionTabs.value.splice(currentIndex, 1)[0]
+      connectionTabs.value.splice(lastPinnedIndex + 1, 0, tab)
+    } else if (lastPinnedIndex === -1 && currentIndex !== 0) {
+      // 没有固定项，移到最前
+      const tab = connectionTabs.value.splice(currentIndex, 1)[0]
+      connectionTabs.value.unshift(tab)
+    }
   }
   hideTabMenu()
 }
