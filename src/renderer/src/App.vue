@@ -148,14 +148,15 @@
         <!-- 自定义选项卡栏 -->
         <div v-if="connectionTabs.length > 0" class="custom-tabs">
           <div class="tabs-header" ref="tabsHeaderRef" @wheel="handleTabsWheel">
-            <div class="tabs-nav">
+            <div class="tabs-nav" @contextmenu="handleTabsNavContextMenu">
               <div
                 v-for="tab in connectionTabs"
                 :key="tab.id"
                 class="tab-item"
                 :class="{ active: activeTabId === tab.id.toString(), pinned: pinnedTabs.has(tab.id) }"
-                @click="switchTabById(tab.id)"
+                @click="switchTabById(tab.id); hideTabMenu()"
                 @contextmenu="handleTabContextMenu($event, tab)"
+                :data-tab-id="tab.id"
               >
                 <span
                   v-if="tab.connectionType !== 'commandEditor'"
@@ -193,7 +194,6 @@
                 {{ pinnedTabs.has(rightClickedTab?.id) ? '取消固定' : '固定' }}
               </div>
             </div>
-            <div v-if="showTabMenu" class="menu-overlay" @click="hideTabMenu"></div>
           </Teleport>
 
           <!-- 选项卡内容 -->
@@ -359,9 +359,29 @@ const switchTabById = (tabId: string | number) => {
 // 右键菜单处理
 const handleTabContextMenu = (e: MouseEvent, tab: any) => {
   e.preventDefault()
+  e.stopPropagation()
   rightClickedTab.value = tab
   tabMenuPosition.value = { x: e.clientX, y: e.clientY }
   showTabMenu.value = true
+}
+
+// tabs-nav 通用右键处理（备用，确保右键事件不会丢失）
+const handleTabsNavContextMenu = (e: MouseEvent) => {
+  // 检查是否点击在选项卡上
+  const tabEl = (e.target as HTMLElement).closest('.tab-item')
+  if (tabEl) {
+    // 点击在选项卡上，从 DOM 中获取 tab 信息
+    const tabId = tabEl.getAttribute('data-tab-id')
+    const tab = connectionTabs.value.find(t => t.id === tabId)
+    if (tab) {
+      // 重新触发选项卡的右键菜单
+      handleTabContextMenu(e, tab)
+    }
+  } else if (showTabMenu.value) {
+    // 点击不在选项卡上，关闭菜单
+    e.preventDefault()
+    hideTabMenu()
+  }
 }
 
 const hideTabMenu = () => {
@@ -965,6 +985,36 @@ onMounted(() => {
     const tab = connectionTabs.value.find((t) => String(t.sessionId) === String(sessionId))
     if (tab && tab.connectionType === 'com') {
       delete connectedSerialPorts[tab.comName]
+    }
+  })
+
+  // 文档级右键事件处理：点击空白区域关闭菜单
+  document.addEventListener('contextmenu', (e: MouseEvent) => {
+    const tabEl = (e.target as HTMLElement).closest('.tab-item')
+    
+    // 如果点击在选项卡上，让组件内的事件处理
+    if (tabEl) {
+      return
+    }
+    
+    // 如果菜单打开且点击不在菜单上，关闭菜单
+    if (showTabMenu.value) {
+      hideTabMenu()
+    }
+  })
+  
+  // 点击其他区域关闭菜单
+  document.addEventListener('click', (e: MouseEvent) => {
+    const tabEl = (e.target as HTMLElement).closest('.tab-item')
+    
+    // 如果点击在选项卡上，让组件处理
+    if (tabEl) {
+      return
+    }
+    
+    // 关闭菜单
+    if (showTabMenu.value) {
+      hideTabMenu()
     }
   })
 })
