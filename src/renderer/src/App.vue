@@ -1339,6 +1339,22 @@ onMounted(() => {
   background-color: #888888;
 }
 
+/* 串口列表连接状态圆点 */
+.serial-port-left .connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.serial-port-left .connection-dot.connected {
+  background-color: #18c138;
+}
+
+.serial-port-left .connection-dot.disconnected {
+  background-color: #888888;
+}
+
 .tab-close {
   position: absolute;
   right: 4px;
