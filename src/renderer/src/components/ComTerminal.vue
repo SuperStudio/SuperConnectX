@@ -219,6 +219,8 @@ const flowControl = ref<'none' | 'hardware' | 'software'>('none')
 const dtr = ref(false)
 const rts = ref(false)
 const hexDisplayMode = ref(false) // HEX显示模式
+const autoNewline = ref(true) // 是否自动添加回车换行
+const hexMode = ref(false) // 是否为HEX发送模式
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
 let removeMountedCloseListener: (() => void) | null = null
@@ -263,6 +265,38 @@ watch([dataBits, stopBits, parity, encoding, readTimeout, writeTimeout, flowCont
     applyComConfig()
   }
 })
+
+// 监听 HEX 显示模式变化
+watch(hexDisplayMode, (newVal) => {
+  saveComSettings()
+  unifiedTerminalRef.value?.setHexDisplayMode?.(newVal)
+})
+
+// 监听 CRLF 模式变化 - 同步到 UnifiedTerminal 并保存
+watch(autoNewline, (newVal) => {
+  saveComSettings()
+  unifiedTerminalRef.value?.setAutoNewline?.(newVal)
+}, { immediate: false })
+
+// 监听 HEX 发送模式变化 - 同步到 UnifiedTerminal 并保存
+watch(hexMode, (newVal) => {
+  saveComSettings()
+  unifiedTerminalRef.value?.setHexMode?.(newVal)
+}, { immediate: false })
+
+// 监听 UnifiedTerminal 的 autoNewline 变化，反向同步
+watch(() => unifiedTerminalRef.value?.getAutoNewline?.(), (newVal) => {
+  if (newVal !== undefined && newVal !== autoNewline.value) {
+    autoNewline.value = newVal
+  }
+}, { immediate: true })
+
+// 监听 UnifiedTerminal 的 hexMode 变化，反向同步
+watch(() => unifiedTerminalRef.value?.getHexMode?.(), (newVal) => {
+  if (newVal !== undefined && newVal !== hexMode.value) {
+    hexMode.value = newVal
+  }
+}, { immediate: true })
 
 // 应用串口配置（热更新）
 const applyComConfig = async () => {
@@ -312,6 +346,13 @@ const loadComSettings = async () => {
       dtr.value = settings.dtr !== undefined ? settings.dtr : false
       rts.value = settings.rts !== undefined ? settings.rts : false
       remark.value = settings.remark || ''
+      hexDisplayMode.value = settings.hexDisplayMode || false
+      autoNewline.value = settings.autoNewline !== undefined ? settings.autoNewline : true
+      hexMode.value = settings.hexMode || false
+      // 将设置同步到 UnifiedTerminal
+      unifiedTerminalRef.value?.setHexDisplayMode?.(hexDisplayMode.value)
+      unifiedTerminalRef.value?.setAutoNewline?.(autoNewline.value)
+      unifiedTerminalRef.value?.setHexMode?.(hexMode.value)
     }
   } catch (error) {
     console.error('加载串口设置失败:', error)
@@ -333,7 +374,10 @@ const saveComSettings = async () => {
       flowControl: flowControl.value,
       dtr: dtr.value,
       rts: rts.value,
-      remark: remark.value
+      remark: remark.value,
+      hexDisplayMode: hexDisplayMode.value,
+      autoNewline: autoNewline.value,
+      hexMode: hexMode.value
     })
   } catch (error) {
     console.error('保存串口设置失败:', error)
@@ -576,6 +620,13 @@ onMounted(async () => {
 
   // 加载保存的串口设置
   await loadComSettings()
+
+  // 同步到 UnifiedTerminal
+  nextTick(() => {
+    unifiedTerminalRef.value?.setHexDisplayMode?.(hexDisplayMode.value)
+    unifiedTerminalRef.value?.setAutoNewline?.(autoNewline.value)
+    unifiedTerminalRef.value?.setHexMode?.(hexMode.value)
+  })
 
   // 监听连接关闭事件，更新连接状态（无论从哪里断开）
   if (removeMountedCloseListener) removeMountedCloseListener()

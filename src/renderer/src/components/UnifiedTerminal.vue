@@ -142,6 +142,7 @@ const isShowLog = ref(true)
 const editorContainer = ref<HTMLElement | null>(null)
 const autoNewline = ref(true) // 是否自动添加回车换行
 const hexMode = ref(false) // 是否为HEX发送模式
+const hexDisplayMode = ref(false) // 是否为HEX显示模式（接收端）
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 let editorModel: monaco.editor.ITextModel | null = null
 let totalRecvSize = 0
@@ -386,7 +387,13 @@ defineExpose({
   getEditorContent,
   editor,
   refreshGroupsCmds: () => presetCommandsRef.value?.refreshGroupsCmds?.(),
-  isShowLog
+  isShowLog,
+  setAutoNewline: (val: boolean) => { autoNewline.value = val },
+  setHexMode: (val: boolean) => { hexMode.value = val },
+  setHexDisplayMode: (val: boolean) => { hexDisplayMode.value = val },
+  getAutoNewline: () => autoNewline.value,
+  getHexMode: () => hexMode.value,
+  getHexDisplayMode: () => hexDisplayMode.value
 })
 
 onMounted(() => {
