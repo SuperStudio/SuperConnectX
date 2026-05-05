@@ -16,6 +16,7 @@ interface ComPortSettings {
   rts?: boolean
   dtr?: boolean
   flowControl?: 'none' | 'hardware' | 'software'
+  remark?: string
 }
 
 interface StoredData {

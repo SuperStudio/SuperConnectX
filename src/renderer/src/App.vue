@@ -49,7 +49,10 @@
                         class="connection-dot"
                         :class="isSerialPortConnected(port.path) ? 'connected' : 'disconnected'"
                       ></span>
-                      <div class="conn-name">{{ port.path }}</div>
+                      <div class="conn-name">
+                        {{ port.path }}
+                        <span v-if="serialRemarks[port.path]" class="serial-remark"> {{ serialRemarks[port.path] }}</span>
+                      </div>
                     </div>
                     <div class="serial-port-right">
                       <el-button
@@ -165,6 +168,7 @@
                 ></span>
                 <span class="tab-name" :title="tab.name || `${tab.host || tab.comName}:${tab.port || ''}`">
                   {{ tab.name || `${tab.host || tab.comName}:${tab.port || ''}` }}
+                  <span v-if="tab.connectionType === 'com' && tab.comName && serialRemarks[tab.comName]" class="tab-remark">{{ serialRemarks[tab.comName] }}</span>
                 </span>
                 <span class="tab-close" @click.stop="closeTab(tab.id.toString())">×</span>
               </div>
@@ -193,6 +197,11 @@
               <div class="menu-item" @click="togglePinTab">
                 {{ pinnedTabs.has(rightClickedTab?.id) ? '取消固定' : '固定' }}
               </div>
+              <!-- 串口备注编辑 -->
+              <template v-if="rightClickedTab?.connectionType === 'com'">
+                <div class="menu-divider"></div>
+                <div class="menu-item" @click="openRemarkDialog">编辑备注</div>
+              </template>
             </div>
           </Teleport>
 
@@ -210,6 +219,7 @@
                 @onConnect="(_sessionId: any) => { if (tab.comName) connectedSerialPorts[tab.comName] = true }"
                 @onDisconnect="(_sessionId: any) => { if (tab.comName) delete connectedSerialPorts[tab.comName] }"
                 @openCommandEditor="openCommandEditorTab"
+                @remarkUpdated="(data: any) => { if (data.comName) serialRemarks[data.comName] = data.remark }"
                 class="telnet-terminal"
               />
               <TelnetTerminal
@@ -299,6 +309,27 @@
 
     <!-- 关于弹窗 -->
     <AboutDialog v-model:modelValue="isAboutDialogOpen" />
+
+    <!-- 串口备注编辑弹窗 -->
+    <el-dialog
+      v-model="showRemarkDialog"
+      title="编辑备注"
+      width="400px"
+    >
+      <el-form label-width="80px">
+        <el-form-item :label="editingRemarkComName">
+          <el-input
+            v-model="editingRemark"
+            placeholder="请输入备注名称"
+            maxlength="50"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showRemarkDialog = false">取消</el-button>
+        <el-button type="primary" @click="saveSerialRemark">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -334,6 +365,12 @@ const activeTabId = ref('')
 const showTabMenu = ref(false)
 const tabMenuPosition = ref({ x: 0, y: 0 })
 const rightClickedTab = ref<any>(null)
+
+// 串口备注相关状态
+const showRemarkDialog = ref(false)
+const editingRemark = ref('')
+const editingRemarkComName = ref('')
+const serialRemarks = reactive<Record<string, string>>({}) // 缓存串口备注
 
 // 选项卡滚轮滚动处理
 const handleTabsWheel = (e: WheelEvent) => {
@@ -387,6 +424,89 @@ const handleTabsNavContextMenu = (e: MouseEvent) => {
 const hideTabMenu = () => {
   showTabMenu.value = false
   rightClickedTab.value = null
+}
+
+// 获取串口备注
+const getSerialRemark = (comName: string): string => {
+  return serialRemarks[comName] || ''
+}
+
+// 加载单个串口备注（从存储）
+const loadSerialRemark = async (comName: string): Promise<string> => {
+  if (serialRemarks[comName]) return serialRemarks[comName]
+  try {
+    const settings = await window.storageApi.getComSettings(comName)
+    const remark = settings?.remark || ''
+    serialRemarks[comName] = remark
+    return remark
+  } catch (error) {
+    return ''
+  }
+}
+
+// 预加载所有串口备注
+const loadAllSerialRemarks = async () => {
+  for (const port of serialPorts.value) {
+    await loadSerialRemark(port.path)
+  }
+}
+
+// 打开备注编辑对话框
+const openRemarkDialog = async () => {
+  if (!rightClickedTab.value?.comName) return
+  editingRemarkComName.value = rightClickedTab.value.comName
+  const tabId = rightClickedTab.value.id.toString()
+  
+  // 优先从 ComTerminal 获取备注
+  if (comTerminalRefs[tabId]?.getRemark) {
+    editingRemark.value = comTerminalRefs[tabId].getRemark() || ''
+  } else if (serialRemarks[editingRemarkComName.value]) {
+    // 从缓存获取备注
+    editingRemark.value = serialRemarks[editingRemarkComName.value]
+  } else {
+    // 从存储加载备注
+    try {
+      const settings = await window.storageApi.getComSettings(editingRemarkComName.value)
+      editingRemark.value = settings?.remark || ''
+    } catch (error) {
+      editingRemark.value = ''
+    }
+  }
+  showRemarkDialog.value = true
+  hideTabMenu()
+}
+
+// 保存串口备注
+const saveSerialRemark = async () => {
+  if (!editingRemarkComName.value) return
+  
+  // 更新缓存
+  serialRemarks[editingRemarkComName.value] = editingRemark.value
+  
+  // 如果当前有对应的 ComTerminal 选项卡打开，同步更新
+  if (rightClickedTab.value) {
+    const tabId = rightClickedTab.value.id.toString()
+    if (comTerminalRefs[tabId]?.updateRemark) {
+      await comTerminalRefs[tabId].updateRemark(editingRemark.value)
+      ElMessage.success('备注已保存')
+      showRemarkDialog.value = false
+      return
+    }
+  }
+  
+  // 否则直接保存到存储
+  try {
+    const currentSettings = await window.storageApi.getComSettings(editingRemarkComName.value)
+    await window.storageApi.saveComSettings(editingRemarkComName.value, {
+      ...currentSettings,
+      remark: editingRemark.value
+    })
+    ElMessage.success('备注已保存')
+  } catch (error) {
+    console.error('保存备注失败:', error)
+    ElMessage.error('保存备注失败')
+  }
+  showRemarkDialog.value = false
 }
 
 // 连接全部
@@ -888,12 +1008,23 @@ watch([() => connections.value, () => searchKeyword.value], () => filtereList(),
   deep: true
 })
 
+// 监听串口列表变化，加载备注
+watch(serialPorts, async (newPorts) => {
+  for (const port of newPorts) {
+    if (!serialRemarks[port.path]) {
+      await loadSerialRemark(port.path)
+    }
+  }
+}, { immediate: true })
+
 // 串口相关函数
 const loadSerialPorts = async () => {
   try {
     const ports = await window.connectApi.listSerialPorts()
     serialPorts.value = ports
     console.log('已扫描串口:', ports)
+    // 预加载所有串口备注（异步执行，不阻塞串口列表显示）
+    loadAllSerialRemarks()
   } catch (error) {
     console.error('扫描串口失败:', error)
     serialPorts.value = []
@@ -1185,6 +1316,20 @@ onMounted(() => {
   border: 1px solid #409eff !important;
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3) !important;
   transform: translateY(-1px) !important;
+}
+
+.serial-remark {
+  color: #888;
+  font-size: 13px;
+  font-weight: normal;
+  margin-left: 4px;
+}
+
+.tab-remark {
+  color: #888;
+  font-size: 12px;
+  font-weight: normal;
+  margin-left: 4px;
 }
 
 .conn-name {

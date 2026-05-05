@@ -160,7 +160,7 @@ import { ref, onUnmounted, onMounted, computed, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import UnifiedTerminal from './UnifiedTerminal.vue'
 
-const emit = defineEmits(['onClose', 'commandSent', 'onConnect', 'onDisconnect', 'openCommandEditor'])
+const emit = defineEmits(['onClose', 'commandSent', 'onConnect', 'onDisconnect', 'openCommandEditor', 'remarkUpdated'])
 const props = withDefaults(defineProps<{
   connection: {
     id: number
@@ -176,6 +176,7 @@ const props = withDefaults(defineProps<{
     username?: string
     password?: string
     sessionId: string
+    remark?: string
   }
   autoConnect?: boolean
   onClose?: () => void
@@ -220,6 +221,7 @@ const baudRate = ref(props.connection.baudRate || 9600)
 const dataBits = ref(props.connection.dataBits || 8)
 const stopBits = ref(props.connection.stopBits || 1)
 const parity = ref(props.connection.parity || 'none')
+const remark = ref(props.connection.remark || '')
 
 const isConnectedValue = computed(() => isConnected.value)
 const currentSessionId = ref<string>('')
@@ -299,6 +301,7 @@ const loadComSettings = async () => {
       flowControl.value = settings.flowControl || 'none'
       dtr.value = settings.dtr !== undefined ? settings.dtr : false
       rts.value = settings.rts !== undefined ? settings.rts : false
+      remark.value = settings.remark || ''
     }
   } catch (error) {
     console.error('加载串口设置失败:', error)
@@ -319,11 +322,19 @@ const saveComSettings = async () => {
       writeTimeout: writeTimeout.value,
       flowControl: flowControl.value,
       dtr: dtr.value,
-      rts: rts.value
+      rts: rts.value,
+      remark: remark.value
     })
   } catch (error) {
     console.error('保存串口设置失败:', error)
   }
+}
+
+// 更新备注并通知父组件
+const updateRemark = async (newRemark: string) => {
+  remark.value = newRemark
+  await saveComSettings()
+  emit('remarkUpdated', { comName: props.connection.comName, remark: newRemark })
 }
 
 // 加载全局波特率列表
@@ -532,7 +543,9 @@ defineExpose({
   reconnect,
   disconnect: handleClose,
   isConnected: isConnectedValue,
-  preventAutoReconnect: () => { preventAutoReconnect.value = true }
+  preventAutoReconnect: () => { preventAutoReconnect.value = true },
+  getRemark: () => remark.value,
+  updateRemark
 })
 
 onMounted(async () => {
