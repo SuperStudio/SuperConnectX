@@ -43,8 +43,9 @@
 
     <!-- 命令输入区域 -->
     <div class="terminal-input">
-      <div class="input-controls" v-if="connection?.connectionType === 'com'">
+      <div class="input-controls terminal-switch" v-if="connection?.connectionType === 'com'">
         <el-switch
+          width="50"
           v-model="autoNewline"
           active-text="CRLF"
           inactive-text="CRLF"
@@ -53,6 +54,7 @@
           :disabled="!isConnected"
         />
         <el-switch
+          width="50"
           v-model="hexMode"
           active-text="HEX"
           inactive-text="STR"
@@ -492,25 +494,33 @@ onUnmounted(() => {
   margin-left: 8px;
 }
 
-.input-controls :deep(.el-switch) {
+.terminal-switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 8px;
+  margin-left: 8px;
+}
+
+.terminal-switch :deep(.el-switch) {
   font-size: 11px;
 }
 
-.input-controls :deep(.el-switch__core) {
+.terminal-switch :deep(.el-switch__core) {
   height: 20px;
   background-color: #131315 !important;
   border-color: transparent !important;
 }
 
-.input-controls :deep(.el-switch__core:hover) {
+.terminal-switch :deep(.el-switch__core:hover) {
   background-color: #2A2A2C !important;
 }
 
-.input-controls :deep(.el-switch.is-checked .el-switch__core) {
+.terminal-switch :deep(.el-switch.is-checked .el-switch__core) {
   background-color: #2E5CC7 !important;
 }
 
-.input-controls :deep(.el-switch.is-checked .el-switch__core:hover) {
+.terminal-switch :deep(.el-switch.is-checked .el-switch__core:hover) {
   background-color: #2E5CC7 !important;
 }
 

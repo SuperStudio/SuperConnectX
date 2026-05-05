@@ -19,6 +19,15 @@
       <!-- 波特率等设置放到下面 -->
       <template #extra>
         <div class="param-row">
+          <el-switch
+            v-model="hexDisplayMode"
+            width="50"
+            active-text="HEX"
+            inactive-text="STR"
+            inline-prompt
+            size="small"
+            class="terminal-switch"
+          />
           <div class="param-item">
             <span class="param-label">波特率</span>
             <el-select v-model="baudRate" size="small" class="param-select" :popper-append-to-body="false">
@@ -209,6 +218,7 @@ const writeTimeout = ref(0)
 const flowControl = ref<'none' | 'hardware' | 'software'>('none')
 const dtr = ref(false)
 const rts = ref(false)
+const hexDisplayMode = ref(false) // HEX显示模式
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
 let removeMountedCloseListener: (() => void) | null = null
@@ -425,7 +435,9 @@ const handleConnect = async () => {
         if (String(data.connId) !== String(currentSessionId.value)) return
         totalRxSize += data.data.length
         unifiedTerminalRef.value?.updateRxBytes(data.data.length)
-        unifiedTerminalRef.value?.appendToTerminal(`\n${data.data}`)
+        // 根据 HEX 显示模式处理数据
+        const displayData = hexDisplayMode.value ? bytesToHex(data.data) : data.data
+        unifiedTerminalRef.value?.appendToTerminal(`\n${displayData}`)
       })
 
       if (removeCloseListener) removeCloseListener()
@@ -527,6 +539,16 @@ const saveLog = async () => {
 const handleCommandSent = (cmdName: string) => emit('commandSent', cmdName)
 
 const refreshGroupsCmds = () => unifiedTerminalRef.value?.refreshGroupsCmds?.()
+
+// 将字节数据转换为16进制字符串
+const bytesToHex = (str: string): string => {
+  let result = ''
+  for (let i = 0; i < str.length; i++) {
+    const hex = str.charCodeAt(i).toString(16)
+    result += hex.padStart(2, '0') + ' '
+  }
+  return result.trim()
+}
 
 const reconnect = () => {
   // 重连时清空 rx/tx 统计
@@ -705,6 +727,41 @@ onUnmounted(() => {
 .more-btn:hover {
   filter: brightness(0.85);
   transform: translateY(-1px);
+}
+
+.terminal-switch {
+  margin-left: 8px;
+}
+
+.terminal-switch.el-switch {
+  --el-switch-off-color: #131315 !important;
+  --el-switch-on-color: #2E5CC7 !important;
+}
+
+.terminal-switch .el-switch__core {
+  height: 20px !important;
+  min-height: 20px !important;
+  background-color: #131315 !important;
+  border-color: transparent !important;
+}
+
+.terminal-switch .el-switch__core:hover {
+  background-color: #2A2A2C !important;
+}
+
+.terminal-switch .el-switch__core::after {
+  top: 2px !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.terminal-switch .el-switch.is-checked .el-switch__core {
+  background-color: #2E5CC7 !important;
+  border-color: #2E5CC7 !important;
+}
+
+.terminal-switch .el-switch__label {
+  font-size: 11px;
 }
 
 /* 下拉框和输入框边框样式 */
