@@ -43,14 +43,32 @@
 
     <!-- 命令输入区域 -->
     <div class="terminal-input">
+      <div class="input-controls" v-if="connection?.connectionType === 'com'">
+        <el-switch
+          v-model="autoNewline"
+          active-text="CRLF"
+          inactive-text="CRLF"
+          inline-prompt
+          size="small"
+          :disabled="!isConnected"
+        />
+        <el-switch
+          v-model="hexMode"
+          active-text="HEX"
+          inactive-text="STR"
+          inline-prompt
+          size="small"
+          :disabled="!isConnected"
+        />
+      </div>
       <span class="prompt">></span>
       <input
         v-model="currentCommand"
         @keydown.enter="handleSendCommand"
-        :placeholder="isConnected ? placeholder : '连接后可发送命令'"
+        :placeholder="isConnected ? (hexMode ? '输入HEX数据 (如: 01 02 03)' : placeholder) : '连接后可发送命令'"
         ref="commandInput"
         class="command-input"
-        :class="{ 'not-connected': !isConnected }"
+        :class="{ 'not-connected': !isConnected, 'hex-mode': hexMode }"
         :disabled="!isConnected"
       />
       <el-button
@@ -120,6 +138,8 @@ const isConnecting = ref(props.isConnecting)
 const isAutoScroll = ref(true)
 const isShowLog = ref(true)
 const editorContainer = ref<HTMLElement | null>(null)
+const autoNewline = ref(true) // 是否自动添加回车换行
+const hexMode = ref(false) // 是否为HEX发送模式
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 let editorModel: monaco.editor.ITextModel | null = null
 let totalRecvSize = 0
@@ -258,10 +278,47 @@ const handleCommandSent = (cmdName: string) => emit('onCommandSent', cmdName)
 
 const handleSendCommand = () => {
   const cmd = currentCommand.value
-  if (cmd.trim()) {
-    emit('onSend', cmd)
+  if (!cmd.trim()) return
+
+  let sendData = cmd
+
+  // 处理HEX模式
+  if (hexMode.value) {
+    sendData = parseHexString(cmd)
+    if (sendData === null) {
+      return // 无效的HEX格式
+    }
   }
+
+  // 处理回车换行
+  if (autoNewline.value) {
+    sendData = sendData + '\r\n'
+  }
+
+  emit('onSend', sendData)
   currentCommand.value = ''
+}
+
+// 解析HEX字符串为二进制
+const parseHexString = (hex: string): string | null => {
+  try {
+    // 移除空格和换行
+    const cleaned = hex.replace(/[\s\n\r]+/g, '')
+    // 验证是否为有效的HEX字符串
+    if (!/^[0-9A-Fa-f]*$/.test(cleaned) || cleaned.length % 2 !== 0) {
+      console.error('无效的HEX格式')
+      return null
+    }
+    // 转换为二进制字符串
+    let result = ''
+    for (let i = 0; i < cleaned.length; i += 2) {
+      result += String.fromCharCode(parseInt(cleaned.substr(i, 2), 16))
+    }
+    return result
+  } catch (error) {
+    console.error('HEX解析错误:', error)
+    return null
+  }
 }
 
 const appendCommandToTerminal = (content: string) => {
@@ -427,11 +484,50 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
+.input-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 8px;
+  margin-left: 8px;
+}
+
+.input-controls :deep(.el-switch) {
+  font-size: 11px;
+}
+
+.input-controls :deep(.el-switch__core) {
+  height: 20px;
+  background-color: #131315 !important;
+  border-color: transparent !important;
+}
+
+.input-controls :deep(.el-switch__core:hover) {
+  background-color: #2A2A2C !important;
+}
+
+.input-controls :deep(.el-switch.is-checked .el-switch__core) {
+  background-color: #2E5CC7 !important;
+}
+
+.input-controls :deep(.el-switch.is-checked .el-switch__core:hover) {
+  background-color: #2E5CC7 !important;
+}
+
+.input-controls :deep(.el-switch__label) {
+  font-size: 11px;
+}
+
 .send-btn {
   margin-right: 10px;
   background-color: #165dff !important;
   border-color: #3370ff !important;
   color: white !important;
+}
+
+.command-input.hex-mode {
+  font-family: monospace;
+  letter-spacing: 1px;
 }
 
 .send-btn:hover:not(:disabled) {
