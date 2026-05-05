@@ -334,8 +334,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, reactive, computed, nextTick } from 'vue'
-import { ElMessage, ElForm, ElMessageBox, ElTabs } from 'element-plus'
+import { ref, onMounted, watch, reactive, computed } from 'vue'
+import { ElMessage, ElForm, ElMessageBox } from 'element-plus'
 import TelnetTerminal from './components/TelnetTerminal.vue'
 import ComTerminal from './components/ComTerminal.vue'
 import CustomTitleBar from './components/CustomTitleBar.vue'
@@ -424,11 +424,6 @@ const handleTabsNavContextMenu = (e: MouseEvent) => {
 const hideTabMenu = () => {
   showTabMenu.value = false
   rightClickedTab.value = null
-}
-
-// 获取串口备注
-const getSerialRemark = (comName: string): string => {
-  return serialRemarks[comName] || ''
 }
 
 // 加载单个串口备注（从存储）

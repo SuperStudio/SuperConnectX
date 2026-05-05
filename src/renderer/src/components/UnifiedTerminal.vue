@@ -283,14 +283,15 @@ const handleSendCommand = () => {
   const cmd = currentCommand.value
   if (!cmd.trim()) return
 
-  let sendData = cmd
+  let sendData: string = cmd
 
   // 处理HEX模式
   if (hexMode.value) {
-    sendData = parseHexString(cmd)
-    if (sendData === null) {
+    const parsed = parseHexString(cmd)
+    if (parsed === null) {
       return // 无效的HEX格式
     }
+    sendData = parsed
   }
 
   // 处理回车换行
