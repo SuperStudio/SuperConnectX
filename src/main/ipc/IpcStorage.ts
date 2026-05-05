@@ -4,6 +4,7 @@ import { ipcMain } from 'electron'
 import logger from './IpcAppLogger'
 import CommandGroupStorage from '../storage/CommandGroupStorage'
 import ComSettingsStorage from '../storage/ComSettingsStorage'
+import AppSettingsStorage from '../storage/AppSettingsStorage'
 
 export default class IpcStorage {
   private static sInstance: IpcStorage
@@ -69,6 +70,14 @@ export default class IpcStorage {
     ipcMain.handle('save-baud-rates', (_, baudRates: number[]) => {
       console.log('[IpcStorage] save-baud-rates called with:', baudRates)
       comSettingsStorage.saveBaudRates(baudRates)
+      return true
+    })
+
+    /* 应用全局设置持久化 */
+    const appSettingsStorage = new AppSettingsStorage()
+    ipcMain.handle('get-app-settings', () => appSettingsStorage.getSettings())
+    ipcMain.handle('save-app-settings', (_, settings: any) => {
+      appSettingsStorage.saveSettings(settings)
       return true
     })
 

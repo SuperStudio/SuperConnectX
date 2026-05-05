@@ -739,6 +739,52 @@ const connectionGroupExpanded = ref<Record<string, boolean>>({
   ftp: true,
   ssh: true
 })
+
+// 加载侧边栏状态（从存储恢复）
+const loadSidebarState = async () => {
+  try {
+    const savedState = await window.storageApi.getAppSettings()
+    if (savedState?.sidebar) {
+      showConnectionList.value = savedState.sidebar.showConnectionList ?? true
+      serialPortExpanded.value = savedState.sidebar.serialPortExpanded ?? true
+      connectionGroupExpanded.value = {
+        ...connectionGroupExpanded.value,
+        ...savedState.sidebar.connectionGroupExpanded
+      }
+    }
+  } catch (error) {
+    console.error('加载侧边栏状态失败:', error)
+  }
+}
+
+// 保存侧边栏状态（持久化）
+const saveSidebarState = async () => {
+  try {
+    const currentSettings = await window.storageApi.getAppSettings()
+    // 深拷贝确保只传递纯数据
+    const newSettings = {
+      ...currentSettings,
+      sidebar: {
+        showConnectionList: Boolean(showConnectionList.value),
+        serialPortExpanded: Boolean(serialPortExpanded.value),
+        connectionGroupExpanded: JSON.parse(JSON.stringify(connectionGroupExpanded.value))
+      }
+    }
+    await window.storageApi.saveAppSettings(newSettings)
+  } catch (error) {
+    console.error('保存侧边栏状态失败:', error)
+  }
+}
+
+// 监听侧边栏状态变化，自动保存
+watch(
+  [showConnectionList, serialPortExpanded, connectionGroupExpanded],
+  () => {
+    saveSidebarState()
+  },
+  { deep: true }
+)
+
 const connectionGroups = computed(() => {
   const groups: Record<string, any[]> = {}
   filterConnection.value.forEach((conn) => {
@@ -993,7 +1039,9 @@ const getConnectionStatus = (tab: any) => {
   return telnetTerminalRefs[tab.id]?.isConnected ? 'connected' : 'disconnected'
 }
 
-const toggleConnectionList = () => (showConnectionList.value = !showConnectionList.value)
+const toggleConnectionList = () => {
+  showConnectionList.value = !showConnectionList.value
+}
 const handleCommandSent = (command: string) => (lastSentCommand.value = command)
 
 window.addEventListener('keydown', (e: KeyboardEvent) => {
@@ -1108,6 +1156,8 @@ const openCommandEditorTab = (connectionType: string = 'telnet') => {
 }
 
 onMounted(() => {
+  // 加载侧边栏状态
+  loadSidebarState()
   loadConnections()
   loadSerialPorts()
 

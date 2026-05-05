@@ -34,6 +34,8 @@ declare global {
       saveComSettings: (comName: string, settings: any) => Promise<boolean>
       getBaudRates: () => Promise<number[]>
       saveBaudRates: (baudRates: number[]) => Promise<boolean>
+      getAppSettings: () => Promise<any>
+      saveAppSettings: (settings: any) => Promise<boolean>
     }
     connectApi: {
       startConnect: (conn: any) => Promise<any>

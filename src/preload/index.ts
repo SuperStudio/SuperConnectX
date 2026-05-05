@@ -27,7 +27,11 @@ contextBridge.exposeInMainWorld('storageApi', {
   saveComSettings: (comName: string, settings: any) => ipcRenderer.invoke('save-com-settings', comName, settings),
   /* 全局波特率列表 */
   getBaudRates: () => ipcRenderer.invoke('get-baud-rates'),
-  saveBaudRates: (baudRates: number[]) => ipcRenderer.invoke('save-baud-rates', baudRates)
+  saveBaudRates: (baudRates: number[]) => ipcRenderer.invoke('save-baud-rates', baudRates),
+
+  /* 应用全局设置 */
+  getAppSettings: () => ipcRenderer.invoke('get-app-settings'),
+  saveAppSettings: (settings: any) => ipcRenderer.invoke('save-app-settings', settings)
 })
 
 contextBridge.exposeInMainWorld('connectApi', {
