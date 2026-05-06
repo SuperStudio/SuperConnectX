@@ -528,10 +528,12 @@ const handleClose = async () => {
   emit('onDisconnect', props.connection.sessionId)
 }
 
-const handleSendCommand = async (command: string) => {
+const handleSendCommand = async (command: string, originalInput?: string) => {
   if (!command.trim() || !isConnected.value) return
 
-  unifiedTerminalRef.value?.appendToTerminal(`\n[TX] ${command}\n`)
+  // 根据 hexMode 决定显示内容：HEX模式下显示原始输入，否则显示解析后的数据
+  const displayCommand = hexMode.value && originalInput ? originalInput : command
+  unifiedTerminalRef.value?.appendToTerminal(`\n[TX] ${displayCommand}\n`)
   totalTxSize += command.length
   unifiedTerminalRef.value?.updateTxBytes(command.length)
 

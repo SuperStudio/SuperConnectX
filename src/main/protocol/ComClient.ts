@@ -18,13 +18,14 @@ interface SerialConnection {
   encoding: string
   onData: any
   onClose: any
+  onLog: any
 }
 
 export default class ComClient extends BaseClient {
   serialConnections = new Map<string, SerialConnection>()
 
   // 处理缓冲区数据，按行分割并添加时间戳
-  private processBuffer(connection: SerialConnection, onData: any): void {
+  private processBuffer(connection: SerialConnection, onData: any, onLog: any): void {
     const { buffer } = connection
     if (!buffer) return
 
@@ -49,9 +50,10 @@ export default class ComClient extends BaseClient {
       const line = buffer.substring(0, lineEnd)
       const remaining = buffer.substring(lineEnd + lineEnding.length)
 
-      // 添加时间戳输出整行
+      // 原始数据用于显示和发送，时间戳只用于日志
       if (line) {
-        onData?.(`[${timestamp}] ${line}\n`)
+        onData?.(`${line}\n`)
+        onLog?.(`[${timestamp}] ${line}`)
       }
 
       // 清空缓冲区并保存剩余数据
@@ -59,7 +61,7 @@ export default class ComClient extends BaseClient {
     }
   }
 
-  async start(info: ConnectionInfo, onData: any, onClose: any): Promise<object> {
+  async start(info: ConnectionInfo, onData: any, onClose: any, onLog: any): Promise<object> {
     const comName = info.comName
     const baudRate = info.baudRate || DEFAULT_BAUD_RATE
     const dataBits = info.dataBits || DEFAULT_DATA_BITS
@@ -114,7 +116,8 @@ export default class ComClient extends BaseClient {
             writeTimeout: writeTimeout,
             encoding: encoding,
             onData: onData,
-            onClose: onClose
+            onClose: onClose,
+            onLog: onLog
           }
           this.serialConnections.set(sessionId, connection)
 
@@ -125,7 +128,7 @@ export default class ComClient extends BaseClient {
 
           // 使用固定间隔处理数据
           connection.timer = setInterval(() => {
-            this.processBuffer(connection, connection.onData)
+            this.processBuffer(connection, connection.onData, connection.onLog)
           }, READ_INTERVAL_MS)
 
           port.on('close', () => {
@@ -137,7 +140,8 @@ export default class ComClient extends BaseClient {
             // 关闭前输出缓冲区中剩余的数据
             if (connection.buffer) {
               const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false }) + '.' + String(Date.now() % 1000).padStart(3, '0')
-              connection.onData?.(`[${timestamp}] ${connection.buffer}\n`)
+              connection.onData?.(`${connection.buffer}\n`)
+              connection.onLog?.(`[${timestamp}] ${connection.buffer}`)
               connection.buffer = ''
             }
             this.serialConnections.delete(sessionId)
@@ -303,7 +307,8 @@ export default class ComClient extends BaseClient {
             writeTimeout: config.writeTimeout ?? connection.writeTimeout,
             encoding: newEncoding,
             onData: savedOnData,
-            onClose: savedOnClose
+            onClose: savedOnClose,
+            onLog: connection.onLog
           }
             this.serialConnections.set(connId, newConnection)
 
@@ -314,7 +319,7 @@ export default class ComClient extends BaseClient {
 
           // 重新启动数据收集定时器
           newConnection.timer = setInterval(() => {
-            this.processBuffer(newConnection, newConnection.onData)
+            this.processBuffer(newConnection, newConnection.onData, newConnection.onLog)
           }, READ_INTERVAL_MS)
 
           newPort.on('close', () => {
@@ -375,7 +380,8 @@ export default class ComClient extends BaseClient {
           writeTimeout: oldConnection.writeTimeout,
           encoding: encoding,
           onData: oldConnection.onData,
-          onClose: oldConnection.onClose
+          onClose: oldConnection.onClose,
+          onLog: oldConnection.onLog
         }
         this.serialConnections.set(connId, newConnection)
 
@@ -385,7 +391,7 @@ export default class ComClient extends BaseClient {
         })
 
         newConnection.timer = setInterval(() => {
-          this.processBuffer(newConnection, newConnection.onData)
+          this.processBuffer(newConnection, newConnection.onData, newConnection.onLog)
         }, READ_INTERVAL_MS)
 
         recoveryPort.on('close', () => {

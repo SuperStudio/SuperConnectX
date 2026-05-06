@@ -1,7 +1,7 @@
 import ConnectionInfo from './ConnectionInfo'
 
 export default class BaseClient {
-  async start(_info: ConnectionInfo, _onData: any, _onClose: any): Promise<object> {
+  async start(_info: ConnectionInfo, _onData: any, _onClose: any, _onLog?: any): Promise<object> {
     return { success: false, message: 'Not implemented' }
   }
 

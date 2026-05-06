@@ -56,7 +56,6 @@ export default class IpcConnector {
       return await client?.start(
         this.buildConnectInfo(conn),
         (dataStr) => {
-          _logger.writeToConnLog(dataStr, conn.sessionId)
           windows.mainWindow?.webContents.send('on-recv-data', {
             connId: conn.sessionId,
             data: dataStr
@@ -65,6 +64,10 @@ export default class IpcConnector {
         () => {
           windows.mainWindow?.webContents.send('on-connect-close', conn.sessionId)
           _logger.flushConnLog(conn.sessionId)
+        },
+        (logStr) => {
+          // 仅用于日志记录，不发送到前端
+          _logger.writeToConnLog(logStr, conn.sessionId)
         }
       )
     })
