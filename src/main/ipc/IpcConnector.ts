@@ -72,8 +72,8 @@ export default class IpcConnector {
       )
     })
     ipcMain.handle('send-data', async (_, { conn, command }: { conn: any; command: string }) =>
-      this.CONNECT_TYPE_DATA.get(conn.connectionType)?.send(conn.sessionId, command, (dataStr) =>
-        _logger.writeToConnLog(dataStr, conn.sessionId)
+      this.CONNECT_TYPE_DATA.get(conn.connectionType)?.send(conn.sessionId, command, (logStr) =>
+        _logger.writeToConnLog(logStr, conn.sessionId)
       )
     )
     ipcMain.handle(

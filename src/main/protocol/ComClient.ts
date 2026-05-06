@@ -9,56 +9,119 @@ const DEFAULT_STOP_BITS = 1
 const DEFAULT_PARITY = 'none' as const
 const DEFAULT_ENCODING = 'utf8'
 const READ_INTERVAL_MS = 10 // 固定10ms读取间隔
+const MAX_BUFFER_SIZE = 1024 // 最大缓冲区大小（字节）
+const BUFFER_TIMEOUT_MS = 100 // 无换行符时超时输出（毫秒）
 
 interface SerialConnection {
   port: SerialPort
-  buffer: string
+  buffer: Buffer
   timer: NodeJS.Timeout | null
   writeTimeout: number
   encoding: string
   onData: any
   onClose: any
   onLog: any
+  lastOutputTime: number // 上次输出时间
+  hexDisplayMode: boolean // 是否为HEX显示模式
 }
 
 export default class ComClient extends BaseClient {
   serialConnections = new Map<string, SerialConnection>()
 
-  // 处理缓冲区数据，按行分割并添加时间戳
+  // 处理缓冲区数据，按行分割（buffer 中存储原始 Buffer）
   private processBuffer(connection: SerialConnection, onData: any, onLog: any): void {
     const { buffer } = connection
-    if (!buffer) return
+    if (!buffer || buffer.length === 0) return
 
     const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false }) + '.' + String(Date.now() % 1000).padStart(3, '0')
 
-    // 先查找 \r\n
-    let lineEnd = buffer.indexOf('\r\n')
-    let lineEnding = '\r\n'
+    // 查找换行符位置
+    let lineEnd = -1
+    let lineEndingLen = 0  // 换行符字节数
 
-    // 如果没找到 \r\n，查找 \r 或 \n
-    if (lineEnd === -1) {
-      lineEnd = buffer.indexOf('\r')
-      lineEnding = '\r'
-      if (lineEnd === -1) {
-        lineEnd = buffer.indexOf('\n')
-        lineEnding = '\n'
+    const crIndex = buffer.indexOf(0x0D)  // \r
+    const lfIndex = buffer.indexOf(0x0A)  // \n
+
+    if (crIndex !== -1 && lfIndex === crIndex + 1) {
+      // 完整的 \r\n 组合（两个字节连续）
+      lineEnd = crIndex
+      lineEndingLen = 2
+    } else if (lfIndex !== -1) {
+      if (lfIndex > 0 && buffer[lfIndex - 1] === 0x0D) {
+        // \r\n 分开接收，现在都在 buffer 中了
+        lineEnd = lfIndex - 1
+        lineEndingLen = 2
+      } else {
+        // 只有单独的 \n
+        lineEnd = lfIndex
+        lineEndingLen = 1
+      }
+    } else if (crIndex !== -1) {
+      if (crIndex + 1 < buffer.length && buffer[crIndex + 1] === 0x0A) {
+        // \r\n 分开接收
+        lineEnd = crIndex
+        lineEndingLen = 2
+      } else if (crIndex + 1 >= buffer.length) {
+        // 只有 \r，后面可能还有 \n，延迟处理
+        lineEnd = -1
+      } else {
+        // 只有单独的 \r
+        lineEnd = crIndex
+        lineEndingLen = 1
       }
     }
 
-    // 如果找到换行符
-    if (lineEnd !== -1) {
-      const line = buffer.substring(0, lineEnd)
-      const remaining = buffer.substring(lineEnd + lineEnding.length)
+    // 如果找到换行符，或者缓冲区超过最大大小，或者超时
+    const now = Date.now()
+    const bufferLen = buffer.length
+    const shouldForceOutput = bufferLen >= MAX_BUFFER_SIZE || 
+      (connection.lastOutputTime > 0 && now - connection.lastOutputTime >= BUFFER_TIMEOUT_MS && bufferLen > 0)
 
-      // 原始数据用于显示和发送，时间戳只用于日志
-      if (line) {
-        onData?.(`${line}\n`)
-        onLog?.(`[${timestamp}] ${line}`)
+    if (lineEnd !== -1 || shouldForceOutput) {
+      if (lineEnd !== -1) {
+        // 有换行符，按行输出（不包含换行符本身）
+        const line = buffer.subarray(0, lineEnd)
+        const remaining = buffer.subarray(lineEnd + lineEndingLen)
+
+        let displayData: string
+        if (connection.hexDisplayMode) {
+          // HEX显示模式 - 只格式化数据部分，不格式化换行符
+          displayData = this.formatHexBuffer(line)
+        } else {
+          // 字符串显示模式 - 只解码数据部分
+          const enc = (connection.encoding || 'utf8') as BufferEncoding
+          displayData = line.toString(enc)
+        }
+
+        onData?.(displayData)
+        onLog?.(`[${timestamp}] ${displayData}`)
+
+        connection.buffer = remaining.length > 0 ? remaining : Buffer.alloc(0)
+      } else {
+        // 无换行符但超时，强制输出
+        let displayData: string
+        if (connection.hexDisplayMode) {
+          displayData = this.formatHexBuffer(buffer)
+        } else {
+          displayData = buffer.toString((connection.encoding || 'utf8') as BufferEncoding)
+        }
+        onData?.(displayData)
+        onLog?.(`[${timestamp}] ${displayData}`)
+        connection.buffer = Buffer.alloc(0)
       }
+      connection.lastOutputTime = now
 
-      // 清空缓冲区并保存剩余数据
-      connection.buffer = remaining
+      // 继续处理剩余数据
+      if (connection.buffer && connection.buffer.length > 0) {
+        this.processBuffer(connection, onData, onLog)
+      }
     }
+  }
+
+  // 将 Buffer 格式化为带空格的形式
+  private formatHexBuffer(buf: Buffer): string {
+    if (!buf || buf.length === 0) return ''
+    return buf.toString('hex').match(/.{1,2}/g)?.join(' ') || ''
   }
 
   async start(info: ConnectionInfo, onData: any, onClose: any, onLog: any): Promise<object> {
@@ -111,19 +174,21 @@ export default class ComClient extends BaseClient {
 
           const connection: SerialConnection = {
             port,
-            buffer: '',
+            buffer: Buffer.alloc(0),
             timer: null,
             writeTimeout: writeTimeout,
             encoding: encoding,
             onData: onData,
             onClose: onClose,
-            onLog: onLog
+            onLog: onLog,
+            lastOutputTime: Date.now(),
+            hexDisplayMode: true // 默认使用 HEX 显示模式
           }
           this.serialConnections.set(sessionId, connection)
 
           // 收集数据到缓冲区
           port.on('data', (data: Buffer) => {
-            connection.buffer += data.toString()
+            connection.buffer = Buffer.concat([connection.buffer, data])
           })
 
           // 使用固定间隔处理数据
@@ -138,11 +203,17 @@ export default class ComClient extends BaseClient {
               connection.timer = null
             }
             // 关闭前输出缓冲区中剩余的数据
-            if (connection.buffer) {
+            if (connection.buffer && connection.buffer.length > 0) {
               const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false }) + '.' + String(Date.now() % 1000).padStart(3, '0')
-              connection.onData?.(`${connection.buffer}\n`)
-              connection.onLog?.(`[${timestamp}] ${connection.buffer}`)
-              connection.buffer = ''
+              let displayData: string
+              if (connection.hexDisplayMode) {
+                displayData = this.formatHexBuffer(connection.buffer)
+              } else {
+                displayData = connection.buffer.toString((connection.encoding || 'utf8') as BufferEncoding)
+              }
+              connection.onData?.(displayData)
+              connection.onLog?.(`[${timestamp}] ${displayData}`)
+              connection.buffer = Buffer.alloc(0)
             }
             this.serialConnections.delete(sessionId)
             connection.onClose?.()
@@ -184,8 +255,8 @@ export default class ComClient extends BaseClient {
 
     try {
       const dataStr = `[${new Date().toISOString()}] SEND >>>>>>>>>> ${command}`
-      const commandWithNewline = command.endsWith('\n') ? command : command + '\n'
-      connection.port.write(commandWithNewline, connection.encoding as BufferEncoding, (err: Error | null | undefined) => {
+      // 直接发送前端传来的数据，换行符已在前端根据配置处理
+      connection.port.write(command, connection.encoding as BufferEncoding, (err: Error | null | undefined) => {
         if (err) {
           logger.error(`serial write error: ${err.message}`)
           return
@@ -237,6 +308,7 @@ export default class ComClient extends BaseClient {
     rts?: boolean
     dtr?: boolean
     flowControl?: 'none' | 'hardware' | 'software'
+    hexDisplayMode?: boolean
   }): Promise<object> {
     const connection = this.serialConnections.get(connId)
     if (!connection) {
@@ -246,7 +318,22 @@ export default class ComClient extends BaseClient {
     const port = connection.port
     const comName = port.path
 
-    // 更新配置
+    // 更新 HEX 显示模式（不需要重开端口）
+    if (config.hexDisplayMode !== undefined) {
+      connection.hexDisplayMode = config.hexDisplayMode
+      logger.info(`update hexDisplayMode: ${config.hexDisplayMode}`)
+    }
+
+    // 如果只更新了 hexDisplayMode，直接返回
+    if (config.baudRate === undefined && config.dataBits === undefined && 
+        config.stopBits === undefined && config.parity === undefined && 
+        config.encoding === undefined && config.readTimeout === undefined && 
+        config.writeTimeout === undefined && config.rts === undefined && 
+        config.dtr === undefined && config.flowControl === undefined) {
+      return { success: true, message: '配置更新成功' }
+    }
+
+    // 更新串口参数配置
     const newBaudRate = config.baudRate || DEFAULT_BAUD_RATE
     const newDataBits = config.dataBits || DEFAULT_DATA_BITS
     const newStopBits = config.stopBits || DEFAULT_STOP_BITS
@@ -302,19 +389,21 @@ export default class ComClient extends BaseClient {
           // 更新连接信息
           const newConnection: SerialConnection = {
             port: newPort,
-            buffer: '',
+            buffer: Buffer.alloc(0),
             timer: null,
             writeTimeout: config.writeTimeout ?? connection.writeTimeout,
             encoding: newEncoding,
             onData: savedOnData,
             onClose: savedOnClose,
-            onLog: connection.onLog
+            onLog: connection.onLog,
+            lastOutputTime: Date.now(),
+            hexDisplayMode: connection.hexDisplayMode
           }
-            this.serialConnections.set(connId, newConnection)
+          this.serialConnections.set(connId, newConnection)
 
           // 收集数据到缓冲区
           newPort.on('data', (data: Buffer) => {
-            newConnection.buffer += data.toString()
+            newConnection.buffer = Buffer.concat([newConnection.buffer, data])
           })
 
           // 重新启动数据收集定时器
@@ -375,19 +464,21 @@ export default class ComClient extends BaseClient {
       if (!err) {
         const newConnection: SerialConnection = {
           port: recoveryPort,
-          buffer: '',
+          buffer: Buffer.alloc(0),
           timer: null,
           writeTimeout: oldConnection.writeTimeout,
           encoding: encoding,
           onData: oldConnection.onData,
           onClose: oldConnection.onClose,
-          onLog: oldConnection.onLog
+          onLog: oldConnection.onLog,
+          lastOutputTime: Date.now(),
+          hexDisplayMode: oldConnection.hexDisplayMode
         }
         this.serialConnections.set(connId, newConnection)
 
         // 收集数据到缓冲区
         recoveryPort.on('data', (data: Buffer) => {
-          newConnection.buffer += data.toString()
+          newConnection.buffer = Buffer.concat([newConnection.buffer, data])
         })
 
         newConnection.timer = setInterval(() => {

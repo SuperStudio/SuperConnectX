@@ -14,6 +14,7 @@
       @on-save-log="saveLog"
       @on-send="handleSendCommand"
       @on-command-sent="handleCommandSent"
+      @on-send-from-group="handleSendFromGroup"
       @on-open-command-editor="emit('openCommandEditor', connection.connectionType)"
     >
       <!-- 波特率等设置放到下面 -->
@@ -270,6 +271,18 @@ watch([dataBits, stopBits, parity, encoding, readTimeout, writeTimeout, flowCont
 watch(hexDisplayMode, (newVal) => {
   saveComSettings()
   unifiedTerminalRef.value?.setHexDisplayMode?.(newVal)
+  // 通知后端更新显示模式
+  if (isConnected.value) {
+    window.connectApi.updateConnect(
+      {
+        connectionType: 'com',
+        sessionId: props.connection.sessionId
+      },
+      {
+        hexDisplayMode: newVal
+      }
+    )
+  }
 })
 
 // 监听 CRLF 模式变化 - 同步到 UnifiedTerminal 并保存
@@ -473,15 +486,26 @@ const handleConnect = async () => {
       unifiedTerminalRef.value?.appendToTerminal(`\n连接成功!\n`)
       emit('onConnect', props.connection.sessionId)
 
+      // 连接成功后同步 hexDisplayMode 和 encoding 到后端
+      window.connectApi.updateConnect(
+        {
+          connectionType: 'com',
+          sessionId: props.connection.sessionId
+        },
+        {
+          hexDisplayMode: hexDisplayMode.value,
+          encoding: encoding.value
+        }
+      )
+
       // 注册数据监听
       if (removeDataListener) removeDataListener()
       removeDataListener = window.connectApi.onRecvData((data) => {
         if (String(data.connId) !== String(currentSessionId.value)) return
         totalRxSize += data.data.length
         unifiedTerminalRef.value?.updateRxBytes(data.data.length)
-        // 根据 HEX 显示模式处理数据
-        const displayData = hexDisplayMode.value ? bytesToHex(data.data) : data.data
-        unifiedTerminalRef.value?.appendToTerminal(`\n${displayData}`)
+        // 后端已返回十六进制字符串，直接显示
+        unifiedTerminalRef.value?.appendToTerminal(`\n${data.data}`)
       })
 
       if (removeCloseListener) removeCloseListener()
@@ -551,6 +575,95 @@ const handleSendCommand = async (command: string, originalInput?: string) => {
     ElMessage.error('命令发送失败')
     console.error('发送失败:', error)
   }
+}
+
+// 处理命令组发送 - 应用 hexMode 和 autoNewline 设置
+const handleSendFromGroup = async (command: string) => {
+  if (!command.trim()) {
+    ElMessage.warning('命令内容为空')
+    return
+  }
+  if (!isConnected.value) {
+    ElMessage.warning('请先建立连接')
+    return
+  }
+
+  let sendData = command
+
+  // 应用 HEX 模式转换
+  if (hexMode.value) {
+    const parsed = parseHexString(command)
+    if (parsed === null) {
+      // 如果不是有效的HEX格式，自动转换为HEX
+      const hexStr = convertToHex(command)
+      const parsedAuto = parseHexString(hexStr)
+      if (parsedAuto !== null) {
+        sendData = parsedAuto
+        unifiedTerminalRef.value?.appendToTerminal(`\n[提示] 已自动转换输入为HEX格式: ${hexStr}\n`)
+      } else {
+        // 理论上不应该发生，因为convertToHex总是生成有效的HEX
+        sendData = parsedAuto
+      }
+    } else {
+      sendData = parsed
+    }
+  }
+
+  // 应用自动换行
+  if (autoNewline.value) {
+    sendData = sendData + '\r\n'
+  }
+
+  // 显示原始命令内容
+  unifiedTerminalRef.value?.appendToTerminal(`\n[TX] ${command}\n`)
+  totalTxSize += sendData.length
+  unifiedTerminalRef.value?.updateTxBytes(sendData.length)
+
+  try {
+    const connObj = {
+      connectionType: 'com',
+      comName: props.connection.comName,
+      sessionId: props.connection.sessionId
+    }
+    await window.connectApi.sendData({
+      conn: connObj,
+      command: sendData
+    })
+  } catch (error) {
+    ElMessage.error('命令发送失败')
+    console.error('发送失败:', error)
+  }
+}
+
+// 解析 HEX 字符串为二进制
+const parseHexString = (hex: string): string | null => {
+  try {
+    // 移除空格和换行
+    const cleaned = hex.replace(/[\s\n\r]+/g, '')
+    // 验证是否为有效的 HEX 字符串
+    if (!/^[0-9A-Fa-f]*$/.test(cleaned) || cleaned.length % 2 !== 0) {
+      console.error('无效的HEX格式')
+      return null
+    }
+    // 转换为二进制字符串
+    let result = ''
+    for (let i = 0; i < cleaned.length; i += 2) {
+      result += String.fromCharCode(parseInt(cleaned.substr(i, 2), 16))
+    }
+    return result
+  } catch (error) {
+    console.error('HEX解析错误:', error)
+    return null
+  }
+}
+
+// 将普通字符串转换为HEX格式
+const convertToHex = (str: string): string => {
+  let result = ''
+  for (let i = 0; i < str.length; i++) {
+    result += str.charCodeAt(i).toString(16).padStart(2, '0')
+  }
+  return result
 }
 
 const openLogFolder = async () => {

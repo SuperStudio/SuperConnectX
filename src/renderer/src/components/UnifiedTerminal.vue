@@ -38,6 +38,7 @@
         @commandSent="handleCommandSent"
         @commandSentContent="appendCommandToTerminal"
         @openCommandEditor="(connectionType: string) => emit('onOpenCommandEditor', connectionType)"
+        @requestSendCommand="(cmd: string) => emit('onSendFromGroup', cmd)"
       />
     </div>
 
@@ -129,6 +130,7 @@ const emit = defineEmits<{
   onDataReceived: [data: string]
   'update:isConnected': [value: boolean]
   onOpenCommandEditor: [connectionType: string]
+  onSendFromGroup: [cmd: string]
 }>()
 
 const currentCommand = ref('')
@@ -281,7 +283,10 @@ const handleCommandSent = (cmdName: string) => emit('onCommandSent', cmdName)
 
 const handleSendCommand = () => {
   const cmd = currentCommand.value
-  if (!cmd.trim()) return
+  if (!cmd.trim()) {
+    appendToTerminal(`\n[错误] 命令内容为空\n`)
+    return
+  }
 
   let sendData: string = cmd
 
@@ -289,9 +294,19 @@ const handleSendCommand = () => {
   if (hexMode.value) {
     const parsed = parseHexString(cmd)
     if (parsed === null) {
-      return // 无效的HEX格式
+      // 如果不是有效的HEX格式，自动转换为HEX
+      const hexStr = convertToHex(cmd)
+      const parsedAuto = parseHexString(hexStr)
+      if (parsedAuto !== null) {
+        sendData = parsedAuto
+        appendToTerminal(`\n[提示] 已自动转换输入为HEX格式: ${hexStr}\n`)
+      } else {
+        // 理论上不应该发生，因为convertToHex总是生成有效的HEX
+        sendData = parsedAuto
+      }
+    } else {
+      sendData = parsed
     }
-    sendData = parsed
   }
 
   // 处理回车换行
@@ -324,6 +339,15 @@ const parseHexString = (hex: string): string | null => {
     console.error('HEX解析错误:', error)
     return null
   }
+}
+
+// 将普通字符串转换为HEX格式
+const convertToHex = (str: string): string => {
+  let result = ''
+  for (let i = 0; i < str.length; i++) {
+    result += str.charCodeAt(i).toString(16).padStart(2, '0')
+  }
+  return result
 }
 
 const appendCommandToTerminal = (content: string) => {

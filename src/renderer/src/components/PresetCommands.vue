@@ -278,6 +278,7 @@ const emit = defineEmits<{
   (e: 'commandSent', cmdName: string): void
   (e: 'commandSentContent', content: string): void
   (e: 'openCommandEditor', connectionType: string): void
+  (e: 'requestSendCommand', cmd: string): void
 }>()
 
 // 打开命令编辑器
@@ -705,17 +706,8 @@ const sendPresetCommand = async (cmd: any) => {
 
   try {
     emit('commandSent', cmd.name.trim())
-    emit('commandSentContent', cmd.command)
-    const conn = getCurrentConnect()
-    console.log('发送命令 - 连接信息:', JSON.stringify(conn), '命令:', cmd.command.trim())
-    const result = await window.connectApi.sendData({
-      conn: conn,
-      command: cmd.command.trim()
-    })
-    console.log('发送结果:', JSON.stringify(result))
-    if (!result.success) {
-      ElMessage.error(result.message || '命令发送失败')
-    }
+    // 通过事件让父组件处理发送，这样可以应用 hexMode 和 autoNewline 设置
+    emit('requestSendCommand', cmd.command)
   } catch (error) {
     ElMessage.error('命令发送失败')
     console.error('发送失败:', error)
