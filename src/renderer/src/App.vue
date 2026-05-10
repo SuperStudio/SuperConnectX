@@ -246,6 +246,14 @@
             </template>
           </div>
         </div>
+        <!-- 无选项卡时的空状态显示 -->
+        <div v-else class="empty-tabs-placeholder">
+          <div class="logo-container">
+            <img :src="logoImage" alt="SuperStudio" class="logo-img" />
+            <div class="logo-text">SuperStudio</div>
+            <div class="copyright">&copy; 2025 SuperStudio</div>
+          </div>
+        </div>
       </div>
     </main>
 
@@ -349,6 +357,7 @@ import ResourceMonitor from './components/ResourceMonitor.vue'
 import AboutDialog from './components/AboutDialog.vue'
 import CommandEditor from './components/CommandEditor.vue'
 import TelnetInfo from './entity/protocol/TelnetInfo'
+import logoImage from './assets/icon.png'
 
 const searchKeyword = ref('')
 const filterConnection = ref<any[]>([])
@@ -1885,4 +1894,42 @@ onMounted(() => {
 }
 
 /* 固定选项卡样式 - 已移除左侧竖条，改为通过按钮图标显示 */
+
+/* 无选项卡时的空状态显示 */
+.empty-tabs-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1e1e1e;
+}
+
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-container .logo-img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.logo-container .logo-text {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.logo-container .copyright {
+  font-size: 12px;
+  color: #888;
+  margin-top: 8px;
+}
 </style>
