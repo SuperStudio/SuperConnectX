@@ -146,6 +146,9 @@ const autoNewline = ref(true) // 是否自动添加回车换行
 const hexMode = ref(false) // 是否为HEX发送模式
 const hexDisplayMode = ref(false) // 是否为HEX显示模式（接收端）
 const showTimestamp = ref(true) // 是否显示时间戳
+const fontSize = ref(14) // 终端字体大小
+const MIN_FONT_SIZE = 8
+const MAX_FONT_SIZE = 30
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 let editorModel: monaco.editor.ITextModel | null = null
 let totalRecvSize = 0
@@ -198,7 +201,8 @@ const initEditor = async () => {
     codeLens: false,
     links: false,
     wordWrap: 'off',
-    wrappingStrategy: 'simple'
+    wrappingStrategy: 'simple',
+    fontSize: fontSize.value
   })
 
   editor.layout()
@@ -206,6 +210,20 @@ const initEditor = async () => {
 
   editor.onMouseDown(() => {
     isAutoScroll.value = false
+  })
+
+  // 在 editor 上监听滚轮事件（用于 Ctrl+滚轮缩放）
+  editor.onMouseWheel((e: monaco.editor.IEditorMouseWheelEvent) => {
+    if (e.ctrlKey) {
+      e.preventDefault()
+      e.stopPropagation()
+      const delta = e.deltaY > 0 ? -1 : 1
+      const newSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, fontSize.value + delta))
+      if (newSize !== fontSize.value) {
+        fontSize.value = newSize
+        editor?.updateOptions({ fontSize: newSize })
+      }
+    }
   })
 }
 
@@ -402,7 +420,13 @@ defineExpose({
   getAutoNewline: () => autoNewline.value,
   getHexMode: () => hexMode.value,
   getHexDisplayMode: () => hexDisplayMode.value,
-  getShowTimestamp: () => showTimestamp.value
+  getShowTimestamp: () => showTimestamp.value,
+  setFontSize: (val: number) => {
+    const newSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, val))
+    fontSize.value = newSize
+    editor?.updateOptions({ fontSize: newSize })
+  },
+  getFontSize: () => fontSize.value
 })
 
 onMounted(() => {
