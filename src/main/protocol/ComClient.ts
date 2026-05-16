@@ -58,8 +58,17 @@ export default class ComClient extends BaseClient {
           data: line,
           timestamp: timestamp
         })
-        // 日志传递原始数据，不加额外换行，ProtocolLogger 会处理原始数据中的换行符
-        onLog?.(line)
+        // 日志根据 receiveHex 状态决定格式
+        let logData = line
+        if (connection.receiveHex) {
+          logData = ''
+          for (let i = 0; i < line.length; i++) {
+            const hex = line.charCodeAt(i).toString(16)
+            logData += hex.padStart(2, '0') + ' '
+          }
+          logData = logData.trim()
+        }
+        onLog?.(logData)
       }
 
       // 清空缓冲区并保存剩余数据
@@ -152,7 +161,17 @@ export default class ComClient extends BaseClient {
                 data: connection.buffer,
                 timestamp: timestamp
               })
-              connection.onLog?.(connection.buffer)
+              // 日志根据 receiveHex 状态决定格式
+              let logData = connection.buffer
+              if (connection.receiveHex) {
+                logData = ''
+                for (let i = 0; i < connection.buffer.length; i++) {
+                  const hex = connection.buffer.charCodeAt(i).toString(16)
+                  logData += hex.padStart(2, '0') + ' '
+                }
+                logData = logData.trim()
+              }
+              connection.onLog?.(logData)
               connection.buffer = ''
             }
             this.serialConnections.delete(sessionId)
@@ -433,5 +452,13 @@ export default class ComClient extends BaseClient {
         logger.error(`cannot recover serial port: ${err.message}`)
       }
     })
+  }
+
+  setReceiveHex(connId: string, receiveHex: boolean): void {
+    const connection = this.serialConnections.get(connId)
+    if (connection) {
+      connection.receiveHex = receiveHex
+      logger.info(`setReceiveHex: ${receiveHex} for sessionId: ${connId}`)
+    }
   }
 }

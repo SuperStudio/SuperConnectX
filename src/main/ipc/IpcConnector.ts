@@ -44,7 +44,8 @@ export default class IpcConnector {
       writeTimeout: conn.writeTimeout,
       flowControl: conn.flowControl,
       rts: conn.rts,
-      dtr: conn.dtr
+      dtr: conn.dtr,
+      receiveHex: conn.receiveHex
     }
 
     return connInfo
@@ -116,10 +117,12 @@ export default class IpcConnector {
     ipcMain.handle('update-connect', async (_, { conn, config }: { conn: any; config: any }) => {
       logger.info(`update connect config: ${conn.name}, sessionId: ${conn.sessionId}`)
 
-      // 如果是动态切换 receiveHex，单独处理并更新映射
+      // 如果是动态切换 receiveHex，同时更新 ComClient 的 receiveHex 状态
       if (config.receiveHex !== undefined) {
         const isHex = config.receiveHex === true || config.receiveHex === 'true'
         this.receiveHexMap.set(conn.sessionId, isHex)
+        // 通知 ComClient 更新 receiveHex 状态，以便 onLog 也使用正确的格式
+        this.CONNECT_TYPE_DATA.get(conn.connectionType)?.setReceiveHex(conn.sessionId, isHex)
         logger.info(`update receiveHex: ${isHex} for sessionId: ${conn.sessionId}`)
         return { success: true, message: '更新成功' }
       }

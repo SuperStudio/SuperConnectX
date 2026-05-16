@@ -16,4 +16,8 @@ export default class BaseClient {
   async updateConfig(_connId: string, _config: any): Promise<object> {
     return { success: false, message: 'Not implemented' }
   }
+
+  setReceiveHex(_connId: string, _receiveHex: boolean): void {
+    // 可选实现
+  }
 }
