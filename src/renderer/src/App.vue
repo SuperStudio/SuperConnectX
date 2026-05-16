@@ -330,13 +330,17 @@
       v-model="showRemarkDialog"
       title="编辑备注"
       width="400px"
+      :close-on-click-modal="false"
+      @opened="onRemarkDialogOpened"
     >
-      <el-form label-width="80px">
+      <el-form label-width="80px" @submit.prevent>
         <el-form-item :label="editingRemarkComName">
           <el-input
+            ref="remarkInputRef"
             v-model="editingRemark"
             placeholder="请输入备注名称"
             maxlength="50"
+            @keydown.enter="saveSerialRemark"
           />
         </el-form-item>
       </el-form>
@@ -349,7 +353,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, reactive, computed } from 'vue'
+import { ref, onMounted, watch, reactive, computed, nextTick } from 'vue'
 import { ElMessage, ElForm, ElMessageBox } from 'element-plus'
 import TelnetTerminal from './components/TelnetTerminal.vue'
 import ComTerminal from './components/ComTerminal.vue'
@@ -389,6 +393,7 @@ const showRemarkDialog = ref(false)
 const editingRemark = ref('')
 const editingRemarkComName = ref('')
 const serialRemarks = reactive<Record<string, string>>({}) // 缓存串口备注
+const remarkInputRef = ref<any>(null)
 
 // 选项卡滚轮滚动处理
 const handleTabsWheel = (e: WheelEvent) => {
@@ -511,12 +516,12 @@ const openRemarkDialog = async () => {
   editingRemarkComName.value = rightClickedTab.value.comName
   const tabId = rightClickedTab.value.id.toString()
   
-  // 优先从 ComTerminal 获取备注
-  if (comTerminalRefs[tabId]?.getRemark) {
-    editingRemark.value = comTerminalRefs[tabId].getRemark() || ''
-  } else if (serialRemarks[editingRemarkComName.value]) {
-    // 从缓存获取备注
+  // 优先从缓存获取备注（保存时会更新缓存）
+  if (serialRemarks[editingRemarkComName.value]) {
     editingRemark.value = serialRemarks[editingRemarkComName.value]
+  } else if (comTerminalRefs[tabId]?.getRemark) {
+    // 从 ComTerminal 获取备注
+    editingRemark.value = comTerminalRefs[tabId].getRemark() || ''
   } else {
     // 从存储加载备注
     try {
@@ -528,6 +533,17 @@ const openRemarkDialog = async () => {
   }
   showRemarkDialog.value = true
   hideTabMenu()
+}
+
+// 备注弹窗打开后聚焦并选中全部文本
+const onRemarkDialogOpened = () => {
+  nextTick(() => {
+    const input = remarkInputRef.value?.$el?.querySelector('input')
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  })
 }
 
 // 保存串口备注
