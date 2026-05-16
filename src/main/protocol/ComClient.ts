@@ -30,7 +30,8 @@ export default class ComClient extends BaseClient {
     const { buffer } = connection
     if (!buffer) return
 
-    const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false }) + '.' + String(Date.now() % 1000).padStart(3, '0')
+    const now = new Date()
+    const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`
 
     // 先查找 \r\n
     let lineEnd = buffer.indexOf('\r\n')
@@ -144,7 +145,8 @@ export default class ComClient extends BaseClient {
             }
             // 关闭前输出缓冲区中剩余的数据
             if (connection.buffer) {
-              const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false }) + '.' + String(Date.now() % 1000).padStart(3, '0')
+              const now = new Date()
+              const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`
               connection.onData?.({
                 data: connection.buffer,
                 timestamp: timestamp

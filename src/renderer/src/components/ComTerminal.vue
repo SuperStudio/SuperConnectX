@@ -503,8 +503,9 @@ const handleConnect = async () => {
         totalRxSize += data.data.length
         unifiedTerminalRef.value?.updateRxBytes(data.data.length)
         // 后端已根据 hex/str 参数处理好数据格式，直接使用
-        // 如果有独立的时间戳，可以传给终端显示
-        unifiedTerminalRef.value?.appendToTerminal(`\n${data.data}`)
+        // 显示时间戳和数据
+        const prefix = data.timestamp ? `[${data.timestamp}] ` : ''
+        unifiedTerminalRef.value?.appendToTerminal(`\n${prefix}${data.data}`)
       })
 
       if (removeCloseListener) removeCloseListener()
