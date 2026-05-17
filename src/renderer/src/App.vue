@@ -1370,9 +1370,6 @@ const loadShortcutActions = async () => {
             : 'telnet'
           openCommandEditorTab(connectionType === 'com' ? 'telnet' : connectionType)
         },
-        'Settings:open': () => {
-          ElMessage.info('设置功能开发中...')
-        },
         'ConnectionList:toggle': () => toggleConnectionList(),
         'SerialPort:refresh': () => loadSerialPorts(),
       }

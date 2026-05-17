@@ -18,9 +18,8 @@ export const SHORTCUT_ACTIONS: Record<string, string> = {
   'Tab:moveFirst': '标签移到最前',
   'Tab:moveLast': '标签移到后',
   'CommandEditor:open': '打开命令编辑器',
-  'ConnectionList:toggle': '切换连接列表',
+  'ConnectionList:toggle': '显示/隐藏连接列表',
   'SerialPort:refresh': '刷新串口列表',
-  'Settings:open': '打开设置',
 }
 
 const STORAGE_NAME = 'shortcuts'
@@ -73,8 +72,7 @@ export default class ShortcutsStorage extends BaseStorage<ShortcutItem> {
       { action: 'Tab:moveLast', keys: ['Ctrl', 'Shift', 'W'] },
       { action: 'CommandEditor:open', keys: ['Ctrl', 'Shift', 'E'] },
       { action: 'ConnectionList:toggle', keys: ['Ctrl', 'B'] },
-      { action: 'SerialPort:refresh', keys: ['F5'] },
-      { action: 'Settings:open', keys: ['Ctrl', ','] },
+      { action: 'SerialPort:refresh', keys: ['Ctrl', 'F5'] },
     ]
   }
 }
