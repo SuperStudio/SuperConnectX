@@ -33,6 +33,11 @@ contextBridge.exposeInMainWorld('storageApi', {
   getAppSettings: () => ipcRenderer.invoke('get-app-settings'),
   saveAppSettings: (settings: any) => ipcRenderer.invoke('save-app-settings', settings),
 
+  /* 设置页面 */
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  getDefaultSettings: () => ipcRenderer.invoke('get-default-settings'),
+  saveSettings: (settings: any) => ipcRenderer.invoke('save-settings', settings),
+
   /* 快捷键设置 */
   getShortcuts: () => ipcRenderer.invoke('get-shortcuts'),
   getDefaultShortcuts: () => ipcRenderer.invoke('get-default-shortcuts'),

@@ -6,6 +6,7 @@ import logger from './IpcAppLogger'
 import CommandGroupStorage from '../storage/CommandGroupStorage'
 import ComSettingsStorage from '../storage/ComSettingsStorage'
 import AppSettingsStorage from '../storage/AppSettingsStorage'
+import SettingsStorage from '../storage/SettingsStorage'
 
 export default class IpcStorage {
   private static sInstance: IpcStorage
@@ -78,6 +79,15 @@ export default class IpcStorage {
     ipcMain.handle('get-app-settings', () => appSettingsStorage.getSettings())
     ipcMain.handle('save-app-settings', (_, settings: any) => {
       appSettingsStorage.saveSettings(settings)
+      return true
+    })
+
+    /* 设置页面持久化 */
+    const settingsStorage = new SettingsStorage()
+    ipcMain.handle('get-settings', () => settingsStorage.getSettings())
+    ipcMain.handle('get-default-settings', () => settingsStorage.getDefaults())
+    ipcMain.handle('save-settings', (_, settings: any) => {
+      settingsStorage.saveSettings(settings)
       return true
     })
 

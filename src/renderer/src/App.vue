@@ -163,10 +163,11 @@
               </svg>
             </div>
             <div class="sidebar-dropdown-menu" v-if="showSidebarMenu">
-              <div class="sidebar-menu-item" @click="handleSidebarMenuCommand('options')">选项</div>
+              <div class="sidebar-menu-item" @click="handleSidebarMenuCommand('settings')">设置</div>
+              <div class="sidebar-menu-item" @click="handleSidebarMenuCommand('shortcuts')">快捷键</div>
+              <div class="sidebar-menu-separator"></div>
               <div class="sidebar-menu-item" @click="handleSidebarMenuCommand('plugins')">插件</div>
               <div class="sidebar-menu-item" @click="handleSidebarMenuCommand('checkUpdate')">检查更新</div>
-              <div class="sidebar-menu-item" @click="handleSidebarMenuCommand('shortcuts')">快捷键</div>
               <div class="sidebar-menu-separator"></div>
               <div class="sidebar-menu-item" @click="handleSidebarMenuCommand('about')">关于</div>
             </div>
@@ -190,7 +191,7 @@
                 :data-tab-id="tab.id"
               >
                 <span
-                  v-if="tab.connectionType !== 'commandEditor' && tab.connectionType !== 'shortcuts'"
+                  v-if="tab.connectionType !== 'commandEditor' && tab.connectionType !== 'shortcuts' && tab.connectionType !== 'settings'"
                   class="connection-dot"
                   :class="getConnectionStatus(tab)"
                 ></span>
@@ -277,6 +278,11 @@
                 v-if="tab.connectionType === 'shortcuts'"
                 v-show="activeTabId === tab.id.toString()"
                 class="shortcuts-terminal"
+              />
+              <SettingsPage
+                v-if="tab.connectionType === 'settings'"
+                v-show="activeTabId === tab.id.toString()"
+                class="settings-terminal"
               />
             </template>
           </div>
@@ -395,6 +401,7 @@ import SearchInput from './components/SearchInput.vue'
 import ResourceMonitor from './components/ResourceMonitor.vue'
 import AboutDialog from './components/AboutDialog.vue'
 import ShortcutsPage from './components/ShortcutsPage.vue'
+import SettingsPage from './components/SettingsPage.vue'
 import CommandEditor from './components/CommandEditor.vue'
 import TelnetInfo from './entity/protocol/TelnetInfo'
 import logoImage from './assets/icon.png'
@@ -441,6 +448,9 @@ const handleSidebarMenuCommand = async (command: string) => {
       break
     case 'shortcuts':
       openShortcutsTab()
+      break
+    case 'settings':
+      openSettingsTab()
       break
     case 'about':
       isAboutDialogOpen.value = true
@@ -1618,6 +1628,27 @@ const openShortcutsTab = () => {
   const newTab = {
     connectionType: 'shortcuts',
     name: '快捷键',
+    id: newTabId,
+    sessionId: newTabId
+  }
+
+  connectionTabs.value.push(newTab)
+  activeTabId.value = newTabId
+}
+
+// 打开设置选项卡
+const openSettingsTab = () => {
+  // 检查是否已存在设置选项卡
+  const existingTab = connectionTabs.value.find((t) => t.connectionType === 'settings')
+  if (existingTab) {
+    activeTabId.value = existingTab.id
+    return
+  }
+
+  const newTabId = 'settings-' + Date.now()
+  const newTab = {
+    connectionType: 'settings',
+    name: '设置',
     id: newTabId,
     sessionId: newTabId
   }
