@@ -31,7 +31,10 @@
       >
         <el-table-column label="操作" min-width="200" prop="action">
           <template #default="{ row }">
-            <span class="action-text">{{ row.action }}</span>
+            <div class="action-cell">
+              <span class="action-name">{{ getActionName(row.action) }}</span>
+              <span class="action-command">{{ row.action }}</span>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="快捷键" width="220" align="center">
@@ -104,6 +107,26 @@ interface ShortcutItem {
   keys: string[]
 }
 
+// 快捷键命令映射（从后端加载）
+const shortcutActions = ref<Record<string, string>>({})
+
+// 获取操作名称
+const getActionName = (action: string): string => {
+  return shortcutActions.value[action] || action
+}
+
+// 加载快捷键命令映射
+const loadShortcutActions = async () => {
+  try {
+    const actions = await window.storageApi.getShortcutActions()
+    if (actions && typeof actions === 'object') {
+      shortcutActions.value = actions
+    }
+  } catch (error) {
+    console.error('加载快捷键命令映射失败:', error)
+  }
+}
+
 const searchKeyword = ref('')
 
 // 快捷键列表数据（从后端加载）
@@ -121,7 +144,7 @@ const keyInputRef = ref<HTMLInputElement | null>(null)
 
 // 对话框标题
 const dialogTitle = computed(() => {
-  return currentAction.value ? `修改快捷键 : ${currentAction.value}` : '修改快捷键'
+  return currentAction.value ? `修改快捷键 : ${getActionName(currentAction.value)}` : '修改快捷键'
 })
 
 // 有效的修饰键
@@ -449,6 +472,7 @@ const restoreDefaults = async () => {
 }
 
 onMounted(() => {
+  loadShortcutActions()
   loadShortcuts()
 })
 
@@ -468,10 +492,12 @@ const filteredShortcuts = computed(() => {
     return shortcuts.value
   }
   const keyword = searchKeyword.value.toLowerCase()
-  return shortcuts.value.filter(item =>
-    item.action.toLowerCase().includes(keyword) ||
-    item.keys.some(key => key.toLowerCase().includes(keyword))
-  )
+  return shortcuts.value.filter(item => {
+    const actionName = getActionName(item.action).toLowerCase()
+    return actionName.includes(keyword) ||
+      item.action.toLowerCase().includes(keyword) ||
+      item.keys.some(key => key.toLowerCase().includes(keyword))
+  })
 })
 
 const clearSearch = () => {
@@ -604,8 +630,20 @@ const clearSearch = () => {
   padding: 40px 0;
 }
 
-.action-text {
+.action-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-name {
   color: #e0e0e0;
+  font-size: 14px;
+}
+
+.action-command {
+  color: #666;
+  font-size: 11px;
 }
 
 .shortcut-keys {

@@ -5,6 +5,24 @@ interface ShortcutItem {
   keys: string[]
 }
 
+// 快捷键命令映射
+export const SHORTCUT_ACTIONS: Record<string, string> = {
+  'Tab:newConnection': '新建连接',
+  'Tab:close': '关闭当前标签',
+  'Tab:toggleConnection': '打开/断开当前连接',
+  'Tab:toggleAllConnections': '打开/断开全部连接',
+  'Terminal:clear': '清空终端',
+  'Tab:pinCurrent': '固定/取消固定标签',
+  'Tab:prev': '切换到上一个标签',
+  'Tab:next': '切换到下一个标签',
+  'Tab:moveFirst': '标签移到最前',
+  'Tab:moveLast': '标签移到后',
+  'CommandEditor:open': '打开命令编辑器',
+  'ConnectionList:toggle': '切换连接列表',
+  'SerialPort:refresh': '刷新串口列表',
+  'Settings:open': '打开设置',
+}
+
 const STORAGE_NAME = 'shortcuts'
 
 export default class ShortcutsStorage extends BaseStorage<ShortcutItem> {
@@ -43,17 +61,20 @@ export default class ShortcutsStorage extends BaseStorage<ShortcutItem> {
   // 获取默认快捷键
   private getDefaultShortcuts(): ShortcutItem[] {
     return [
-      { action: '新建连接', keys: ['Ctrl', 'N'] },
-      { action: '关闭当前标签', keys: ['Ctrl', 'W'] },
-      { action: '打开/断开当前连接', keys: ['Ctrl', 'D'] },
-      { action: '打开/断开全部连接', keys: ['Ctrl', 'Shift', 'D'] },
-      { action: '清空终端', keys: ['Ctrl', 'Shift', 'C'] },
-      { action: '固定/取消固定标签', keys: ['Ctrl', 'E'] },
-      { action: '切换到上一个标签', keys: ['Ctrl', 'Tab'] },
-      { action: '切换到下一个标签', keys: ['Ctrl', 'Shift', 'Tab'] },
-      { action: '标签移到最前', keys: ['Ctrl', 'Shift', 'Q'] },
-      { action: '标签移到后', keys: ['Ctrl', 'Shift', 'W'] },
-      { action: '打开命令编辑器', keys: ['Ctrl', 'Shift', 'E'] },
+      { action: 'Tab:newConnection', keys: ['Ctrl', 'N'] },
+      { action: 'Tab:close', keys: ['Ctrl', 'W'] },
+      { action: 'Tab:toggleConnection', keys: ['Ctrl', 'D'] },
+      { action: 'Tab:toggleAllConnections', keys: ['Ctrl', 'Shift', 'D'] },
+      { action: 'Terminal:clear', keys: ['Ctrl', 'Shift', 'C'] },
+      { action: 'Tab:pinCurrent', keys: ['Ctrl', 'E'] },
+      { action: 'Tab:prev', keys: ['Ctrl', 'Tab'] },
+      { action: 'Tab:next', keys: ['Ctrl', 'Shift', 'Tab'] },
+      { action: 'Tab:moveFirst', keys: ['Ctrl', 'Shift', 'Q'] },
+      { action: 'Tab:moveLast', keys: ['Ctrl', 'Shift', 'W'] },
+      { action: 'CommandEditor:open', keys: ['Ctrl', 'Shift', 'E'] },
+      { action: 'ConnectionList:toggle', keys: ['Ctrl', 'B'] },
+      { action: 'SerialPort:refresh', keys: ['F5'] },
+      { action: 'Settings:open', keys: ['Ctrl', ','] },
     ]
   }
 }

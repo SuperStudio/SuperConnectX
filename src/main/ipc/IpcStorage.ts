@@ -1,6 +1,6 @@
 import ConnectionStorage from '../storage/ConnectionStorage'
 import PreSetCommandStorage from '../storage/PreSetCommandStorage'
-import ShortcutsStorage from '../storage/ShortcutsStorage'
+import ShortcutsStorage, { SHORTCUT_ACTIONS } from '../storage/ShortcutsStorage'
 import { ipcMain } from 'electron'
 import logger from './IpcAppLogger'
 import CommandGroupStorage from '../storage/CommandGroupStorage'
@@ -89,6 +89,7 @@ export default class IpcStorage {
       shortcutsStorage.saveAll(shortcuts)
       return true
     })
+    ipcMain.handle('get-shortcut-actions', () => SHORTCUT_ACTIONS)
 
     logger.info(`init IpcStorage done`)
   }
