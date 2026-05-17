@@ -31,7 +31,11 @@ contextBridge.exposeInMainWorld('storageApi', {
 
   /* 应用全局设置 */
   getAppSettings: () => ipcRenderer.invoke('get-app-settings'),
-  saveAppSettings: (settings: any) => ipcRenderer.invoke('save-app-settings', settings)
+  saveAppSettings: (settings: any) => ipcRenderer.invoke('save-app-settings', settings),
+
+  /* 快捷键设置 */
+  getShortcuts: () => ipcRenderer.invoke('get-shortcuts'),
+  saveShortcuts: (shortcuts: any[]) => ipcRenderer.invoke('save-shortcuts', shortcuts)
 })
 
 contextBridge.exposeInMainWorld('connectApi', {

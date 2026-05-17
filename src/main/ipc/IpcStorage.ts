@@ -1,5 +1,6 @@
 import ConnectionStorage from '../storage/ConnectionStorage'
 import PreSetCommandStorage from '../storage/PreSetCommandStorage'
+import ShortcutsStorage from '../storage/ShortcutsStorage'
 import { ipcMain } from 'electron'
 import logger from './IpcAppLogger'
 import CommandGroupStorage from '../storage/CommandGroupStorage'
@@ -77,6 +78,14 @@ export default class IpcStorage {
     ipcMain.handle('get-app-settings', () => appSettingsStorage.getSettings())
     ipcMain.handle('save-app-settings', (_, settings: any) => {
       appSettingsStorage.saveSettings(settings)
+      return true
+    })
+
+    /* 快捷键持久化 */
+    const shortcutsStorage = new ShortcutsStorage()
+    ipcMain.handle('get-shortcuts', () => shortcutsStorage.getAll())
+    ipcMain.handle('save-shortcuts', (_, shortcuts: any[]) => {
+      shortcutsStorage.saveAll(shortcuts)
       return true
     })
 
