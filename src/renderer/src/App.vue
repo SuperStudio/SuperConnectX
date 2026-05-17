@@ -184,7 +184,7 @@
                 :data-tab-id="tab.id"
               >
                 <span
-                  v-if="tab.connectionType !== 'commandEditor'"
+                  v-if="tab.connectionType !== 'commandEditor' && tab.connectionType !== 'shortcuts'"
                   class="connection-dot"
                   :class="getConnectionStatus(tab)"
                 ></span>
@@ -266,6 +266,11 @@
                 v-show="activeTabId === tab.id.toString()"
                 :connection-type="tab.editorConnectionType"
                 class="command-editor-terminal"
+              />
+              <ShortcutsPage
+                v-if="tab.connectionType === 'shortcuts'"
+                v-show="activeTabId === tab.id.toString()"
+                class="shortcuts-terminal"
               />
             </template>
           </div>
@@ -383,6 +388,7 @@ import CustomTitleBar from './components/CustomTitleBar.vue'
 import SearchInput from './components/SearchInput.vue'
 import ResourceMonitor from './components/ResourceMonitor.vue'
 import AboutDialog from './components/AboutDialog.vue'
+import ShortcutsPage from './components/ShortcutsPage.vue'
 import CommandEditor from './components/CommandEditor.vue'
 import TelnetInfo from './entity/protocol/TelnetInfo'
 import logoImage from './assets/icon.png'
@@ -422,7 +428,7 @@ const handleSidebarMenuCommand = async (command: string) => {
       ElMessage.info('已是最新版本')
       break
     case 'shortcuts':
-      ElMessage.info('快捷键功能开发中...')
+      openShortcutsTab()
       break
     case 'about':
       isAboutDialogOpen.value = true
@@ -1370,6 +1376,27 @@ const openCommandEditorTab = (connectionType: string = 'telnet') => {
     connectionType: 'commandEditor',
     name: `编辑命令-${typeDisplayName}`,
     editorConnectionType: connectionType,
+    id: newTabId,
+    sessionId: newTabId
+  }
+
+  connectionTabs.value.push(newTab)
+  activeTabId.value = newTabId
+}
+
+// 打开快捷键选项卡
+const openShortcutsTab = () => {
+  // 检查是否已存在快捷键选项卡
+  const existingTab = connectionTabs.value.find((t) => t.connectionType === 'shortcuts')
+  if (existingTab) {
+    activeTabId.value = existingTab.id
+    return
+  }
+
+  const newTabId = 'shortcuts-' + Date.now()
+  const newTab = {
+    connectionType: 'shortcuts',
+    name: '快捷键',
     id: newTabId,
     sessionId: newTabId
   }
