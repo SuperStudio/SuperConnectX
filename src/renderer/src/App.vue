@@ -720,17 +720,14 @@ const disconnectAllTabs = async () => {
       : telnetTerminalRefs[tab.id]?.isConnected
     
     if (isConnected) {
-      // 禁止自动重连
+      // 禁止自动重连并调用组件的断开方法（更新前端状态）
       if (tab.connectionType === 'com') {
         comTerminalRefs[tab.id]?.preventAutoReconnect?.()
+        comTerminalRefs[tab.id]?.disconnect?.()
       } else {
         telnetTerminalRefs[tab.id]?.preventAutoReconnect?.()
+        telnetTerminalRefs[tab.id]?.disconnect?.()
       }
-      
-      await window.connectApi.stopConnect({
-        ...TelnetInfo.buildWithValue(tab),
-        sessionId: tab.sessionId
-      })
     }
   }
   hideTabMenu()

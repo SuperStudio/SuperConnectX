@@ -227,7 +227,11 @@ const connect = async () => {
           unifiedTerminalRef.value?.appendToTerminal(displayText)
         })
 
-        removeCloseListener = window.connectApi.onConnectClose(handleTelnetClose)
+        removeCloseListener = window.connectApi.onConnectClose((connId) => {
+          // 只处理自己连接的断开事件
+          if (String(connId) !== String(props.connection.sessionId)) return
+          handleTelnetClose(connId)
+        })
         unifiedTerminalRef.value?.appendToTerminal(`\nconnect success, retry count: ${retryCount + 1}\n`)
         retryCount = 0
       } else {
