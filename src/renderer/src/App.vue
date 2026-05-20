@@ -164,14 +164,14 @@
                 <path d="M919.6 405.6l-57.2-8c-12.7-1.8-23-10.4-28-22.1-11.3-26.7-25.7-51.7-42.9-74.5-7.7-10.2-10-23.5-5.2-35.3l21.7-53.5c6.7-16.4 0.2-35.3-15.2-44.1L669.1 96.6c-15.4-8.9-34.9-5.1-45.8 8.9l-35.4 45.3c-7.9 10.2-20.7 14.9-33.5 13.3-14-1.8-28.3-2.8-42.8-2.8-14.5 0-28.8 1-42.8 2.8-12.8 1.6-25.6-3.1-33.5-13.3l-35.4-45.3c-10.9-14-30.4-17.8-45.8-8.9L230.4 168c-15.4 8.9-21.8 27.7-15.2 44.1l21.7 53.5c4.8 11.9 2.5 25.1-5.2 35.3-17.2 22.8-31.7 47.8-42.9 74.5-5 11.8-15.3 20.4-28 22.1l-57.2 8C86 408 72.9 423 72.9 440.8v142.9c0 17.7 13.1 32.7 30.6 35.2l57.2 8c12.7 1.8 23 10.4 28 22.1 11.3 26.7 25.7 51.7 42.9 74.5 7.7 10.2 10 23.5 5.2 35.3l-21.7 53.5c-6.7 16.4-0.2 35.3 15.2 44.1L354 927.8c15.4 8.9 34.9 5.1 45.8-8.9l35.4-45.3c7.9-10.2 20.7-14.9 33.5-13.3 14 1.8 28.3 2.8 42.8 2.8 14.5 0 28.8-1 42.8-2.8 12.8-1.6 25.6 3.1 33.5 13.3l35.4 45.3c10.9 14 30.4 17.8 45.8 8.9l123.7-71.4c15.4-8.9 21.8-27.7 15.2-44.1l-21.7-53.5c-4.8-11.8-2.5-25.1 5.2-35.3 17.2-22.8 31.7-47.8 42.9-74.5 5-11.8 15.3-20.4 28-22.1l57.2-8c17.6-2.5 30.6-17.5 30.6-35.2V440.8c0.2-17.8-12.9-32.8-30.5-35.2z m-408 245.5c-76.7 0-138.9-62.2-138.9-138.9s62.2-138.9 138.9-138.9 138.9 62.2 138.9 138.9-62.2 138.9-138.9 138.9z"/>
               </svg>
             </div>
-            <div class="sidebar-dropdown-menu" v-if="showSidebarMenu">
-              <div class="sidebar-menu-item" @click="handleSidebarMenuCommand('settings')">{{ t('sidebar.settings') }}</div>
-              <div class="sidebar-menu-item" @click="handleSidebarMenuCommand('shortcuts')">{{ t('sidebar.shortcuts') }}</div>
-              <div class="sidebar-menu-separator"></div>
-              <div class="sidebar-menu-item" @click="handleSidebarMenuCommand('plugins')">{{ t('sidebar.plugins') }}</div>
-              <div class="sidebar-menu-item" @click="handleSidebarMenuCommand('checkUpdate')">{{ t('sidebar.checkUpdate') }}</div>
-              <div class="sidebar-menu-separator"></div>
-              <div class="sidebar-menu-item" @click="handleSidebarMenuCommand('about')">{{ t('titlebar.about') }}</div>
+            <div class="dropdown-menu" v-if="showSidebarMenu">
+              <div class="menu-item" @click="handleSidebarMenuCommand('settings')">{{ t('sidebar.settings') }}</div>
+              <div class="menu-item" @click="handleSidebarMenuCommand('shortcuts')">{{ t('sidebar.shortcuts') }}</div>
+              <div class="menu-divider"></div>
+              <div class="menu-item" @click="handleSidebarMenuCommand('plugins')">{{ t('sidebar.plugins') }}</div>
+              <div class="menu-item" @click="handleSidebarMenuCommand('checkUpdate')">{{ t('sidebar.checkUpdate') }}</div>
+              <div class="menu-divider"></div>
+              <div class="menu-item" @click="handleSidebarMenuCommand('about')">{{ t('titlebar.about') }}</div>
             </div>
           </div>
         </div>
@@ -214,7 +214,7 @@
           <Teleport to="body">
             <div
               v-if="showTabMenu"
-              class="tab-context-menu"
+              class="context-menu"
               :style="{ left: tabMenuPosition.x + 'px', top: tabMenuPosition.y + 'px' }"
               @click.stop
             >
@@ -2144,35 +2144,26 @@ onUnmounted(() => {
   color: #e0e0e0;
 }
 
-.sidebar-dropdown-menu {
+/* 下拉菜单 - 侧边栏位置 */
+.dropdown-menu {
   position: absolute;
   bottom: 100%;
   right: 0;
-  width: 140px;
-  background-color: #2d2d2d;
-  border: 1px solid #444;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-  padding: 4px 0;
   margin-bottom: 4px;
 }
 
-.sidebar-menu-item {
-  padding: 6px 16px;
-  color: #e0e0e0;
+/* 菜单项 */
+.dropdown-menu .menu-item,
+.context-menu .menu-item {
   font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.15s;
+  color: var(--menu-item-color);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.sidebar-menu-item:hover {
-  background-color: #1f466e;
-}
-
-.sidebar-menu-separator {
-  height: 1px;
-  background-color: #444;
-  margin: 4px 0;
+.dropdown-menu .menu-item:hover,
+.context-menu .menu-item:hover {
+  background-color: var(--menu-item-hover-bg);
+  color: var(--menu-item-hover-color);
 }
 
 .connection-list-wrapper.collapsed {
@@ -2475,43 +2466,31 @@ onUnmounted(() => {
 }
 
 /* 右键菜单样式 */
-.tab-context-menu {
+.context-menu {
   position: fixed;
-  background: #252526;
-  border: 1px solid #3a3a3a;
-  border-radius: 4px;
-  padding: 4px 0;
-  min-width: 140px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
   z-index: 9999;
 }
 
-.menu-item {
-  padding: 6px 16px;
-  cursor: pointer;
-  color: #ccc;
+/* 右键菜单中的菜单项 */
+.context-menu .menu-item {
   font-size: 13px;
-  white-space: nowrap;
+  color: var(--menu-item-color);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.menu-item:hover {
-  background: #094771;
-  color: #fff;
+.context-menu .menu-item:hover {
+  background-color: var(--menu-item-hover-bg);
+  color: var(--menu-item-hover-color);
 }
 
-.menu-item.danger {
-  color: #f56c6c;
+/* 危险操作菜单项 */
+.context-menu .menu-item.danger {
+  color: var(--menu-danger-color);
 }
 
-.menu-item.danger:hover {
-  background: #f56c6c;
-  color: #fff;
-}
-
-.menu-divider {
-  height: 1px;
-  background: #3a3a3a;
-  margin: 4px 0;
+.context-menu .menu-item.danger:hover {
+  background-color: var(--menu-danger-hover-bg);
+  color: var(--menu-item-hover-color);
 }
 
 .menu-overlay {

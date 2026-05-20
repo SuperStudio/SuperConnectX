@@ -23,7 +23,7 @@
     <Teleport to="body">
       <div
         v-if="menuVisible"
-        class="notify-context-menu"
+        class="context-menu"
         :style="{ left: menuX + 'px', top: menuY + 'px' }"
         @click.stop
       >
@@ -163,29 +163,10 @@ defineExpose({ add, remove, clear })
   line-height: 1.4;
 }
 
-/* 右键菜单 */
-.notify-context-menu {
+/* 右键菜单 - 使用全局统一样式 */
+.context-menu {
   position: fixed;
   z-index: 10001;
-  background: #2d2d2d;
-  border: 1px solid #3a3a3a;
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  min-width: 120px;
-  padding: 4px 0;
-}
-
-.menu-item {
-  padding: 8px 16px;
-  font-size: 13px;
-  color: #ccc;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.menu-item:hover {
-  background: #165dff;
-  color: #fff;
 }
 
 .menu-overlay {

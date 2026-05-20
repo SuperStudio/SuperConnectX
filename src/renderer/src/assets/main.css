@@ -199,23 +199,112 @@ body {
   padding: 12px 20px !important;
 }
 
-/* 重置 Element Plus dropdown 边框 */
+/* ==============================
+   统一菜单样式变量
+   ============================== */
 :root {
-  --el-dropdown-menu-box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
-  --el-dropdown-menu-border-radius: 6px !important;
+  /* 菜单基础样式 */
+  --menu-bg-color: #2d2d2d;
+  --menu-border-color: #3a3a3a;
+  --menu-border-radius: 6px;
+  --menu-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  
+  /* 菜单项样式 */
+  --menu-item-padding: 8px 16px;
+  --menu-item-color: #e0e0e0;
+  --menu-item-font-size: 13px;
+  --menu-item-hover-bg: #094771;
+  --menu-item-hover-color: #fff;
+  
+  /* 菜单分隔线 */
+  --menu-divider-color: #3a3a3a;
+  --menu-divider-margin: 4px 0;
+  
+  /* 危险操作样式 */
+  --menu-danger-color: #f56c6c;
+  --menu-danger-hover-bg: #f56c6c;
 }
 
+/* ==============================
+   统一下拉菜单样式
+   ============================== */
+.dropdown-menu {
+  background-color: var(--menu-bg-color);
+  border: 1px solid var(--menu-border-color);
+  border-radius: var(--menu-border-radius);
+  box-shadow: var(--menu-box-shadow);
+  padding: 4px 0;
+  min-width: 140px;
+}
+
+/* ==============================
+   统一右键菜单样式
+   ============================== */
+.context-menu {
+  background-color: var(--menu-bg-color);
+  border: 1px solid var(--menu-border-color);
+  border-radius: var(--menu-border-radius);
+  box-shadow: var(--menu-box-shadow);
+  padding: 4px 0;
+  min-width: 120px;
+}
+
+/* ==============================
+   统一菜单项样式
+   ============================== */
+.dropdown-menu .menu-item,
+.context-menu .menu-item {
+  padding: var(--menu-item-padding);
+  color: var(--menu-item-color);
+  font-size: var(--menu-item-font-size);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.dropdown-menu .menu-item:hover,
+.context-menu .menu-item:hover {
+  background-color: var(--menu-item-hover-bg);
+  color: var(--menu-item-hover-color);
+}
+
+/* ==============================
+   统一菜单分隔线样式
+   ============================== */
+.dropdown-menu .menu-divider,
+.dropdown-menu .menu-separator,
+.context-menu .menu-divider {
+  height: 1px;
+  background-color: var(--menu-divider-color);
+  margin: var(--menu-divider-margin);
+}
+
+/* ==============================
+   统一危险菜单项样式
+   ============================== */
+.menu-item.danger,
+.menu-item.danger-item {
+  color: var(--menu-danger-color);
+}
+
+.menu-item.danger:hover,
+.menu-item.danger-item:hover {
+  background-color: var(--menu-danger-hover-bg);
+  color: #fff;
+}
+
+/* ==============================
+   Element Plus 下拉菜单统一样式
+   ============================== */
 .el-dropdown-menu {
   border: none !important;
   outline: none !important;
   overflow: hidden !important;
-  border-radius: 6px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
-  /* 强制移除任何边框 */
+  border-radius: var(--menu-border-radius) !important;
+  box-shadow: var(--menu-box-shadow) !important;
   border-width: 0 !important;
-  border-style: none !important;
-  border-color: transparent !important;
-  border-image: none !important;
+  background-color: var(--menu-bg-color) !important;
+  padding: 4px 0 !important;
 }
 
 .el-dropdown-menu * {
@@ -227,26 +316,29 @@ body {
   border: none !important;
   outline: none !important;
   overflow: hidden !important;
-  border-radius: 6px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+  border-radius: var(--menu-border-radius) !important;
+  box-shadow: var(--menu-box-shadow) !important;
   border-width: 0 !important;
+  background-color: var(--menu-bg-color) !important;
 }
 
 .el-popper {
   overflow: hidden !important;
-  border-radius: 6px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+  border-radius: var(--menu-border-radius) !important;
+  box-shadow: var(--menu-box-shadow) !important;
   border-width: 0 !important;
   border-color: transparent !important;
+  background-color: var(--menu-bg-color) !important;
 }
 
 /* 针对 el-dropdown 的特殊处理 */
 .el-dropdown__popper {
   border: none !important;
   border-width: 0 !important;
-  border-radius: 6px !important;
+  border-radius: var(--menu-border-radius) !important;
   overflow: hidden !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+  box-shadow: var(--menu-box-shadow) !important;
+  background-color: var(--menu-bg-color) !important;
 }
 
 .el-dropdown__popper .el-popper__arrow {

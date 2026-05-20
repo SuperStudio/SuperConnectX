@@ -484,6 +484,7 @@ const handleClickOutside = (event: MouseEvent) => {
 .menu-button {
   position: relative;
   -webkit-app-region: no-drag;
+  margin: 0 4px;
 }
 
 .menu-btn {
@@ -502,32 +503,33 @@ const handleClickOutside = (event: MouseEvent) => {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* 下拉菜单 - 使用全局统一样式 */
 .dropdown-menu {
   position: absolute;
   top: 26px;
   left: 0;
   width: 160px;
-  background-color: #2d2d2d;
-  border: 1px solid #444;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  padding: 4px 0;
+  z-index: 10000;
 }
 
 .menu-item {
+  color: var(--menu-item-color);
   padding: 6px 16px;
-  color: #e0e0e0;
   font-size: 12px;
   cursor: pointer;
-  transition: background-color 0.15s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
 }
 
 .menu-item:hover {
-  background-color: #1f466e;
+  background-color: var(--menu-item-hover-bg);
+  color: var(--menu-item-hover-color);
+}
+
+.menu-separator {
+  height: 1px;
+  background-color: var(--menu-divider-color);
+  margin: 4px 0;
 }
 
 .font-check {
@@ -536,54 +538,30 @@ const handleClickOutside = (event: MouseEvent) => {
   width: 16px;
 }
 
-.menu-separator {
-  height: 1px;
-  background-color: #444;
-  margin: 4px 0;
-}
-
-.menu-bar {
-  display: flex;
-  align-items: center;
-  background-color: #2d2d2d;
-  padding: 0 8px;
-}
-
-.menu-button {
-  position: relative;
-  margin: 0 4px;
-}
-
-.dropdown-submenu {
-  position: absolute;
-  background-color: #2d2d2d;
-  border: 1px solid #444;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  padding: 4px 0;
-  top: 0;
-  left: 100%;
-  z-index: 1000;
-  min-width: 150px;
-  max-height: 600px;
-  overflow-y: auto;
-}
-
-.menu-item {
-  padding: 4px 16px;
-  cursor: pointer;
-  white-space: nowrap;
-  position: relative;
-}
-
+/* 子菜单触发器箭头 */
 .submenu-trigger::after {
   content: '▶';
   position: absolute;
   right: 8px;
-  top: 6px;
+  top: 50%;
   font-size: 10px;
-  transform: scaleX(0.7);
+  transform: translateY(-50%) scaleX(0.7);
+}
+
+/* 子菜单样式 - 继承 dropdown-menu 基础样式 */
+.dropdown-submenu {
+  background-color: var(--menu-bg-color);
+  border: 1px solid var(--menu-border-color);
+  border-radius: var(--menu-border-radius);
+  box-shadow: var(--menu-box-shadow);
+  position: absolute;
+  top: 0;
+  left: 100%;
+  min-width: 150px;
+  max-height: 600px;
+  overflow-y: auto;
+  z-index: 10001;
+  padding: 4px 0;
 }
 
 /* 美化字体列表滚动条 */

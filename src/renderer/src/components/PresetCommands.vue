@@ -34,7 +34,7 @@
         <el-icon class="el-icon--right"> <ArrowDown /></el-icon>
       </el-button>
       <template #dropdown>
-        <el-dropdown-menu class="custom-dropdown-menu">
+        <el-dropdown-menu class="dropdown-menu">
           <!-- 新建组选项 -->
           <el-dropdown-item command="new" class="group-menu-item new-group-item">
             <el-icon size="16" class="action-icon add-icon"><Plus /></el-icon>
@@ -872,24 +872,25 @@ const handlePresetCommandsChanged = (connectionType: string) => {
   border: none;
 }
 
-.el-dropdown-menu {
-  background-color: #2d2d2d !important; /* 深色背景 */
-  border: 1px solid #444 !important; /* 边框 */
-  border-radius: 6px !important; /* 圆角 */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important; /* 阴影 */
-  padding: 4px 0 !important; /* 上下内边距 */
-  min-width: 200px !important; /* 最小宽度 */
-  margin: 0px;
-}
-
 .group-selector {
   background-color: #3a3a3a !important;
   border: 2px solid transparent !important;
   color: #fff !important;
+  padding: 6px 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
 }
 
 .group-selector:hover {
-  border: 2px solid #007acc !important;
+  border: 2px solid #0078d4 !important;
+}
+
+.group-selector-text {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 180px !important;
 }
 
 .group-actions {
@@ -900,26 +901,29 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 
 .action-icon {
   cursor: pointer;
-  transition: color 0.2s;
+  transition: all 0.2s ease !important;
+  opacity: 0.8 !important;
+}
+
+.action-icon:hover {
+  transform: scale(1.1) !important;
+  opacity: 1 !important;
 }
 
 .add-icon {
   color: #42b983;
 }
 
-.edit-icon {
-  color: #fff;
+.edit-icon:hover {
+  color: #fff !important;
 }
 
 .delete-icon {
   color: #ff4d4f;
 }
 
-.menu-divider {
-  height: 1px;
-  background-color: #444;
-  margin: 4px 0;
-  width: 100%;
+.delete-icon:hover {
+  color: #ff6b6b !important;
 }
 
 .add-preset-btn {
@@ -999,25 +1003,25 @@ const handlePresetCommandsChanged = (connectionType: string) => {
   }
 }
 
+/* 右键上下文菜单容器 */
 .context-menu-container {
-  position: fixed !important;
-  z-index: 9999 !important;
   padding: 2px !important;
-  background-color: #2d2d2d !important;
-  border-radius: 4px !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important;
-  border: 1px solid #444 !important;
-  transition: opacity 0.1s ease;
 }
 
+/* 右键菜单 */
 .context-menu {
   width: 120px !important;
   background-color: transparent !important;
   border: none !important;
 }
 
-.menu-item {
-  color: #e0e0e0 !important;
+.el-menu--vertical {
+  border-right: none !important;
+}
+
+/* 上下文菜单项特殊样式 */
+.context-menu :deep(.el-menu-item) {
+  color: var(--menu-item-color) !important;
   height: 36px !important;
   line-height: 36px !important;
   padding: 0 16px !important;
@@ -1026,20 +1030,17 @@ const handlePresetCommandsChanged = (connectionType: string) => {
   transition: background-color 0.15s ease !important;
 }
 
-.menu-item:hover {
-  background-color: #3a3a3a !important;
+.context-menu :deep(.el-menu-item:hover) {
+  background-color: var(--menu-item-hover-bg) !important;
+  color: var(--menu-item-hover-color) !important;
 }
 
-.delete-item {
+.context-menu :deep(.el-menu-item:not(:last-child)) {
+  border-bottom: 1px solid var(--menu-divider-color) !important;
+}
+
+.context-menu :deep(.delete-item) {
   color: #ff4d4f !important;
-}
-
-.el-menu--vertical {
-  border-right: none !important;
-}
-
-.el-menu-item:not(:last-child) {
-  border-bottom: 1px solid #383838 !important;
 }
 
 .el-dialog {
@@ -1089,21 +1090,17 @@ const handlePresetCommandsChanged = (connectionType: string) => {
   box-shadow: 0 0 0 1px #1A97ED inset;
 }
 
-.custom-dropdown-menu {
-  background-color: #2d2d2d !important;
-  border: 1px solid #444 !important;
-  border-radius: 6px !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
-  padding: 8px 0 !important;
+/* 下拉菜单样式 - 扩展最小宽度 */
+.dropdown-menu {
   min-width: 240px !important;
-  overflow: hidden;
 }
 
+/* 组菜单项样式 */
 :deep(.group-menu-item) {
   display: flex !important;
   align-items: center !important;
   padding: 8px 16px !important;
-  color: #fff !important;
+  color: var(--menu-item-color) !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
   height: auto !important;
@@ -1111,11 +1108,12 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 :deep(.group-menu-item:hover) {
-  background-color: #0078d4 !important;
+  background-color: var(--menu-item-hover-bg) !important;
+  color: var(--menu-item-hover-color) !important;
 }
 
 .new-group-item {
-  color: #42b983 !important;
+  color: var(--menu-item-hover-color) !important;
   font-weight: 500 !important;
 }
 
@@ -1131,7 +1129,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
   margin-right: 8px !important;
-  color: #fff;
+  color: var(--menu-item-hover-color);
 }
 
 .group-type-badge {
@@ -1150,51 +1148,6 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 .menu-divider-item {
   padding: 0 !important;
   margin: 4px 0 !important;
-}
-
-.menu-divider {
-  height: 1px !important;
-  background-color: #444 !important;
-  margin: 0 8px !important;
-}
-
-.group-selector {
-  background-color: #3a3a3a !important;
-  border: 2px solid transparent !important;
-  color: #fff !important;
-  padding: 6px 12px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-}
-
-.group-selector:hover {
-  border: 2px solid #0078d4 !important;
-}
-
-.group-selector-text {
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  max-width: 180px !important;
-}
-
-.action-icon {
-  transition: all 0.2s ease !important;
-  opacity: 0.8 !important;
-}
-
-.action-icon:hover {
-  transform: scale(1.1) !important;
-  opacity: 1 !important;
-}
-
-.edit-icon:hover {
-  color: #fff !important;
-}
-
-.delete-icon:hover {
-  color: #ff6b6b !important;
 }
 
 .form-hint {
