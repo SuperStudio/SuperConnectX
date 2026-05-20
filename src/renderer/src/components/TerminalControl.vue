@@ -6,39 +6,36 @@
       </span>
       <el-button
         v-if="isConnected"
-        type="danger"
         icon="Close"
         size="small"
-        class="close-btn"
+        class="btn-cancel close-btn"
         @click="emit('onClose')"
       >
         断开
       </el-button>
       <el-button
         v-else
-        type="primary"
         icon="Refresh"
         size="small"
-        class="reconnect-btn toggle-btn"
+        class="btn-primary reconnect-btn toggle-btn"
         @click="emit('onReconnect')"
         :disabled="isConnecting"
       >
         {{ isConnecting ? '连接中...' : '重连' }}
-      </el-button>
-      <el-button
-        type="default"
-        icon="Delete"
-        size="small"
-        class="clear-btn"
-        @click="emit('onClearTerminal')"
-      >
-        清空屏幕
       </el-button>
       <el-button icon="Document" size="small" class="btn-primary log-btn" @click="emit('onOpenLog')">
         打开日志
       </el-button>
       <el-button icon="DocumentAdd" size="small" class="btn-primary log-btn" @click="emit('onSaveLog')">
         日志另存为
+      </el-button>
+      <el-button
+        icon="Delete"
+        size="small"
+        class="btn-cancel clear-btn"
+        @click="emit('onClearTerminal')"
+      >
+        清空屏幕
       </el-button>
       <el-switch
         v-model="autoScroll"
@@ -117,7 +114,7 @@ const showTimestamp = computed({
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   flex-wrap: wrap;
   flex: 1;
 }
@@ -161,6 +158,9 @@ const showTimestamp = computed({
   padding: 6px 12px !important;
   border-radius: 4px !important;
   transition: all 0.2s ease !important;
+  margin-left: 0 !important;
+  background-color: #c45656 !important;
+  border-color: #c45656 !important;
 }
 
 .log-btn {
@@ -175,17 +175,7 @@ const showTimestamp = computed({
   transform: translateY(-1px);
 }
 
-.clear-btn {
-  background-color: #F56C6C !important;
-  border-color: #f78989 !important;
-  color: white !important;
-  margin-left: 0 !important;
-}
 
-.clear-btn:hover {
-  filter: brightness(0.85);
-  transform: translateY(-1px);
-}
 
 .close-btn,
 .reconnect-btn {
@@ -193,33 +183,15 @@ const showTimestamp = computed({
   padding: 6px 12px !important;
 }
 
-.close-btn {
-  background-color: #FF0000 !important;
-  border-color: #ff3333 !important;
-  color: white !important;
-}
-
 .close-btn:hover {
-  filter: brightness(0.85);
   transform: translateY(-1px);
 }
 
-.reconnect-btn {
-  background-color: #165dff !important;
-  border-color: #3370ff !important;
-  color: white !important;
-}
-
 .reconnect-btn:hover {
-  background-color: #4080ff !important;
-  border-color: #5599ff !important;
   transform: translateY(-1px);
 }
 
 .reconnect-btn:disabled {
-  background-color: #555 !important;
-  border-color: #666 !important;
-  color: #999 !important;
   cursor: not-allowed !important;
 }
 
