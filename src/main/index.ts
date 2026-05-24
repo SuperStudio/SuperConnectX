@@ -6,6 +6,7 @@ import IpcWindow from './ipc/IpcWindow'
 import IpcTools from './ipc/IpcTools'
 import IpcSerialPort from './ipc/IpcSerialPort'
 import IpcMain from './ipc/IpcMain'
+import IpcDataCheck from './ipc/IpcDataCheck'
 import logger from './ipc/IpcAppLogger'
 
 const protocolLogger = new ProtocolLogger()
@@ -19,4 +20,5 @@ IpcWindow.getInstance().init(windows)
 IpcTools.getInstance().init(windows)
 IpcSerialPort.getInstance().init(protocolLogger, windows)
 IpcMain.getInstance().init(protocolLogger, windows)
+IpcDataCheck.getInstance().init()
 logger.info(`======== start superconnect-x ok ========`)

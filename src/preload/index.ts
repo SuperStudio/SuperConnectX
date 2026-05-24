@@ -107,3 +107,8 @@ contextBridge.exposeInMainWorld('toolApi', {
   // 防止屏幕息屏及系统休眠
   notifySettingsUpdate: (settings: any) => ipcRenderer.send('settings-updated', settings)
 })
+
+contextBridge.exposeInMainWorld('dataCheckApi', {
+  getPlugins: () => ipcRenderer.invoke('datacheck:getPlugins'),
+  checkData: (pluginName: string, hexData: string) => ipcRenderer.invoke('datacheck:checkData', pluginName, hexData)
+})

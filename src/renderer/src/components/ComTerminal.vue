@@ -227,7 +227,7 @@ const hexDisplayMode = ref(false)
 const autoNewline = ref(true)
 const hexMode = ref(false)
 const crcEnabled = ref(true)
-const crcMethod = ref<string>('crc32')
+const crcMethod = ref<string>('CRC-16/MODBUS')
 
 let removeMountedCloseListener: (() => void) | null = null
 let removeDataListener: (() => void) | null = null
@@ -407,7 +407,7 @@ const loadComSettings = async () => {
       autoNewline.value = settings.autoNewline !== undefined ? settings.autoNewline : true
       hexMode.value = settings.hexMode || false
       crcEnabled.value = settings.crcEnabled !== undefined ? settings.crcEnabled : true
-      crcMethod.value = settings.crcMethod || 'crc32'
+      crcMethod.value = settings.crcMethod || 'CRC-16/MODBUS'
       terminal.fontSize.value = settings.fontSize !== undefined ? settings.fontSize : 14
       terminal.fontFamily.value = settings.fontFamily || 'Fira Code'
       const savedInput = settings.commandInput || ''

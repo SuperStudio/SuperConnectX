@@ -84,6 +84,14 @@ declare global {
       openFileDialog: (options: any) => Promise<any>
       saveFileDialog: (options: any) => Promise<any>
     }
+    dataCheckApi: {
+      getPlugins: () => Promise<{ name: string; type: string }[]>
+      checkData: (pluginName: string, hexData: string) => Promise<{
+        plugin: string
+        hexResult: string
+        details: { resultName: string; resultValue: string; resultType: string }[]
+      }>
+    }
   }
 }
 
