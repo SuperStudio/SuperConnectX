@@ -736,7 +736,6 @@ const handleSendCommand = () => {
 
   // 传递原始输入用于显示（在HEX模式下需要显示原始HEX字符串）
   emit('onSend', sendData, originalInput)
-  currentCommand.value = ''
   closeHistoryPopup()
 }
 
@@ -984,12 +983,14 @@ defineExpose({
   setCrcMethod: (val: string) => { crcMethod.value = val as any },
   setHexDisplayMode: (val: boolean) => { hexDisplayMode.value = val },
   setShowTimestamp: (val: boolean) => { showTimestamp.value = val },
+  setCommandInput: (val: string) => { currentCommand.value = val },
   getAutoNewline: () => autoNewline.value,
   getHexMode: () => hexMode.value,
   getCrcEnabled: () => crcEnabled.value,
   getCrcMethod: () => crcMethod.value,
   getHexDisplayMode: () => hexDisplayMode.value,
   getShowTimestamp: () => showTimestamp.value,
+  getCommandInput: () => currentCommand.value,
   setFontSize: (val: number) => {
     const newSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, val))
     fontSize.value = newSize

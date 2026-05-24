@@ -410,6 +410,7 @@ const loadComSettings = async () => {
       crcMethod.value = settings.crcMethod || 'crc32'
       terminal.fontSize.value = settings.fontSize !== undefined ? settings.fontSize : 14
       terminal.fontFamily.value = settings.fontFamily || 'Fira Code'
+      const savedInput = settings.commandInput || ''
 
       unifiedTerminalRef.value?.setHexDisplayMode?.(hexDisplayMode.value)
       unifiedTerminalRef.value?.setShowTimestamp?.(terminal.showTimestamp.value)
@@ -419,6 +420,7 @@ const loadComSettings = async () => {
       unifiedTerminalRef.value?.setCrcMethod?.(crcMethod.value)
       unifiedTerminalRef.value?.setFontSize?.(terminal.fontSize.value)
       unifiedTerminalRef.value?.setFontFamily?.(terminal.fontFamily.value)
+      unifiedTerminalRef.value?.setCommandInput?.(savedInput)
       emit('fontLoaded', terminal.fontFamily.value)
     }
   } catch (error) {
@@ -449,7 +451,8 @@ const saveComSettings = async () => {
       crcEnabled: crcEnabled.value,
       crcMethod: crcMethod.value,
       fontSize: terminal.fontSize.value,
-      fontFamily: terminal.fontFamily.value
+      fontFamily: terminal.fontFamily.value,
+      commandInput: unifiedTerminalRef.value?.getCommandInput?.() || ''
     }
     await window.storageApi.saveComSettings(props.connection.comName, settings)
   } catch (error) {
@@ -661,6 +664,8 @@ const handleSendCommand = async (command: string, originalInput?: string) => {
       },
       command: command
     })
+    // 发送成功后保存当前输入栏内容
+    saveComSettings()
   } catch (error) {
     ElMessage.error(t('comTerminal.commandSendFailed'))
     console.error(t('comTerminal.commandSendFailed'), error)

@@ -25,6 +25,7 @@ interface ComPortSettings {
   hexMode?: boolean
   crcEnabled?: boolean
   crcMethod?: string
+  commandInput?: string
 }
 
 interface StoredData {
