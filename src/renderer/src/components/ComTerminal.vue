@@ -895,8 +895,8 @@ onUnmounted(() => {
 :deep(.el-select .el-select__wrapper:hover),
 :deep(.el-select .el-select__wrapper:focus-within),
 :deep(.el-select.is-focused .el-select__wrapper) {
-  border-color: #007fd4 !important;
-  box-shadow: 0 0 0 1px #007fd4 inset !important;
+  border-color: var(--focus-border-color) !important;
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset !important;
 }
 
 :deep(.el-input__wrapper) {
@@ -906,7 +906,7 @@ onUnmounted(() => {
 
 :deep(.el-input__wrapper:hover),
 :deep(.el-input__wrapper:focus-within) {
-  box-shadow: 0 0 0 1px #007fd4 inset !important;
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset !important;
 }
 
 :deep(.el-input__inner) {

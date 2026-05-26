@@ -2104,7 +2104,7 @@ onUnmounted(() => {
 
 .el-input:focus-within,
 .el-select:focus-within {
-  --el-border-color: #42b983 !important;
+  --el-border-color: var(--focus-border-color) !important;
 }
 
 .submit-btn {

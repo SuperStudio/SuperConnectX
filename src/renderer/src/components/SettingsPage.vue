@@ -668,8 +668,8 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .search-input:focus {
-  border-color: #007fd4;
-  box-shadow: 0 0 0 1px #007fd4 inset;
+  border-color: var(--focus-border-color);
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset;
 }
 
 .clear-btn {
@@ -791,7 +791,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .search-category {
-  color: #007fd4;
+  color: var(--focus-border-color);
   font-weight: 600;
 }
 
@@ -844,7 +844,7 @@ const handleSettingsUpdated = (event: Event) => {
 /* 左侧导航匹配计数 */
 .nav-item .match-count {
   margin-left: auto;
-  background: #007fd4;
+  background: var(--focus-border-color);
   color: #fff;
   font-size: 11px;
   padding: 1px 6px;
@@ -854,7 +854,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .nav-item.has-match {
-  color: #007fd4;
+  color: var(--focus-border-color);
 }
 
 .nav-item.has-match:hover {

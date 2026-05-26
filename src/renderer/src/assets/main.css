@@ -94,8 +94,8 @@ body {
 .el-select .el-select__wrapper:hover,
 .el-select .el-select__wrapper:focus-within,
 .el-select.is-focused .el-select__wrapper {
-  border-color: #007fd4 !important;
-  box-shadow: 0 0 0 1px #007fd4 inset !important;
+  border-color: var(--focus-border-color) !important;
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset !important;
 }
 
 /* 输入框样式 */
@@ -107,7 +107,7 @@ body {
 .el-input__wrapper:hover,
 .el-input__wrapper:focus-within,
 .el-input.is-focused .el-input__wrapper {
-  box-shadow: 0 0 0 1px #007fd4 inset !important;
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset !important;
 }
 
 .el-input__inner {
@@ -250,6 +250,9 @@ body {
   /* 危险操作样式 */
   --menu-danger-color: #f56c6c;
   --menu-danger-hover-bg: #f56c6c;
+
+  /* 焦点边框颜色 */
+  --focus-border-color: #007fd4;
 }
 
 /* ==============================
@@ -468,7 +471,7 @@ div[class*="popper"]::after {
 .el-select-dropdown__popper:hover,
 .el-select-dropdown__popper:focus-within {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
-  border-color: #007fd4 !important;
+  border-color: var(--focus-border-color) !important;
 }
 
 /* 确保悬停和焦点状态下都没有边框 */

@@ -56,8 +56,8 @@ watch(searchText, (val) => emit('search', val.trim()))
 }
 
 .search-input:focus {
-  border-color: #007fd4;
-  box-shadow: 0 0 0 1px #007fd4 inset;
+  border-color: var(--focus-border-color);
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset;
 }
 
 .clear-btn {

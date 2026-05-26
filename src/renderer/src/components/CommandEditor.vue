@@ -889,11 +889,11 @@ onMounted(() => {
 }
 
 :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px #1A97ED inset;
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset;
 }
 
 :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #1A97ED inset;
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset;
 }
 
 :deep(.el-input__inner) {
@@ -908,11 +908,11 @@ onMounted(() => {
 }
 
 :deep(.el-textarea__inner:hover) {
-  box-shadow: 0 0 0 1px #1A97ED inset;
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset;
 }
 
 :deep(.el-textarea__inner:focus) {
-  box-shadow: 0 0 0 1px #1A97ED inset;
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset;
 }
 
 :deep(.el-select .el-input__wrapper) {

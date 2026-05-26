@@ -907,7 +907,7 @@ const handleSettingsUpdated = async (event: Event) => {
 }
 
 .terminal-output:focus-within {
-  border-color: #007fd4;
+  border-color: var(--focus-border-color);
 }
 
 .preset-commands-row {
@@ -928,7 +928,7 @@ const handleSettingsUpdated = async (event: Event) => {
 }
 
 .terminal-input:focus-within {
-  border-color: #007fd4;
+  border-color: var(--focus-border-color);
 }
 
 .terminal-input.has-crc {
@@ -1191,7 +1191,7 @@ const handleSettingsUpdated = async (event: Event) => {
 
 .btn-crc:hover {
   background: #4a4a4d !important;
-  border-color: #007fd4 !important;
+  border-color: var(--focus-border-color) !important;
   color: #fff !important;
 }
 

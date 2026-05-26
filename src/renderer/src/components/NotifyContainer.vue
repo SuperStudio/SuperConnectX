@@ -131,8 +131,8 @@ defineExpose({ add, remove, clear })
 }
 
 .notify-item.focused {
-  border-color: #165dff;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(22, 93, 255, 0.3);
+  border-color: var(--focus-border-color);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(0, 127, 212, 0.3);
 }
 
 .notify-close {

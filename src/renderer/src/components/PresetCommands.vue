@@ -1058,7 +1058,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 
 .el-input:focus-within,
 .el-select:focus-within {
-  --el-border-color: #42b983 !important;
+  --el-border-color: var(--focus-border-color) !important;
 }
 
 :deep(.custom-textarea .el-textarea__inner),
@@ -1072,12 +1072,12 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 
 :deep(.custom-textarea .el-textarea__inner:hover),
 :deep(.el-textarea__inner:hover) {
-  box-shadow: 0 0 0 1px #1A97ED inset;
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset;
 }
 
 :deep(.custom-textarea .el-textarea__inner:focus),
 :deep(.el-textarea__inner:focus) {
-  box-shadow: 0 0 0 1px #1A97ED inset;
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset;
 }
 
 /* 下拉菜单样式 - 扩展最小宽度 */
@@ -1109,7 +1109,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 
 :deep(.active-group) {
   background-color: rgba(22, 93, 255, 0.15) !important;
-  border-left: 3px solid #165dff !important;
+  border-left: 3px solid var(--focus-border-color) !important;
 }
 
 .group-name,
