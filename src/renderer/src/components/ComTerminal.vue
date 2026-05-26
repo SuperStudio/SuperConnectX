@@ -273,11 +273,16 @@ watch(baudRate, (newVal) => {
 })
 
 // 监听串口设置变化，自动保存
-watch([dataBits, stopBits, parity, encoding, readTimeout, writeTimeout, flowControl, dtr, rts, terminal.fontSize], () => {
+watch([dataBits, stopBits, parity, encoding, readTimeout, writeTimeout, flowControl, dtr, rts], () => {
   saveComSettings()
   if (isConnected.value) {
     applyComConfig()
   }
+})
+
+// 监听字体大小变化，仅保存设置（不重连串口）
+watch(terminal.fontSize, () => {
+  saveComSettings()
 })
 
 // 监听 HEX 显示模式变化
