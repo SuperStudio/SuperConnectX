@@ -20,6 +20,7 @@ export default class ProtocolLogger {
   private writeTimer: NodeJS.Timeout | null = null
   private readonly BATCH_WRITE_INTERVAL_MS = 10 * 1000
   private logSplitSizeMB: number = 10 // 默认 10MB
+  private enableLogStorage: boolean = true // 是否启用日志存储
 
   constructor() {
     const exePath = app.isPackaged ? app.getPath('exe') : process.cwd()
@@ -41,6 +42,16 @@ export default class ProtocolLogger {
   // 设置日志分片大小（MB）
   setLogSplitSize(sizeMB: number): void {
     this.logSplitSizeMB = sizeMB
+  }
+
+  // 设置是否启用日志存储（运行时生效）
+  setEnableLogStorage(enabled: boolean): void {
+    this.enableLogStorage = enabled
+  }
+
+  // 获取日志存储启用状态
+  getEnableLogStorage(): boolean {
+    return this.enableLogStorage
   }
 
   // 生成高精度时间戳
@@ -169,6 +180,9 @@ export default class ProtocolLogger {
   }
 
   createConnLogFile(connId: string, connName: string): string {
+    if (!this.enableLogStorage) {
+      return ''
+    }
     const safeName = connName.replace(/[\\/*?:"<>|]/g, '-')
     const fileName = `${safeName}-${this.getFileTimeStamp()}.log`
     this.connLogFiles.set(connId, fileName)
@@ -180,6 +194,7 @@ export default class ProtocolLogger {
   }
 
   writeToConnLog(data: string, connId: string): void {
+    if (!this.enableLogStorage) return
     const fileName = this.connLogFiles.get(connId)
     if (!fileName) return
 
@@ -197,6 +212,7 @@ export default class ProtocolLogger {
 
   // 直接追加日志文本（前端调用，已包含时间戳）
   appendToConnLog(content: string, connId: string): void {
+    if (!this.enableLogStorage) return
     const fileName = this.connLogFiles.get(connId)
     if (!fileName) return
 
@@ -238,6 +254,11 @@ export default class ProtocolLogger {
 
   async openConnLog(connId: string): Promise<{ success: boolean; message: string } | null> {
     try {
+      // 未启用日志存储时，直接提示
+      if (!this.enableLogStorage) {
+        return { success: false, message: '未启用日志存储，请在设置中开启' }
+      }
+
       this.flushAllLogs(false)
 
       const fileName = this.connLogFiles.get(connId)
@@ -247,7 +268,7 @@ export default class ProtocolLogger {
 
       const logFilePath = join(this.logDir, fileName)
       if (!existsSync(logFilePath)) {
-        await fs.writeFile(logFilePath, '', 'utf-8')
+        return { success: false, message: '日志文件不存在' }
       }
 
       if (shell && !(app as any).isQuitting) {

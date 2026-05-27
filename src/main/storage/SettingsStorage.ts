@@ -63,7 +63,7 @@ const defaultSettings: Settings = {
   supportedBaudRates: [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600, 1500000],
   showPortType: true,
   // 日志
-  enableLogStorage: false,
+  enableLogStorage: true,
   logPath: '',
   maxLogSize: 10,
   logTimestamp: true,

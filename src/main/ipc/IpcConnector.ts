@@ -77,11 +77,12 @@ export default class IpcConnector {
       })
     })
 
-    // 根据设置更新日志分片大小
+    // 根据设置更新日志分片大小和日志存储开关
     const settings = this.settingsStorage.getSettings()
     if (settings.logSplitSize) {
       _logger.setLogSplitSize(settings.logSplitSize)
     }
+    _logger.setEnableLogStorage(settings.enableLogStorage === true)
 
     ipcMain.handle('start-connect', async (_, conn: any) => {
       logger.info(`start connect telnet: ${conn.name}`)
@@ -208,9 +209,12 @@ export default class IpcConnector {
   }
 
   // 运行时应用设置变更（无需重启）
-  applySettings(settings: { logSplitSize?: number }): void {
+  applySettings(settings: { logSplitSize?: number; enableLogStorage?: boolean }): void {
     if (settings.logSplitSize && this._logger) {
       this._logger.setLogSplitSize(settings.logSplitSize)
+    }
+    if (settings.enableLogStorage !== undefined && this._logger) {
+      this._logger.setEnableLogStorage(settings.enableLogStorage)
     }
   }
 }

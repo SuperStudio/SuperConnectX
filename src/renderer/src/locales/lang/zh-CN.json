@@ -83,7 +83,7 @@
     "rateExists": "该波特率已存在"
   },
   "logSettings": {
-    "title": "日志存储（未实现）",
+    "title": "日志存储",
     "enableLogStorage": "启用日志存储",
     "enableLogStorageDesc": "将终端输出保存到日志文件",
     "logPath": "日志保存路径",

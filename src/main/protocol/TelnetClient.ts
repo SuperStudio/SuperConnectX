@@ -188,6 +188,8 @@ export default class TelnetClient extends BaseClient {
         connData.timer = null
       }
 
+      // 主动断开前移除 close 事件监听器，防止触发 onClose 回调导致重连
+      connection.removeAllListeners('close')
       connection.destroy()
       this.telnetConnections.delete(connId)
       this.connectionInfos.delete(connId)

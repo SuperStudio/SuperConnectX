@@ -83,7 +83,7 @@
     "rateExists": "This baud rate already exists"
   },
   "logSettings": {
-    "title": "Log Storage (Not Implemented)",
+    "title": "Log Storage",
     "enableLogStorage": "Enable Log Storage",
     "enableLogStorageDesc": "Save terminal output to log files",
     "logPath": "Log Storage Path",

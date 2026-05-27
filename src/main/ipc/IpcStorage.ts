@@ -98,6 +98,10 @@ export default class IpcStorage {
       if (settings.logSplitSize) {
         IpcConnector.getInstance().applySettings({ logSplitSize: settings.logSplitSize })
       }
+      // 启用日志存储开关需实时生效
+      if (settings.enableLogStorage !== undefined) {
+        IpcConnector.getInstance().applySettings({ enableLogStorage: settings.enableLogStorage })
+      }
       // 命令历史最大数量变更时裁剪历史记录
       if (settings.commandHistoryMaxCount) {
         commandHistoryStorage.applyMaxCount(settings.commandHistoryMaxCount)
