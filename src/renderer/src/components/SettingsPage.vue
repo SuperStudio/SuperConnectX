@@ -45,6 +45,13 @@
             </div>
             <div class="setting-item">
               <div class="setting-label">
+                <span class="label-text">{{ t('basicSettings.preventSleep') }}</span>
+                <span class="label-desc">{{ t('basicSettings.preventSleepDesc') }}</span>
+              </div>
+              <el-switch class="terminal-switch" v-model="settings.preventSleep" />
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.maxDisplayText') }}</span>
                 <span class="label-desc">{{ t('basicSettings.maxDisplayTextDesc') }}</span>
               </div>
@@ -122,17 +129,6 @@
             </div>
           </div>
 
-          <!-- 系统 -->
-          <div class="group-section">
-            <div class="group-title">{{ t('basicSettings.system') }}</div>
-            <div class="setting-item">
-              <div class="setting-label">
-                <span class="label-text">{{ t('basicSettings.preventSleep') }}</span>
-                <span class="label-desc">{{ t('basicSettings.preventSleepDesc') }}</span>
-              </div>
-              <el-switch class="terminal-switch" v-model="settings.preventSleep" />
-            </div>
-          </div>
         </div>
 
         <!-- 串口设置 -->
