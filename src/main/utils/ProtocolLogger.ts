@@ -1,4 +1,4 @@
-import { appendFile, appendFileSync, existsSync, mkdirSync, statSync } from 'fs'
+import { appendFile, appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'fs'
 import { shell } from 'electron'
 import fs from 'fs/promises'
 import { join } from 'path'
@@ -312,6 +312,13 @@ export default class ProtocolLogger {
     }
     this.logCache.set(connId, [])
     this.currentFileSizes.set(connId, 0)
+
+    // 连接时立即创建空日志文件，避免刚连接时点击打开日志提示文件不存在
+    const logFilePath = join(resolvedDir, fileName)
+    if (!existsSync(logFilePath)) {
+      writeFileSync(logFilePath, '', 'utf-8')
+    }
+
     return fileName
   }
 
