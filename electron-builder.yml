@@ -21,6 +21,8 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  oneClick: false
+  allowToChangeInstallationDirectory: true
 mac:
   target: dmg
   entitlementsInherit: build/entitlements.mac.plist

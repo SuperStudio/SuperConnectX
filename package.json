@@ -91,6 +91,10 @@
       ],
       "icon": "build/icon.ico"
     },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
     "mac": {
       "target": "dmg",
       "icon": "build/icon.icns",
