@@ -23,7 +23,7 @@ export default class ProtocolLogger {
   private logSplitCallback: LogSplitCallback | null = null
   private writeTimer: NodeJS.Timeout | null = null
   private readonly BATCH_WRITE_INTERVAL_MS = 10 * 1000
-  private logSplitSizeMB: number = 50 // 默认 50MB
+  private logSplitSizeMB: number = 20 // 默认 20MB
   private enableLogStorage: boolean = true // 是否启用日志存储
   private logFileNamePattern: string = '%C-%Y-%M-%D-%hh-%mm-%ss' // 文件名模板
 

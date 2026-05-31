@@ -48,7 +48,7 @@ const defaultSettings: Settings = {
   // 基本设置
   minimizeToTray: false,
   logSplit: true,
-  logSplitSize: 50,
+  logSplitSize: 20,
   autoScroll: true,
   autoScrollToast: true,
   autoScrollOnFocus: true,
