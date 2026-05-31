@@ -4,7 +4,6 @@ import logger from './IpcAppLogger'
 import fs from 'fs'
 import path from 'path'
 
-const MAX_CPU_VALUE = 100
 const CPU_FLOAT_FIXED_SIZE = 2
 const MEM_FLOAT_FIXED_SIZE = 2
 const BYTE_VALUE_SIZE = 1024
@@ -43,8 +42,9 @@ export default class IpcTools {
 
       let cpuRate = '0.00'
       if (prevCpuTimes && prevCpuTimes.length === curCpuTimes.length) {
+        const cachedTimes = prevCpuTimes
         const totalDelta = curCpuTimes.reduce((sum, cur, i) => {
-          const prev = prevCpuTimes[i]
+          const prev = cachedTimes[i]
           const idleDelta = cur.idle - prev.idle
           const totalDelta = cur.total - prev.total
           return sum + (totalDelta > 0 ? ((totalDelta - idleDelta) / totalDelta) * 100 : 0)

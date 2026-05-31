@@ -206,7 +206,7 @@
 import { ref, nextTick, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { ElMessage, ElForm, ElInput, ElMessageBox } from 'element-plus'
 import { ElSelect, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon } from 'element-plus'
-import { Plus, Edit, Delete, ArrowDown, VideoPlay, VideoPause, VideoCameraFilled } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
 import FormUtils from '../utils/FormUtils'
 import eventBus from '../utils/EventBus'
 

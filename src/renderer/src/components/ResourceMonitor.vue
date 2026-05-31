@@ -30,7 +30,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 
 const cpuUsage = ref(0)
-const memoryUsage = ref(0)
 const memRate = ref(0)
 let timer: ReturnType<typeof setInterval> | null = null
 
