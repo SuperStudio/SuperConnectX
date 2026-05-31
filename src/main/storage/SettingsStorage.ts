@@ -50,7 +50,7 @@ const defaultSettings: Settings = {
   logSplit: true,
   logSplitSize: 50,
   autoScroll: true,
-  autoScrollToast: false,
+  autoScrollToast: true,
   autoScrollOnFocus: true,
   autoScrollAfterSend: false,
   autoScrollOnWheel: true,
