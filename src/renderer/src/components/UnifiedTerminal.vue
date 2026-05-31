@@ -2,7 +2,7 @@
   <div :class="['unified-terminal']">
 
     <!-- 终端输出区域 -->
-    <div ref="editorContainer" class="terminal-output" :style="terminalOutputStyle">
+    <div ref="editorContainer" class="terminal-output" :class="{ 'show-scrollbar': showScrollbar }" :style="terminalOutputStyle">
       <!-- 滚动按钮 -->
       <div class="scroll-wrapper">
         <el-button icon="ArrowUp" size="mini" circle @click="handleScrollToTop" class="scroll-btn up-btn" />
@@ -226,6 +226,7 @@ const isShowLog = ref(true)
 const editorContainer = ref<HTMLElement | null>(null)
 const terminalOutputHeight = ref<number | null>(null) // null 表示自动撑满
 const isSplitting = ref(false)
+const showScrollbar = ref(false)
 
 const terminalOutputStyle = computed(() => {
   if (terminalOutputHeight.value !== null) {
@@ -457,6 +458,14 @@ const initEditor = async () => {
   editor.layout()
   editor.updateOptions({ readOnly: true })
 
+  // 鼠标进入/离开终端区域时控制滚动条显示
+  // 在 Monaco Editor 的 DOM 节点上监听（因为 Monaco 会覆盖 container 的事件）
+  const domNode = editor.getDomNode()
+  if (domNode) {
+    domNode.addEventListener('mouseenter', () => { showScrollbar.value = true })
+    domNode.addEventListener('mouseleave', () => { showScrollbar.value = false })
+  }
+
   editor.onMouseDown(() => {
     if (autoScrollOnFocus) {
       isAutoScroll.value = false
@@ -478,7 +487,6 @@ const initEditor = async () => {
   })
 
   // 在 editor 上监听滚轮事件（用于 Ctrl+滚轮缩放 和 鼠标滚动决策固定）
-  const domNode = editor.getDomNode()
   if (domNode) {
     domNode.addEventListener('wheel', (e: WheelEvent) => {
       if (e.ctrlKey) {
@@ -1247,21 +1255,40 @@ const handleSettingsUpdated = async (event: Event) => {
 }
 
 .terminal-output::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.terminal-output::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.terminal-output::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.terminal-output.show-scrollbar::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.terminal-output::-webkit-scrollbar-track {
-  background: #2d2d2d;
-}
-
-.terminal-output::-webkit-scrollbar-thumb {
+.terminal-output.show-scrollbar::-webkit-scrollbar-thumb {
   background: #444;
-  border-radius: 4px;
 }
 
-.terminal-output::-webkit-scrollbar-thumb:hover {
+.terminal-output.show-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* 隐藏 Monaco Editor 自带的滚动条 */
+:deep(.monaco-scrollable-element > .scrollbar) {
+  opacity: 0 !important;
+  transition: opacity 0.2s;
+}
+
+.terminal-output.show-scrollbar :deep(.monaco-scrollable-element > .scrollbar) {
+  opacity: 1 !important;
 }
 
 /* 历史命令弹窗 */
