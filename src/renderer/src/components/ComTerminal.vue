@@ -795,9 +795,11 @@ onUnmounted(() => {
   display: flex;
   gap: 12px;
   align-items: center;
-  padding: 8px 12px;
+  padding: 8px 0px;
   background-color: #2d2d2d;
   border-bottom: 1px solid #333;
+  border-radius: 6px;
+  margin: 2px 4px;
 }
 
 .param-item {

@@ -109,9 +109,10 @@ const showTimestamp = computed({
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  border-bottom: 1px solid #333;
-  background-color: #1e1e1e;
+  background-color: #252526;
   box-sizing: border-box;
+  border-radius: 0px 0px 6px 6px;
+  margin: 0px 4px 2px 2px;
 }
 
 .header-left {

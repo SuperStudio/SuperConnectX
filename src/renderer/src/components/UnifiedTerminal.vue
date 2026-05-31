@@ -1064,9 +1064,11 @@ const handleSettingsUpdated = async (event: Event) => {
 }
 
 .preset-commands-row {
-  padding: 8px 12px;
+  padding: 2px;
   background-color: #252526;
   border-bottom: 1px solid #333;
+  border-radius: 6px;
+  margin: 2px 4px;
 }
 
 .terminal-input {
