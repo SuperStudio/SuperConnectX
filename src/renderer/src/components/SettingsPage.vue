@@ -29,7 +29,6 @@
             <div class="setting-item">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.language') }}</span>
-                <span class="label-desc">{{ t('basicSettings.languageDesc') }}</span>
               </div>
               <el-select v-model="settings.language" size="small" style="width: 120px">
                 <el-option :label="t('languages.zh-CN')" value="zh-CN" />
@@ -39,14 +38,12 @@
             <div class="setting-item">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.minimizeToTray') }}</span>
-                <span class="label-desc">{{ t('basicSettings.minimizeToTrayDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.minimizeToTray" />
             </div>
             <div class="setting-item">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.preventSleep') }}</span>
-                <span class="label-desc">{{ t('basicSettings.preventSleepDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.preventSleep" />
             </div>
@@ -75,21 +72,18 @@
             <div class="setting-item">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.autoScrollToast') }}</span>
-                <span class="label-desc">{{ t('basicSettings.autoScrollToastDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoScrollToast" />
             </div>
             <div class="setting-item">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.autoScrollOnFocus') }}</span>
-                <span class="label-desc">{{ t('basicSettings.autoScrollOnFocusDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoScrollOnFocus" />
             </div>
             <div class="setting-item">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.autoScrollAfterSend') }}</span>
-                <span class="label-desc">{{ t('basicSettings.autoScrollAfterSendDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoScrollAfterSend" />
             </div>
@@ -111,7 +105,6 @@
             <div class="setting-item">
               <div class="setting-label">
                 <span class="label-text">{{ t('serialSettings.supportedBaudRates') }}</span>
-                <span class="label-desc">{{ t('serialSettings.supportedBaudRatesDesc') }}</span>
               </div>
               <div class="baudrate-tags">
                 <el-tag
@@ -154,7 +147,6 @@
             <div class="setting-item">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.enableLogStorage') }}</span>
-                <span class="label-desc">{{ t('logSettings.enableLogStorageDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.enableLogStorage" />
             </div>
@@ -179,7 +171,6 @@
             <div class="setting-item">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.logPath') }}</span>
-                <span class="label-desc">{{ t('logSettings.logPathDesc') }}</span>
               </div>
               <div class="path-input-wrapper">
                 <el-input v-model="settings.logPath" size="small" :placeholder="t('logSettings.logPathPlaceholder')" class="path-input" />
@@ -194,7 +185,6 @@
             <div class="setting-item">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.logFileName') }}</span>
-                <span class="label-desc">{{ t('logSettings.logFileNameDesc') }}</span>
               </div>
               <el-input v-model="settings.logFileName" size="small" :placeholder="t('logSettings.logFileNamePlaceholder')" style="width: 280px" />
             </div>
@@ -281,7 +271,6 @@
             <div class="setting-item">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.autoBackup') }}</span>
-                <span class="label-desc">{{ t('basicSettings.autoBackupDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoBackup" />
             </div>
