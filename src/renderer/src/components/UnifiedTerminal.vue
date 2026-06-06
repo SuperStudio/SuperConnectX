@@ -2,7 +2,7 @@
   <div :class="['unified-terminal']">
 
     <!-- 终端输出区域 -->
-    <div ref="editorContainer" class="terminal-output" :class="{ 'show-scrollbar': showScrollbar }" :style="terminalOutputStyle">
+    <div ref="editorContainer" class="terminal-output" :style="terminalOutputStyle">
       <!-- 滚动按钮 -->
       <div class="scroll-wrapper">
         <el-button icon="ArrowUp" size="mini" circle @click="handleScrollToTop" class="scroll-btn up-btn" />
@@ -228,7 +228,7 @@ const isShowLog = ref(true)
 const editorContainer = ref<HTMLElement | null>(null)
 const terminalOutputHeight = ref<number | null>(null) // null 表示自动撑满
 const isSplitting = ref(false)
-const showScrollbar = ref(false)
+
 
 const terminalOutputStyle = computed(() => {
   if (terminalOutputHeight.value !== null) {
@@ -460,13 +460,7 @@ const initEditor = async () => {
   editor.layout()
   editor.updateOptions({ readOnly: true })
 
-  // 鼠标进入/离开终端区域时控制滚动条显示
-  // 在 Monaco Editor 的 DOM 节点上监听（因为 Monaco 会覆盖 container 的事件）
   const domNode = editor.getDomNode()
-  if (domNode) {
-    domNode.addEventListener('mouseenter', () => { showScrollbar.value = true })
-    domNode.addEventListener('mouseleave', () => { showScrollbar.value = false })
-  }
 
   editor.onMouseDown(() => {
     if (autoScrollOnFocus) {
@@ -1279,27 +1273,38 @@ const handleSettingsUpdated = async (event: Event) => {
   border-radius: 4px;
 }
 
-.terminal-output.show-scrollbar::-webkit-scrollbar {
+.terminal-output:hover::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.terminal-output.show-scrollbar::-webkit-scrollbar-thumb {
+.terminal-output:hover::-webkit-scrollbar-thumb {
   background: #444;
 }
 
-.terminal-output.show-scrollbar::-webkit-scrollbar-thumb:hover {
+.terminal-output:hover::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
 
-/* 隐藏 Monaco Editor 自带的滚动条 */
+/* 隐藏所有 Monaco Editor 滚动条 */
 :deep(.monaco-scrollable-element > .scrollbar) {
   opacity: 0 !important;
   transition: opacity 0.2s;
 }
 
-.terminal-output.show-scrollbar :deep(.monaco-scrollable-element > .scrollbar) {
+/* 鼠标悬停在编辑器主视图区时显示滚动条，但 overlay 浮层部件始终不显示 */
+:deep(.monaco-editor > .monaco-scrollable-element:hover > .scrollbar) {
   opacity: 1 !important;
+}
+
+/* overlay 浮层部件（Find Widget、hover、suggest 等）滚动条始终隐藏 */
+:deep(.monaco-editor-overlaymessage .monaco-scrollable-element:hover > .scrollbar),
+:deep(.find-widget .monaco-scrollable-element:hover > .scrollbar),
+:deep(.monaco-hover .monaco-scrollable-element:hover > .scrollbar),
+:deep(.suggest-widget .monaco-scrollable-element:hover > .scrollbar),
+:deep(.parameter-hints-widget .monaco-scrollable-element:hover > .scrollbar),
+:deep(.editor-widget .monaco-scrollable-element:hover > .scrollbar) {
+  opacity: 0 !important;
 }
 
 /* 历史命令弹窗 */
