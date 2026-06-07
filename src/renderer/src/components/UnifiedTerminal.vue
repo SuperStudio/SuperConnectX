@@ -497,6 +497,25 @@ const initEditor = async () => {
   editor.layout()
   editor.updateOptions({ readOnly: true })
 
+  // 将 terminal-output 容器高度锁定为固定 px 值，避免 flex 布局在 v-show 切换时的过渡态导致跳动
+  // 用 ResizeObserver 持续同步真实高度（模拟 split 拖拽后的效果）
+  if (editorContainer.value && typeof ResizeObserver !== 'undefined') {
+    const syncHeight = () => {
+      if (!editorContainer.value) return
+      const h = editorContainer.value.getBoundingClientRect().height
+      if (h > 0) {
+        terminalOutputHeight.value = h
+      }
+    }
+    // 初始化时立即锁定一次
+    syncHeight()
+    const ro = new ResizeObserver(() => {
+      syncHeight()
+    })
+    ro.observe(editorContainer.value)
+    ;(editor as any).__resizeObserver = ro
+  }
+
   const domNode = editor.getDomNode()
 
   // 鼠标悬浮时显示滚动条
@@ -1201,6 +1220,12 @@ const startVerticalSplit = (e: MouseEvent) => {
 }
 
 onUnmounted(() => {
+  // 清理 ResizeObserver
+  if (editor && (editor as any).__resizeObserver) {
+    ;(editor as any).__resizeObserver.disconnect()
+    ;(editor as any).__resizeObserver = null
+  }
+
   if (editorModel) {
     editorModel.dispose()
     editorModel = null

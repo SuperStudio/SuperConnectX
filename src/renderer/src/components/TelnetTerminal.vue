@@ -282,14 +282,9 @@ const refreshGroupsCmds = () => unifiedTerminalRef.value?.refreshGroupsCmds?.()
 
 const handleFontChange = (font: string) => terminal.handleFontChange(font)
 
-const refreshLayout = () => {
-  ;(unifiedTerminalRef.value?.editor as any)?.layout?.()
-}
-
 defineExpose({
   refreshGroupsCmds,
   handleFontChange,
-  refreshLayout,
   isConnected: computed(() => isConnected.value),
   disconnect: handleClose,
   reconnect,

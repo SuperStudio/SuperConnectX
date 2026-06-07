@@ -615,14 +615,6 @@ const stopResize = () => {
 // 根据 ID 切换选项卡
 const switchTabById = (tabId: string | number) => {
   activeTabId.value = tabId.toString()
-  // 刷新布局（字体更新由 watch 处理）
-  setTimeout(() => {
-    if (comTerminalRefs[tabId.toString()]) {
-      comTerminalRefs[tabId.toString()]?.refreshLayout?.()
-    } else if (telnetTerminalRefs[tabId.toString()]) {
-      telnetTerminalRefs[tabId.toString()]?.refreshLayout?.()
-    }
-  }, 0)
 }
 
 // 更新当前活动的字体（带重试机制）
