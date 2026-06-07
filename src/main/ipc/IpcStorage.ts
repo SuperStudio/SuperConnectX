@@ -58,10 +58,6 @@ export default class IpcStorage {
       preSetCommandStorage.importCommands(groupStorage, filePath)
     )
 
-    ipcMain.handle('import-from-supercom', (_, filePath: string) =>
-      preSetCommandStorage.importFromSuperCom(groupStorage, filePath)
-    )
-
     /* COM 串口设置持久化 */
     const comSettingsStorage = new ComSettingsStorage()
     ipcMain.handle('get-com-settings', (_, comName: string) => {
@@ -131,6 +127,11 @@ export default class IpcStorage {
       settingsStorage.saveSettings({ syntaxRuleGroups: groups } as any)
       return true
     })
+
+    /* SuperCom 导入（命令 + 语法高亮） */
+    ipcMain.handle('import-from-supercom', (_, filePath: string) =>
+      preSetCommandStorage.importFromSuperCom(groupStorage, filePath, settingsStorage)
+    )
 
     ipcMain.handle('get-command-history', (_, protocolType: string) => commandHistoryStorage.getHistory(protocolType))
     ipcMain.handle('add-command-history', (_, protocolType: string, command: string) => {

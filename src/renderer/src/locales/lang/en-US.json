@@ -151,11 +151,18 @@
     "bold": "Bold",
     "italic": "Italic",
     "underline": "Underline",
-    "preview": "Preview",
+    "preview": "Live Preview",
     "noRuleGroups": "No rule groups, click the button above to add",
     "noRules": "No rules, click the top right button to add",
     "selectGroupHint": "Select a rule group from the left panel",
-    "newGroup": "New Group"
+    "newGroup": "New Group",
+    "importFromSuperCom": "Import from SuperCom",
+    "selectSuperComFile": "Select SuperCom.json File",
+    "invalidJsonFile": "File is not a valid JSON format",
+    "noHighlightRulesFound": "No highlight rules found in the file",
+    "importSuperComSuccess": "Successfully imported {imported} rule groups, skipped {skipped} duplicates",
+    "importSuperComAllSkipped": "All {skipped} rule groups already exist, skipped",
+    "importSuperComFailed": "Import failed"
   },
   "searchSettings": {
     "title": "Search Settings (Not Implemented)",

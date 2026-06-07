@@ -151,12 +151,18 @@
     "bold": "粗体",
     "italic": "斜体",
     "underline": "下划线",
-    "preview": "预览",
+    "preview": "实时预览",
     "noRuleGroups": "暂无规则组，点击上方按钮添加",
     "noRules": "暂无规则，点击右上角添加",
     "selectGroupHint": "请从左侧选择一个规则组",
     "newGroup": "新建规则组",
-    "preview": "实时预览"
+    "importFromSuperCom": "从 SuperCom 导入",
+    "selectSuperComFile": "选择 SuperCom.json 文件",
+    "invalidJsonFile": "文件不是有效的 JSON 格式",
+    "noHighlightRulesFound": "文件中未找到语法高亮规则",
+    "importSuperComSuccess": "成功导入 {imported} 个规则组，跳过 {skipped} 个重复组",
+    "importSuperComAllSkipped": "所有 {skipped} 个规则组已存在，全部跳过",
+    "importSuperComFailed": "导入失败"
   },
   "searchSettings": {
     "title": "搜索设置（未实现）",

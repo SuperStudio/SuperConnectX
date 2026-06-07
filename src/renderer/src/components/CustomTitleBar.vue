@@ -340,10 +340,22 @@ const importFromSuperCom = async () => {
     if (result.filePaths && result.filePaths.length > 0) {
       const importResult = await window.storageApi.importFromSuperCom(result.filePaths[0])
       if (importResult.success) {
-        ElMessage.success(
-          t('notification.importFromSuperComSuccess', { imported: importResult.imported, skipped: importResult.skipped, groups: importResult.groups })
-        )
+        // 构建消息：命令导入 + 语法高亮导入
+        const parts: string[] = []
+        if (importResult.imported > 0 || importResult.skipped > 0) {
+          parts.push(
+            t('notification.importFromSuperComSuccess', { imported: importResult.imported, skipped: importResult.skipped, groups: importResult.groups })
+          )
+        }
+        if (importResult.syntaxImported !== undefined) {
+          parts.push(
+            `语法高亮: ${importResult.syntaxImported} 个规则组` + (importResult.syntaxSkipped > 0 ? `, ${importResult.syntaxSkipped} 跳过` : '')
+          )
+        }
+        ElMessage.success(parts.join(' | '))
         emit('refreshCommands')
+        // 通知语法高亮页面刷新
+        window.dispatchEvent(new CustomEvent('syntax-rules-updated'))
       } else {
         ElMessage.error(`${t('notification.importFromSuperComFailed')}: ${importResult.message}`)
       }
