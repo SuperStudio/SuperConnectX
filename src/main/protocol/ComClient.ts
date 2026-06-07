@@ -2,6 +2,7 @@ import { SerialPort } from 'serialport'
 import logger from '../ipc/IpcAppLogger'
 import BaseClient from './BaseClient'
 import ConnectionInfo from './ConnectionInfo'
+import { BufferLineSplitter } from './BufferLineSplitter'
 
 const DEFAULT_BAUD_RATE = 9600
 const DEFAULT_DATA_BITS = 8
@@ -13,7 +14,7 @@ const COMMAND_LINE_TERMINATOR = '\r\n'
 
 interface SerialConnection {
   port: SerialPort
-  buffer: string
+  buffer: Buffer
   timer: NodeJS.Timeout | null
   writeTimeout: number
   encoding: string
@@ -21,59 +22,24 @@ interface SerialConnection {
   onClose: any
   onLog: any
   receiveHex: boolean
+  splitter: BufferLineSplitter
 }
 
 export default class ComClient extends BaseClient {
   serialConnections = new Map<string, SerialConnection>()
 
   // 处理缓冲区数据，按行分割并添加时间戳
-  private processBuffer(connection: SerialConnection, onData: any, onLog: any): void {
-    const { buffer } = connection
-    if (!buffer) return
+  private processBuffer(connection: SerialConnection): void {
+    const { buffer, splitter, onData, onLog } = connection
+    if (!buffer || buffer.length === 0) return
 
-    const now = new Date()
-    const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`
+    const result = splitter.split(buffer)
+    connection.buffer = result.remainder
 
-    // 先查找 \r\n
-    let lineEnd = buffer.indexOf('\r\n')
-    let lineEnding = '\r\n'
-
-    // 如果没找到 \r\n，查找 \r 或 \n
-    if (lineEnd === -1) {
-      lineEnd = buffer.indexOf('\r')
-      lineEnding = '\r'
-      if (lineEnd === -1) {
-        lineEnd = buffer.indexOf('\n')
-        lineEnding = '\n'
-      }
-    }
-
-    // 如果找到换行符
-    if (lineEnd !== -1) {
-      const line = buffer.substring(0, lineEnd)
-      const remaining = buffer.substring(lineEnd + lineEnding.length)
-
-      // 原始数据用于显示和发送，时间戳单独作为独立参数，日志只用于记录原始数据
-      if (line) {
-        onData?.({
-          data: line,
-          timestamp: timestamp
-        })
-        // 日志根据 receiveHex 状态决定格式
-        let logData = line
-        if (connection.receiveHex) {
-          logData = ''
-          for (let i = 0; i < line.length; i++) {
-            const hex = line.charCodeAt(i).toString(16)
-            logData += hex.padStart(2, '0') + ' '
-          }
-          logData = logData.trim()
-        }
-        onLog?.(logData, timestamp)
-      }
-
-      // 清空缓冲区并保存剩余数据
-      connection.buffer = remaining
+    if (result.count > 0) {
+      const timestamp = BufferLineSplitter.timestamp()
+      onData?.({ data: result.data, timestamp })
+      onLog?.(result.log, timestamp)
     }
   }
 
@@ -127,25 +93,26 @@ export default class ComClient extends BaseClient {
 
           const connection: SerialConnection = {
             port,
-            buffer: '',
+            buffer: Buffer.alloc(0),
             timer: null,
             writeTimeout: writeTimeout,
             encoding: encoding,
             onData: onData,
             onClose: onClose,
             onLog: onLog,
-            receiveHex: info.receiveHex === true
+            receiveHex: info.receiveHex === true,
+            splitter: new BufferLineSplitter(encoding, info.receiveHex === true)
           }
           this.serialConnections.set(sessionId, connection)
 
-          // 收集数据到缓冲区
+          // 收集原始 Buffer 数据到缓冲区（不在 data 事件中 toString，避免多字节字符被分割）
           port.on('data', (data: Buffer) => {
-            connection.buffer += data.toString()
+            connection.buffer = Buffer.concat([connection.buffer, data])
           })
 
           // 使用固定间隔处理数据
           connection.timer = setInterval(() => {
-            this.processBuffer(connection, connection.onData, connection.onLog)
+            this.processBuffer(connection)
           }, READ_INTERVAL_MS)
 
           port.on('close', () => {
@@ -155,25 +122,12 @@ export default class ComClient extends BaseClient {
               connection.timer = null
             }
             // 关闭前输出缓冲区中剩余的数据
-            if (connection.buffer) {
-              const now = new Date()
-              const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`
-              connection.onData?.({
-                data: connection.buffer,
-                timestamp: timestamp
-              })
-              // 日志根据 receiveHex 状态决定格式
-              let logData = connection.buffer
-              if (connection.receiveHex) {
-                logData = ''
-                for (let i = 0; i < connection.buffer.length; i++) {
-                  const hex = connection.buffer.charCodeAt(i).toString(16)
-                  logData += hex.padStart(2, '0') + ' '
-                }
-                logData = logData.trim()
-              }
-              connection.onLog?.(logData)
-              connection.buffer = ''
+            if (connection.buffer && connection.buffer.length > 0) {
+              const timestamp = BufferLineSplitter.timestamp()
+              const remainingStr = connection.buffer.toString(encoding as BufferEncoding)
+              connection.onData?.({ data: remainingStr, timestamp })
+              connection.onLog?.(connection.splitter.toLogLine(remainingStr), timestamp)
+              connection.buffer = Buffer.alloc(0)
             }
             this.serialConnections.delete(sessionId)
             connection.onClose?.()
@@ -279,6 +233,7 @@ export default class ComClient extends BaseClient {
       const connection = this.serialConnections.get(connId)
       if (connection) {
         connection.receiveHex = config.receiveHex
+        connection.splitter.updateReceiveHex(config.receiveHex)
         logger.info(`update serial receiveHex: ${config.receiveHex}, sessionId: ${connId}`)
         return { success: true, message: 'Updated successfully' }
       }
@@ -349,25 +304,26 @@ export default class ComClient extends BaseClient {
           // 更新连接信息
           const newConnection: SerialConnection = {
             port: newPort,
-            buffer: '',
+            buffer: Buffer.alloc(0),
             timer: null,
             writeTimeout: config.writeTimeout ?? connection.writeTimeout,
             encoding: newEncoding,
             onData: savedOnData,
             onClose: savedOnClose,
             onLog: connection.onLog,
-            receiveHex: connection.receiveHex
+            receiveHex: connection.receiveHex,
+            splitter: new BufferLineSplitter(newEncoding, connection.receiveHex)
           }
             this.serialConnections.set(connId, newConnection)
 
-          // 收集数据到缓冲区
+          // 收集数据到缓冲区（Buffer 累积，避免多字节字符被分割）
           newPort.on('data', (data: Buffer) => {
-            newConnection.buffer += data.toString()
+            newConnection.buffer = Buffer.concat([newConnection.buffer, data])
           })
 
           // 重新启动数据收集定时器
           newConnection.timer = setInterval(() => {
-            this.processBuffer(newConnection, newConnection.onData, newConnection.onLog)
+            this.processBuffer(newConnection)
           }, READ_INTERVAL_MS)
 
           newPort.on('close', () => {
@@ -423,24 +379,25 @@ export default class ComClient extends BaseClient {
       if (!err) {
         const newConnection: SerialConnection = {
           port: recoveryPort,
-          buffer: '',
+          buffer: Buffer.alloc(0),
           timer: null,
           writeTimeout: oldConnection.writeTimeout,
           encoding: encoding,
           onData: oldConnection.onData,
           onClose: oldConnection.onClose,
           onLog: oldConnection.onLog,
-          receiveHex: oldConnection.receiveHex
+          receiveHex: oldConnection.receiveHex,
+          splitter: new BufferLineSplitter(encoding, oldConnection.receiveHex)
         }
         this.serialConnections.set(connId, newConnection)
 
-        // 收集数据到缓冲区
+        // 收集数据到缓冲区（Buffer 累积，避免多字节字符被分割）
         recoveryPort.on('data', (data: Buffer) => {
-          newConnection.buffer += data.toString()
+          newConnection.buffer = Buffer.concat([newConnection.buffer, data])
         })
 
         newConnection.timer = setInterval(() => {
-          this.processBuffer(newConnection, newConnection.onData, newConnection.onLog)
+          this.processBuffer(newConnection)
         }, READ_INTERVAL_MS)
 
         recoveryPort.on('close', () => {
@@ -462,6 +419,7 @@ export default class ComClient extends BaseClient {
     const connection = this.serialConnections.get(connId)
     if (connection) {
       connection.receiveHex = receiveHex
+      connection.splitter.updateReceiveHex(receiveHex)
       logger.info(`setReceiveHex: ${receiveHex} for sessionId: ${connId}`)
     }
   }

@@ -2,6 +2,7 @@ import { Telnet } from 'telnet-client'
 import logger from '../ipc/IpcAppLogger'
 import BaseClient from './BaseClient'
 import ConnectionInfo from './ConnectionInfo'
+import { BufferLineSplitter } from './BufferLineSplitter'
 
 const DEFAULT_TELNET_PORT = 23
 const DEFAULT_TIMOUT_MS = 10 * 1000
@@ -15,11 +16,12 @@ interface TelnetConnectionInfo {
 
 interface TelnetConnection {
   connection: Telnet
-  buffer: string
+  buffer: Buffer
   timer: NodeJS.Timeout | null
   onData: any
   onClose: any
   onLog: any
+  splitter: BufferLineSplitter
 }
 
 export default class TelnetClient extends BaseClient {
@@ -27,52 +29,21 @@ export default class TelnetClient extends BaseClient {
   connectionInfos = new Map<string, TelnetConnectionInfo>()
   telnetConnectionData = new Map<string, TelnetConnection>()
 
-  // 生成时间戳：YYYY-MM-DD HH:mm:ss.mmm
-  private getTimestamp(): string {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`
-  }
-
   // 处理缓冲区数据，按行分割并添加时间戳
   private processBuffer(sessionId: string): void {
     const connData = this.telnetConnectionData.get(sessionId)
     if (!connData) return
 
-    const { buffer } = connData
-    if (!buffer) return
+    const { buffer, splitter, onData, onLog } = connData
+    if (!buffer || buffer.length === 0) return
 
-    const timestamp = this.getTimestamp()
+    const result = splitter.split(buffer)
+    connData.buffer = result.remainder
 
-    // 先查找 \r\n
-    let lineEnd = buffer.indexOf('\r\n')
-    let lineEnding = '\r\n'
-
-    // 如果没找到 \r\n，查找 \r 或 \n
-
-    if (lineEnd === -1) {
-      lineEnd = buffer.indexOf('\r')
-      lineEnding = '\r'
-      if (lineEnd === -1) {
-        lineEnd = buffer.indexOf('\n')
-        lineEnding = '\n'
-      }
-    }
-
-    // 如果找到换行符
-    if (lineEnd !== -1) {
-      const line = buffer.substring(0, lineEnd)
-      const remaining = buffer.substring(lineEnd + lineEnding.length)
-
-      if (line) {
-        connData.onData?.({
-          data: line,
-          timestamp: timestamp
-        })
-        connData.onLog?.(line, timestamp)
-      }
-
-      // 清空缓冲区并保存剩余数据
-      connData.buffer = remaining
+    if (result.count > 0) {
+      const timestamp = BufferLineSplitter.timestamp()
+      onData?.({ data: result.data, timestamp })
+      onLog?.(result.log, timestamp)
     }
   }
 
@@ -102,17 +73,19 @@ export default class TelnetClient extends BaseClient {
       // 存储连接数据对象
       const connData: TelnetConnection = {
         connection,
-        buffer: '',
+        buffer: Buffer.alloc(0),
         timer: null,
         onData,
         onClose,
-        onLog
+        onLog,
+        splitter: new BufferLineSplitter('utf8', false)
       }
       this.telnetConnectionData.set(sessionId, connData)
 
-      // 收集数据到缓冲区
+      // 收集原始 Buffer 数据到缓冲区
       connection.on('data', (data) => {
-        connData.buffer += String(data)
+        const chunk = Buffer.isBuffer(data) ? data : Buffer.from(String(data), 'utf8')
+        connData.buffer = Buffer.concat([connData.buffer, chunk])
       })
 
       // 使用固定间隔处理数据
@@ -127,14 +100,12 @@ export default class TelnetClient extends BaseClient {
           connData.timer = null
         }
         // 关闭前输出缓冲区中剩余的数据
-        if (connData.buffer) {
-          const timestamp = this.getTimestamp()
-          connData.onData?.({
-            data: connData.buffer,
-            timestamp: timestamp
-          })
-          connData.onLog?.(connData.buffer, timestamp)
-          connData.buffer = ''
+        if (connData.buffer && connData.buffer.length > 0) {
+          const timestamp = BufferLineSplitter.timestamp()
+          const remainingStr = connData.buffer.toString('utf8')
+          connData.onData?.({ data: remainingStr, timestamp })
+          connData.onLog?.(remainingStr, timestamp)
+          connData.buffer = Buffer.alloc(0)
         }
         this.telnetConnections.delete(sessionId)
         this.connectionInfos.delete(sessionId)
@@ -160,7 +131,7 @@ export default class TelnetClient extends BaseClient {
     }
 
     try {
-      const dataStr = `[${this.getTimestamp()}] SEND >>>>>>>>>> ${command}`
+      const dataStr = `[${BufferLineSplitter.timestamp()}] SEND >>>>>>>>>> ${command}`
       await connection.send(command + '\n')
       onComplete?.(dataStr)
 
