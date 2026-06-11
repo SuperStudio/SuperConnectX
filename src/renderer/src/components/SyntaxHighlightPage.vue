@@ -55,7 +55,7 @@
                     </el-button>
                   </td>
                   <td class="col-type">
-                    <el-select v-model="rule.matchType" size="small" style="width: 100px" @change="onRuleChanged">
+                    <el-select v-model="rule.matchType" size="small" style="width: 100px" @change="onPatternChanged">
                       <el-option :label="t('syntaxSettings.regex')" value="regex" />
                       <el-option :label="t('syntaxSettings.keyword')" value="keyword" />
                     </el-select>
@@ -63,19 +63,19 @@
                   <td class="col-style">
                     <div class="style-edit-cell">
                       <el-tooltip :content="t('syntaxSettings.foreground')" placement="top">
-                        <span class="color-picker-wrap"><el-color-picker v-model="rule.foreground" size="small" :predefine="predefineColors" @change="onRuleChanged" /></span>
+                        <span class="color-picker-wrap"><el-color-picker v-model="rule.foreground" size="small" :predefine="predefineColors" @change="onStyleChanged" /></span>
                       </el-tooltip>
                       <el-tooltip :content="t('syntaxSettings.background')" placement="top">
-                        <span class="color-picker-wrap"><el-color-picker v-model="rule.background" size="small" class="bg-color-picker" :predefine="predefineColors" @change="onRuleChanged" /></span>
+                        <span class="color-picker-wrap"><el-color-picker v-model="rule.background" size="small" class="bg-color-picker" :predefine="predefineColors" @change="onStyleChanged" /></span>
                       </el-tooltip>
                       <el-tooltip :content="t('syntaxSettings.bold')" placement="top">
-                        <span class="style-toggle" :class="{ active: rule.bold }" @click="rule.bold = !rule.bold; onRuleChanged()">B</span>
+                        <span class="style-toggle" :class="{ active: rule.bold }" @click="rule.bold = !rule.bold; onStyleChanged()">B</span>
                       </el-tooltip>
                       <el-tooltip :content="t('syntaxSettings.italic')" placement="top">
-                        <span class="style-toggle" :class="{ active: rule.italic }" @click="rule.italic = !rule.italic; onRuleChanged()">I</span>
+                        <span class="style-toggle" :class="{ active: rule.italic }" @click="rule.italic = !rule.italic; onStyleChanged()">I</span>
                       </el-tooltip>
                       <el-tooltip :content="t('syntaxSettings.underline')" placement="top">
-                        <span class="style-toggle" :class="{ active: rule.underline }" @click="rule.underline = !rule.underline; onRuleChanged()">U</span>
+                        <span class="style-toggle" :class="{ active: rule.underline }" @click="rule.underline = !rule.underline; onStyleChanged()">U</span>
                       </el-tooltip>
                     </div>
                   </td>
@@ -84,7 +84,7 @@
                       v-model="rule.pattern"
                       size="small"
                       :placeholder="t('syntaxSettings.patternPlaceholder')"
-                      @input="onRuleChanged"
+                      @input="onPatternChanged"
                     />
                   </td>
                 </tr>
@@ -99,6 +99,14 @@
           <div class="preview-section" :class="{ 'preview-focused': previewFocused }">
             <div class="preview-header">
               <span class="preview-title">{{ t('syntaxSettings.preview') }}</span>
+              <el-button
+                class="btn-primary apply-preview-btn"
+                :disabled="!previewPending"
+                size="small"
+                @click="applyPreviewNow"
+              >
+                {{ t('syntaxSettings.applyPreview') }}
+              </el-button>
             </div>
             <div ref="previewEditorContainer" class="preview-editor"></div>
           </div>
@@ -370,17 +378,35 @@ const addRule = () => {
   }
   activeGroup.value.subRules.push(newRule)
   saveGroups()
+  previewPending.value = true
 }
 
 const deleteRule = (idx: number) => {
   if (!activeGroup.value) return
   activeGroup.value.subRules.splice(idx, 1)
   saveGroups()
+  schedulePreviewApply()
 }
 
-const onRuleChanged = () => {
+// 预览是否有待应用的更改
+const previewPending = ref(false)
+
+// 表达式/文本变化：标记待更新，需手动点击"立即预览"
+const onPatternChanged = () => {
+  saveGroups()
+  previewPending.value = true
+}
+
+// 颜色/字体样式变化：立即应用预览
+const onStyleChanged = () => {
   saveGroups()
   schedulePreviewApply()
+}
+
+// 手动点击"立即预览"按钮
+const applyPreviewNow = () => {
+  previewPending.value = false
+  applyPreviewSyntax()
 }
 
 // ---- 预览 Monaco Editor ----
@@ -412,7 +438,8 @@ const initPreviewEditor = () => {
     if (!activeGroup.value || !previewModel) return
     activeGroup.value.previewText = previewModel.getValue()
     saveGroups()
-    schedulePreviewApply()
+    // 预览文本变化时也标记待更新
+    previewPending.value = true
   })
 
   // 监听焦点变化
@@ -471,16 +498,27 @@ const applyPreviewSyntax = () => {
       syntaxClassMap.set(styleKey, className)
     }
 
-    // 全局匹配
+    // 检测退化正则：模式以 '|' 结尾（右侧为空，会产生海量空匹配）
+    if (rule.matchType === 'regex' && /\|$/.test(rule.pattern.trim())) {
+      continue
+    }
+
+    // 全局匹配，仅用空匹配保护（正常正则是 O(n)，无需数量限制）
     let match: RegExpExecArray | null
     while ((match = regex.exec(fullText)) !== null) {
+      // 空匹配保护：退化正则的每个位置都可能产生空匹配，跳过并前进
+      if (match[0].length === 0) {
+        regex.lastIndex++
+        if (regex.lastIndex > fullText.length) break
+        continue
+      }
+
       const startPos = previewModel.getPositionAt(match.index)
       const endPos = previewModel.getPositionAt(match.index + match[0].length)
       decorations.push({
         range: new monaco.Range(startPos.lineNumber, startPos.column, endPos.lineNumber, endPos.column),
         options: { inlineClassName: className }
       })
-      if (match[0].length === 0) break // 防止死循环
     }
   }
 
@@ -542,13 +580,17 @@ const setPreviewText = (text: string) => {
   previewModel.setValue(text)
 }
 
-// 当切换组时，更新预览文本
+// 当切换组时，更新预览文本并自动应用高亮
 watch(activeGroup, (newGroup) => {
   if (!previewModel) return
   if (newGroup) {
     setPreviewText(newGroup.previewText || '')
+    // 切换组时自动应用高亮（规则未变，只是换了组）
+    previewPending.value = false
+    schedulePreviewApply()
   } else {
     setPreviewText('')
+    previewPending.value = false
   }
 })
 
@@ -569,7 +611,11 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  // 组件卸载时立即执行 pending 的保存
+  // 组件卸载时：应用预览 + 立即保存 pending 的数据
+  if (previewPending.value) {
+    applyPreviewSyntax()
+    previewPending.value = false
+  }
   if (saveTimer) {
     clearTimeout(saveTimer)
     saveTimer = null
@@ -832,6 +878,7 @@ onUnmounted(() => {
 .preview-header {
   display: flex;
   align-items: center;
+  gap: 12px;
   padding: 8px 14px;
   background: #252526;
   border-bottom: 1px solid #3c3c3c;
@@ -844,6 +891,25 @@ onUnmounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.apply-preview-btn {
+  width: auto !important;
+  font-size: 11px;
+  height: 24px;
+  padding: 0 12px;
+}
+
+.apply-preview-btn.has-changes {
+  border-color: #f0a020 !important;
+  color: #f0a020 !important;
+  background-color: transparent !important;
+}
+
+.apply-preview-btn.has-changes:hover {
+  background: rgba(240, 160, 32, 0.15) !important;
+  border-color: #f0a020 !important;
+  color: #f0a020 !important;
 }
 
 .preview-editor {

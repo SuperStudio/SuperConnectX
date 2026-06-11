@@ -152,6 +152,7 @@
     "italic": "Italic",
     "underline": "Underline",
     "preview": "Live Preview",
+    "applyPreview": "Apply Now",
     "noRuleGroups": "No rule groups, click the button above to add",
     "noRules": "No rules, click the top right button to add",
     "selectGroupHint": "Select a rule group from the left panel",

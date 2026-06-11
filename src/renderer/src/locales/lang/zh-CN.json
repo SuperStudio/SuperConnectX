@@ -152,6 +152,7 @@
     "italic": "斜体",
     "underline": "下划线",
     "preview": "实时预览",
+    "applyPreview": "立即应用",
     "noRuleGroups": "暂无规则组，点击上方按钮添加",
     "noRules": "暂无规则，点击右上角添加",
     "selectGroupHint": "请从左侧选择一个规则组",
