@@ -28,9 +28,14 @@ const logFormat = winston.format.combine(
 
 // 定义日志传输方式（控制台 + 文件）
 const transports = [
-  // 控制台输出（开发环境）
+  // 控制台输出（仅在 TTY 环境中启用颜色）
   new winston.transports.Console({
-    format: winston.format.combine(winston.format.colorize(), logFormat) // 控制台带颜色
+    format: winston.format.combine(
+      ...(process.stdout.isTTY
+        ? [winston.format.colorize()]
+        : []),
+      logFormat
+    )
   }),
   // 按日期分割的文件输出（所有环境）
   new DailyRotateFile({

@@ -71,8 +71,12 @@ export class BufferLineSplitter {
           dataLines.push(line)
           logLines.push(this.toLogLine(line))
         }
+      } else if (crPos === bufLen - 1) {
+        // \r 是 buffer 的最后一个字节，可能是 \r\n 被分片，
+        // 不处理，留给 remainder 等下一个 chunk 到达后再判断
+        break
       } else {
-        // 单独的 \r
+        // 单独的 \r（后面不是 \n 且不是 buffer 末尾）
         const line = buffer.toString(this.encoding as BufferEncoding, offset, crPos)
         offset = crPos + 1
         if (line) {
@@ -82,11 +86,15 @@ export class BufferLineSplitter {
       }
     }
 
+    const resultData = dataLines.length > 0 ? dataLines.join('\n') : ''
+    const resultLog = logLines.length > 0 ? logLines.join('\n') : ''
+    const resultRemainder = offset < bufLen ? buffer.subarray(offset) : Buffer.alloc(0)
+
     return {
-      data: dataLines.length > 0 ? dataLines.join('\n') : '',
-      log: logLines.length > 0 ? logLines.join('\n') : '',
+      data: resultData,
+      log: resultLog,
       count: dataLines.length,
-      remainder: offset < bufLen ? buffer.subarray(offset) : Buffer.alloc(0)
+      remainder: resultRemainder
     }
   }
 

@@ -180,6 +180,8 @@ import { useI18n } from 'vue-i18n'
 import * as monaco from 'monaco-editor'
 import PresetCommands from './PresetCommands.vue'
 import TerminalControl from './TerminalControl.vue'
+import { parseAnsiToSegments } from '../utils/AnsiParser'
+import { AnsiDecorationManager } from '../utils/AnsiDecorationManager'
 
 const maxClearSizeMB = ref(30)
 
@@ -419,6 +421,8 @@ let syntaxDecorationIds: string[] = []
 let enableSyntaxHighlight = true
 let syntaxRuleGroups: SyntaxRuleGroup[] = []
 let lastSyntaxTextLength = 0 // 上次语法高亮扫描时的文本长度，用于增量匹配
+// ANSI 颜色装饰器管理器
+const ansiDecorationMgr = new AnsiDecorationManager()
 let totalRecvSize = 0
 let totalTxSize = 0
 let isInternalChange = false // 标记是否由内部触发的 isAutoScroll 变化
@@ -544,6 +548,9 @@ const initEditor = async () => {
     }
   })
 
+  // 绑定 ANSI 装饰器管理器
+  ansiDecorationMgr.bind(editor, editorModel)
+
   // 在 editor 上监听滚轮事件（用于 Ctrl+滚轮缩放 和 鼠标滚动决策固定）
   if (domNode) {
     domNode.addEventListener('wheel', (e: WheelEvent) => {
@@ -569,6 +576,9 @@ const appendToTerminal = (content: string) => {
   // 如果不显示日志，直接返回
   if (!isShowLog.value) return
 
+  // 解析 ANSI SGR 序列：得到纯文本 + 样式段信息
+  const { cleanText, segments } = parseAnsiToSegments(content)
+
   const lastLine = editorModel.getLineCount()
   let lastCol = 1
   if (lastLine > 0) {
@@ -576,13 +586,15 @@ const appendToTerminal = (content: string) => {
     lastCol = (lineContent ? lineContent.length : 0) + 1
   }
 
+  const insertOffset = editorModel.getOffsetAt({ lineNumber: lastLine, column: lastCol })
+
   try {
     editorModel.pushEditOperations(
       [],
       [
         {
           range: new monaco.Range(lastLine, lastCol, lastLine, lastCol),
-          text: content,
+          text: cleanText,
           forceMoveMarkers: true
         }
       ],
@@ -593,11 +605,14 @@ const appendToTerminal = (content: string) => {
     return
   }
 
+  // 应用 ANSI 颜色装饰器（新增文本部分）
+  ansiDecorationMgr.apply(segments, insertOffset, cleanText)
+
   if (isAutoScroll.value) {
     scrollToEnd()
   }
 
-  totalRecvSize += content.length
+  totalRecvSize += cleanText.length
   rxBytes.value = formatBytes(totalRecvSize)
   if (totalRecvSize > getMaxClearSize()) {
     clearTerminal()
@@ -657,6 +672,10 @@ const applySyntaxWithClasses = () => {
   if (activeSyntaxGroupId.value === undefined) {
     syntaxDecorationIds = editor.deltaDecorations(syntaxDecorationIds, [])
     lastSyntaxTextLength = 0
+    // 同时清理注入的 CSS 样式和 class 缓存，确保彻底移除高亮
+    const oldStyles = document.querySelectorAll(`style[data-syntax-instance="${syntaxInstanceId}"]`)
+    oldStyles.forEach(s => s.remove())
+    syntaxClassMap.clear()
     return
   }
 
@@ -792,6 +811,8 @@ const clearTerminal = () => {
   if (editor) {
     syntaxDecorationIds = editor.deltaDecorations(syntaxDecorationIds, [])
   }
+  // 清理 ANSI 装饰器和样式
+  ansiDecorationMgr.reset()
 }
 
 const handleCommandSent = (cmdName: string) => emit('onCommandSent', cmdName)
@@ -1243,6 +1264,9 @@ onUnmounted(() => {
   // Clean up syntax highlight styles (only for this instance)
   const oldStyles = document.querySelectorAll(`style[data-syntax-instance="${syntaxInstanceId}"]`)
   oldStyles.forEach(s => s.remove())
+  // Clean up ANSI color styles
+  ansiDecorationMgr.removeStyles()
+  ansiDecorationMgr.unbind()
 })
 
 // 设置更新处理

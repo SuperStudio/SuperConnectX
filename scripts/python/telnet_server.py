@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 import json
 import sys
+import random
 
 # 服务端配置
 PORT = 6666  # 自定义端口（默认 Telnet 端口 23，需管理员权限，此处用 2323 避免冲突）
@@ -11,6 +12,114 @@ DEFAULT_SEND_INTERVAL = 0.1  # 数据推送间隔（秒）
 
 send_interval = DEFAULT_SEND_INTERVAL
 current_host = ""
+
+# ===== ANSI 颜色/样式常量 =====
+ANSI_RESET = "\033[0m"
+ANSI_BOLD = "\033[1m"
+ANSI_DIM = "\033[2m"
+ANSI_ITALIC = "\033[3m"
+ANSI_UNDERLINE = "\033[4m"
+ANSI_BLINK = "\033[5m"
+ANSI_INVERT = "\033[7m"
+
+ANSI_FG_BLACK = "\033[30m"
+ANSI_FG_RED = "\033[31m"
+ANSI_FG_GREEN = "\033[32m"
+ANSI_FG_YELLOW = "\033[33m"
+ANSI_FG_BLUE = "\033[34m"
+ANSI_FG_MAGENTA = "\033[35m"
+ANSI_FG_CYAN = "\033[36m"
+ANSI_FG_WHITE = "\033[37m"
+
+ANSI_FG_BRIGHT_BLACK = "\033[90m"
+ANSI_FG_BRIGHT_RED = "\033[91m"
+ANSI_FG_BRIGHT_GREEN = "\033[92m"
+ANSI_FG_BRIGHT_YELLOW = "\033[93m"
+ANSI_FG_BRIGHT_BLUE = "\033[94m"
+ANSI_FG_BRIGHT_MAGENTA = "\033[95m"
+ANSI_FG_BRIGHT_CYAN = "\033[96m"
+ANSI_FG_BRIGHT_WHITE = "\033[97m"
+
+ANSI_BG_BLACK = "\033[40m"
+ANSI_BG_RED = "\033[41m"
+ANSI_BG_GREEN = "\033[42m"
+ANSI_BG_YELLOW = "\033[43m"
+ANSI_BG_BLUE = "\033[44m"
+ANSI_BG_MAGENTA = "\033[45m"
+ANSI_BG_CYAN = "\033[46m"
+ANSI_BG_WHITE = "\033[47m"
+
+ANSI_BG_BRIGHT_BLACK = "\033[100m"
+ANSI_BG_BRIGHT_RED = "\033[101m"
+ANSI_BG_BRIGHT_GREEN = "\033[102m"
+ANSI_BG_BRIGHT_YELLOW = "\033[103m"
+ANSI_BG_BRIGHT_BLUE = "\033[104m"
+ANSI_BG_BRIGHT_MAGENTA = "\033[105m"
+ANSI_BG_BRIGHT_CYAN = "\033[106m"
+ANSI_BG_BRIGHT_WHITE = "\033[107m"
+
+# 颜色列表（用于随机颜色输出）
+COLOR_POOL = [
+    ANSI_FG_RED, ANSI_FG_GREEN, ANSI_FG_YELLOW, ANSI_FG_BLUE,
+    ANSI_FG_MAGENTA, ANSI_FG_CYAN,
+    ANSI_FG_BRIGHT_RED, ANSI_FG_BRIGHT_GREEN, ANSI_FG_BRIGHT_YELLOW,
+    ANSI_FG_BRIGHT_BLUE, ANSI_FG_BRIGHT_MAGENTA, ANSI_FG_BRIGHT_CYAN,
+]
+
+
+def ansi_color(text: str, fg: str = "", bg: str = "", style: str = "") -> str:
+    """给文本包裹 ANSI 颜色/样式码"""
+    prefix = fg + bg + style
+    return f"{prefix}{text}{ANSI_RESET}"
+
+
+def ansi_random_color(text: str) -> str:
+    """随机前景色"""
+    return f"{random.choice(COLOR_POOL)}{text}{ANSI_RESET}"
+
+
+def build_simulated_ls_output() -> str:
+    """模拟 Linux ls --color=auto 的输出"""
+    lines = []
+    # 目录（蓝色加粗）
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_BLUE}application{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_BLUE}bin{ANSI_RESET}")
+    lines.append(f"{ANSI_FG_GREEN}default.prop{ANSI_RESET}")
+    lines.append(f"{ANSI_FG_CYAN}init.rc{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_CYAN}init.wayland.rc{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_BLUE}lib{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_BLUE}dev{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_BLUE}etc{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_BLUE}root{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_BLUE}sbin{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_BLUE}sys{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_CYAN}home{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_BLUE}lib64{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_CYAN}system{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_CYAN}init{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_CYAN}linuxrc{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_BLUE}tmp{ANSI_RESET}")
+    lines.append(f"{ANSI_FG_GREEN}init.environ.rc{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_CYAN}media{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_GREEN}init.gui.rc{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_CYAN}mnt{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_BLUE}usr{ANSI_RESET}")
+    lines.append(f"{ANSI_BOLD}{ANSI_FG_CYAN}var{ANSI_RESET}")
+    return " ".join(lines)
+
+
+def build_colored_status() -> str:
+    """模拟带有颜色的系统状态信息"""
+    lines = []
+    lines.append(ansi_color("[INFO]", fg=ANSI_FG_GREEN, style=ANSI_BOLD) + "  System boot complete")
+    lines.append(ansi_color("[WARN]", fg=ANSI_FG_YELLOW, style=ANSI_BOLD) + "  Disk usage: 78%")
+    lines.append(ansi_color("[ERROR]", fg=ANSI_FG_RED, style=ANSI_BOLD) + "  Failed to mount /mnt/data")
+    lines.append(ansi_color("[DEBUG]", fg=ANSI_FG_CYAN) + "  PID 1234 listening on port 8080")
+    lines.append(ansi_color("[OK]", fg=ANSI_FG_GREEN, style=ANSI_BOLD) + "    Service sshd running")
+    lines.append(ansi_color("[OK]", fg=ANSI_FG_GREEN, style=ANSI_BOLD) + "    Service nginx running")
+    lines.append(ansi_color("[FAIL]", fg=ANSI_FG_RED, style=ANSI_BOLD) + "  Service mysql stopped")
+    lines.append(ansi_color("[>>>]", fg=ANSI_FG_BRIGHT_YELLOW, style=ANSI_BLINK) + "  Upgrade available: v2.4.1")
+    return "\n".join(lines)
 
 
 def _build_json(size):
@@ -35,6 +144,27 @@ def handle_cmd(cmd: str):
         rsp = _build_json(100000)
     elif cmd == "jsonNormal":
         rsp = _build_json(100)
+    elif cmd == "ls":
+        # 模拟 Linux ls --color=auto 输出
+        rsp = build_simulated_ls_output() + "\r\n"
+    elif cmd == "status":
+        rsp = build_colored_status() + "\r\n"
+    elif cmd == "rainbow":
+        # 彩虹色文本
+        text = "Hello from SuperConnectX Telnet Server!"
+        rainbow = "".join(ansi_random_color(ch) for ch in text)
+        rsp = rainbow + "\r\n"
+    elif cmd == "help":
+        rsp = (
+            ansi_color("=== Available Commands ===", fg=ANSI_FG_CYAN, style=ANSI_BOLD) + "\r\n"
+            f"  {ansi_color('ls', fg=ANSI_FG_GREEN)}        - Simulate ls --color=auto output\r\n"
+            f"  {ansi_color('status', fg=ANSI_FG_GREEN)}    - Show colored system status\r\n"
+            f"  {ansi_color('rainbow', fg=ANSI_FG_GREEN)}   - Rainbow colored text\r\n"
+            f"  {ansi_color('jsonNormal', fg=ANSI_FG_GREEN)} - JSON with 100 keys\r\n"
+            f"  {ansi_color('jsonBig', fg=ANSI_FG_GREEN)}    - JSON with 10000 keys\r\n"
+            f"  {ansi_color('exit', fg=ANSI_FG_RED)}       - Disconnect\r\n"
+            f"  {ansi_color('setInterval,N', fg=ANSI_FG_YELLOW)} - Set push interval to N seconds\r\n"
+        )
 
     return rsp
 
@@ -46,7 +176,9 @@ def handle_client_recv(client_socket: socket.socket, client_addr: tuple):
             # 读取客户端发送的数据（最多1024字节）
             cmd = client_socket.recv(1024).decode("utf-8").strip()
             if cmd == "exit":
-                client_socket.send("== goodbye ==\n".encode("utf-8"))
+                client_socket.send(
+                    ansi_color("== goodbye ==", fg=ANSI_FG_RED, style=ANSI_BOLD).encode("utf-8") + b"\r\n"
+                )
                 break
             elif cmd:
                 rsp = handle_cmd(cmd)
@@ -63,11 +195,12 @@ def handle_client(client_socket: socket.socket, client_addr: tuple):
     try:
         # 发送欢迎信息
         welcome_msg = (
-            "=====================================\r\n"
-            "SuperConnectX Telnet TestServer\r\n"
-            f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\r\n"
-            "press Ctrl+] and enter quit to exit\r\n"
-            "=====================================\r\n"
+            ansi_color("=====================================", fg=ANSI_FG_CYAN, style=ANSI_BOLD) + "\r\n"
+            + ansi_color("SuperConnectX Telnet TestServer", fg=ANSI_FG_GREEN, style=ANSI_BOLD) + "\r\n"
+            + ansi_color(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", fg=ANSI_FG_YELLOW) + "\r\n"
+            + ansi_color("press Ctrl+] and enter quit to exit", fg=ANSI_FG_BRIGHT_BLACK) + "\r\n"
+            + ansi_color("type 'help' for available commands", fg=ANSI_FG_BRIGHT_BLACK) + "\r\n"
+            + ansi_color("=====================================", fg=ANSI_FG_CYAN, style=ANSI_BOLD) + "\r\n"
         )
         client_socket.send(welcome_msg.encode("utf-8"))
 
@@ -83,10 +216,10 @@ def handle_client(client_socket: socket.socket, client_addr: tuple):
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
             base_data = (
                 f"[server-{current_time}] "
-                f"counter: {counter:04d} | "
+                f"counter: {ansi_color(f'{counter:04d}', fg=ANSI_FG_YELLOW)} | "
                 f"now is running | "
-                f"server: {current_host}:{PORT} | "
-                f"client: {client_addr[0]}:{client_addr[1]}"
+                f"server: {ansi_color(f'{current_host}:{PORT}', fg=ANSI_FG_CYAN)} | "
+                f"client: {ansi_color(f'{client_addr[0]}:{client_addr[1]}', fg=ANSI_FG_MAGENTA)}"
             )
 
             # 每隔5s，将待发送数据扩大10倍（用 \n 连接）
@@ -94,6 +227,8 @@ def handle_client(client_socket: socket.socket, client_addr: tuple):
             if now - last_expand_time >= 5.0:
                 expand_counter += 1
                 last_expand_time = now
+                if expand_counter == 5:
+                    expand_counter = 1
                 print(f"[expand] expand_counter={expand_counter}, base_data will be repeated {expand_counter * 10} times")
 
             repeat_count = max(1, expand_counter * 10)
