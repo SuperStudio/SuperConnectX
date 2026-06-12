@@ -121,6 +121,15 @@ export default class ConnectionStorage extends BaseStorage {
     }
     if (conn.connectionType === 'ftp') {
       con[0].password = conn.password
+      if (conn.ftpMode !== undefined) {
+        con[0].ftpMode = conn.ftpMode
+      }
+      if (conn.ftpDirectory !== undefined) {
+        con[0].ftpDirectory = conn.ftpDirectory
+      }
+      if (conn.ftpPermissions !== undefined) {
+        con[0].ftpPermissions = conn.ftpPermissions
+      }
     }
     if (conn.fontSize !== undefined) {
       con[0].fontSize = conn.fontSize

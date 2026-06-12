@@ -27,10 +27,16 @@
           <el-radio-button value="client">客户端</el-radio-button>
         </el-radio-group>
       </el-form-item>
-      <!-- FTP 服务端：端口、目录、权限 -->
+      <!-- FTP 服务端：端口、账号密码、目录、权限 -->
       <template v-if="formData.connectionType === 'ftp' && formData.ftpMode === 'server'">
         <el-form-item :label="t('dialog.port')" prop="port">
           <el-input v-model.number="formData.port" placeholder="21" prefix="Key" type="number" />
+        </el-form-item>
+        <el-form-item :label="t('dialog.username')" prop="username">
+          <el-input v-model="formData.username" :placeholder="t('dialog.usernamePlaceholder')" prefix="UserFilled" />
+        </el-form-item>
+        <el-form-item :label="t('dialog.password')" prop="password">
+          <el-input v-model="formData.password" :placeholder="t('dialog.passwordPlaceholder')" type="password" />
         </el-form-item>
         <el-form-item label="目录" prop="ftpDirectory">
           <div style="display: flex; gap: 8px; width: 100%">
@@ -97,6 +103,8 @@ const isSubmitting = ref(false)
 const isEditMode = ref(false)
 const formRef = ref<InstanceType<typeof ElForm> | null>(null)
 const formData = reactive<ConnectionFormData>(createDefaultConnection('ftp'))
+// 不设置 rules，避免切换 tab 时自动触发验证告警
+// 验证逻辑在 handleSubmit 中手动处理
 const formRules = ref({})
 
 // 打开对话框（新建）
@@ -167,23 +175,55 @@ const selectFtpDirectory = async () => {
   }
 }
 
+// 获取需要验证的字段列表
+const getRequiredFields = () => {
+  const isFtpServer = formData.connectionType === 'ftp' && (formData as any).ftpMode === 'server'
+  const needsServer = !isFtpServer && formData.connectionType !== 'ping'
+
+  const fields: { prop: string; message: string }[] = [
+    { prop: 'name', message: '请输入连接名称' }
+  ]
+
+  if (isFtpServer) {
+    fields.push({ prop: 'port', message: '请输入端口' })
+    fields.push({ prop: 'username', message: '请输入用户名' })
+    fields.push({ prop: 'password', message: '请输入密码' })
+    fields.push({ prop: 'ftpDirectory', message: '请选择共享目录' })
+  } else if (needsServer) {
+    fields.push({ prop: 'host', message: '请输入服务器地址' })
+    if (formData.connectionType !== 'ping') {
+      fields.push({ prop: 'port', message: '请输入端口' })
+    }
+    if (!['tcp', 'udp'].includes(formData.connectionType)) {
+      fields.push({ prop: 'username', message: '请输入用户名' })
+    }
+    if (['ftp', 'tftp', 'http'].includes(formData.connectionType)) {
+      fields.push({ prop: 'password', message: '请输入密码' })
+    }
+  }
+
+  return fields
+}
+
 // 提交表单
 const handleSubmit = async () => {
   if (!formRef.value || isSubmitting.value) return
 
-  try {
-    await formRef.value.validate()
-  } catch {
-    // 表单验证失败
-    ElMessage.error(t('dialog.completeForm'))
-    return
+  // 手动验证必填字段
+  const requiredFields = getRequiredFields()
+  for (const field of requiredFields) {
+    const val = (formData as any)[field.prop]
+    if (val === '' || val === undefined || val === null) {
+      ElMessage.error(field.message)
+      return
+    }
   }
 
   // 验证通过，通知父组件保存
+  // 深拷贝避免 reactive 代理对象导致 IPC 序列化失败（An object could not be cloned）
   isSubmitting.value = true
-  emit('submit', fromRawConnection(formData) as ConnectionFormData)
-  // 注意：不在此处关闭弹窗或显示成功消息，由父组件 handleConnectionSubmit 控制
-  // 父组件在 save 成功后会通过 closeDialog 关闭弹窗
+  const submitData = JSON.parse(JSON.stringify(fromRawConnection(formData)))
+  emit('submit', submitData as ConnectionFormData)
 }
 
 // 父组件调用：保存成功，关闭弹窗
