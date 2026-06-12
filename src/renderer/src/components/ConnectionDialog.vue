@@ -22,9 +22,9 @@
       </el-form-item>
       <!-- FTP 模式选择 -->
       <el-form-item label="模式" v-if="formData.connectionType === 'ftp'">
-        <el-radio-group v-model="formData.ftpMode">
-          <el-radio value="server">服务端</el-radio>
-          <el-radio value="client">客户端</el-radio>
+        <el-radio-group v-model="formData.ftpMode" class="mode-radio-group">
+          <el-radio-button value="server">服务端</el-radio-button>
+          <el-radio-button value="client">客户端</el-radio-button>
         </el-radio-group>
       </el-form-item>
       <!-- FTP 服务端：端口、目录、权限 -->
@@ -35,15 +35,15 @@
         <el-form-item label="目录" prop="ftpDirectory">
           <div style="display: flex; gap: 8px; width: 100%">
             <el-input v-model="formData.ftpDirectory" placeholder="选择共享目录" style="flex: 1" />
-            <el-button @click="selectFtpDirectory">浏览</el-button>
+            <el-button class="btn-primary" style="width: auto !important" @click="selectFtpDirectory">浏览</el-button>
           </div>
         </el-form-item>
         <el-form-item label="权限">
           <el-checkbox-group v-model="formData.ftpPermissions">
-            <el-checkbox label="get">Get (下载)</el-checkbox>
-            <el-checkbox label="put">Put (上传)</el-checkbox>
-            <el-checkbox label="delete">Delete (删除)</el-checkbox>
-            <el-checkbox label="rename">Rename (重命名)</el-checkbox>
+            <el-checkbox label="get">Get</el-checkbox>
+            <el-checkbox label="put">Put</el-checkbox>
+            <el-checkbox label="delete">Delete</el-checkbox>
+            <el-checkbox label="rename">Rename</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
       </template>
@@ -269,15 +269,6 @@ defineExpose({ open, openEdit, closeOnSuccess, onSaveError })
   cursor: not-allowed !important;
 }
 
-/* FTP 表单样式 */
-.el-radio {
-  color: #e0e0e0 !important;
-}
-
-.el-radio__label {
-  color: #e0e0e0 !important;
-}
-
 .el-checkbox {
   color: #e0e0e0 !important;
 }
@@ -285,4 +276,5 @@ defineExpose({ open, openEdit, closeOnSuccess, onSaveError })
 .el-checkbox__label {
   color: #e0e0e0 !important;
 }
+
 </style>
