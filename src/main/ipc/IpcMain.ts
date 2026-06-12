@@ -192,6 +192,18 @@ export default class IpcMain {
       return { filePath: null }
     })
 
+    // 目录选择对话框
+    ipcMain.handle('open-directory-dialog', async (_, options) => {
+      const mainWindow = BrowserWindow.getFocusedWindow()
+      if (mainWindow) {
+        return await dialog.showOpenDialog(mainWindow, {
+          properties: ['openDirectory'],
+          ...options
+        })
+      }
+      return { filePaths: [] }
+    })
+
     // ========== 自动更新 IPC ==========
     ipcMain.handle('check-for-updates', async () => {
       await AppUpdater.getInstance().checkForUpdates()

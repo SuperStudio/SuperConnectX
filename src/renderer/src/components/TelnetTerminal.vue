@@ -25,7 +25,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import UnifiedTerminal from './UnifiedTerminal.vue'
-import TelnetInfo from '../entity/protocol/TelnetInfo'
+import { fromRawConnection } from '../entity/protocol'
 import { useTerminal } from '../composables/useTerminal'
 
 const MAX_RETRY_COUNT = 1000
@@ -195,7 +195,7 @@ const connect = async () => {
 
     try {
       const result = await window.connectApi.startConnect({
-        ...TelnetInfo.buildWithValue(props.connection),
+        ...fromRawConnection(props.connection),
         sessionId: props.connection.sessionId
       })
       if (result.success) {
@@ -265,7 +265,7 @@ const handleSend = async (command: string, _originalInput?: string) => {
   try {
     await window.connectApi.sendData({
       conn: {
-        ...TelnetInfo.buildWithValue(props.connection),
+        ...fromRawConnection(props.connection),
         sessionId: props.connection.sessionId
       },
       command: command.trim()

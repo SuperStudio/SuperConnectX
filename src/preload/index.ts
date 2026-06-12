@@ -93,7 +93,8 @@ contextBridge.exposeInMainWorld('connectApi', {
 
 contextBridge.exposeInMainWorld('dialogApi', {
   openFileDialog: (options: any) => ipcRenderer.invoke('open-file-dialog', options),
-  saveFileDialog: (options: any) => ipcRenderer.invoke('save-file-dialog', options)
+  saveFileDialog: (options: any) => ipcRenderer.invoke('save-file-dialog', options),
+  openDirectoryDialog: (options: any) => ipcRenderer.invoke('open-directory-dialog', options)
 })
 
 contextBridge.exposeInMainWorld('windowApi', {

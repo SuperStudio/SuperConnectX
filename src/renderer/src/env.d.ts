@@ -75,6 +75,7 @@ interface ConnectApi {
 interface DialogApi {
   openFileDialog: (options: any) => Promise<any>
   saveFileDialog: (options: any) => Promise<any>
+  openDirectoryDialog: (options: any) => Promise<any>
 }
 
 interface WindowApi {

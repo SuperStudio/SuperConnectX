@@ -109,6 +109,7 @@ declare global {
     dialogApi: {
       openFileDialog: (options: any) => Promise<any>
       saveFileDialog: (options: any) => Promise<any>
+      openDirectoryDialog: (options: any) => Promise<any>
     }
     dataCheckApi: {
       getPlugins: () => Promise<{ name: string; type: string }[]>
