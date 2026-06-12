@@ -328,26 +328,20 @@
       <div class="command-status" v-if="lastSentCommand">{{ t('notification.commandSent', { command: lastSentCommand }) }}</div>
     </div>
 
-    <!-- 新建连接弹窗：Element Plus 美化表单 -->
+    <!-- 新建连接弹窗：选项卡区分协议类型 -->
     <el-dialog
       :title="t('dialog.newConnection')"
       v-model="isCreateDialogOpen"
-      width="500px"
+      width="520px"
       @keydown.enter.native="submitNewConn"
       :close-on-click-modal="false"
     >
+      <el-tabs v-model="newConnForm.connectionType" @tab-change="handleProtocolChange" class="protocol-tabs">
+        <el-tab-pane label="Telnet" name="telnet" />
+        <el-tab-pane label="SSH" name="ssh" disabled />
+        <el-tab-pane label="FTP" name="ftp" />
+      </el-tabs>
       <el-form :model="newConnForm" :rules="newConnRules" ref="connFormRef" label-width="120px" @submit.prevent>
-        <el-form-item :label="t('dialog.protocolType')" prop="connectionType">
-          <el-select
-            v-model="newConnForm.connectionType"
-            @change="handleProtocolChange"
-            :placeholder="t('dialog.selectProtocol')"
-          >
-            <el-option label="Telnet" value="telnet" />
-            <el-option label="SSH" value="ssh" disabled />
-            <el-option label="FTP" value="ftp" />
-          </el-select>
-        </el-form-item>
         <el-form-item :label="t('dialog.connectionName')" prop="name">
           <el-input v-model="newConnForm.name" :placeholder="t('dialog.namePlaceholder')" prefix="User" />
         </el-form-item>
@@ -2241,6 +2235,41 @@ onUnmounted(() => {
 
 .submit-btn {
   width: 100px !important;
+}
+
+.protocol-tabs {
+  margin-bottom: 16px;
+}
+
+.protocol-tabs :deep(.el-tabs__header) {
+  margin-bottom: 0;
+}
+
+.protocol-tabs :deep(.el-tabs__nav-wrap::after) {
+  background-color: #3c3c3c !important;
+}
+
+.protocol-tabs :deep(.el-tabs__active-bar) {
+  background-color: var(--focus-border-color) !important;
+}
+
+.protocol-tabs :deep(.el-tabs__item) {
+  color: #a0a0a0 !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+.protocol-tabs :deep(.el-tabs__item:hover) {
+  color: #f0f0f0 !important;
+}
+
+.protocol-tabs :deep(.el-tabs__item.is-active) {
+  color: #f0f0f0 !important;
+}
+
+.protocol-tabs :deep(.el-tabs__item.is-disabled) {
+  color: #5a5a5a !important;
+  cursor: not-allowed !important;
 }
 
 .status-bar {
