@@ -186,18 +186,16 @@ const getRequiredFields = () => {
 
   if (isFtpServer) {
     fields.push({ prop: 'port', message: '请输入端口' })
-    fields.push({ prop: 'username', message: '请输入用户名' })
-    fields.push({ prop: 'password', message: '请输入密码' })
     fields.push({ prop: 'ftpDirectory', message: '请选择共享目录' })
   } else if (needsServer) {
     fields.push({ prop: 'host', message: '请输入服务器地址' })
     if (formData.connectionType !== 'ping') {
       fields.push({ prop: 'port', message: '请输入端口' })
     }
-    if (!['tcp', 'udp'].includes(formData.connectionType)) {
+    if (!['tcp', 'udp', 'ftp'].includes(formData.connectionType)) {
       fields.push({ prop: 'username', message: '请输入用户名' })
     }
-    if (['ftp', 'tftp', 'http'].includes(formData.connectionType)) {
+    if (['tftp', 'http'].includes(formData.connectionType)) {
       fields.push({ prop: 'password', message: '请输入密码' })
     }
   }

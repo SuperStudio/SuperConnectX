@@ -121,9 +121,11 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
   const notifyLogTimestampToBackend = async (showTs: boolean) => {
     if (!isConnected.value) return
     try {
+      // JSON 序列化确保传入 IPC 的是纯数据对象，避免 Vue reactive proxy 导致 clone 错误
+      const rawConn = JSON.parse(JSON.stringify(conn))
       const connObj = connectionType === 'telnet'
-        ? { connectionType: 'telnet', host: conn.host, port: conn.port, sessionId: conn.sessionId }
-        : { connectionType: 'com', comName: conn.comName, sessionId: conn.sessionId }
+        ? { connectionType: 'telnet', host: rawConn.host, port: rawConn.port, sessionId: rawConn.sessionId }
+        : { connectionType: 'com', comName: rawConn.comName, sessionId: rawConn.sessionId }
       await window.connectApi.updateConnect(connObj, { logTimestamp: showTs })
     } catch (error) {
       console.error('Failed to update log timestamp config:', error)
@@ -181,9 +183,11 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
   const handleClose = async () => {
     cleanup()
     try {
+      // JSON 序列化确保传入 IPC 的是纯数据对象，避免 Vue reactive proxy 导致 clone 错误
+      const rawConn = JSON.parse(JSON.stringify(conn))
       const connObj = connectionType === 'telnet'
-        ? { ...conn, sessionId: conn.sessionId }
-        : { connectionType: 'com', comName: conn.comName, sessionId: conn.sessionId }
+        ? { connectionType: 'telnet', host: rawConn.host, port: rawConn.port, sessionId: rawConn.sessionId }
+        : { connectionType: 'com', comName: rawConn.comName, sessionId: rawConn.sessionId }
       await window.connectApi.stopConnect(connObj)
       unifiedTerminalRef.value?.appendToTerminal(`\n连接已关闭\n`)
     } catch (error) {
@@ -206,9 +210,11 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
       onSend(command, originalInput)
     } else {
       try {
+        // JSON 序列化确保传入 IPC 的是纯数据对象，避免 Vue reactive proxy 导致 clone 错误
+        const rawConn = JSON.parse(JSON.stringify(conn))
         const connObj = connectionType === 'telnet'
-          ? { ...conn, sessionId: conn.sessionId }
-          : { connectionType: 'com', comName: conn.comName, sessionId: conn.sessionId }
+          ? { connectionType: 'telnet', host: rawConn.host, port: rawConn.port, sessionId: rawConn.sessionId }
+          : { connectionType: 'com', comName: rawConn.comName, sessionId: rawConn.sessionId }
         await window.connectApi.sendData({
           conn: connObj,
           command: command.trim()
@@ -260,9 +266,11 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
   onUnmounted(() => {
     cleanup()
     if (isConnected.value) {
+      // JSON 序列化确保传入 IPC 的是纯数据对象，避免 Vue reactive proxy 导致 clone 错误
+      const rawConn = JSON.parse(JSON.stringify(conn))
       const connObj = connectionType === 'telnet'
-        ? { ...conn, sessionId: conn.sessionId }
-        : { connectionType: 'com', comName: conn.comName, sessionId: conn.sessionId }
+        ? { connectionType: 'telnet', host: rawConn.host, port: rawConn.port, sessionId: rawConn.sessionId }
+        : { connectionType: 'com', comName: rawConn.comName, sessionId: rawConn.sessionId }
       window.connectApi.stopConnect(connObj).catch((err: Error) => {
         console.error('Failed to disconnect on unmount:', err)
       })

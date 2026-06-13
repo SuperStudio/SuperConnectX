@@ -7,6 +7,14 @@ import SettingsStorage from '../storage/SettingsStorage'
 import WorkerPool from '../pool/WorkerPool'
 import path from 'path'
 
+// 直连模式客户端接口（Telnet/COM 客户端均实现）
+interface DirectClient {
+  start(info: ConnectionInfo, onData: (dataObj: { data: string; timestamp: string }) => void, onClose: () => void, onLog: (logStr: string, timestamp: string) => void): Promise<object>
+  send(sessionId: string, command: string, onComplete: (dataStr: string) => void): Promise<object>
+  disconnect(sessionId: string): Promise<object>
+  updateConfig(sessionId: string, config: Record<string, unknown>): Promise<object>
+}
+
 export default class IpcConnector {
   private static sInstance: IpcConnector
 
@@ -21,6 +29,9 @@ export default class IpcConnector {
 
   // 连接类型记录（sessionId -> connectionType）
   private connectionTypeMap = new Map<string, string>()
+
+  // FTP 模式记录（sessionId -> ftpMode: 'server' | 'client'）
+  private ftpModeMap = new Map<string, string>()
 
   private settingsStorage: SettingsStorage
   private windows!: { mainWindow?: BrowserWindow | null }
@@ -61,7 +72,11 @@ export default class IpcConnector {
       flowControl: conn.flowControl,
       rts: conn.rts,
       dtr: conn.dtr,
-      receiveHex: conn.receiveHex
+      receiveHex: conn.receiveHex,
+      // FTP 参数
+      ftpMode: conn.ftpMode,
+      ftpDirectory: conn.ftpDirectory,
+      ftpPermissions: conn.ftpPermissions
     }
 
     return connInfo
@@ -96,6 +111,13 @@ export default class IpcConnector {
         this.receiveHexMap.delete(sessionId)
         this.logTimestampMap.delete(sessionId)
         this.connectionTypeMap.delete(sessionId)
+        this.ftpModeMap.delete(sessionId)
+        // 同步清理 _ftpClients（若存在）
+        const ftpClient = this._ftpClients.get(sessionId)
+        if (ftpClient) {
+          try { ftpClient.disconnect(sessionId) } catch { /* ignore */ }
+          this._ftpClients.delete(sessionId)
+        }
       }
     )
 
@@ -140,6 +162,8 @@ export default class IpcConnector {
       if (!this.useWorkerMode) return false
       // COM 连接不走 Worker（serialport native addon 与 worker_threads 不兼容）
       if (conn.connectionType === 'com') return false
+      // FTP 不走 Worker（服务端 ftp-srv 有不可序列化对象；客户端 net.Socket 不兼容 worker_threads）
+      if (conn.connectionType === 'ftp') return false
       return true
     }
 
@@ -158,8 +182,11 @@ export default class IpcConnector {
         : true
       this.logTimestampMap.set(conn.sessionId, logTimestamp)
 
-      // 记录连接类型
+      // 记录连接类型和 FTP 模式
       this.connectionTypeMap.set(conn.sessionId, conn.connectionType)
+      if (conn.connectionType === 'ftp' && conn.ftpMode) {
+        this.ftpModeMap.set(conn.sessionId, conn.ftpMode)
+      }
 
       if (shouldUseWorker(conn)) {
         // Worker 模式（Telnet 等纯 JS 协议）
@@ -177,6 +204,13 @@ export default class IpcConnector {
       } else {
         return this.sendDataDirect(conn, command)
       }
+    })
+
+    ipcMain.handle('upload-file', async (_, { conn, localFilePath, remoteFileName }: { conn: any; localFilePath: string; remoteFileName: string }) => {
+      if (conn.connectionType !== 'ftp') {
+        return { success: false, message: 'File upload only supported for FTP connections' }
+      }
+      return this.uploadFileDirect(conn, localFilePath, remoteFileName)
     })
 
     ipcMain.handle('stop-connect', async (_, conn: any) => {
@@ -265,26 +299,119 @@ export default class IpcConnector {
 
   // ============ 直连模式（回退方案，保留原有逻辑）============
 
+  // FTP 服务端实例（直连模式，不走 Worker）
+  private _ftpServer: DirectClient | null = null
+  private _ftpServerStopping: Promise<void> | null = null
+  // FTP 客户端实例（每个 session 一个，直连模式）
+  private _ftpClients: Map<string, DirectClient> = new Map()
+
+  /**
+   * 判断当前 FTP 连接是否为服务端模式
+   * 仅当 ftpModeMap 中明确记录为 'server' 时才走服务端模式
+   */
+  private isFtpServerMode(sessionId: string): boolean {
+    return this.ftpModeMap.get(sessionId) === 'server'
+  }
+
   private async startConnectDirect(conn: any): Promise<object> {
-    // 动态 import 直连模式的客户端（保留原有代码路径）
-    const ComClient = (await import('../protocol/ComClient')).default
-    const TelnetClient = (await import('../protocol/TelnetClient')).default
-
-    // 使用懒加载的客户端 Map
-    if (!this._directClients) {
-      this._directClients = new Map<string, any>([
-        ['telnet', new TelnetClient()],
-        ['com', new ComClient()]
-      ])
-    }
-
-    const client = this._directClients.get(conn.connectionType)
     const sessionId = conn.sessionId
     const _logger = this._logger!
 
-    return await client?.start(
+    // FTP 连接：区分服务端/客户端
+    if (conn.connectionType === 'ftp') {
+      if (this.isFtpServerMode(sessionId)) {
+        // FTP 服务端模式
+        // 等待上一个 stop 完成（避免端口占用等竞争问题）
+        if (this._ftpServerStopping) {
+          await this._ftpServerStopping
+          this._ftpServerStopping = null
+        }
+        const FtpServer = (await import('../protocol/FtpServer')).default
+        if (!this._ftpServer) {
+          this._ftpServer = new FtpServer()
+        }
+        return await this._ftpServer.start(
+          this.buildConnectInfo(conn),
+          (dataObj: { data: string; timestamp: string }) => {
+            const wc = this.windows.mainWindow?.webContents
+            if (wc && !wc.isDestroyed()) {
+              wc.send('on-recv-data', {
+                connId: sessionId,
+                data: dataObj.data,
+                timestamp: dataObj.timestamp,
+                isHex: false
+              })
+            }
+          },
+          () => {
+            _logger.flushConnLog(sessionId)
+            this.receiveHexMap.delete(sessionId)
+            this.logTimestampMap.delete(sessionId)
+            this.connectionTypeMap.delete(sessionId)
+            this.ftpModeMap.delete(sessionId)
+            const wc = this.windows.mainWindow?.webContents
+            if (wc && !wc.isDestroyed()) {
+              wc.send('on-connect-close', sessionId)
+            }
+          },
+          (logStr: string, timestamp: string) => {
+            const showTimestamp = this.logTimestampMap.get(sessionId) ?? true
+            const finalLog = showTimestamp && timestamp ? `[${timestamp}] ${logStr}` : logStr
+            _logger.appendToConnLog(finalLog, sessionId)
+          }
+        )
+      } else {
+        // FTP 客户端模式
+        const FtpClient = (await import('../protocol/FtpClient')).default
+        const client = new FtpClient()
+        this._ftpClients.set(sessionId, client)
+        return await client.start(
+          this.buildConnectInfo(conn),
+          (dataObj: { data: string; timestamp: string }) => {
+            const wc = this.windows.mainWindow?.webContents
+            if (wc && !wc.isDestroyed()) {
+              wc.send('on-recv-data', {
+                connId: sessionId,
+                data: dataObj.data,
+                timestamp: dataObj.timestamp,
+                isHex: false
+              })
+            }
+          },
+          () => {
+            _logger.flushConnLog(sessionId)
+            this.receiveHexMap.delete(sessionId)
+            this.logTimestampMap.delete(sessionId)
+            this.connectionTypeMap.delete(sessionId)
+            this.ftpModeMap.delete(sessionId)
+            this._ftpClients.delete(sessionId)
+            const wc = this.windows.mainWindow?.webContents
+            if (wc && !wc.isDestroyed()) {
+              wc.send('on-connect-close', sessionId)
+            }
+          },
+          (logStr: string, timestamp: string) => {
+            const showTimestamp = this.logTimestampMap.get(sessionId) ?? true
+            const finalLog = showTimestamp && timestamp ? `[${timestamp}] ${logStr}` : logStr
+            _logger.appendToConnLog(finalLog, sessionId)
+          }
+        )
+      }
+    }
+
+    // 动态 import 直连模式的客户端，每个 session 独立实例（避免回调覆盖）
+    const ComClient = (await import('../protocol/ComClient')).default
+    const TelnetClient = (await import('../protocol/TelnetClient')).default
+
+    const ClientClass = conn.connectionType === 'com' ? ComClient : TelnetClient
+    const client = new ClientClass()
+    this._directClients.set(sessionId, client)
+
+    return await client.start(
       this.buildConnectInfo(conn),
       (dataObj: { data: string; timestamp: string }) => {
+        const wc = this.windows.mainWindow?.webContents
+        if (!wc || wc.isDestroyed()) return
         const isHex = this.receiveHexMap.get(sessionId) ?? false
         let displayData: string
         if (isHex) {
@@ -297,7 +424,7 @@ export default class IpcConnector {
         } else {
           displayData = dataObj.data
         }
-        this.windows.mainWindow?.webContents.send('on-recv-data', {
+        wc.send('on-recv-data', {
           connId: sessionId,
           data: displayData,
           timestamp: dataObj.timestamp,
@@ -305,39 +432,136 @@ export default class IpcConnector {
         })
       },
       () => {
-        this.windows.mainWindow?.webContents.send('on-connect-close', sessionId)
         _logger.flushConnLog(sessionId)
         this.receiveHexMap.delete(sessionId)
         this.logTimestampMap.delete(sessionId)
+        this.connectionTypeMap.delete(sessionId)
+        this._directClients.delete(sessionId)
+        const wc = this.windows.mainWindow?.webContents
+        if (wc && !wc.isDestroyed()) {
+          wc.send('on-connect-close', sessionId)
+        }
       },
       (logStr: string, timestamp: string) => {
         const showTimestamp = this.logTimestampMap.get(sessionId) ?? true
         const finalLog = showTimestamp && timestamp ? `[${timestamp}] ${logStr}` : logStr
         _logger.appendToConnLog(finalLog, sessionId)
       }
-    ) || { success: false, message: 'Client not found' }
+    )
   }
 
-  private _directClients: Map<string, any> | null = null
+  // 直连模式客户端实例（每个 session 独立实例，避免 onData/onClose 回调覆盖）
+  private _directClients: Map<string, DirectClient> = new Map()
 
   private async sendDataDirect(conn: any, command: string): Promise<object> {
-    if (!this._directClients) return { success: false, message: 'Direct mode not initialized' }
-    return await this._directClients.get(conn.connectionType)?.send(
+    // FTP 客户端模式
+    if (conn.connectionType === 'ftp') {
+      if (this.isFtpServerMode(conn.sessionId)) {
+        if (this._ftpServer) {
+          return await this._ftpServer.send(conn.sessionId, command)
+        }
+        return { success: false, message: 'FTP server not running' }
+      } else {
+        const client = this._ftpClients.get(conn.sessionId)
+        if (client) {
+          return await client.send(conn.sessionId, command,
+            (dataStr: string) => this._logger?.appendToConnLog(dataStr, conn.sessionId))
+        }
+        return { success: false, message: 'FTP client not connected' }
+      }
+    }
+    const client = this._directClients.get(conn.sessionId)
+    if (!client) return { success: false, message: 'Direct mode client not initialized' }
+    return await client.send(
       conn.sessionId, command,
       (dataStr: string) => this._logger?.appendToConnLog(dataStr, conn.sessionId)
-    ) || { success: false, message: 'Client not found' }
+    )
   }
 
   private async stopConnectDirect(conn: any): Promise<object> {
-    if (!this._directClients) return { success: true }
-    return await this._directClients.get(conn.connectionType)?.disconnect(conn.sessionId)
-      || { success: true }
+    // FTP 连接：区分服务端/客户端
+    if (conn.connectionType === 'ftp') {
+      if (this.isFtpServerMode(conn.sessionId)) {
+        if (this._ftpServer) {
+          const stopPromise = (async () => {
+            try {
+              await this._ftpServer!.stop()
+            } finally {
+              this._ftpServer = null
+            }
+          })()
+          this._ftpServerStopping = stopPromise
+          try {
+            await stopPromise
+          } finally {
+            this._ftpServerStopping = null
+          }
+          return { success: true, message: 'FTP server stopped' }
+        }
+        return { success: true }
+      } else {
+        const client = this._ftpClients.get(conn.sessionId)
+        if (client) {
+          const result = await client.disconnect(conn.sessionId)
+          this._ftpClients.delete(conn.sessionId)
+          return result
+        }
+        return { success: true }
+      }
+    }
+    const client = this._directClients.get(conn.sessionId)
+    if (!client) return { success: true }
+    const result = await client.disconnect(conn.sessionId)
+    this._directClients.delete(conn.sessionId)
+    return result || { success: true }
   }
 
   private async updateConnectDirect(conn: any, config: any): Promise<object> {
-    if (!this._directClients) return { success: false, message: 'Direct mode not initialized' }
-    return await this._directClients.get(conn.connectionType)?.updateConfig(conn.sessionId, config)
-      || { success: false, message: 'Client not found' }
+    if (conn.connectionType === 'ftp') {
+      if (this.isFtpServerMode(conn.sessionId)) {
+        return { success: true, message: 'Config updated' }
+      } else {
+        const client = this._ftpClients.get(conn.sessionId)
+        return client?.updateConfig(conn.sessionId, config)
+          || { success: true, message: 'Config updated' }
+      }
+    }
+    const client = this._directClients.get(conn.sessionId)
+    if (!client) return { success: false, message: 'Direct mode client not initialized' }
+    return await client.updateConfig(conn.sessionId, config)
+  }
+
+  private async uploadFileDirect(conn: any, localFilePath: string, remoteFileName: string): Promise<object> {
+    const sessionId = conn.sessionId
+    const client = this._ftpClients.get(sessionId)
+    if (!client) {
+      return { success: false, message: 'FTP client not connected' }
+    }
+    if (typeof client.uploadFile !== 'function') {
+      return { success: false, message: 'FTP client does not support file upload' }
+    }
+    const _logger = this._logger!
+    return await client.uploadFile(
+      sessionId,
+      localFilePath,
+      remoteFileName,
+      (dataObj: { data: string; timestamp: string }) => {
+        const wc = this.windows.mainWindow?.webContents
+        if (wc && !wc.isDestroyed()) {
+          wc.send('on-recv-data', {
+            connId: sessionId,
+            data: dataObj.data,
+            timestamp: dataObj.timestamp,
+            isHex: false
+          })
+        }
+      },
+      (logStr: string, timestamp: string) => {
+        const showTimestamp = this.logTimestampMap.get(sessionId) ?? true
+        const finalLog = showTimestamp && timestamp ? `[${timestamp}] ${logStr}` : logStr
+        _logger.appendToConnLog(finalLog, sessionId)
+      }
+    )
   }
 
   // ============ 运行时设置变更 ============
@@ -361,6 +585,14 @@ export default class IpcConnector {
    * 应用退出时清理 Worker 池
    */
   async cleanup(): Promise<void> {
+    if (this._ftpServer) {
+      try { await this._ftpServer.stop() } catch { /* ignore */ }
+      this._ftpServer = null
+    }
+    for (const [sessionId, client] of this._ftpClients) {
+      try { await client.disconnect(sessionId) } catch { /* ignore */ }
+    }
+    this._ftpClients.clear()
     await this.workerPool.shutdown()
   }
 }

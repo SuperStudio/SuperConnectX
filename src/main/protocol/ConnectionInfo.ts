@@ -20,4 +20,8 @@ export default interface ConnectionInfo {
   dtr?: boolean
   // 数据接收格式
   receiveHex?: boolean
+  // FTP 参数
+  ftpMode?: 'server' | 'client'
+  ftpDirectory?: string
+  ftpPermissions?: string[]
 }

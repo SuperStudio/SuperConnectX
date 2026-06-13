@@ -284,7 +284,7 @@
                 class="telnet-terminal"
               />
               <TelnetTerminal
-                v-if="tab.connectionType === 'telnet'"
+                v-if="tab.connectionType === 'telnet' || tab.connectionType === 'ftp'"
                 v-show="activeTabId === tab.id.toString()"
                 :connection="tab"
                 :ref="(el: any) => { if (el) telnetTerminalRefs[tab.id] = el as any }"
@@ -738,7 +738,7 @@ const connectAllTabs = async () => {
   for (const tab of connectionTabs.value) {
     if (tab.connectionType === 'com' && !comTerminalRefs[tab.id]?.isConnected) {
       comTerminalRefs[tab.id]?.reconnect?.()
-    } else if (tab.connectionType === 'telnet' && !telnetTerminalRefs[tab.id]?.isConnected) {
+    } else if ((tab.connectionType === 'telnet' || tab.connectionType === 'ftp') && !telnetTerminalRefs[tab.id]?.isConnected) {
       telnetTerminalRefs[tab.id]?.reconnect?.()
     }
   }
@@ -750,7 +750,7 @@ const hasAnyConnected = computed(() => {
   return connectionTabs.value.some((tab) => {
     if (tab.connectionType === 'com') {
       return comTerminalRefs[tab.id]?.isConnected
-    } else if (tab.connectionType === 'telnet') {
+    } else if (tab.connectionType === 'telnet' || tab.connectionType === 'ftp') {
       return telnetTerminalRefs[tab.id]?.isConnected
     }
     return false
@@ -1194,10 +1194,12 @@ const closeTabOnly = async (tabId: string) => {
   pinnedTabs.delete(tabId)
 
   // 断开连接
-  await window.connectApi.stopConnect({
+  // JSON 序列化确保传入 IPC 的是纯数据对象，避免 Vue reactive proxy 导致 clone 错误
+  const stopPayload = JSON.parse(JSON.stringify({
     ...fromRawConnection(tab),
     sessionId: tab.sessionId
-  }).catch(() => {})
+  }))
+  await window.connectApi.stopConnect(stopPayload).catch(() => {})
 }
 
 // 关闭选项卡逻辑调整
@@ -1211,11 +1213,18 @@ const closeTab = async (tabId, force = false) => {
   // 找到对应的标签
   const tab = connectionTabs.value.find((t) => t.id === tabId)
   if (tab) {
+    // FTP Server 关闭时需要禁止自动重连，防止 stopConnect 触发 onConnectClose 回调后自动重建 FtpServer
+    if (tab.connectionType === 'ftp' && (tab as any).ftpMode === 'server') {
+      telnetTerminalRefs[tabId]?.preventAutoReconnect?.()
+    }
+
     // 断开对应的会话连接
-    await window.connectApi.stopConnect({
+    // JSON 序列化确保传入 IPC 的是纯数据对象，避免 Vue reactive proxy 导致 clone 错误
+    const stopPayload = JSON.parse(JSON.stringify({
       ...fromRawConnection(tab),
       sessionId: tab.sessionId
-    })
+    }))
+    await window.connectApi.stopConnect(stopPayload)
 
     // 如果是 COM 口连接，更新连接状态
     if (tab.connectionType === 'com' && tab.comName) {
@@ -1436,7 +1445,7 @@ const loadShortcutActions = async () => {
         'CommandEditor:open': () => {
           if (!activeTabId.value) return
           const activeTab = connectionTabs.value.find(t => t.id.toString() === activeTabId.value)
-          if (!activeTab || !['com', 'telnet'].includes(activeTab.connectionType)) return
+          if (!activeTab || !['com', 'telnet', 'ftp'].includes(activeTab.connectionType)) return
           const connectionType = activeTab.connectionType === 'com' ? 'telnet' : activeTab.connectionType
           openCommandEditorTab(connectionType)
         },
@@ -1526,6 +1535,9 @@ const handleShortcutKeydown = (e: KeyboardEvent) => {
 const getConnectionStatus = (tab: any) => {
   if (tab.connectionType === 'com') {
     return comTerminalRefs[tab.id]?.isConnected ? 'connected' : 'disconnected'
+  }
+  if (tab.connectionType === 'ftp') {
+    return telnetTerminalRefs[tab.id]?.isConnected ? 'connected' : 'disconnected'
   }
   return telnetTerminalRefs[tab.id]?.isConnected ? 'connected' : 'disconnected'
 }
@@ -2065,6 +2077,10 @@ onUnmounted(() => {
   z-index: 1;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   letter-spacing: 1px;
+}
+
+.ribbon-badge.ribbon-client {
+  background-color: #d4880f;
 }
 
 .conn-detail {

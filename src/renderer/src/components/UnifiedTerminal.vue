@@ -119,6 +119,16 @@
           </div>
         </div>
         <el-button
+          v-if="connection?.connectionType === 'ftp'"
+          icon="Upload"
+          size="small"
+          class="btn-primary upload-btn"
+          @click="handleFtpFileUpload"
+          :disabled="!isConnected"
+        >
+          上传
+        </el-button>
+        <el-button
           icon="Promotion"
           size="small"
           class="btn-primary send-btn"
@@ -221,12 +231,14 @@ const emit = defineEmits<{
   'update:isConnected': [value: boolean]
   onOpenCommandEditor: [connectionType: string]
   onEditSyntaxRules: []
+  onFileUpload: [filePath: string, fileName: string]
 }>()
 
 const currentCommand = ref('')
 const rxBytes = ref('0 B')
 const txBytes = ref('0 B')
 const commandInput = ref<HTMLTextAreaElement | null>(null)
+
 const isConnected = ref(props.isConnected)
 const isConnecting = ref(props.isConnecting)
 const isAutoScroll = ref(true)
@@ -816,6 +828,25 @@ const clearTerminal = () => {
 }
 
 const handleCommandSent = (cmdName: string) => emit('onCommandSent', cmdName)
+
+// FTP 文件上传
+const handleFtpFileUpload = async () => {
+  // 使用主进程 dialog 获取文件路径（contextIsolation 下 file.path 为空）
+  try {
+    const result = await window.dialogApi.openFileDialog({
+      title: '选择要上传的文件',
+      properties: ['openFile']
+    })
+    if (result.canceled || !result.filePaths || result.filePaths.length === 0) return
+
+    const filePath = result.filePaths[0]
+    // 从路径中提取文件名
+    const fileName = filePath.replace(/\\/g, '/').split('/').pop() || filePath
+    emit('onFileUpload', filePath, fileName)
+  } catch (err) {
+    console.error('Failed to open file dialog:', err)
+  }
+}
 
 const handleSendCommand = () => {
   const cmd = currentCommand.value
@@ -1550,6 +1581,13 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 
 .send-btn {
   margin-right: 10px;
+  margin-left: 12px;
+  width: auto !important;
+  align-self: flex-end;
+  margin-bottom: 2px;
+}
+
+.upload-btn {
   margin-left: 12px;
   width: auto !important;
   align-self: flex-end;

@@ -5,7 +5,7 @@
       :connection="connection"
       :is-connected="isConnected"
       :is-connecting="isConnecting"
-      :init-message="`try to connect ${connection.host}:${connection.port}`"
+      :init-message="connection.ftpMode === 'server' ? `create server ${connection.port}` : `try to connect ${connection.host}:${connection.port}`"
       placeholder="输入命令并按回车..."
       session-id-prefix="telnet"
       @on-close="handleClose"
@@ -15,6 +15,7 @@
       @on-save-log="saveLogFile"
       @on-send="handleSend"
       @on-command-sent="handleCommandSent"
+      @on-file-upload="handleFileUpload"
       @on-open-command-editor="emit('openCommandEditor', connection.connectionType)"
       @on-edit-syntax-rules="emit('openSyntaxHighlight')"
     />
@@ -40,6 +41,7 @@ const props = defineProps<{
     port: number
     name?: string
     sessionId: string
+    ftpMode?: string
   }
   onClose?: () => void
 }>()
@@ -50,7 +52,7 @@ const unifiedTerminalRef = ref<InstanceType<typeof UnifiedTerminal>>()
 
 let retryCount = 0
 let retryTimer: NodeJS.Timeout | null = null
-let stopRetry = ref(false)
+const stopRetry = ref(false)
 let preventAutoReconnect = false
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
@@ -127,12 +129,15 @@ const handleClose = async () => {
   cleanup()
   unifiedTerminalRef.value?.appendToTerminal(`\n连接已关闭\n`)
   try {
-    await window.connectApi.stopConnect({
-      connectionType: 'telnet',
-      host: props.connection.host,
-      port: props.connection.port,
+    const stopConn: any = {
+      connectionType: props.connection.connectionType,
       sessionId: props.connection.sessionId
-    })
+    }
+    if (props.connection.connectionType === 'telnet') {
+      stopConn.host = props.connection.host
+      stopConn.port = props.connection.port
+    }
+    await window.connectApi.stopConnect(stopConn)
   } catch (error) {
     console.error('Failed to close connection:', error)
   }
@@ -169,6 +174,11 @@ const handleTelnetClose = (_connId: number) => {
     unifiedTerminalRef.value?.appendToTerminal(`\n连接已关闭\n`)
     return
   }
+  // FTP server 模式不应该自动重连（server 停止即结束，不应重建）
+  if (props.connection.connectionType === 'ftp' && props.connection.ftpMode === 'server') {
+    unifiedTerminalRef.value?.appendToTerminal(`\nFTP 服务已停止\n`)
+    return
+  }
   ElMessage.info('连接已关闭，将尝试重新连接...')
   unifiedTerminalRef.value?.appendToTerminal(`\n连接已关闭，将在${RETRY_INTERVAL_MS / 1000}秒后尝试重连...\n`)
   if (!stopRetry.value) {
@@ -194,10 +204,12 @@ const connect = async () => {
     }
 
     try {
-      const result = await window.connectApi.startConnect({
+      // JSON 序列化确保传入 IPC 的是纯数据对象，避免 Vue reactive proxy 导致 clone 错误
+      const connPayload = JSON.parse(JSON.stringify({
         ...fromRawConnection(props.connection),
         sessionId: props.connection.sessionId
-      })
+      }))
+      const result = await window.connectApi.startConnect(connPayload)
       if (result.success) {
         terminalCleanup()
         currentConnId = result.connId
@@ -205,8 +217,17 @@ const connect = async () => {
         isConnecting.value = false
 
         loadFontSettings()
+        const connType = props.connection.connectionType
+        const updateConn: any = {
+          connectionType: connType,
+          sessionId: props.connection.sessionId
+        }
+        if (connType === 'telnet') {
+          updateConn.host = props.connection.host
+          updateConn.port = props.connection.port
+        }
         window.connectApi.updateConnect(
-          { connectionType: 'telnet', host: props.connection.host, port: props.connection.port, sessionId: props.connection.sessionId },
+          updateConn,
           { logTimestamp: terminal.showTimestamp.value }
         )
 
@@ -234,7 +255,10 @@ const connect = async () => {
           if (String(connId) !== String(props.connection.sessionId)) return
           handleTelnetClose(connId)
         })
-        unifiedTerminalRef.value?.appendToTerminal(`\nconnect success, retry count: ${retryCount + 1}\n`)
+        const successMsg = props.connection.ftpMode === 'server'
+          ? `\nserver started, retry count: ${retryCount + 1}\n`
+          : `\nconnect success, retry count: ${retryCount + 1}\n`
+        unifiedTerminalRef.value?.appendToTerminal(successMsg)
         retryCount = 0
       } else {
         throw new Error(result.message || '连接失败')
@@ -263,17 +287,53 @@ const handleSend = async (command: string, _originalInput?: string) => {
   unifiedTerminalRef.value?.updateTxBytes(command.length)
 
   try {
+    // JSON 序列化确保传入 IPC 的是纯数据对象，避免 Vue reactive proxy 导致 clone 错误
+    const connObj = JSON.parse(JSON.stringify({
+      ...fromRawConnection(props.connection),
+      sessionId: props.connection.sessionId
+    }))
     await window.connectApi.sendData({
-      conn: {
-        ...fromRawConnection(props.connection),
-        sessionId: props.connection.sessionId
-      },
+      conn: connObj,
       command: command.trim()
     })
   } catch (error) {
     ElMessage.error('命令发送失败')
     console.error('Failed to send:', error)
   }
+}
+
+const handleFileUpload = (filePath: string, fileName: string) => {
+  if (!isConnected.value) {
+    ElMessage.warning('请先建立连接')
+    return
+  }
+
+  unifiedTerminalRef.value?.appendToTerminal(`\n[FTP] Uploading: ${fileName}\n`)
+
+  // fire-and-forget：主进程异步读取文件并上传，进度通过 onRecvData 实时推送
+  ;(async () => {
+    try {
+      const connObj = JSON.parse(JSON.stringify({
+        ...fromRawConnection(props.connection),
+        sessionId: props.connection.sessionId
+      }))
+
+      const result = await window.connectApi.uploadFile({
+        conn: connObj,
+        localFilePath: filePath,
+        remoteFileName: fileName
+      })
+
+      if (result.success) {
+        ElMessage.success(`文件上传成功: ${fileName}`)
+      } else {
+        ElMessage.error(`上传失败: ${result.message}`)
+      }
+    } catch (error) {
+      ElMessage.error('文件上传失败')
+      console.error('Failed to upload file:', error)
+    }
+  })()
 }
 
 const handleCommandSent = (cmdName: string) => emit('commandSent', cmdName)
