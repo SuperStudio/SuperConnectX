@@ -120,12 +120,20 @@ const open = (defaultType: string = 'ftp') => {
   dialogVisible.value = true
 }
 
+// 编辑模式下密码占位符（10个*），用于区分"有密码未修改"和"无密码"
+const PASSWORD_PLACEHOLDER = '**********'
+
 // 打开对话框（编辑）
 const openEdit = (conn: any) => {
   isEditMode.value = true
   // 先清除旧字段
   Object.keys(formData).forEach((key) => delete (formData as any)[key])
-  Object.assign(formData, fromRawConnection(conn))
+  const normalized = fromRawConnection(conn)
+  // 如果密码不为空（后端脱敏后返回 '***MASKED***'），固定显示10个 '*'
+  if ((normalized as any).password && (normalized as any).password !== '') {
+    ;(normalized as any).password = PASSWORD_PLACEHOLDER
+  }
+  Object.assign(formData, normalized)
   dialogVisible.value = true
 }
 
@@ -212,6 +220,8 @@ const handleSubmit = async () => {
   for (const field of requiredFields) {
     const val = (formData as any)[field.prop]
     if (val === '' || val === undefined || val === null) {
+      // 编辑模式下密码为空是可以的（表示不修改密码）
+      if (isEditMode.value && field.prop === 'password') continue
       ElMessage.error(field.message)
       return
     }
@@ -220,7 +230,12 @@ const handleSubmit = async () => {
   // 验证通过，通知父组件保存
   // 深拷贝避免 reactive 代理对象导致 IPC 序列化失败（An object could not be cloned）
   isSubmitting.value = true
-  const submitData = JSON.parse(JSON.stringify(fromRawConnection(formData)))
+  const normalized = fromRawConnection(formData)
+  // 编辑模式下如果密码是占位符（10个*），表示用户未修改密码
+  if (isEditMode.value && (normalized as any).password === PASSWORD_PLACEHOLDER) {
+    ;(normalized as any).password = '***MASKED***'
+  }
+  const submitData = JSON.parse(JSON.stringify(normalized))
   emit('submit', submitData as ConnectionFormData)
 }
 

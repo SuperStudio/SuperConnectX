@@ -59,6 +59,7 @@ interface StorageApi {
 
 interface ConnectApi {
   startConnect: (conn: any) => Promise<any>
+  startConnectById: (id: number, sessionId: number, extraFields?: any) => Promise<any>
   sendData: (data: { conn: any; command: string }) => Promise<any>
   uploadFile: (data: { conn: any; localFilePath: string; remoteFileName: string }) => Promise<any>
   stopConnect: (conn: any) => Promise<any>

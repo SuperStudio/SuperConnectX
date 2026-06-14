@@ -63,6 +63,7 @@ contextBridge.exposeInMainWorld('storageApi', {
 
 contextBridge.exposeInMainWorld('connectApi', {
   startConnect: (conn: any) => ipcRenderer.invoke('start-connect', conn),
+  startConnectById: (id: number, sessionId: number, extraFields?: any) => ipcRenderer.invoke('start-connect-by-id', { id, sessionId, extraFields }),
   sendData: (data: { conn: any; command: string }) => ipcRenderer.invoke('send-data', data),
   uploadFile: (data: { conn: any; localFilePath: string; remoteFileName: string }) => ipcRenderer.invoke('upload-file', data),
   stopConnect: (conn: any) => ipcRenderer.invoke('stop-connect', conn),

@@ -4,6 +4,7 @@ import { ipcMain } from 'electron'
 import logger from './IpcAppLogger'
 import ProtocolLogger from '../utils/ProtocolLogger'
 import SettingsStorage from '../storage/SettingsStorage'
+import ConnectionStorage from '../storage/ConnectionStorage'
 import WorkerPool from '../pool/WorkerPool'
 import path from 'path'
 
@@ -34,6 +35,7 @@ export default class IpcConnector {
   private ftpModeMap = new Map<string, string>()
 
   private settingsStorage: SettingsStorage
+  private connectionStorage: ConnectionStorage
   private windows!: { mainWindow?: BrowserWindow | null }
   private _logger: ProtocolLogger | null = null
 
@@ -42,6 +44,7 @@ export default class IpcConnector {
 
   constructor() {
     this.settingsStorage = new SettingsStorage()
+    this.connectionStorage = new ConnectionStorage()
     this.workerPool = WorkerPool.getInstance()
   }
 
@@ -169,7 +172,10 @@ export default class IpcConnector {
 
     ipcMain.handle('start-connect', async (_, conn: any) => {
       logger.info(`start connect: ${conn.name} (type: ${conn.connectionType})`)
-      logger.debug(JSON.stringify(conn))
+      // 日志中脱敏密码字段，防止明文泄露
+      const debugConn = { ...conn }
+      if (debugConn.password) debugConn.password = '***'
+      logger.debug(JSON.stringify(debugConn))
       _logger.createConnLogFile(conn.sessionId, conn.name, conn.remark || '')
 
       // 存储初始的 receiveHex 状态
@@ -194,6 +200,56 @@ export default class IpcConnector {
         return await this.workerPool.startConnection(connInfo, conn.connectionType)
       } else {
         // 直连模式（COM 等依赖 native addon 的协议）
+        return this.startConnectDirect(conn)
+      }
+    })
+
+    /**
+     * 通过连接 id 发起连接（后端从存储中解密密码，前端不接触明文）
+     * 适用于有密码字段的协议（FTP/Telnet/SSH/TFTP/HTTP）
+     * COM 等不需要密码的协议仍可使用 start-connect 直接传参
+     */
+    ipcMain.handle('start-connect-by-id', async (_, { id, sessionId, extraFields }: { id: number; sessionId: number; extraFields?: any }) => {
+      logger.info(`start connect by id: ${id}, sessionId: ${sessionId}`)
+
+      // 从存储中获取连接并解密密码
+      const storedConn = this.connectionStorage.getByIdWithPassword(id)
+      if (!storedConn) {
+        logger.error(`connection not found for id: ${id}`)
+        return { success: false, message: `连接不存在 (id: ${id})` }
+      }
+
+      // 合并额外字段（如 baudRate、encoding 等运行时参数）
+      // storedConn 放在最后确保解密后的密码不被 extraFields 覆盖
+      const conn = { ...(extraFields || {}), ...storedConn, sessionId }
+      // 确保密码来自存储解密（extraFields 中的 password 可能是 undefined/掩码）
+      if (storedConn.password) {
+        conn.password = storedConn.password
+      }
+
+      // 日志脱敏
+      const debugConn = { ...conn }
+      if (debugConn.password) debugConn.password = '***'
+      logger.debug(`start-connect-by-id conn: ${JSON.stringify(debugConn)}`)
+
+      _logger.createConnLogFile(conn.sessionId, conn.name, conn.remark || '')
+
+      // 存储初始状态
+      const receiveHex = conn.receiveHex === true || conn.receiveHex === 'true'
+      this.receiveHexMap.set(conn.sessionId, receiveHex)
+      const logTimestamp = conn.logTimestamp !== undefined
+        ? (conn.logTimestamp === true || conn.logTimestamp === 'true')
+        : true
+      this.logTimestampMap.set(conn.sessionId, logTimestamp)
+      this.connectionTypeMap.set(conn.sessionId, conn.connectionType)
+      if (conn.connectionType === 'ftp' && conn.ftpMode) {
+        this.ftpModeMap.set(conn.sessionId, conn.ftpMode)
+      }
+
+      if (shouldUseWorker(conn)) {
+        const connInfo = this.buildConnectInfo(conn)
+        return await this.workerPool.startConnection(connInfo, conn.connectionType)
+      } else {
         return this.startConnectDirect(conn)
       }
     })

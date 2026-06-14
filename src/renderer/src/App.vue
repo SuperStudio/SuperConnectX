@@ -1161,7 +1161,8 @@ const connectToServer = async (conn) => {
   const newTab = {
     ...fromRawConnection(conn),
     sessionId: sessionId, // 新增会话ID用于区分相同连接的不同标签
-    id: `${conn.id}-${sessionId}` // 组合ID确保标签唯一
+    id: `${conn.id}-${sessionId}`, // 组合ID确保标签唯一
+    connectionId: conn.id // 保留原始连接ID，供 startConnectById 使用
   }
 
   // 添加到标签列表

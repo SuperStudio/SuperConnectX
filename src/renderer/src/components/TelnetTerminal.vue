@@ -207,12 +207,19 @@ const connect = async () => {
     }
 
     try {
-      // JSON 序列化确保传入 IPC 的是纯数据对象，避免 Vue reactive proxy 导致 clone 错误
-      const connPayload = JSON.parse(JSON.stringify({
-        ...fromRawConnection(props.connection),
-        sessionId: props.connection.sessionId
-      }))
-      const result = await window.connectApi.startConnect(connPayload)
+      // 通过 connectionId 发起连接，后端从存储中解密密码
+      // 前端不接触明文密码
+      const connId = (props.connection as any).connectionId || props.connection.id
+      const result = await window.connectApi.startConnectById(
+        connId,
+        props.connection.sessionId,
+        // 传递运行时字段（不包含密码，密码由后端从存储中解密）
+        JSON.parse(JSON.stringify({
+          ...fromRawConnection(props.connection),
+          // 清除可能存在的掩码密码，避免覆盖后端解密结果
+          password: undefined
+        }))
+      )
       if (result.success) {
         terminalCleanup()
         currentConnId = result.connId

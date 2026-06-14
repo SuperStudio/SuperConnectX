@@ -78,7 +78,9 @@ export default class FtpClient extends BaseClient {
     return new Promise((resolve, _reject) => {
       state.pendingResolve = resolve
       state.controlSocket.write(command + '\r\n')
-      this.emitData(state, `>>> ${command}`)
+      // 脱敏 PASS 命令，防止密码明文泄露到终端和日志
+      const displayCommand = /^PASS\s/i.test(command) ? 'PASS ***' : command
+      this.emitData(state, `>>> ${displayCommand}`)
     })
   }
 
