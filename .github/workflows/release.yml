@@ -40,8 +40,8 @@ jobs:
       - name: Rebuild native modules
         run: npx electron-builder install-app-deps
 
-
-
+      - name: Run tests
+        run: npm test
 
       - name: Build (Windows)
         run: npm run build:win
