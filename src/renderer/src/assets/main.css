@@ -496,6 +496,64 @@ input[type="number"] {
 }
 
 /* ==============================
+   el-input-number 数字调节按钮美化
+   ============================== */
+.el-input-number {
+  width: 100% !important;
+}
+
+/* 输入框部分 */
+.el-input-number .el-input__wrapper {
+  background-color: #3c3c3c !important;
+  box-shadow: 0 0 0 1px #4a4a4a inset !important;
+}
+
+.el-input-number .el-input__wrapper:hover,
+.el-input-number .el-input__wrapper:focus-within {
+  box-shadow: 0 0 0 1px var(--focus-border-color) inset !important;
+}
+
+.el-input-number .el-input__inner {
+  color: #e8e8e8 !important;
+  text-align: center !important;
+}
+
+/* 增减按钮容器 */
+.el-input-number__increase,
+.el-input-number__decrease {
+  background-color: #3c3c3c !important;
+  border-color: #4a4a4a !important;
+  color: #b0b0b0 !important;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.el-input-number__increase:hover,
+.el-input-number__decrease:hover {
+  background-color: #094771 !important;
+  color: #ffffff !important;
+}
+
+.el-input-number__increase:active,
+.el-input-number__decrease:active {
+  background-color: #2563eb !important;
+}
+
+/* 按钮内的图标 */
+.el-input-number__increase .el-icon,
+.el-input-number__decrease .el-icon {
+  color: inherit !important;
+}
+
+/* disabled 状态 */
+.el-input-number.is-disabled .el-input-number__increase,
+.el-input-number.is-disabled .el-input-number__decrease {
+  background-color: #2a2a2a !important;
+  border-color: #333 !important;
+  color: #555 !important;
+  cursor: not-allowed !important;
+}
+
+/* ==============================
    Primary 按钮样式
    ============================== */
 .btn-primary {
