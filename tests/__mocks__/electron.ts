@@ -25,7 +25,12 @@ export const app = {
 
 // 导出其他可能被引用的 electron 子模块（空对象，按需扩展）
 export const BrowserWindow = {}
-export const ipcMain = {}
+export const ipcMain = {
+  handle: () => {},
+  on: () => {},
+  removeHandler: () => {},
+  removeAllListeners: () => {}
+}
 export const dialog = {}
 export const shell = {
   openPath: () => Promise.resolve(''),
