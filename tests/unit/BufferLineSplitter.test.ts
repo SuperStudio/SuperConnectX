@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { BufferLineSplitter } from '../src/main/protocol/BufferLineSplitter'
+import { BufferLineSplitter } from '../../src/main/protocol/BufferLineSplitter'
 
 describe('BufferLineSplitter', () => {
   describe('split - CRLF (\\r\\n)', () => {

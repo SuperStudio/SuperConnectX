@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import ConnectionStorage, { DuplicateConnectionError } from '../src/main/storage/ConnectionStorage'
-import { MASKED_PASSWORD } from '../src/main/utils/SafeStorageString'
+import ConnectionStorage, { DuplicateConnectionError } from '../../src/main/storage/ConnectionStorage'
+import { MASKED_PASSWORD } from '../../src/main/utils/SafeStorageString'
 
 describe('ConnectionStorage', () => {
   let storage: ConnectionStorage

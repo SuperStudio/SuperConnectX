@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import CommandHistoryStorage from '../src/main/storage/CommandHistoryStorage'
-import SettingsStorage from '../src/main/storage/SettingsStorage'
+import CommandHistoryStorage from '../../src/main/storage/CommandHistoryStorage'
+import SettingsStorage from '../../src/main/storage/SettingsStorage'
 
 describe('CommandHistoryStorage', () => {
   let storage: CommandHistoryStorage

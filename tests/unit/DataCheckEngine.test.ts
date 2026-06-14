@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getPlugins, checkData } from '../src/main/utils/DataCheckEngine'
+import { getPlugins, checkData } from '../../src/main/utils/DataCheckEngine'
 
 describe('DataCheckEngine', () => {
   describe('getPlugins', () => {

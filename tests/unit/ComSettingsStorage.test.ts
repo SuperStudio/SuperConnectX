@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import ComSettingsStorage from '../src/main/storage/ComSettingsStorage'
+import ComSettingsStorage from '../../src/main/storage/ComSettingsStorage'
 
 describe('ComSettingsStorage', () => {
   let storage: ComSettingsStorage

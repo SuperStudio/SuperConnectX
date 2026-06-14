@@ -31,8 +31,8 @@ describe('PreSetCommandStorage', () => {
     setupTestDir()
     vi.resetModules()
 
-    const PreSetCmdMod = await import('../src/main/storage/PreSetCommandStorage')
-    const GroupMod = await import('../src/main/storage/CommandGroupStorage')
+    const PreSetCmdMod = await import('../../src/main/storage/PreSetCommandStorage')
+    const GroupMod = await import('../../src/main/storage/CommandGroupStorage')
     cmdStorage = new PreSetCmdMod.default()
     groupStorage = new GroupMod.default()
   })
@@ -272,7 +272,7 @@ describe('PreSetCommandStorage', () => {
     })
 
     it('导入带语法高亮规则的 SuperCom 文件', async () => {
-      const SettingsStorageModule = await import('../src/main/storage/SettingsStorage')
+      const SettingsStorageModule = await import('../../src/main/storage/SettingsStorage')
       const settingsStorage = new SettingsStorageModule.default()
 
       const superComData = {

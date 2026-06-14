@@ -12,8 +12,8 @@ import {
   isPingConnection,
   isTftpConnection,
   isHttpConnection
-} from '../src/renderer/src/entity/protocol/index'
-import type { ConnectionFormData } from '../src/renderer/src/entity/protocol/base'
+} from '../../src/renderer/src/entity/protocol/index'
+import type { ConnectionFormData } from '../../src/renderer/src/entity/protocol/base'
 
 describe('Protocol Registry (index.ts)', () => {
   describe('getProtocolStrategy', () => {
@@ -154,13 +154,13 @@ describe('Protocol Registry (index.ts)', () => {
 
 describe('TelnetInfo (deprecated)', () => {
   it('build 返回 telnet 默认连接', async () => {
-    const { default: TelnetInfo } = await import('../src/renderer/src/entity/protocol/TelnetInfo')
+    const { default: TelnetInfo } = await import('../../src/renderer/src/entity/protocol/TelnetInfo')
     const conn = TelnetInfo.build()
     expect(conn.connectionType).toBe('telnet')
   })
 
   it('buildWithValue 从 raw 还原', async () => {
-    const { default: TelnetInfo } = await import('../src/renderer/src/entity/protocol/TelnetInfo')
+    const { default: TelnetInfo } = await import('../../src/renderer/src/entity/protocol/TelnetInfo')
     const conn = TelnetInfo.buildWithValue({ host: '1.2.3.4', port: 99 })
     expect(conn.connectionType).toBe('telnet')
     expect(conn.host).toBe('1.2.3.4')

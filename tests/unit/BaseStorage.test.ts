@@ -7,7 +7,7 @@ describe('BaseStorage', () => {
 
   beforeEach(async () => {
     // Re-import to get fresh instance
-    const mod = await import('../src/main/storage/BaseStorage')
+    const mod = await import('../../src/main/storage/BaseStorage')
     BaseStorage = mod.default
     // Clear the mock store between tests
     vi.clearAllMocks()

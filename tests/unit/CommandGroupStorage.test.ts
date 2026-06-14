@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import CommandGroupStorage from '../src/main/storage/CommandGroupStorage'
+import CommandGroupStorage from '../../src/main/storage/CommandGroupStorage'
 
 describe('CommandGroupStorage', () => {
   let storage: CommandGroupStorage

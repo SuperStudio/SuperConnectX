@@ -8,7 +8,7 @@ import {
   ANSI_FG_BRIGHT,
   ANSI_BG_COLORS,
   ANSI_BG_BRIGHT
-} from '../src/renderer/src/utils/AnsiParser'
+} from '../../src/renderer/src/utils/AnsiParser'
 
 describe('AnsiParser', () => {
   describe('makeDefaultState', () => {

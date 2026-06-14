@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import ShortcutsStorage, { SHORTCUT_ACTIONS } from '../src/main/storage/ShortcutsStorage'
+import ShortcutsStorage, { SHORTCUT_ACTIONS } from '../../src/main/storage/ShortcutsStorage'
 
 describe('ShortcutsStorage', () => {
   let storage: ShortcutsStorage

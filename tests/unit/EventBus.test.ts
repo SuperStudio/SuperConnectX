@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import eventBus from '../src/renderer/src/utils/EventBus'
+import eventBus from '../../src/renderer/src/utils/EventBus'
 
 describe('EventBus', () => {
   describe('on / emit', () => {

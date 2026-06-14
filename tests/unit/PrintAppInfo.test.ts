@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock the logger
-vi.mock('../src/main/ipc/IpcAppLogger', () => ({
+vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -16,12 +16,12 @@ describe('PrintAppInfo', () => {
   })
 
   it('printAppInfo 不传 mainWindow 时不抛错', async () => {
-    const { printAppInfo } = await import('../src/main/utils/PrintAppInfo')
+    const { printAppInfo } = await import('../../src/main/utils/PrintAppInfo')
     expect(() => printAppInfo()).not.toThrow()
   })
 
   it('printAppInfo 传入 mock mainWindow 时不抛错', async () => {
-    const { printAppInfo } = await import('../src/main/utils/PrintAppInfo')
+    const { printAppInfo } = await import('../../src/main/utils/PrintAppInfo')
     const mockWindow = {
       id: 1,
       getBounds: () => ({ x: 0, y: 0, width: 1024, height: 768 }),
@@ -39,7 +39,7 @@ describe('PrintAppInfo', () => {
   })
 
   it('printAppInfo 处理各种边界情况', async () => {
-    const { printAppInfo } = await import('../src/main/utils/PrintAppInfo')
+    const { printAppInfo } = await import('../../src/main/utils/PrintAppInfo')
     // minimal window with all required methods
     const minimalWindow = {
       id: 0,

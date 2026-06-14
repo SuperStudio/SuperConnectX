@@ -203,12 +203,12 @@ describe('IpcTools - memory calculation logic', () => {
 
 describe('IpcTools - singleton pattern', () => {
   it('should export a class with getInstance', async () => {
-    const IpcTools = (await import('../src/main/ipc/IpcTools')).default
+    const IpcTools = (await import('../../src/main/ipc/IpcTools')).default
     expect(typeof IpcTools.getInstance).toBe('function')
   })
 
   it('should return same instance on multiple calls', async () => {
-    const IpcTools = (await import('../src/main/ipc/IpcTools')).default
+    const IpcTools = (await import('../../src/main/ipc/IpcTools')).default
     const i1 = IpcTools.getInstance()
     const i2 = IpcTools.getInstance()
     expect(i1).toBe(i2)

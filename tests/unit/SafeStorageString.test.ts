@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import crypto from 'crypto'
-import SafeStorageString, { MASKED_PASSWORD } from '../src/main/utils/SafeStorageString'
+import SafeStorageString, { MASKED_PASSWORD } from '../../src/main/utils/SafeStorageString'
 
 describe('SafeStorageString', () => {
   // 生成固定的 32 字节密钥，避免依赖 electron 的 userData 路径

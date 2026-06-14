@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { formatFontName, getSystemFonts } from '../src/renderer/src/utils/FontDetector'
+import { formatFontName, getSystemFonts } from '../../src/renderer/src/utils/FontDetector'
 
 describe('FontDetector', () => {
   describe('formatFontName', () => {

@@ -4,7 +4,7 @@ import os from 'os'
 import fs from 'fs'
 
 // Mock the logger
-vi.mock('../src/main/ipc/IpcAppLogger', () => ({
+vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -17,7 +17,7 @@ vi.mock('../src/main/ipc/IpcAppLogger', () => ({
 const TEST_ROOT = path.join(os.tmpdir(), 'superconnectx-backup-test')
 
 vi.mock('electron', async () => {
-  const actual = await vi.importActual('../tests/__mocks__/electron') as any
+  const actual = await vi.importActual('../__mocks__/electron') as any
   return {
     ...actual,
     app: {
@@ -57,7 +57,7 @@ describe('BackupManager', () => {
     setupTestDir()
     // Re-import to get fresh singleton each test
     vi.resetModules()
-    BackupManagerModule = await import('../src/main/utils/BackupManager')
+    BackupManagerModule = await import('../../src/main/utils/BackupManager')
   })
 
   afterEach(() => {

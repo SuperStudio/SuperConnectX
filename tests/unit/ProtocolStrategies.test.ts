@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { TelnetStrategy } from '../src/renderer/src/entity/protocol/telnet'
-import { SshStrategy } from '../src/renderer/src/entity/protocol/ssh'
-import { ComStrategy } from '../src/renderer/src/entity/protocol/com'
-import { FtpStrategy } from '../src/renderer/src/entity/protocol/ftp'
-import { TcpStrategy } from '../src/renderer/src/entity/protocol/tcp'
-import { UdpStrategy } from '../src/renderer/src/entity/protocol/udp'
-import { PingStrategy } from '../src/renderer/src/entity/protocol/ping'
-import { TftpStrategy } from '../src/renderer/src/entity/protocol/tftp'
-import { HttpStrategy } from '../src/renderer/src/entity/protocol/http'
+import { TelnetStrategy } from '../../src/renderer/src/entity/protocol/telnet'
+import { SshStrategy } from '../../src/renderer/src/entity/protocol/ssh'
+import { ComStrategy } from '../../src/renderer/src/entity/protocol/com'
+import { FtpStrategy } from '../../src/renderer/src/entity/protocol/ftp'
+import { TcpStrategy } from '../../src/renderer/src/entity/protocol/tcp'
+import { UdpStrategy } from '../../src/renderer/src/entity/protocol/udp'
+import { PingStrategy } from '../../src/renderer/src/entity/protocol/ping'
+import { TftpStrategy } from '../../src/renderer/src/entity/protocol/tftp'
+import { HttpStrategy } from '../../src/renderer/src/entity/protocol/http'
 
 describe('Protocol Strategies', () => {
   const allStrategies = [

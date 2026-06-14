@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import FileUtils from '../src/renderer/src/utils/FileUtils'
+import FileUtils from '../../src/renderer/src/utils/FileUtils'
 
 describe('FileUtils', () => {
   describe('formatBytes', () => {

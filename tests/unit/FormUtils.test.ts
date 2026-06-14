@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import FormUtils from '../src/renderer/src/utils/FormUtils'
+import FormUtils from '../../src/renderer/src/utils/FormUtils'
 
 describe('FormUtils', () => {
   describe('buildTelnet', () => {
