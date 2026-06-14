@@ -93,7 +93,7 @@
           <textarea
             v-model="currentCommand"
             @keydown="handleInputKeydown"
-            :placeholder="isConnected ? (hexMode ? '输入HEX数据 (如: 01 02 03)' : placeholder) : '连接后可发送命令'"
+            :placeholder="isConnected ? (hexMode ? t('terminal.hexPlaceholder') : (placeholder || t('terminal.inputPrompt'))) : t('terminal.disconnectedPlaceholder')"
             ref="commandInput"
             class="command-input"
             :class="{ 'not-connected': !isConnected }"
@@ -128,7 +128,7 @@
           @click="handleFtpFileUpload"
           :disabled="!isConnected"
         >
-          上传
+          {{ t('terminal.upload') }}
         </el-button>
         <el-button
           icon="Promotion"
@@ -137,7 +137,7 @@
           @click="handleSendCommand"
           :disabled="!isConnected"
         >
-          发送
+          {{ t('terminal.send') }}
         </el-button>
       </div>
 
@@ -216,8 +216,8 @@ const props = withDefaults(defineProps<{
 }>(), {
   isConnected: false,
   isConnecting: false,
-  initMessage: '等待连接...',
-  placeholder: '输入命令并按回车发送...',
+  initMessage: '', // will be set via t() in script
+  placeholder: '', // will be set via t() in script
   sessionIdPrefix: 'terminal'
 })
 
@@ -485,7 +485,7 @@ const initEditor = async () => {
 
   const uniqueUri = monaco.Uri.parse(`${props.sessionIdPrefix}:///output-${props.connection.sessionId}.txt`)
   editorModel = monaco.editor.createModel(
-    `${props.initMessage}\n`,
+    `${props.initMessage || t('terminal.waitingConnection')}\n`,
     'plaintext',
     uniqueUri
   )

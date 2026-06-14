@@ -6,13 +6,13 @@
       <div class="sidebar-header">
         <el-button class="btn-primary add-group-btn" @click="openGroupDialog">
           <el-icon><Plus /></el-icon>
-          新建分组
+          {{ t('commandEditor.newGroup') }}
         </el-button>
       </div>
 
       <!-- 搜索框 -->
       <div class="sidebar-search">
-        <el-input v-model="searchKeyword" size="small" placeholder="搜索分组..." prefix-icon="Search" clearable />
+        <el-input v-model="searchKeyword" size="small" :placeholder="t('commandEditor.searchPlaceholder')" prefix-icon="Search" clearable />
       </div>
 
       <!-- 分组列表 -->
@@ -39,11 +39,11 @@
       <div class="toolbar">
         <el-button size="small" class="btn-primary" style="width: auto !important" :disabled="!selectedGroupId" @click="addCommand">
           <el-icon><Plus /></el-icon>
-          添加命令
+          {{ t('commandEditor.addCommand') }}
         </el-button>
         <el-button size="small" class="btn-primary" style="width: auto !important" :disabled="!currentRow" @click="insertCommandAbove">
           <el-icon><Edit /></el-icon>
-          插入命令
+          {{ t('commandEditor.insertCommand') }}
         </el-button>
       </div>
 
@@ -58,19 +58,19 @@
           :header-cell-style="{ background: '#2d2d2d', color: '#e0e0e0', fontWeight: '600' }"
           :row-class-name="tableRowClassName"
           :highlight-current-row="true"
-          empty-text="暂无命令，请点击上方按钮添加"
+          :empty-text="t('commandEditor.emptyText')"
           @row-click="handleRowClick"
         >
-          <el-table-column label="操作" width="80" align="center">
+          <el-table-column :label="t('commandEditor.columnAction')" width="80" align="center">
             <template #default="{ row }">
-              <el-tooltip content="删除命令" placement="top" effect="dark">
+              <el-tooltip :content="t('commandEditor.deleteCommand')" placement="top" effect="dark">
                 <el-button type="danger" size="small" circle @click="deleteCommand(row)">
                   <el-icon><Delete /></el-icon>
                 </el-button>
               </el-tooltip>
             </template>
           </el-table-column>
-          <el-table-column label="序号" width="80" align="center" prop="seqNum">
+          <el-table-column :label="t('commandEditor.columnSeqNum')" width="80" align="center" prop="seqNum">
             <template #default="{ row }">
               <el-input-number
                 v-model="row.seqNum"
@@ -85,7 +85,7 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="名称" min-width="140" prop="name">
+          <el-table-column :label="t('commandEditor.columnName')" min-width="140" prop="name">
             <template #default="{ row }">
               <el-input
                 v-model="row.name"
@@ -96,7 +96,7 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="延时(ms)" width="120" align="center" prop="delay">
+          <el-table-column :label="t('commandEditor.columnDelay')" width="120" align="center" prop="delay">
             <template #default="{ row }">
               <el-input-number
                 v-model="row.delay"
@@ -109,7 +109,7 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="命令内容" min-width="200">
+          <el-table-column :label="t('commandEditor.columnContent')" min-width="200">
             <template #default="{ row }">
               <el-input
                 v-model="row.command"
@@ -125,42 +125,42 @@
     </div>
 
     <!-- 分组编辑对话框 -->
-    <el-dialog v-model="showGroupDialog" :title="isEditingGroup ? '编辑分组' : '新建分组'" width="400px" @opened="onGroupDialogOpened">
+    <el-dialog v-model="showGroupDialog" :title="isEditingGroup ? t('commandEditor.editGroupTitle') : t('commandEditor.newGroupTitle')" width="400px" @opened="onGroupDialogOpened">
       <el-form :model="groupForm" label-width="80px" @submit.prevent @keydown.enter="saveGroup">
-        <el-form-item label="分组名称">
-          <el-input ref="groupNameInputRef" v-model="groupForm.name" placeholder="请输入分组名称" />
+        <el-form-item :label="t('commandEditor.groupName')">
+          <el-input ref="groupNameInputRef" v-model="groupForm.name" :placeholder="t('commandEditor.groupNamePlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button class="btn-cancel" style="width: auto !important" size="small" @click="showGroupDialog = false">取消</el-button>
-        <el-button size="small" class="btn-primary" style="width: auto !important" @click="saveGroup">确定</el-button>
+        <el-button class="btn-cancel" style="width: auto !important" size="small" @click="showGroupDialog = false">{{ t('common.cancel') }}</el-button>
+        <el-button size="small" class="btn-primary" style="width: auto !important" @click="saveGroup">{{ t('common.confirm') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 命令编辑对话框 -->
-    <el-dialog v-model="showCommandDialog" :title="isEditingCommand ? '编辑命令' : '添加命令'" width="500px">
+    <el-dialog v-model="showCommandDialog" :title="isEditingCommand ? t('commandEditor.editCommandTitle') : t('commandEditor.addCommandTitle')" width="500px">
       <el-form :model="commandForm" label-width="80px" @submit.prevent @keydown.enter="saveCommand">
-        <el-form-item label="序号">
+        <el-form-item :label="t('commandEditor.columnSeqNum')">
           <el-input-number v-model="commandForm.seqNum" :min="1" :max="999" size="small" />
         </el-form-item>
-        <el-form-item label="名称">
-          <el-input v-model="commandForm.name" placeholder="请输入命令名称" />
+        <el-form-item :label="t('commandEditor.commandName')">
+          <el-input v-model="commandForm.name" :placeholder="t('commandEditor.commandNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="延时(ms)">
+        <el-form-item :label="t('commandEditor.columnDelay')">
           <el-input-number v-model="commandForm.delay" :min="0" :step="100" size="small" />
         </el-form-item>
-        <el-form-item label="命令内容">
+        <el-form-item :label="t('commandEditor.commandContent')">
           <el-input
             v-model="commandForm.command"
             type="textarea"
             :rows="4"
-            placeholder="请输入命令内容"
+            :placeholder="t('commandEditor.commandContentPlaceholder')"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button class="btn-cancel" style="width: auto !important" size="small" @click="showCommandDialog = false">取消</el-button>
-        <el-button size="small" class="btn-primary" style="width: auto !important" @click="saveCommand">确定</el-button>
+        <el-button class="btn-cancel" style="width: auto !important" size="small" @click="showCommandDialog = false">{{ t('common.cancel') }}</el-button>
+        <el-button size="small" class="btn-primary" style="width: auto !important" @click="saveCommand">{{ t('common.confirm') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -169,7 +169,10 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import eventBus from '../utils/EventBus'
+
+const { t } = useI18n()
 
 interface CommandGroup {
   groupId: number
@@ -372,7 +375,7 @@ const selectGroup = (groupId: number) => {
 
 const saveGroup = async () => {
   if (!groupForm.name) {
-    ElMessage.warning('请输入分组名称')
+    ElMessage.warning(t('commandEditor.pleaseFillGroupName'))
     return
   }
   try {
@@ -382,13 +385,13 @@ const saveGroup = async () => {
         name: groupForm.name,
         connectionType: groupForm.connectionType
       })
-      ElMessage.success('分组已更新')
+      ElMessage.success(t('commandEditor.groupUpdated'))
     } else {
       await window.storageApi.addCommandGroup({
         name: groupForm.name,
         connectionType: groupForm.connectionType
       })
-      ElMessage.success('分组已创建')
+      ElMessage.success(t('commandEditor.groupCreated'))
     }
     showGroupDialog.value = false
     resetGroupForm()
@@ -396,7 +399,7 @@ const saveGroup = async () => {
     // 通知其他组件刷新分组列表
     eventBus.emit('commandGroupsChanged', props.connectionType)
   } catch (error) {
-    ElMessage.error('保存分组失败')
+    ElMessage.error(t('commandEditor.groupSaveFailed'))
   }
 }
 
@@ -410,14 +413,14 @@ const editGroup = (group: CommandGroup) => {
 
 const deleteGroup = async (group: CommandGroup) => {
   try {
-    await ElMessageBox.confirm(`确定要删除分组 "${group.name}" 吗？该分组下的所有命令也会被删除。`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm(t('commandEditor.confirmDeleteGroup', { name: group.name }), t('common.warning'), {
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
       type: 'warning',
       cancelButtonClass: 'el-button--danger'
     })
     await window.storageApi.deleteCommandGroup(group.groupId)
-    ElMessage.success('分组已删除')
+    ElMessage.success(t('commandEditor.groupDeleted'))
     if (selectedGroupId.value === group.groupId) {
       selectedGroupId.value = null
       commands.value = []
@@ -427,7 +430,7 @@ const deleteGroup = async (group: CommandGroup) => {
     eventBus.emit('commandGroupsChanged', props.connectionType)
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除分组失败')
+      ElMessage.error(t('commandEditor.groupDeleteFailed'))
     }
   }
 }
@@ -455,7 +458,7 @@ const insertCommandAbove = () => {
 
 const saveCommand = async () => {
   if (!commandForm.name || !commandForm.command) {
-    ElMessage.warning('请填写命令名称和内容')
+    ElMessage.warning(t('commandEditor.pleaseFillContent'))
     return
   }
   try {
@@ -468,7 +471,7 @@ const saveCommand = async () => {
         seqNum: commandForm.seqNum,
         groupId: selectedGroupId.value
       })
-      ElMessage.success('命令已更新')
+      ElMessage.success(t('commandEditor.commandUpdated'))
     } else {
       // 如果是插入命令，需要把被插入位置及之后的命令序号+1
       if (isInsertingAbove.value) {
@@ -493,7 +496,7 @@ const saveCommand = async () => {
         seqNum: commandForm.seqNum,
         groupId: selectedGroupId.value
       })
-      ElMessage.success('命令已添加')
+      ElMessage.success(t('commandEditor.commandAdded'))
     }
     showCommandDialog.value = false
     resetCommandForm()
@@ -501,26 +504,26 @@ const saveCommand = async () => {
     // 通知其他组件刷新命令列表
     eventBus.emit('presetCommandsChanged', props.connectionType)
   } catch (error) {
-    ElMessage.error('保存命令失败')
+    ElMessage.error(t('commandEditor.commandSaveFailed'))
   }
 }
 
 const deleteCommand = async (command: PresetCommand) => {
   try {
-    await ElMessageBox.confirm(`确定要删除命令 "${command.name}" 吗？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm(t('commandEditor.confirmDeleteCommand', { name: command.name }), t('common.warning'), {
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
       type: 'warning',
       cancelButtonClass: 'el-button--danger'
     })
     await window.storageApi.deletePresetCommand(command.id)
-    ElMessage.success('命令已删除')
+    ElMessage.success(t('commandEditor.commandDeleted'))
     await loadCommands()
     // 通知其他组件刷新命令列表
     eventBus.emit('presetCommandsChanged', props.connectionType)
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除命令失败')
+      ElMessage.error(t('commandEditor.commandDeleteFailed'))
     }
   }
 }

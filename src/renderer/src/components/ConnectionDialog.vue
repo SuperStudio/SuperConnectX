@@ -21,10 +21,10 @@
         <el-input v-model="formData.name" :placeholder="t('dialog.namePlaceholder')" prefix="User" />
       </el-form-item>
       <!-- FTP 模式选择 -->
-      <el-form-item label="模式" v-if="formData.connectionType === 'ftp'">
+      <el-form-item :label="t('ftp.mode')" v-if="formData.connectionType === 'ftp'">
         <el-radio-group v-model="formData.ftpMode" class="mode-radio-group">
-          <el-radio-button value="server">服务端</el-radio-button>
-          <el-radio-button value="client">客户端</el-radio-button>
+          <el-radio-button value="server">{{ t('ftp.server') }}</el-radio-button>
+          <el-radio-button value="client">{{ t('ftp.client') }}</el-radio-button>
         </el-radio-group>
       </el-form-item>
       <!-- FTP 服务端：端口、账号密码、目录、权限 -->
@@ -38,13 +38,13 @@
         <el-form-item :label="t('dialog.password')" prop="password">
           <el-input v-model="formData.password" :placeholder="t('dialog.passwordPlaceholder')" type="password" />
         </el-form-item>
-        <el-form-item label="目录" prop="ftpDirectory">
+        <el-form-item :label="t('ftp.directory')" prop="ftpDirectory">
           <div style="display: flex; gap: 8px; width: 100%">
-            <el-input v-model="formData.ftpDirectory" placeholder="选择共享目录" style="flex: 1" />
-            <el-button class="btn-primary" style="width: auto !important" @click="selectFtpDirectory">浏览</el-button>
+            <el-input v-model="formData.ftpDirectory" :placeholder="t('ftp.selectDir')" style="flex: 1" />
+            <el-button class="btn-primary" style="width: auto !important" @click="selectFtpDirectory">{{ t('ftp.browse') }}</el-button>
           </div>
         </el-form-item>
-        <el-form-item label="权限">
+        <el-form-item :label="t('ftp.permission')">
           <el-checkbox-group v-model="formData.ftpPermissions">
             <el-checkbox label="get">Get</el-checkbox>
             <el-checkbox label="put">Put</el-checkbox>
@@ -173,7 +173,7 @@ const handleProtocolChange = (value: string) => {
 const selectFtpDirectory = async () => {
   try {
     const result = await window.dialogApi.openDirectoryDialog({
-      title: '选择FTP共享目录'
+      title: t('ftp.selectFtpDir')
     })
     if (result.filePaths && result.filePaths.length > 0 && 'ftpDirectory' in formData) {
       ;(formData as any).ftpDirectory = result.filePaths[0]
@@ -189,22 +189,22 @@ const getRequiredFields = () => {
   const needsServer = !isFtpServer && formData.connectionType !== 'ping'
 
   const fields: { prop: string; message: string }[] = [
-    { prop: 'name', message: '请输入连接名称' }
+    { prop: 'name', message: t('dialog.pleaseEnterName') }
   ]
 
   if (isFtpServer) {
-    fields.push({ prop: 'port', message: '请输入端口' })
-    fields.push({ prop: 'ftpDirectory', message: '请选择共享目录' })
+    fields.push({ prop: 'port', message: t('dialog.pleaseEnterPort') })
+    fields.push({ prop: 'ftpDirectory', message: t('dialog.pleaseSelectDir') })
   } else if (needsServer) {
-    fields.push({ prop: 'host', message: '请输入服务器地址' })
+    fields.push({ prop: 'host', message: t('dialog.pleaseEnterAddress') })
     if ((formData as any).connectionType !== 'ping') {
-      fields.push({ prop: 'port', message: '请输入端口' })
+      fields.push({ prop: 'port', message: t('dialog.pleaseEnterPort') })
     }
     if (!['tcp', 'udp', 'ftp'].includes(formData.connectionType)) {
-      fields.push({ prop: 'username', message: '请输入用户名' })
+      fields.push({ prop: 'username', message: t('dialog.pleaseEnterUsername') })
     }
     if (['tftp', 'http'].includes(formData.connectionType)) {
-      fields.push({ prop: 'password', message: '请输入密码' })
+      fields.push({ prop: 'password', message: t('dialog.pleaseEnterPassword') })
     }
   }
 

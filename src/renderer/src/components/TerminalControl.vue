@@ -8,7 +8,7 @@
         class="btn-cancel close-btn"
         @click="emit('onClose')"
       >
-        断开
+        {{ t('terminal.disconnect') }}
       </el-button>
       <el-button
         v-else
@@ -18,7 +18,7 @@
         @click="emit('onReconnect')"
         :disabled="isConnecting"
       >
-        {{ isConnecting ? '连接中...' : '连接' }}
+        {{ isConnecting ? t('terminal.connecting') : t('terminal.connect') }}
       </el-button>
       <el-button
         icon="Delete"
@@ -26,9 +26,9 @@
         class="btn-cancel clear-btn"
         @click="emit('onClearTerminal')"
       >
-        清空
+        {{ t('terminal.clear') }}
       </el-button>
-      <el-tooltip :content="autoScroll ? '取消自动滚动' : '自动滚动'" placement="bottom" effect="dark">
+      <el-tooltip :content="autoScroll ? t('terminal.cancelAutoScroll') : t('terminal.autoScroll')" placement="bottom" effect="dark">
         <el-button
           size="small"
           class="auto-scroll-btn"
@@ -40,7 +40,7 @@
           </svg>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="打开日志所在文件夹" placement="bottom" effect="dark">
+      <el-tooltip :content="t('terminal.openLogFolder')" placement="bottom" effect="dark">
         <el-button
           size="small"
           class="icon-action-btn"
@@ -49,7 +49,7 @@
           <el-icon :size="14"><FolderOpened /></el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="打开日志文件" placement="bottom" effect="dark">
+      <el-tooltip :content="t('terminal.openLogFile')" placement="bottom" effect="dark">
         <el-button
           size="small"
           class="icon-action-btn"
@@ -62,22 +62,22 @@
         v-model="showTimestamp"
         size="small"
         class="terminal-switch"
-        active-text="时间戳"
+        :active-text="t('terminal.showTimestamp')"
       />
       <el-switch
         v-model="showLog"
         size="small"
         class="terminal-switch"
-        active-text="显示日志"
+        :active-text="t('terminal.showLog')"
       />
       <el-button icon="DocumentAdd" size="small" class="btn-primary log-btn" @click="emit('onSaveLog')">
-        日志另存为
+        {{ t('terminal.saveLogAs') }}
       </el-button>
       <el-select
         v-model="selectedSyntaxGroupId"
         size="small"
         class="syntax-group-select"
-        placeholder="语法高亮"
+        :placeholder="t('terminal.syntaxHighlight')"
         clearable
         @change="handleSyntaxGroupChange"
       >
@@ -88,7 +88,7 @@
           :value="group.id"
         />
       </el-select>
-      <el-tooltip content="编辑高亮规则" placement="bottom" effect="dark">
+      <el-tooltip :content="t('terminal.editSyntaxRules')" placement="bottom" effect="dark">
         <el-button
           size="small"
           class="icon-action-btn"
@@ -103,7 +103,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { FolderOpened, Document, Edit } from '@element-plus/icons-vue'
+
+const { t } = useI18n()
 
 interface SyntaxGroupInfo {
   id: number

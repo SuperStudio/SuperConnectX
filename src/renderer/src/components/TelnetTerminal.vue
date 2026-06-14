@@ -6,7 +6,7 @@
       :is-connected="isConnected"
       :is-connecting="isConnecting"
       :init-message="connection.ftpMode === 'server' ? `create server ${connection.port}` : `try to connect ${connection.host}:${connection.port}`"
-      placeholder="输入命令并按回车..."
+      :placeholder="t('terminal.inputPrompt')"
       session-id-prefix="telnet"
       @on-close="handleClose"
       @on-reconnect="handleReconnect"
@@ -24,7 +24,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
+
+const { t } = useI18n()
 import UnifiedTerminal from './UnifiedTerminal.vue'
 import { fromRawConnection } from '../entity/protocol'
 import { useTerminal } from '../composables/useTerminal'
@@ -307,14 +310,14 @@ const handleSend = async (command: string, _originalInput?: string) => {
       command: command.trim()
     })
   } catch (error) {
-    ElMessage.error('命令发送失败')
+    ElMessage.error(t('terminal.commandSendFailed'))
     console.error('Failed to send:', error)
   }
 }
 
 const handleFileUpload = (filePath: string, fileName: string) => {
   if (!isConnected.value) {
-    ElMessage.warning('请先建立连接')
+    ElMessage.warning(t('terminal.notConnected'))
     return
   }
 
@@ -340,7 +343,7 @@ const handleFileUpload = (filePath: string, fileName: string) => {
         ElMessage.error(`上传失败: ${result.message}`)
       }
     } catch (error) {
-      ElMessage.error('文件上传失败')
+      ElMessage.error(t('terminal.fileUploadFailed'))
       console.error('Failed to upload file:', error)
     }
   })()

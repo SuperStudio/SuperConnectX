@@ -5,7 +5,7 @@
       <div class="search-inner">
         <input
           type="text"
-          placeholder="搜索..."
+          :placeholder="t('shortcutsPage.searchPlaceholder')"
           v-model="searchKeyword"
           class="search-input"
         />
@@ -13,7 +13,7 @@
       </div>
       <div class="search-actions">
         <el-button class="btn-primary restore-btn" @click="restoreDefaults">
-          恢复默认设置
+          {{ t('shortcutsPage.resetDefault') }}
         </el-button>
       </div>
     </div>
@@ -26,10 +26,10 @@
         stripe
         style="width: 100%; height: 100%"
         :header-cell-style="{ background: '#2d2d2d', color: '#e0e0e0', fontWeight: '600' }"
-        empty-text="暂无快捷键"
+        :empty-text="t('shortcutsPage.emptyText')"
         @row-dblclick="handleRowDblClick"
       >
-        <el-table-column label="操作" min-width="200" prop="action">
+        <el-table-column :label="t('shortcutsPage.columnAction')" min-width="200" prop="action">
           <template #default="{ row }">
             <div class="action-cell">
               <span class="action-name">{{ getActionName(row.action) }}</span>
@@ -37,7 +37,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="快捷键" width="220" align="center">
+        <el-table-column :label="t('shortcutsPage.columnShortcut')" width="220" align="center">
           <template #default="{ row }">
             <div class="shortcut-keys">
               <span
@@ -60,7 +60,7 @@
       class="shortcut-dialog"
     >
       <div class="dialog-content">
-        <p class="dialog-tip">输入快捷键并按回车修改</p>
+        <p class="dialog-tip">{{ t('shortcutsPage.editTip') }}</p>
         
         <input
           ref="keyInputRef"
@@ -68,12 +68,12 @@
           v-model="inputKeys"
           class="key-input"
           @keydown="handleKeyDown"
-          placeholder="请按下快捷键..."
+          :placeholder="t('shortcutsPage.pressKeys')"
           autofocus
         />
         
         <div class="preview-section">
-          <div class="preview-label">预览：</div>
+          <div class="preview-label">{{ t('shortcutsPage.preview') }}</div>
           <div class="shortcut-keys preview-keys">
             <span
               v-for="(key, index) in previewKeys"
@@ -89,9 +89,9 @@
       </div>
       
       <template #footer>
-        <el-button class="btn-cancel" @click="dialogVisible = false">取消</el-button>
+        <el-button class="btn-cancel" @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
         <el-button class="btn-primary" style="width: 100px !important" :disabled="!canConfirm" @click="confirmShortcut">
-          确定
+          {{ t('common.confirm') }}
         </el-button>
       </template>
     </el-dialog>
@@ -101,6 +101,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 interface ShortcutItem {
   action: string
@@ -144,7 +147,7 @@ const keyInputRef = ref<HTMLInputElement | null>(null)
 
 // 对话框标题
 const dialogTitle = computed(() => {
-  return currentAction.value ? `修改快捷键 : ${getActionName(currentAction.value)}` : '修改快捷键'
+  return currentAction.value ? `${t('shortcutsPage.editShortcut')} : ${getActionName(currentAction.value)}` : t('shortcutsPage.editShortcut')
 })
 
 // 有效的修饰键
@@ -198,15 +201,15 @@ const validateShortcut = (keys: string[]): { valid: boolean; message: string; st
     const key = normalizeKey(keys[0])
     // 纯修饰键无效
     if (modifierKeys.map(k => k.toLowerCase()).includes(key.toLowerCase())) {
-      return { valid: false, message: '不能只使用修饰键（如 Ctrl、Alt）', status: 'invalid' }
+      return { valid: false, message: t('shortcutsPage.invalidModifierOnly'), status: 'invalid' }
     }
     // Enter 无效
     if (key.toLowerCase() === 'enter') {
-      return { valid: false, message: 'Enter 键不能作为快捷键', status: 'invalid' }
+      return { valid: false, message: t('shortcutsPage.invalidEnter'), status: 'invalid' }
     }
     // 单个字母或数字无效
     if (/^[A-Z0-9]$/.test(key)) {
-      return { valid: false, message: '单个字母或数字不能作为快捷键', status: 'invalid' }
+      return { valid: false, message: t('shortcutsPage.invalidSingleKey'), status: 'invalid' }
     }
     // 单个功能键或特殊键有效
     const validKeys = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12',
@@ -218,10 +221,10 @@ const validateShortcut = (keys: string[]): { valid: boolean; message: string; st
       'capslock', 'numlock', 'scrolllock', 'printscreen', 'pause',
       '-', '=', '[', ']', '\\', ';', "'", ',', '.', '/', '`']
     if (!validKeys.includes(key.toLowerCase())) {
-      return { valid: false, message: '无效的快捷键', status: 'invalid' }
+      return { valid: false, message: t('shortcutsPage.invalidShortcut'), status: 'invalid' }
     }
     // 单个功能键或特殊键直接返回有效
-    return { valid: true, message: '快捷键可用', status: 'valid' }
+    return { valid: true, message: t('shortcutsPage.shortcutAvailable'), status: 'valid' }
   }
   
   // 检查是否至少有一个非修饰键
@@ -231,7 +234,7 @@ const validateShortcut = (keys: string[]): { valid: boolean; message: string; st
   })
   
   if (!hasNonModifier) {
-    return { valid: false, message: '必须包含至少一个非修饰键', status: 'invalid' }
+    return { valid: false, message: t('shortcutsPage.mustIncludeNonModifier'), status: 'invalid' }
   }
   
   // 系统保留快捷键检查
@@ -248,7 +251,7 @@ const validateShortcut = (keys: string[]): { valid: boolean; message: string; st
   for (const reserved of systemReservedCombos) {
     if (normalizedKeys.length === reserved.length &&
         reserved.every(k => normalizedKeys.includes(k))) {
-      return { valid: false, message: '系统保留快捷键，无法使用', status: 'invalid' }
+      return { valid: false, message: t('shortcutsPage.systemReserved'), status: 'invalid' }
     }
   }
   
@@ -261,13 +264,13 @@ const validateShortcut = (keys: string[]): { valid: boolean; message: string; st
         normalizedKeys.every(k => existing.includes(k))) {
       return { 
         valid: false, 
-        message: `与「${shortcuts.value[i].action}」的快捷键冲突`, 
+        message: t('shortcutsPage.shortcutConflict', { action: getActionName(shortcuts.value[i].action) }),
         status: 'conflict' 
       }
     }
   }
   
-  return { valid: true, message: '快捷键可用', status: 'valid' }
+  return { valid: true, message: t('shortcutsPage.shortcutAvailable'), status: 'valid' }
 }
 
 // 处理键盘按下
@@ -420,9 +423,9 @@ const loadShortcuts = async () => {
 // 恢复默认设置
 const restoreDefaults = async () => {
   try {
-    await ElMessageBox.confirm('确定要恢复默认快捷键配置吗？', '恢复默认设置', {
-      confirmButtonText: '确认',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm(t('shortcutsPage.resetConfirm'), t('shortcutsPage.resetConfirmTitle'), {
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
       type: 'warning',
       center: true,
       cancelButtonClass: 'el-button--danger'
@@ -435,13 +438,13 @@ const restoreDefaults = async () => {
       await loadShortcuts()
       // 通知其他组件快捷键已更新
       window.dispatchEvent(new CustomEvent('shortcuts-updated'))
-      ElMessage.success('已恢复默认快捷键配置')
+      ElMessage.success(t('shortcutsPage.resetSuccess'))
     }
   } catch (error: any) {
     // 用户取消操作时不显示错误
     if (error !== 'cancel') {
       console.error('Failed to restore default settings:', error)
-      ElMessage.error('恢复默认设置失败')
+      ElMessage.error(t('shortcutsPage.resetFailed'))
     }
   }
 }

@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    title="关于 SuperConnectX"
+    :title="t('about.title')"
     v-model="dialogVisible"
     width="400px"
     class="about-dialog"
@@ -11,15 +11,15 @@
         <img src="../assets/icon.png" alt="SuperConnectX" />
       </div>
       <h2 class="about-title">SuperConnectX</h2>
-      <p class="about-version">版本 {{ version }}</p>
-      <p class="about-desc">超级连接 - 多协议终端连接工具</p>
+      <p class="about-version">{{ t('about.version', { version }) }}</p>
+      <p class="about-desc">{{ t('about.description') }}</p>
       <div class="about-divider"></div>
-      <p class="about-author">作者：SuperStudio</p>
-      <p class="about-copyright">版权所有 Copyright © 2025 SuperStudio</p>
+      <p class="about-author">{{ t('about.author') }}</p>
+      <p class="about-copyright">{{ t('about.copyright') }}</p>
       <div class="about-divider"></div>
       <p class="about-links">
         <a href="#" @click.prevent="openGithub">GitHub</a> |
-        <a href="#" @click.prevent="openDoc">文档</a>
+        <a href="#" @click.prevent="openDoc">{{ t('about.doc') }}</a>
       </p>
     </div>
   </el-dialog>
@@ -27,6 +27,9 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const dialogVisible = defineModel<boolean>()
 

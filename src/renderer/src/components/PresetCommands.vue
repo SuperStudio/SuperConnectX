@@ -3,12 +3,12 @@
     <!-- 编辑命令按钮 -->
     <el-button class="btn-primary edit-commands-btn" size="small" @click="openCommandEditor">
       <el-icon><Edit /></el-icon>
-      编辑命令
+      {{ t('presetCommands.editCommands') }}
     </el-button>
 
     <!-- 运行/停止按钮（移到组选择左边） -->
     <div class="group-actions-buttons">
-      <el-tooltip :content="isRunningAll ? '停止循环' : '循环运行'" placement="bottom" effect="dark">
+      <el-tooltip :content="isRunningAll ? t('presetCommands.stopLoopRunning') : t('presetCommands.loopRunning')" placement="bottom" effect="dark">
         <el-button
           size="small"
           :class="isRunningAll ? 'run-btn stop-btn' : 'run-btn'"
@@ -32,7 +32,7 @@
       popper-class="group-dropdown-popper"
     >
       <el-button type="default" size="small" class="group-selector">
-        <span class="group-selector-text">{{ selectedGroupName || '暂无命令组' }}</span>
+        <span class="group-selector-text">{{ selectedGroupName || t('presetCommands.noGroup') }}</span>
         <el-icon class="el-icon--right"> <ArrowDown /></el-icon>
       </el-button>
       <template #dropdown>
@@ -40,7 +40,7 @@
           <!-- 新建组选项 -->
           <el-dropdown-item command="new" class="group-menu-item new-group-item">
             <el-icon size="16" class="action-icon add-icon"><Plus /></el-icon>
-            <span class="group-name-new">新建命令组</span>
+            <span class="group-name-new">{{ t('presetCommands.newGroup') }}</span>
           </el-dropdown-item>
 
           <!-- 分隔线 -->
@@ -78,7 +78,7 @@
       :disabled="!selectedGroupId"
       class="btn-primary add-preset-btn"
     >
-      新增命令
+      {{ t('presetCommands.addCommand') }}
     </el-button>
 
     <!-- 命令按钮列表 -->
@@ -104,24 +104,24 @@
 
     <!-- 组编辑对话框 -->
     <el-dialog
-      :title="isEditingGroup ? '编辑命令组' : '新建命令组'"
+      :title="isEditingGroup ? t('presetCommands.editGroup') : t('presetCommands.newGroup')"
       v-model="isGroupDialogOpen"
       width="400px"
       :close-on-click-modal="false"
     >
       <el-form :model="groupForm" :rules="groupRules" ref="groupFormRef" label-width="120px" @submit.prevent @keydown.enter="saveGroup">
-        <el-form-item label="命令组名称" prop="name">
-          <el-input v-model="groupForm.name" placeholder="命令组名称" />
+        <el-form-item :label="t('presetCommands.groupName')" prop="name">
+          <el-input v-model="groupForm.name" :placeholder="t('presetCommands.groupNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="连接类型" prop="connectionType">
-          <el-select v-model="groupForm.connectionType" placeholder="选择连接类型">
+        <el-form-item :label="t('presetCommands.connectionType')" prop="connectionType">
+          <el-select v-model="groupForm.connectionType" :placeholder="t('presetCommands.selectConnectionType')">
             <el-option label="Telnet" value="telnet" />
             <el-option label="SSH" value="ssh" disabled />
             <el-option label="FTP" value="ftp" />
           </el-select>
         </el-form-item>
 
-        <el-form-item label="拷贝命令组" v-if="!isEditingGroup">
+        <el-form-item :label="t('presetCommands.copyGroup')" v-if="!isEditingGroup">
           <el-select v-model="groupForm.copyFromGroupId" placeholder="（可选）" clearable>
             <el-option
               v-for="group in copyableGroups"
@@ -130,54 +130,54 @@
               :value="group.groupId"
             />
           </el-select>
-          <div class="form-hint">复制该组下的所有命令到新组</div>
+          <div class="form-hint">{{ t('presetCommands.copyGroupHint') }}</div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button class="btn-cancel" style="width: auto !important" @click="isGroupDialogOpen = false">取消</el-button>
-        <el-button class="btn-primary" style="width: auto !important" @click="saveGroup">保存</el-button>
+        <el-button class="btn-cancel" style="width: auto !important" @click="isGroupDialogOpen = false">{{ t('common.cancel') }}</el-button>
+        <el-button class="btn-primary" style="width: auto !important" @click="saveGroup">{{ t('presetCommands.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 命令编辑对话框 -->
     <el-dialog
-      :title="isEditing ? '编辑命令' : '新增命令'"
+      :title="isEditing ? t('presetCommands.editCommand') : t('presetCommands.addCommand')"
       v-model="isPresetDialogOpen"
       width="400px"
       :close-on-click-modal="false"
     >
       <el-form :model="presetForm" :rules="presetRules" ref="presetFormRef" label-width="120px" @submit.prevent @keydown.enter="savePresetCommand">
-        <el-form-item label="命令名称" prop="name">
-          <el-input v-model="presetForm.name" placeholder="输入命令名称" ref="nameInputRef" />
+        <el-form-item :label="t('presetCommands.commandName')" prop="name">
+          <el-input v-model="presetForm.name" :placeholder="t('presetCommands.commandNamePlaceholder')" ref="nameInputRef" />
         </el-form-item>
-        <el-form-item label="命令内容" prop="command">
+        <el-form-item :label="t('presetCommands.commandContent')" prop="command">
           <el-input
             v-model="presetForm.command"
             type="textarea"
-            placeholder="输入命令内容"
+            :placeholder="t('presetCommands.commandContentPlaceholder')"
             :rows="4"
             class="custom-textarea"
           />
         </el-form-item>
-        <el-form-item label="循环时延(ms)" prop="delay">
+        <el-form-item :label="t('presetCommands.loopDelay')" prop="delay">
           <el-input
             v-model.number="presetForm.delay"
             type="number"
-            placeholder="命令发送后等待时间"
+            :placeholder="t('presetCommands.loopDelayPlaceholder')"
           />
         </el-form-item>
-        <el-form-item label="序号" prop="seqNum">
+        <el-form-item :label="t('presetCommands.seqNum')" prop="seqNum">
           <el-input-number
             v-model="presetForm.seqNum"
             :min="1"
             :max="999"
-            placeholder="命令顺序"
+            :placeholder="t('presetCommands.seqNumPlaceholder')"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button class="btn-cancel" style="width: auto !important" @click="isPresetDialogOpen = false">取消</el-button>
-        <el-button class="btn-primary" style="width: auto !important" @click="savePresetCommand">保存</el-button>
+        <el-button class="btn-cancel" style="width: auto !important" @click="isPresetDialogOpen = false">{{ t('common.cancel') }}</el-button>
+        <el-button class="btn-primary" style="width: auto !important" @click="savePresetCommand">{{ t('presetCommands.save') }}</el-button>
       </template>
     </el-dialog>
 
@@ -191,17 +191,17 @@
     >
       <el-menu class="context-menu" mode="vertical" :collapse="false" :collapse-transition="false">
         <el-menu-item class="menu-item" @click="editPresetCommand(currentEditingCmd)">
-          编辑
+          {{ t('common.edit') }}
         </el-menu-item>
         <el-menu-item
           class="menu-item delete-item"
           @click="deletePresetCommand(currentEditingCmd.id)"
         >
-          删除
+          {{ t('common.delete') }}
         </el-menu-item>
 
         <el-menu-item class="menu-item" @click="toggleLoopSend(currentEditingCmd)">
-          {{ loopStatus[currentEditingCmd.id] ? '取消循环' : '循环发送' }}
+          {{ loopStatus[currentEditingCmd.id] ? t('presetCommands.stopLoop') : t('presetCommands.loopSend') }}
         </el-menu-item>
       </el-menu>
     </div>
@@ -210,7 +210,10 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElForm, ElInput, ElMessageBox } from 'element-plus'
+
+const { t } = useI18n()
 import { ElSelect, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon } from 'element-plus'
 import { Plus, Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
 import FormUtils from '../utils/FormUtils'
@@ -346,7 +349,7 @@ const toggleLoopSend = (cmd: any) => {
       delete loopIntervals.value[cmd.id]
     }
     loopStatus.value[cmd.id] = false
-    ElMessage.success(`已停止循环发送: ${cmd.name}`)
+    ElMessage.success(t('presetCommands.stopLoopMessage', { name: cmd.name }))
     return
   }
 
@@ -357,7 +360,7 @@ const toggleLoopSend = (cmd: any) => {
     sendPresetCommand(cmd)
   }, intervalTime)
 
-  ElMessage.success(`已开始循环发送: ${cmd.name} (间隔${intervalTime}ms)`)
+  ElMessage.success(t('presetCommands.startLoopMessage', { name: cmd.name, interval: intervalTime }))
 }
 
 // 循环运行所有命令
@@ -373,7 +376,7 @@ const toggleRunAllCommands = () => {
   } else {
     // 开始运行
     if (filteredCommands.value.length === 0) {
-      ElMessage.warning('当前组没有命令')
+      ElMessage.warning(t('presetCommands.noCommandsInGroup'))
       return
     }
     isRunningAll.value = true
@@ -437,7 +440,7 @@ const loadGroups = async () => {
     }
   } catch (error) {
     console.error('Failed to load command groups:', error)
-    ElMessage.error('加载命令组失败')
+    ElMessage.error(t('presetCommands.groupLoadFailed'))
   }
 }
 
@@ -481,7 +484,7 @@ const loadPresetCommands = async () => {
     filterCommandsByGroup()
   } catch (error) {
     console.error('Failed to load preset commands:', error)
-    ElMessage.error('加载预设命令失败')
+    ElMessage.error(t('presetCommands.commandLoadFailed'))
   }
 }
 
@@ -538,9 +541,9 @@ const editGroup = (group: any) => {
 // 删除组
 const deleteGroup = async (group: any) => {
   try {
-    await ElMessageBox.confirm(`确认删除 ${group.name} 及其所有命令?`, '删除组', {
-      confirmButtonText: '确认',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm(t('presetCommands.deleteGroupConfirm', { name: group.name }), t('presetCommands.deleteGroupTitle'), {
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
       type: 'warning',
       center: true,
       cancelButtonClass: 'el-button--danger'
@@ -554,7 +557,7 @@ const deleteGroup = async (group: any) => {
         .map((cmd) => window.storageApi.deletePresetCommand(cmd.id))
     )
 
-    ElMessage.success('命令组已删除')
+    ElMessage.success(t('presetCommands.groupDeleted'))
     loadGroups()
     loadPresetCommands()
 
@@ -565,7 +568,7 @@ const deleteGroup = async (group: any) => {
     }
   } catch (error) {
     console.error('Failed to delete command group:', error)
-    ElMessage.error('删除命令组失败')
+    ElMessage.error(t('presetCommands.groupDeleteFailed'))
   }
 }
 
@@ -600,7 +603,7 @@ const saveGroup = async () => {
         groupId: currentEditingGroup.value.groupId,
         ...groupData
       })
-      ElMessage.success('命令组已更新')
+      ElMessage.success(t('presetCommands.groupUpdated'))
     } else {
       const newGroup = await window.storageApi.addCommandGroup(groupData)
 
@@ -620,12 +623,12 @@ const saveGroup = async () => {
             await window.storageApi.addPresetCommand(cmd)
           }
 
-          ElMessage.success(`命令组已添加，并复制了 ${newCommands.length} 条命令`)
+          ElMessage.success(t('presetCommands.groupAddedWithCopy', { n: newCommands.length }))
         } else {
-          ElMessage.success('命令组已添加')
+          ElMessage.success(t('presetCommands.groupAdded'))
         }
       } else {
-        ElMessage.success('命令组已添加')
+        ElMessage.success(t('presetCommands.groupAdded'))
       }
 
       // 自动选中新创建的组
@@ -638,7 +641,7 @@ const saveGroup = async () => {
     isGroupDialogOpen.value = false
   } catch (error) {
     console.error('Failed to save command group:', error)
-    ElMessage.error('保存命令组失败')
+    ElMessage.error(t('presetCommands.groupSaveFailed'))
   } finally {
     isSavingGroup = false
   }
@@ -705,18 +708,18 @@ const savePresetCommand = async () => {
       }
       console.log('Update command - updatedCmd:', updatedCmd)
       await window.storageApi.updatePresetCommand(JSON.parse(JSON.stringify(updatedCmd)))
-      ElMessage.success('命令已更新')
+      ElMessage.success(t('presetCommands.commandUpdated'))
     } else {
       console.log('Add command - pureFormData:', pureFormData)
       await window.storageApi.addPresetCommand(JSON.parse(JSON.stringify(pureFormData)))
-      ElMessage.success('命令已添加')
+      ElMessage.success(t('presetCommands.commandAdded'))
     }
 
     loadPresetCommands()
     isPresetDialogOpen.value = false
   } catch (error) {
     console.error('Failed to save command:', error)
-    ElMessage.error('保存失败：' + (error as Error).message)
+    ElMessage.error(t('presetCommands.commandSaveFailed') + '：' + (error as Error).message)
   }
 }
 
@@ -724,11 +727,11 @@ const deletePresetCommand = async (id: number) => {
   contextMenuVisible.value = false
   try {
     await window.storageApi.deletePresetCommand(id)
-    ElMessage.success('命令已删除')
+    ElMessage.success(t('presetCommands.commandDeleted'))
     loadPresetCommands()
   } catch (error) {
     console.error('Failed to delete command:', error)
-    ElMessage.error('删除命令失败')
+    ElMessage.error(t('presetCommands.commandDeleteFailed'))
   }
 }
 
@@ -766,7 +769,7 @@ const closeContextMenuOnClickOutside = (event: MouseEvent) => {
 
 const sendPresetCommand = async (cmd: any) => {
   if (!props.isConnected) {
-    ElMessage.warning('请先建立连接')
+    ElMessage.warning(t('terminal.notConnected'))
     return
   }
 
@@ -781,7 +784,7 @@ const sendPresetCommand = async (cmd: any) => {
     })
     console.log('Send result:', JSON.stringify(result))
     if (!result.success) {
-      ElMessage.error(result.message || '命令发送失败')
+      ElMessage.error(result.message || t('terminal.commandSendFailed'))
     }
   } catch (error) {
     ElMessage.error('命令发送失败')

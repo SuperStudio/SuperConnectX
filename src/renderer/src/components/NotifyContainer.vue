@@ -27,7 +27,7 @@
         :style="{ left: menuX + 'px', top: menuY + 'px' }"
         @click.stop
       >
-        <div class="menu-item" @click="handleClearAll">清空全部</div>
+        <div class="menu-item" @click="handleClearAll">{{ t('terminal.clearAll') }}</div>
       </div>
       <div v-if="menuVisible" class="menu-overlay" @click="hideMenu" />
     </Teleport>
@@ -36,6 +36,9 @@
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 export interface NotifyItem {
   id: number
