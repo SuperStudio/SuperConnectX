@@ -101,7 +101,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${name}.Setup.${version}.${ext}"
     },
     "mac": {
       "target": "dmg",

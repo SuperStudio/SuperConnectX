@@ -17,7 +17,7 @@ files:
 win:
   executableName: SuperConnectX
 nsis:
-  artifactName: ${name}-Setup-${version}.${ext}
+  artifactName: ${name}.Setup.${version}.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
