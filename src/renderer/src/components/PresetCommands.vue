@@ -929,7 +929,9 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 <style scoped>
 .preset-commands {
   padding: 8px 15px 8px 5px;
-  background: #252526;
+  background: var(--theme-surface-bg, #252526);
+  border: 1px solid var(--theme-border-color, #3c3c3c);
+  border-radius: 6px;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -944,7 +946,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .preset-commands::-webkit-scrollbar-thumb {
-  background-color: #444;
+  background-color: var(--theme-scrollbar-thumb, #444);
   border-radius: 3px;
 }
 
@@ -969,9 +971,9 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .group-selector {
-  background-color: #3a3a3a !important;
-  border: 2px solid transparent !important;
-  color: #fff !important;
+  background-color: var(--theme-input-bg, #3a3a3a) !important;
+  border: 1px solid var(--theme-border-soft, #4a4a4a) !important;
+  color: var(--theme-input-text, #fff) !important;
   padding: 6px 12px !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -979,7 +981,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .group-selector:hover {
-  border: 2px solid #0078d4 !important;
+  border: 1px solid var(--focus-border-color, #0078d4) !important;
 }
 
 .group-selector-text {
@@ -1011,7 +1013,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .edit-icon:hover {
-  color: #fff !important;
+  color: var(--theme-text-primary, #fff) !important;
 }
 
 .delete-icon {
@@ -1057,7 +1059,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .run-btn:disabled {
-  color: #555 !important;
+  color: var(--theme-text-muted, #555) !important;
 }
 
 /* 运行按钮的圆角三角形图标 */
@@ -1094,9 +1096,9 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .preset-btn {
-  background-color: #3a3a3a !important;
-  border-color: #444 !important;
-  color: #e0e0e0 !important;
+  background-color: var(--theme-input-bg, #3a3a3a) !important;
+  border-color: var(--theme-border-soft, #444) !important;
+  color: var(--theme-input-text, #e0e0e0) !important;
   margin: 2px 0 !important;
   transition: all 0.2s ease !important;
   position: relative !important;
@@ -1104,8 +1106,8 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .preset-btn:hover {
-  background-color: #4a4a4a !important;
-  border-color: #555 !important;
+  background-color: var(--theme-hover-overlay, #4a4a4a) !important;
+  border-color: var(--focus-border-color, #555) !important;
   transform: translateY(-1px);
 }
 
@@ -1175,26 +1177,26 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .el-dialog {
-  background: #252526 !important;
+  background: var(--theme-dialog-bg, #252526) !important;
   border-radius: 8px !important;
 }
 
 .el-dialog__title {
-  color: #f0f0f0 !important;
+  color: var(--theme-text-primary, #f0f0f0) !important;
   font-size: 18px !important;
 }
 
 .el-form-item__label {
-  color: #e8e8e8 !important;
+  color: var(--theme-text-primary, #e8e8e8) !important;
   width: 100px;
 }
 
 .el-input,
 .el-select {
-  --el-input-bg-color: #cccccc !important;
-  --el-input-text-color: #000 !important;
-  --el-input-placeholder-color: #888 !important;
-  --el-border-color: #444 !important;
+  --el-input-bg-color: var(--theme-input-bg) !important;
+  --el-input-text-color: var(--theme-input-text) !important;
+  --el-input-placeholder-color: var(--theme-placeholder-color) !important;
+  --el-border-color: var(--theme-border-soft) !important;
 }
 
 .el-input:focus-within,
@@ -1204,9 +1206,9 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 
 :deep(.custom-textarea .el-textarea__inner),
 :deep(.el-textarea__inner) {
-  background: #3a3a3a;
-  box-shadow: 0 0 0 1px #444 inset;
-  color: #e0e0e0;
+  background: var(--theme-input-bg, #3a3a3a);
+  box-shadow: 0 0 0 1px var(--theme-border-soft, #444) inset;
+  color: var(--theme-input-text, #e0e0e0);
   resize: vertical;
   max-height: 200px;
 }
@@ -1296,8 +1298,8 @@ const handlePresetCommandsChanged = (connectionType: string) => {
   padding: 2px 6px !important;
   border-radius: 3px !important;
   margin-right: 8px !important;
-  background-color: #444 !important;
-  color: #fff !important;
+  background-color: var(--theme-surface-strong-bg, #444) !important;
+  color: var(--theme-text-primary, #fff) !important;
 }
 
 .group-type-badge:empty {
@@ -1312,7 +1314,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 .form-hint {
   margin-top: 10px;
   font-size: 12px;
-  color: #888;
+  color: var(--theme-text-muted, #888);
   line-height: 1.4;
 }
 </style>

@@ -94,6 +94,58 @@
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoScrollOnWheel" />
             </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">界面主题</span>
+                <span class="label-desc">切换深色主题和浅色主题</span>
+              </div>
+              <el-radio-group v-model="settings.themeMode" size="small" class="mode-radio-group">
+                <el-radio-button label="dark">深色主题</el-radio-button>
+                <el-radio-button label="light">浅色主题</el-radio-button>
+              </el-radio-group>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">壁纸/皮肤</span>
+                <span class="label-desc">从 plugins/themes 目录切换壁纸主题</span>
+              </div>
+              <div class="theme-select-wrapper">
+                <el-select v-model="settings.themePluginId" size="small" style="width: 220px">
+                  <el-option label="默认壁纸" value="" />
+                  <el-option
+                    v-for="plugin in themePlugins"
+                    :key="plugin.id"
+                    :label="plugin.name"
+                    :value="plugin.id"
+                  />
+                </el-select>
+                <el-button size="small" class="btn-primary" @click="refreshThemePlugins">
+                  {{ t('common.refresh') }}
+                </el-button>
+                <el-button size="small" @click="openThemePluginsDirectory">
+                  打开主题目录
+                </el-button>
+              </div>
+            </div>
+            <div class="setting-item theme-preview-item">
+              <div class="theme-preview-block">
+                <div v-if="selectedThemePlugin" class="theme-preview-card">
+                  <img
+                    v-if="selectedThemePlugin.previewImageUrl"
+                    :src="selectedThemePlugin.previewImageUrl"
+                    :alt="selectedThemePlugin.name"
+                    class="theme-preview-image"
+                  />
+                  <div class="theme-preview-meta">
+                    <span class="theme-preview-name">{{ selectedThemePlugin.name }}</span>
+                    <span class="theme-preview-id">{{ selectedThemePlugin.id }}</span>
+                  </div>
+                </div>
+                <div class="theme-folder-hint">
+                  主题插件目录：{{ themePluginsRoot || '-' }}
+                </div>
+              </div>
+            </div>
           </div>
 
         </div>
@@ -381,7 +433,13 @@ const categories = computed(() => [
 const defaultSettings = ref<Record<string, any>>({})
 
 const settings = ref<Record<string, any>>({})
+const themePlugins = ref<ThemePluginInfo[]>([])
+const themePluginsRoot = ref('')
 let isLoading = true
+
+const selectedThemePlugin = computed(() =>
+  themePlugins.value.find((plugin) => plugin.id === settings.value.themePluginId) || null
+)
 
 const loadDefaultSettings = async () => {
   try {
@@ -403,6 +461,36 @@ const loadSettings = async () => {
     }
   } catch (error) {
     console.error(t('common.loadFailed'), error)
+  }
+}
+
+const loadThemePlugins = async () => {
+  try {
+    const [plugins, rootDir] = await Promise.all([
+      window.storageApi.getThemePlugins(),
+      window.storageApi.getThemePluginsRoot()
+    ])
+    themePlugins.value = Array.isArray(plugins) ? plugins : []
+    themePluginsRoot.value = rootDir || ''
+  } catch (error) {
+    console.error('Failed to load theme plugins:', error)
+  }
+}
+
+const refreshThemePlugins = async () => {
+  await loadThemePlugins()
+}
+
+const openThemePluginsDirectory = async () => {
+  try {
+    if (!themePluginsRoot.value) {
+      await loadThemePlugins()
+    }
+    if (themePluginsRoot.value) {
+      await window.toolApi.showItemInFolder(themePluginsRoot.value)
+    }
+  } catch (error) {
+    console.error('Failed to open theme plugin directory:', error)
   }
 }
 
@@ -588,6 +676,7 @@ onMounted(async () => {
   window.addEventListener('open-syntax-highlight-page', switchToSyntaxCategory)
 
   await loadDefaultSettings()
+  await loadThemePlugins()
   await loadSettings()
   await loadActiveCategory()
 })
@@ -619,7 +708,7 @@ const handleSettingsUpdated = (event: Event) => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #1e1e1e;
+  background: transparent;
 }
 
 .settings-search {
@@ -639,8 +728,8 @@ const handleSettingsUpdated = (event: Event) => {
   height: 100%;
   padding: 0 28px 0 12px;
   border: 1px solid transparent;
-  background-color: #3c3c3c;
-  color: #cccccc;
+  background-color: var(--theme-input-bg, #3c3c3c);
+  color: var(--theme-input-text, #cccccc);
   border-radius: 4px;
   font-size: 13px;
   outline: none;
@@ -662,7 +751,7 @@ const handleSettingsUpdated = (event: Event) => {
   height: 20px;
   border: none;
   background: transparent;
-  color: #9ca3af;
+  color: var(--theme-placeholder-color, #9ca3af);
   font-size: 14px;
   cursor: pointer;
   padding: 0;
@@ -670,7 +759,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .clear-btn:hover {
-  color: #111827;
+  color: var(--theme-text-primary, #111827);
 }
 
 .settings-content {
@@ -681,8 +770,8 @@ const handleSettingsUpdated = (event: Event) => {
 
 .settings-nav {
   width: 140px;
-  background: #252526;
-  border-right: 1px solid #3c3c3c;
+  background: var(--app-surface-bg, #252526);
+  border-right: 1px solid var(--app-border-color, #3c3c3c);
   padding: 8px 0;
   flex-shrink: 0;
   display: flex;
@@ -691,25 +780,25 @@ const handleSettingsUpdated = (event: Event) => {
 
 .nav-item {
   padding: 8px 16px;
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
   font-size: 13px;
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .nav-item:hover {
-  background: #2a2d2e;
+  background: var(--theme-hover-overlay, #2a2d2e);
 }
 
 .nav-item.active {
-  background: #094771;
-  color: #fff;
+  background: var(--menu-item-hover-bg, #094771);
+  color: var(--theme-accent-hover-text, #fff);
 }
 
 .nav-footer {
   margin-top: auto;
   padding: 16px 8px;
-  border-top: 1px solid #3c3c3c;
+  border-top: 1px solid var(--app-border-color, #3c3c3c);
 }
 
 
@@ -751,7 +840,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .group-section {
-  background: #252526;
+  background: var(--app-surface-strong-bg, #252526);
   border-radius: 6px;
   padding: 12px;
   margin-bottom: 16px;
@@ -767,14 +856,14 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .search-empty {
-  color: #808080;
+  color: var(--theme-text-muted, #808080);
   font-size: 14px;
   text-align: center;
   padding: 40px 0;
 }
 
 .search-result-section {
-  background: #252526;
+  background: var(--app-surface-strong-bg, #252526);
   border-radius: 6px;
   padding: 12px;
   margin-bottom: 12px;
@@ -786,15 +875,15 @@ const handleSettingsUpdated = (event: Event) => {
   gap: 6px;
   padding-bottom: 8px;
   margin-bottom: 8px;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--app-border-color, #3c3c3c);
   font-size: 12px;
-  color: #888;
+  color: var(--theme-text-muted, #888);
   cursor: pointer;
   transition: color 0.15s;
 }
 
 .search-section-header:hover {
-  color: #ccc;
+  color: var(--theme-text-primary, #ccc);
 }
 
 .search-category {
@@ -803,7 +892,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .search-section {
-  color: #ccc;
+  color: var(--theme-text-primary, #ccc);
   font-weight: 600;
 }
 
@@ -812,7 +901,7 @@ const handleSettingsUpdated = (event: Event) => {
   flex-direction: column;
   gap: 2px;
   padding: 6px 0;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--app-border-color, #333);
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -822,7 +911,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .search-result-item:hover {
-  background: #2a2d2e;
+  background: var(--app-surface-bg, #2a2d2e);
   margin: 0 -12px;
   padding-left: 12px;
   padding-right: 12px;
@@ -830,7 +919,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .search-label {
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
   font-size: 13px;
 }
 
@@ -844,7 +933,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .search-desc {
-  color: #808080;
+  color: var(--theme-text-muted, #808080);
   font-size: 11px;
 }
 
@@ -869,7 +958,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .group-title {
-  color: #e8e8e8;
+  color: var(--theme-text-primary, #e8e8e8);
   font-size: 15px;
   font-weight: 700;
   margin-bottom: 12px;
@@ -882,7 +971,7 @@ const handleSettingsUpdated = (event: Event) => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--app-border-color, #3c3c3c);
 }
 
 .setting-item:last-child {
@@ -896,12 +985,12 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .label-text {
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
   font-size: 13px;
 }
 
 .label-desc {
-  color: #808080;
+  color: var(--theme-text-muted, #808080);
   font-size: 11px;
 }
 
@@ -911,8 +1000,16 @@ const handleSettingsUpdated = (event: Event) => {
   gap: 12px;
 }
 
+.theme-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .slider-value {
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
   font-size: 12px;
   min-width: 50px;
   text-align: right;
@@ -936,6 +1033,55 @@ const handleSettingsUpdated = (event: Event) => {
 .filename-hint-item {
   flex-direction: column;
   align-items: flex-start !important;
+}
+
+.theme-preview-item {
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.theme-preview-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.theme-preview-card {
+  width: min(100%, 320px);
+  border: 1px solid var(--app-border-color, #3c3c3c);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--app-surface-strong-bg, rgba(45, 45, 45, 0.92));
+}
+
+.theme-preview-image {
+  display: block;
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  background: #1e1e1e;
+}
+
+.theme-preview-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.theme-preview-name {
+  color: var(--theme-text-primary, #e8e8e8);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.theme-preview-id,
+.theme-folder-hint {
+  color: var(--theme-text-muted, #909399);
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
 }
 
 .filename-hint {

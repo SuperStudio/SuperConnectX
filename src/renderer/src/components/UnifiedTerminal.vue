@@ -248,6 +248,39 @@ const isShowLog = ref(true)
 const showScrollbar = ref(false)
 const activeSyntaxGroupId = ref<number | undefined>(undefined)
 
+const MONACO_LIGHT_THEME = 'superconnectx-light'
+const MONACO_DARK_THEME = 'superconnectx-dark'
+
+const ensureMonacoThemes = () => {
+  monaco.editor.defineTheme(MONACO_LIGHT_THEME, {
+    base: 'vs',
+    inherit: true,
+    rules: [],
+    colors: {
+      'editor.background': '#f7f9fc',
+      'editor.foreground': '#1f2937',
+      'editorLineNumber.foreground': '#7c8aa5',
+      'editorLineNumber.activeForeground': '#3b82f6',
+      'editor.lineHighlightBackground': '#eef4fb',
+      'editor.selectionBackground': '#dbeafe',
+      'editor.inactiveSelectionBackground': '#e8eef8',
+      'editorCursor.foreground': '#2563eb'
+    }
+  })
+
+  monaco.editor.defineTheme(MONACO_DARK_THEME, {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [],
+    colors: {
+      'editor.background': '#1e1e1e'
+    }
+  })
+}
+
+const getMonacoTheme = () =>
+  document.documentElement.getAttribute('data-theme') === 'light' ? MONACO_LIGHT_THEME : MONACO_DARK_THEME
+
 // 语法高亮调试日志辅助函数
 const syntaxLog = (message: string, ...args: unknown[]): void => {
   const sessionId = props.connection?.sessionId || 'unknown'
@@ -483,6 +516,8 @@ watch(isAutoScroll, (newVal) => {
 const initEditor = async () => {
   if (!editorContainer.value) return
 
+  ensureMonacoThemes()
+
   const uniqueUri = monaco.Uri.parse(`${props.sessionIdPrefix}:///output-${props.connection.sessionId}.txt`)
   editorModel = monaco.editor.createModel(
     `${props.initMessage || t('terminal.waitingConnection')}\n`,
@@ -496,7 +531,7 @@ const initEditor = async () => {
     lineNumbers: 'on',
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
-    theme: 'vs-dark',
+    theme: getMonacoTheme(),
     automaticLayout: true,
     hover: { enabled: false },
     occurrencesHighlight: 'off',
@@ -801,11 +836,11 @@ const scrollToStart = () => {
   editor?.revealLine(1)
 }
 
-// 点击滚动到底部按钮：滚动到底部，然后取消自动滚动
+// 点击滚动到底部按钮：滚动到底部，并固定为自动滚动
 const handleScrollToBottom = () => {
   scrollToEnd()
   isInternalChange = true
-  isAutoScroll.value = false
+  isAutoScroll.value = true
 }
 
 // 点击滚动到顶部按钮：滚动到顶部，然后取消自动滚动
@@ -1355,6 +1390,9 @@ const handleSettingsUpdated = async (event: Event) => {
       lastSyntaxTextLength = 0
       applySyntaxWithClasses()
     }
+    if ('themeMode' in updatedSettings) {
+      monaco.editor.setTheme(getMonacoTheme())
+    }
   }
 }
 
@@ -1400,8 +1438,8 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
-  color: #fff;
+  background: var(--theme-body-bg, #1e1e1e);
+  color: var(--theme-text-primary, #fff);
   font-family: 'Fira Code', 'Consolas', monospace;
   overflow: hidden;
 }
@@ -1410,10 +1448,10 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   flex: 0 0 auto;
   min-height: 60px;
   overflow-y: auto;
-  padding: 15px;
+  padding: 2px 12px 2px 2px;
   white-space: pre-wrap;
   line-height: 1.5;
-  background-color: #1e1e1e;
+  background-color: var(--theme-body-bg, #1e1e1e);
   position: relative;
   border: 1px solid transparent;
   transition: border-color 0.2s;
@@ -1433,11 +1471,11 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 }
 
 .rx-tx-overlay .rx {
-  color: #4ade80;
+  color: var(--theme-success-color, #4ade80);
 }
 
 .rx-tx-overlay .tx {
-  color: #60a5fa;
+  color: var(--theme-info-accent, #60a5fa);
 }
 
 .bottom-controls {
@@ -1445,11 +1483,12 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
+  background: var(--theme-body-bg, #1e1e1e);
 }
 
 .vertical-splitter {
   height: 6px;
-  background-color: #2a2a2a;
+  background-color: var(--theme-surface-strong-bg, #2a2a2a);
   cursor: ns-resize;
   display: flex;
   align-items: center;
@@ -1459,19 +1498,19 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 }
 
 .vertical-splitter:hover {
-  background-color: #409eff;
+  background-color: var(--focus-border-color, #409eff);
 }
 
 .splitter-handle {
   width: 30px;
   height: 3px;
   border-radius: 2px;
-  background-color: #555;
+  background-color: var(--theme-scrollbar-thumb, #555);
   transition: background-color 0.2s;
 }
 
 .vertical-splitter:hover .splitter-handle {
-  background-color: #fff;
+  background-color: var(--theme-text-primary, #fff);
 }
 
 .terminal-output:focus-within {
@@ -1480,8 +1519,8 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 
 .preset-commands-row {
   padding: 2px;
-  background-color: #252526;
-  border-bottom: 1px solid #333;
+  background-color: var(--theme-surface-bg, #252526);
+  border-bottom: 1px solid var(--theme-border-color, #333);
   border-radius: 6px;
   margin: 2px 4px;
 }
@@ -1494,7 +1533,10 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   border-radius: 6px;
   flex: 1 1 auto;
   min-height: 46px;
-  background: transparent;
+  background: var(--theme-surface-bg, #252526);
+  border: 1px solid var(--theme-border-color, #3c3c3c);
+  padding: 8px;
+  box-sizing: border-box;
 }
 
 .terminal-input:focus-within {
@@ -1506,10 +1548,11 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   align-items: stretch;
   min-height: 60px;
   flex: 1;
+  gap: 8px;
 }
 
 .prompt {
-  color: #cccccc;
+  color: var(--theme-text-secondary, #cccccc);
   font-weight: bold;
   white-space: nowrap;
   margin-left: 10px;
@@ -1520,10 +1563,10 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 .command-input {
   width: 100%;
   height: 100%;
-  background: #2a2a2a;
-  border: 1px solid transparent;
+  background: var(--theme-input-bg, #2a2a2a);
+  border: 1px solid var(--theme-border-soft, #4a4a4a);
   border-radius: 4px;
-  color: #fff;
+  color: var(--theme-input-text, #fff);
   outline: none;
   font-family: monospace;
   font-size: 14px;
@@ -1534,11 +1577,11 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 }
 
 .command-input:focus {
-  border-color: #409eff;
+  border-color: var(--focus-border-color, #409eff);
 }
 
 .command-input::placeholder {
-  color: #666;
+  color: var(--theme-placeholder-color, #666);
 }
 
 .command-input:disabled,
@@ -1571,20 +1614,20 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 
 .terminal-switch :deep(.el-switch__core) {
   height: 20px;
-  background-color: #131315 !important;
+  background-color: var(--theme-switch-off-bg, #131315) !important;
   border-color: transparent !important;
 }
 
 .terminal-switch :deep(.el-switch__core:hover) {
-  background-color: #2A2A2C !important;
+  background-color: var(--theme-switch-off-hover-bg, #2a2a2c) !important;
 }
 
 .terminal-switch :deep(.el-switch.is-checked .el-switch__core) {
-  background-color: #2E5CC7 !important;
+  background-color: var(--theme-switch-on-bg, #2e5cc7) !important;
 }
 
 .terminal-switch :deep(.el-switch.is-checked .el-switch__core:hover) {
-  background-color: #2E5CC7 !important;
+  background-color: var(--theme-switch-on-bg, #2e5cc7) !important;
 }
 
 .input-controls :deep(.el-switch__label) {
@@ -1632,16 +1675,16 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: rgba(50, 50, 51, 0.8) !important;
-  border-color: #555 !important;
-  color: #fff !important;
+  background-color: var(--theme-overlay-surface-bg, rgba(50, 50, 51, 0.8)) !important;
+  border-color: var(--theme-border-soft, #555) !important;
+  color: var(--theme-text-primary, #fff) !important;
   margin: 0 !important;
   padding: 0 !important;
   transition: all 0.2s ease;
 }
 
 .scroll-btn:hover {
-  background-color: rgba(70, 70, 72, 0.9) !important;
+  background-color: var(--theme-overlay-surface-hover-bg, rgba(70, 70, 72, 0.9)) !important;
   transform: scale(1.05);
 }
 
@@ -1665,11 +1708,11 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 }
 
 .terminal-output.show-scrollbar::-webkit-scrollbar-thumb {
-  background: #444;
+  background: var(--theme-scrollbar-thumb, #444);
 }
 
 .terminal-output.show-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--theme-scrollbar-thumb-hover, #555);
 }
 
 /* 隐藏所有 Monaco Editor 滚动条 */
@@ -1707,26 +1750,26 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   bottom: 100%;
   left: 0;
   right: 0;
-  background: #2d2d2d;
-  border: 1px solid #3c3c3c;
+  background: var(--theme-surface-strong-bg, #2d2d2d);
+  border: 1px solid var(--theme-border-color, #3c3c3c);
   border-radius: 4px;
   max-height: 240px;
   overflow-y: auto;
   z-index: 100;
   margin-bottom: 2px;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--theme-popup-shadow-top, 0 -4px 12px rgba(0, 0, 0, 0.3));
 }
 
 .history-item {
   padding: 6px 10px;
   cursor: pointer;
-  color: #ccc;
+  color: var(--theme-text-primary, #ccc);
   font-size: 12px;
   font-family: 'Fira Code', 'Consolas', monospace;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--theme-border-soft, #3a3a3a);
   display: flex;
   align-items: center;
 }
@@ -1736,13 +1779,13 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 }
 
 .history-item:hover {
-  background: #094771;
-  color: #fff;
+  background: var(--theme-accent-hover-bg, #094771);
+  color: var(--theme-accent-hover-text, #fff);
 }
 
 .history-item-active {
-  background: #094771;
-  color: #fff;
+  background: var(--theme-accent-hover-bg, #094771);
+  color: var(--theme-accent-hover-text, #fff);
 }
 
 .history-item-text {
@@ -1761,7 +1804,7 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   margin-left: 6px;
   flex-shrink: 0;
   border-radius: 3px;
-  color: #888;
+  color: var(--theme-text-muted, #888);
   font-size: 14px;
   cursor: pointer;
   text-align: center;
@@ -1774,8 +1817,8 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 }
 
 .history-item-delete:hover {
-  background: #c43e3e;
-  color: #fff;
+  background: var(--menu-danger-hover-bg, #c43e3e);
+  color: var(--theme-accent-hover-text, #fff);
 }
 
 .history-popup::-webkit-scrollbar {
@@ -1783,16 +1826,16 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 }
 
 .history-popup::-webkit-scrollbar-track {
-  background: #2d2d2d;
+  background: var(--theme-surface-strong-bg, #2d2d2d);
 }
 
 .history-popup::-webkit-scrollbar-thumb {
-  background: #555;
+  background: var(--theme-scrollbar-thumb, #555);
   border-radius: 3px;
 }
 
 .history-popup::-webkit-scrollbar-thumb:hover {
-  background: #666;
+  background: var(--theme-scrollbar-thumb-hover, #666);
 }
 
 /* CRC 按钮 */
@@ -1816,11 +1859,11 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   bottom: calc(100% + 4px);
   left: 0;
   min-width: 200px;
-  background: #2d2d2d;
-  border: 1px solid #3c3c3c;
+  background: var(--menu-bg-color, #2d2d2d);
+  border: 1px solid var(--menu-border-color, #3c3c3c);
   border-radius: 6px;
   z-index: 200;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--theme-popup-shadow, 0 4px 16px rgba(0, 0, 0, 0.5));
   padding: 8px 12px;
   display: flex;
   flex-direction: column;
@@ -1829,7 +1872,7 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 
 /* CRC 菜单内 switch 样式覆盖 */
 .crc-menu :deep(.terminal-switch .el-switch__core) {
-  background-color: #131315 !important;
+  background-color: var(--theme-switch-off-bg, #131315) !important;
   border-color: transparent !important;
   width: 36px !important;
   height: 18px !important;
@@ -1844,12 +1887,12 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 }
 
 .crc-menu :deep(.terminal-switch .el-switch__core:hover) {
-  background-color: #2A2A2C !important;
+  background-color: var(--theme-switch-off-hover-bg, #2a2a2c) !important;
 }
 
 .crc-menu :deep(.terminal-switch.is-checked .el-switch__core) {
-  background-color: #2E5CC7 !important;
-  border-color: #2E5CC7 !important;
+  background-color: var(--theme-switch-on-bg, #2e5cc7) !important;
+  border-color: var(--theme-switch-on-bg, #2e5cc7) !important;
 }
 
 .crc-menu-item {
@@ -1861,7 +1904,7 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 
 .crc-menu-label {
   font-size: 12px;
-  color: #ccc;
+  color: var(--menu-item-color, #ccc);
   white-space: nowrap;
 }
 
@@ -1875,7 +1918,7 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   align-items: center;
   padding: 4px 8px 4px 0;
   margin-top: 4px;
-  border-top: 1px solid #3c3c3c;
+  border-top: 1px solid var(--theme-border-color, #3c3c3c);
   gap: 8px;
   flex-wrap: wrap;
 }
@@ -1889,22 +1932,22 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 }
 
 .crc-inline-label {
-  color: #999;
+  color: var(--theme-text-muted, #999);
 }
 
 .crc-inline-value {
-  color: #4ec9b0;
+  color: var(--theme-success-color, #4ec9b0);
   font-weight: 600;
 }
 
 .crc-inline-error {
   font-size: 12px;
-  color: #f48771;
+  color: var(--theme-danger-color, #f48771);
 }
 
 .crc-inline-empty {
   font-size: 12px;
-  color: #666;
+  color: var(--theme-placeholder-color, #666);
 }
 
 .terminal-input {

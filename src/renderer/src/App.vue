@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container">
+  <div class="app-container" :style="appThemeStyle" :class="{ 'has-theme-wallpaper': Boolean(activeThemePlugin) }">
     <CustomTitleBar
       @toggle-connection-list="toggleConnectionList"
       @refreshCommands="refreshHandler"
@@ -143,7 +143,7 @@
                       <el-button
                         class="el-button--primary"
                         type="text"
-                        style="color: #cccccc"
+                        style="color: var(--theme-text-primary)"
                         icon="edit"
                         @click="editCreateDialog(conn)"
                         >{{ t('common.edit') }}</el-button
@@ -391,6 +391,154 @@ import { fromRawConnection } from './entity/protocol'
 import logoImage from './assets/icon.png'
 
 const { t } = useI18n()
+
+type ThemeMode = 'dark' | 'light'
+
+const DEFAULT_WINDOW_BACKGROUND = '#1e1e1e'
+const DEFAULT_THEME_OPACITY = 0.18
+
+const themePlugins = ref<ThemePluginInfo[]>([])
+const activeThemePlugin = ref<ThemePluginInfo | null>(null)
+const currentThemeMode = ref<ThemeMode>('dark')
+
+const applyThemeMode = (themeMode: string | undefined) => {
+  currentThemeMode.value = themeMode === 'light' ? 'light' : 'dark'
+  document.documentElement.setAttribute('data-theme', currentThemeMode.value)
+}
+
+const toRgba = (color: string, opacity: number): string => {
+  const normalizedOpacity = Math.max(0, Math.min(1, opacity))
+  const value = color.trim()
+
+  if (value.startsWith('#')) {
+    let hex = value.slice(1)
+    if (hex.length === 3) {
+      hex = hex
+        .split('')
+        .map((item) => item + item)
+        .join('')
+    }
+
+    if (hex.length === 6) {
+      const r = Number.parseInt(hex.slice(0, 2), 16)
+      const g = Number.parseInt(hex.slice(2, 4), 16)
+      const b = Number.parseInt(hex.slice(4, 6), 16)
+      if ([r, g, b].every((item) => !Number.isNaN(item))) {
+        return `rgba(${r}, ${g}, ${b}, ${normalizedOpacity})`
+      }
+    }
+  }
+
+  return `rgba(30, 30, 30, ${normalizedOpacity})`
+}
+
+const applyThemePlugin = (themePluginId: string) => {
+  activeThemePlugin.value =
+    themePlugins.value.find((plugin) => plugin.id === themePluginId) || null
+}
+
+const loadThemePlugins = async (themePluginId = '') => {
+  try {
+    const plugins = await window.storageApi.getThemePlugins()
+    themePlugins.value = Array.isArray(plugins) ? plugins : []
+    applyThemePlugin(themePluginId)
+  } catch (error) {
+    console.error('Failed to load theme plugins:', error)
+    themePlugins.value = []
+    activeThemePlugin.value = null
+  }
+}
+
+const appThemeStyle = computed(() => {
+  const themePlugin = activeThemePlugin.value
+  const hasWallpaper = Boolean(themePlugin?.backgroundImageUrl)
+  const themeMode = currentThemeMode.value
+  const isLight = themeMode === 'light'
+  const defaultWindowBackground = isLight ? '#f4f7fb' : DEFAULT_WINDOW_BACKGROUND
+  const windowBackground = themePlugin?.windowBackground || defaultWindowBackground
+  const overlayColor = toRgba(
+    windowBackground,
+    themePlugin?.bgColorOpacity ?? DEFAULT_THEME_OPACITY
+  )
+
+  return {
+    '--app-window-bg': windowBackground,
+    '--app-shell-overlay': overlayColor,
+    '--app-shell-bg-image': themePlugin?.backgroundImageUrl
+      ? `url("${themePlugin.backgroundImageUrl}")`
+      : 'none',
+    '--app-surface-bg': hasWallpaper
+      ? isLight
+        ? 'rgba(255, 255, 255, 0.78)'
+        : 'rgba(37, 37, 38, 0.78)'
+      : isLight
+        ? '#ffffff'
+        : '#252526',
+    '--app-surface-strong-bg': hasWallpaper
+      ? isLight
+        ? 'rgba(255, 255, 255, 0.86)'
+        : 'rgba(45, 45, 45, 0.84)'
+      : isLight
+        ? '#f7f9fc'
+        : '#2d2d2d',
+    '--app-tab-bg': hasWallpaper
+      ? isLight
+        ? 'rgba(248, 250, 252, 0.82)'
+        : 'rgba(45, 45, 45, 0.78)'
+      : isLight
+        ? '#f4f6fa'
+        : '#2d2d2d',
+    '--app-tab-hover-bg': hasWallpaper
+      ? isLight
+        ? 'rgba(235, 241, 249, 0.92)'
+        : 'rgba(64, 64, 64, 0.86)'
+      : isLight
+        ? '#eaf0f7'
+        : '#353535',
+    '--app-tab-active-bg': hasWallpaper
+      ? isLight
+        ? 'rgba(255, 255, 255, 0.96)'
+        : 'rgba(20, 20, 20, 0.22)'
+      : isLight
+        ? '#ffffff'
+        : '#1e1e1e',
+    '--app-border-color': hasWallpaper
+      ? isLight
+        ? 'rgba(29, 41, 57, 0.14)'
+        : 'rgba(255, 255, 255, 0.12)'
+      : isLight
+        ? '#d5deea'
+        : '#333',
+    '--app-border-soft': hasWallpaper
+      ? isLight
+        ? 'rgba(29, 41, 57, 0.1)'
+        : 'rgba(255, 255, 255, 0.08)'
+      : isLight
+        ? '#e3e9f2'
+        : '#3a3a3a',
+    '--app-scroll-thumb': hasWallpaper
+      ? isLight
+        ? 'rgba(103, 120, 145, 0.35)'
+        : 'rgba(160, 160, 160, 0.38)'
+      : isLight
+        ? '#c4cfdd'
+        : '#464647',
+    '--app-scroll-thumb-hover': hasWallpaper
+      ? isLight
+        ? 'rgba(92, 110, 136, 0.56)'
+        : 'rgba(180, 180, 180, 0.58)'
+      : isLight
+        ? '#aebdce'
+        : '#6f6f70',
+    '--app-muted-color': hasWallpaper
+      ? isLight
+        ? '#607086'
+        : '#aeb6c2'
+      : isLight
+        ? '#6b7280'
+        : '#888'
+  } as Record<string, string>
+})
 
 const notifyContainerRef = ref<InstanceType<typeof NotifyContainer> | null>(null)
 
@@ -1025,8 +1173,16 @@ const loadSidebarState = async () => {
     // 加载设置中的 showPortType
     const settings = await window.storageApi.getSettings()
     showPortType.value = settings.showPortType ?? true
+    return {
+      themeMode: settings.themeMode ?? 'dark',
+      themePluginId: settings.themePluginId ?? ''
+    }
   } catch (error) {
     console.error(t('common.loadFailed'), error)
+    return {
+      themeMode: 'dark',
+      themePluginId: ''
+    }
   }
 }
 
@@ -1748,9 +1904,11 @@ const openSettingsAndSwitchToSyntax = () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   // 加载侧边栏状态
-  loadSidebarState()
+  const themeSettings = await loadSidebarState()
+  applyThemeMode(themeSettings.themeMode)
+  await loadThemePlugins(themeSettings.themePluginId)
   loadConnections()
   loadSerialPorts()
   loadShortcutActions()
@@ -1829,10 +1987,16 @@ const handleShortcutsUpdated = async () => {
 }
 
 // 设置更新处理
-const handleSettingsUpdated = (event: Event) => {
+const handleSettingsUpdated = async (event: Event) => {
   const settings = (event as CustomEvent).detail
   if (settings && 'showPortType' in settings) {
     showPortType.value = settings.showPortType
+  }
+  if (settings && 'themeMode' in settings) {
+    applyThemeMode(settings.themeMode)
+  }
+  if (settings && 'themePluginId' in settings) {
+    await loadThemePlugins(settings.themePluginId || '')
   }
 }
 
@@ -1861,7 +2025,15 @@ onUnmounted(() => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
+  background-color: var(--app-window-bg, #1e1e1e);
+  background-image: linear-gradient(
+      var(--app-shell-overlay, rgba(30, 30, 30, 0.18)),
+      var(--app-shell-overlay, rgba(30, 30, 30, 0.18))
+    ),
+    var(--app-shell-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: #fff;
   overflow: hidden;
 }
@@ -1884,6 +2056,7 @@ onUnmounted(() => {
   display: flex;
   flex: 1;
   overflow: hidden;
+  background: transparent;
 }
 
 .connection-list {
@@ -1891,8 +2064,8 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #333;
-  background: #252526;
+  border-right: 1px solid var(--app-border-color, #333);
+  background: var(--app-surface-bg, #252526);
   overflow-x: hidden;
   min-height: 0;
 }
@@ -1921,31 +2094,31 @@ onUnmounted(() => {
 }
 
 .connection-list-scroll::-webkit-scrollbar-thumb {
-  background: #464647;
+  background: var(--app-scroll-thumb, #464647);
   border-radius: 4px;
 }
 
 .connection-list-scroll::-webkit-scrollbar-thumb:hover {
-  background: #6f6f70;
+  background: var(--app-scroll-thumb-hover, #6f6f70);
 }
 
 .connection-list h3 {
   margin: 0 0 20px 0;
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
 }
 
 .empty-state {
-  color: #888;
+  color: var(--app-muted-color, #888);
   margin-top: 20px;
   text-align: center;
   padding: 40px 0;
-  background: #2d2d2d;
+  background: var(--app-surface-strong-bg, #2d2d2d);
   border-radius: 8px;
 }
 
 .connection-card {
-  background: #2d2d2d !important;
-  border: 1px solid #3a3a3a !important;
+  background: var(--app-surface-strong-bg, #2d2d2d) !important;
+  border: 1px solid var(--app-border-soft, #3a3a3a) !important;
   margin-top: 12px;
   border-radius: 8px !important;
   overflow: hidden;
@@ -2031,7 +2204,7 @@ onUnmounted(() => {
 }
 
 .serial-remark {
-  color: #888;
+  color: var(--app-muted-color, #888);
   font-size: 13px;
   font-weight: normal;
   margin-left: 4px;
@@ -2045,19 +2218,36 @@ onUnmounted(() => {
 
 .serial-port-type .el-tag {
   font-size: 10px;
-  padding: 0 4px;
-  height: 16px;
-  line-height: 14px;
+  padding: 0 6px;
+  height: 18px;
+  line-height: 16px;
+  border-radius: 999px;
+  border: 1px solid var(--theme-serial-tag-border, #4d5766);
+  background-color: var(--theme-serial-tag-bg, #3a4048) !important;
+  color: var(--theme-serial-tag-text, #d9e2f0) !important;
+  font-weight: 600;
 }
 
 .bluetooth-tag {
-  background-color: #1f6feb !important;
-  border-color: #1f6feb !important;
-  color: #fff !important;
+  background-color: var(--theme-serial-tag-bluetooth-bg, #1f6feb) !important;
+  border-color: var(--theme-serial-tag-bluetooth-border, #1f6feb) !important;
+  color: var(--theme-serial-tag-bluetooth-text, #fff) !important;
+}
+
+.serial-port-type :deep(.el-tag--success) {
+  background-color: var(--theme-serial-tag-success-bg, #1f4d3c) !important;
+  border-color: var(--theme-serial-tag-success-border, #2f6b54) !important;
+  color: var(--theme-serial-tag-success-text, #b8f1d2) !important;
+}
+
+.serial-port-type :deep(.el-tag--info) {
+  background-color: var(--theme-serial-tag-bg, #3a4048) !important;
+  border-color: var(--theme-serial-tag-border, #4d5766) !important;
+  color: var(--theme-serial-tag-text, #d9e2f0) !important;
 }
 
 .tab-remark {
-  color: #888;
+  color: var(--app-muted-color, #888);
   font-size: 12px;
   font-weight: normal;
   margin-left: 4px;
@@ -2066,7 +2256,7 @@ onUnmounted(() => {
 .conn-name {
   font-size: 16px;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--theme-serial-name-color, #e0e0e0);
 }
 
 /* 斜角绑带式标签 */
@@ -2113,7 +2303,7 @@ onUnmounted(() => {
   justify-content: left;
   padding: 8px 0;
   margin-top: 8px;
-  border-top: 1px solid #3a3a3a;
+  border-top: 1px solid var(--app-border-soft, #3a3a3a);
   flex-shrink: 0;
 }
 
@@ -2137,7 +2327,7 @@ onUnmounted(() => {
 .section-title {
   font-size: 13px;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--theme-text-secondary, #e0e0e0);
 }
 
 .expand-icon {
@@ -2154,7 +2344,7 @@ onUnmounted(() => {
 }
 
 .no-ports-tip {
-  color: #888;
+  color: var(--app-muted-color, #888);
   font-size: 12px;
   text-align: center;
   padding: 8px 0;
@@ -2171,30 +2361,30 @@ onUnmounted(() => {
 .connection-group-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   overflow-x: hidden;
 }
 
 .el-dialog {
-  background: #252526 !important;
+  background: var(--theme-dialog-bg, #252526) !important;
   border-radius: 8px !important;
 }
 
 .el-dialog__title {
-  color: #f0f0f0 !important;
+  color: var(--theme-text-primary, #f0f0f0) !important;
   font-size: 18px !important;
 }
 
 .el-form-item__label {
-  color: #e8e8e8 !important;
+  color: var(--theme-text-primary, #e8e8e8) !important;
 }
 
 .el-input,
 .el-select {
-  --el-input-bg-color: #cccccc !important;
-  --el-input-text-color: #000 !important;
-  --el-input-placeholder-color: #888 !important;
-  --el-border-color: #444 !important;
+  --el-input-bg-color: var(--theme-input-bg) !important;
+  --el-input-text-color: var(--theme-input-text) !important;
+  --el-input-placeholder-color: var(--theme-placeholder-color) !important;
+  --el-border-color: var(--theme-border-soft) !important;
 }
 
 .el-input:focus-within,
@@ -2229,12 +2419,12 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 12px;
-  border-top: 1px solid #333;
-  background: #252526;
+  border-top: 1px solid var(--app-border-color, #333);
+  background: var(--app-surface-bg, #252526);
 }
 
 .sidebar-brand {
-  color: #ffc107;
+  color: var(--theme-brand-color, #ffc107);
   font-weight: 700;
   font-size: 13px;
 }
@@ -2250,15 +2440,15 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  color: #888;
+  color: var(--app-muted-color, #888);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .sidebar-menu-btn:hover,
 .sidebar-menu-btn.active {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #e0e0e0;
+  background-color: var(--theme-hover-overlay, rgba(255, 255, 255, 0.1));
+  color: var(--theme-text-primary, #e0e0e0);
 }
 
 /* 下拉菜单 - 侧边栏位置 */
@@ -2311,8 +2501,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1e1e1e;
-  color: #aaa;
+  background: transparent;
+  color: var(--theme-text-secondary, #aaa);
   font-size: 14px;
   flex: 1;
   padding: 0px;
@@ -2331,7 +2521,7 @@ onUnmounted(() => {
 .no-result,
 .empty-list {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--theme-text-muted, #9ca3af);
   text-align: center;
   margin-top: 20px;
 }
@@ -2342,14 +2532,14 @@ onUnmounted(() => {
 }
 
 .connection-btn:deep(.el-button--primary:hover) {
-  background-color: #454646;
+  background-color: var(--theme-surface-strong-bg, #454646);
 }
 
 .resource-monitor {
   height: 100%;
   margin-left: 5px;
   background-color: transparent;
-  color: white;
+  color: var(--theme-text-primary, white);
   font-size: 11px;
   padding: 0px 10px;
   display: flex;
@@ -2361,7 +2551,7 @@ onUnmounted(() => {
 }
 
 .command-status {
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
   font-size: 12px;
 
   margin-left: auto;
@@ -2410,12 +2600,12 @@ onUnmounted(() => {
   width: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #1e1e1e;
+  background-color: transparent;
 }
 
 .tabs-header {
   height: 32px;
-  background: #252526;
+  background: var(--app-surface-bg, #252526);
   flex-shrink: 0;
   overflow-x: auto;
   overflow-y: hidden;
@@ -2431,12 +2621,12 @@ onUnmounted(() => {
 }
 
 .tabs-header::-webkit-scrollbar-thumb {
-  background: #464647;
+  background: var(--app-scroll-thumb, #464647);
   border-radius: 2px;
 }
 
 .tabs-header::-webkit-scrollbar-thumb:hover {
-  background: #6f6f70;
+  background: var(--app-scroll-thumb-hover, #6f6f70);
 }
 
 .tabs-nav {
@@ -2454,21 +2644,21 @@ onUnmounted(() => {
   min-width: 100px;
   max-width: 160px;
   height: 100%;
-  background-color: #2d2d2d;
-  color: #ccc;
+  background-color: var(--app-tab-bg, #2d2d2d);
+  color: var(--theme-text-secondary, #ccc);
   cursor: pointer;
   user-select: none;
   position: relative;
-  border-right: 1px solid #1e1e1e;
+  border-right: 1px solid var(--app-border-color, #1e1e1e);
 }
 
 .tab-item:hover {
-  background-color: #353535;
+  background-color: var(--app-tab-hover-bg, #353535);
 }
 
 .tab-item.active {
-  background-color: #1e1e1e;
-  color: #fff;
+  background-color: var(--app-tab-active-bg, #1e1e1e);
+  color: var(--theme-text-primary, #fff);
 }
 
 .tab-item .tab-icon {
@@ -2479,11 +2669,11 @@ onUnmounted(() => {
   width: 14px;
   height: 14px;
   margin-right: 4px;
-  color: #888;
+  color: var(--app-muted-color, #888);
 }
 
 .tab-item.active .tab-icon {
-  color: #fff;
+  color: var(--theme-text-primary, #fff);
 }
 
 .tab-item .tab-name {
@@ -2551,7 +2741,7 @@ onUnmounted(() => {
   transform: translate(-50%, -50%);
   font-size: 14px;
   line-height: 1;
-  color: #888;
+  color: var(--app-muted-color, #888);
 }
 
 /* 固定状态显示图钉图标 */
@@ -2577,11 +2767,11 @@ onUnmounted(() => {
 }
 
 .tab-action-btn:hover {
-  background-color: #3b3c3c;
+  background-color: var(--theme-hover-overlay, #3b3c3c);
 }
 
 .tab-action-btn:hover::before {
-  color: #fff;
+  color: var(--theme-text-primary, #fff);
 }
 
 .tabs-content {
@@ -2645,7 +2835,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #1e1e1e;
+  background-color: transparent;
 }
 
 .logo-container {

@@ -138,12 +138,12 @@ defineExpose({ add, remove, clear })
 
 .notify-item {
   position: relative;
-  background: #252526;
-  border: 1px solid #3a3a3a;
+  background: var(--theme-message-bg, var(--theme-surface-bg, #252526));
+  border: 1px solid var(--theme-message-border, var(--theme-border-color, #3a3a3a));
   border-radius: 8px;
   padding: 10px 14px;
   padding-right: 30px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--theme-popup-shadow, 0 4px 16px rgba(0, 0, 0, 0.4));
   margin: 4px 0;
   min-width: 280px;
   max-width: 380px;
@@ -153,7 +153,7 @@ defineExpose({ add, remove, clear })
 
 .notify-item.focused {
   border-color: var(--focus-border-color);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(0, 127, 212, 0.3);
+  box-shadow: var(--theme-popup-shadow, 0 4px 16px rgba(0, 0, 0, 0.4)), 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 .notify-close {
@@ -161,19 +161,19 @@ defineExpose({ add, remove, clear })
   top: 8px;
   right: 10px;
   font-size: 14px;
-  color: #888;
+  color: var(--theme-text-muted, #888);
   cursor: pointer;
   transition: color 0.2s;
 }
 
 .notify-close:hover {
-  color: #fff;
+  color: var(--theme-text-primary, #fff);
 }
 
 .notify-title {
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--theme-text-primary, #fff);
   margin-bottom: 4px;
   display: flex;
   align-items: center;
@@ -183,8 +183,9 @@ defineExpose({ add, remove, clear })
 .notify-count {
   font-size: 11px;
   font-weight: 500;
-  color: #999;
-  background: #3a3a3a;
+  color: var(--theme-text-secondary, #999);
+  background: var(--theme-surface-strong-bg, #3a3a3a);
+  border: 1px solid var(--theme-border-soft, #4a4a4a);
   border-radius: 10px;
   padding: 1px 7px;
   line-height: 1.4;
@@ -192,7 +193,7 @@ defineExpose({ add, remove, clear })
 
 .notify-message {
   font-size: 12px;
-  color: #aaa;
+  color: var(--theme-text-secondary, #aaa);
   word-break: break-all;
   line-height: 1.4;
 }

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eef4ff" />
+      <stop offset="100%" stop-color="#dce8ff" />
+    </linearGradient>
+    <pattern id="grid" width="96" height="96" patternUnits="userSpaceOnUse">
+      <path d="M 96 0 L 0 0 0 96" fill="none" stroke="#c5d5f0" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bg)" />
+  <rect width="1920" height="1080" fill="url(#grid)" opacity="0.55" />
+  <circle cx="320" cy="240" r="180" fill="#ffffff" opacity="0.65" />
+  <circle cx="1600" cy="860" r="220" fill="#ffffff" opacity="0.45" />
+  <path d="M0 820 C 260 720 480 760 720 880 S 1240 1020 1920 760 L 1920 1080 L 0 1080 Z" fill="#7da8ff" opacity="0.32"/>
+  <path d="M0 900 C 240 780 520 840 780 940 S 1340 1100 1920 860 L 1920 1080 L 0 1080 Z" fill="#5c86e8" opacity="0.22"/>
+  <rect x="1160" y="180" width="520" height="220" rx="20" fill="#ffffff" opacity="0.35" />
+  <rect x="1210" y="240" width="310" height="18" rx="9" fill="#8caef3" opacity="0.72" />
+  <rect x="1210" y="284" width="400" height="18" rx="9" fill="#adc4fb" opacity="0.76" />
+  <rect x="1210" y="328" width="260" height="18" rx="9" fill="#8caef3" opacity="0.58" />
+  <rect x="240" y="180" width="360" height="160" rx="20" fill="#ffffff" opacity="0.3" />
+  <rect x="300" y="236" width="180" height="18" rx="9" fill="#8caef3" opacity="0.7" />
+  <rect x="300" y="280" width="240" height="18" rx="9" fill="#adc4fb" opacity="0.72" />
+</svg>

@@ -185,16 +185,18 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background-color: #252526;
+  background-color: var(--theme-surface-bg, #252526);
+  color: var(--theme-text-primary, #e8e8e8);
+  border: 1px solid var(--theme-border-color, #3c3c3c);
   box-sizing: border-box;
   border-radius: 0px 0px 6px 6px;
-  margin: 0px 4px 2px 2px;
+  margin: 0px 4px 1px 2px;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
   flex: 1;
 }
@@ -208,12 +210,12 @@ onMounted(() => {
 
 .connection-status.connected {
   background-color: rgba(24, 193, 56, 0.2);
-  color: #18c138;
+  color: var(--theme-success-color, #18c138);
 }
 
 .connection-status.disconnected {
   background-color: rgba(128, 128, 128, 0.2);
-  color: #888888;
+  color: var(--theme-text-muted, #888888);
 }
 
 .close-btn {
@@ -274,7 +276,7 @@ onMounted(() => {
 .syntax-group-select :deep(.el-select__wrapper) {
   border-color: transparent !important;
   box-shadow: none !important;
-  background-color: #3a3a3a !important;
+  background-color: var(--theme-input-bg, #3a3a3a) !important;
   min-height: 28px !important;
   height: 28px !important;
 }
@@ -323,25 +325,25 @@ onMounted(() => {
   justify-content: center !important;
   background-color: transparent !important;
   border: 1px solid transparent !important;
-  color: #fff !important;
+  color: var(--theme-text-primary, #fff) !important;
   transition: all 0.2s ease !important;
   margin-left: 0px !important;
   margin-right: 0px !important;
 }
 
 .auto-scroll-btn:hover {
-  background-color: rgba(128, 128, 128, 0.2) !important;
-  color: #fff !important;
+  background-color: var(--theme-hover-overlay, rgba(128, 128, 128, 0.2)) !important;
+  color: var(--theme-text-primary, #fff) !important;
 }
 
 .auto-scroll-active {
-  background-color: #326BF1 !important;
+  background-color: var(--theme-btn-primary-bg, #326BF1) !important;
   border-color: transparent !important;
   color: #fff !important;
 }
 
 .auto-scroll-active:hover {
-  background-color: #326BF1 !important;
+  background-color: var(--theme-btn-primary-bg, #326BF1) !important;
   color: #fff !important;
 }
 
@@ -356,23 +358,23 @@ onMounted(() => {
   justify-content: center !important;
   background-color: transparent !important;
   border: 1px solid transparent !important;
-  color: #fff !important;
+  color: var(--theme-text-primary, #fff) !important;
   transition: all 0.2s ease !important;
   margin-left: 0px !important;
   margin-right: 2px !important;
 }
 
 .icon-action-btn:hover {
-  background-color: rgba(128, 128, 128, 0.2) !important;
-  color: #fff !important;
+  background-color: var(--theme-hover-overlay, rgba(128, 128, 128, 0.2)) !important;
+  color: var(--theme-text-primary, #fff) !important;
 }
 
 :deep(.el-switch) {
-  --el-switch-on-color: #165dff;
-  --el-switch-off-color: #444;
+  --el-switch-on-color: var(--theme-switch-on-bg, #165dff);
+  --el-switch-off-color: var(--theme-switch-off-bg, #444);
 }
 
 :deep(.el-switch__label) {
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
 }
 </style>

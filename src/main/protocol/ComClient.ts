@@ -43,9 +43,10 @@ export default class ComClient extends BaseClient {
     connection.buffer = result.remainder
 
     if (result.count > 0) {
-      const timestamp = BufferLineSplitter.timestamp()
-      onData?.({ data: result.data, timestamp })
-      onLog?.(result.log, timestamp)
+      const lineTimestamps = BufferLineSplitter.timestampSeries(result.count)
+      const timestamp = lineTimestamps[lineTimestamps.length - 1] || BufferLineSplitter.timestamp()
+      onData?.({ data: result.data, timestamp, lineTimestamps })
+      onLog?.(result.log, timestamp, lineTimestamps)
     }
   }
 
@@ -65,8 +66,10 @@ export default class ComClient extends BaseClient {
     connection.lastDataTime = Date.now()
 
     this.logger.info(`serial idle flush: ${buffer.length} bytes after ${elapsed}ms idle`)
-    onData?.({ data: remainingStr, timestamp })
-    onLog?.(splitter.toLogLine(remainingStr), timestamp)
+    const lineCount = remainingStr.split(/\r?\n/).filter((line) => line.trim() !== '').length || 1
+    const lineTimestamps = BufferLineSplitter.timestampSeries(lineCount)
+    onData?.({ data: remainingStr, timestamp, lineTimestamps })
+    onLog?.(splitter.toLogLine(remainingStr), timestamp, lineTimestamps)
   }
 
   async start(info: ConnectionInfo, onData: any, onClose: any, onLog: any): Promise<object> {
@@ -167,8 +170,10 @@ export default class ComClient extends BaseClient {
             if (connection.buffer && connection.buffer.length > 0) {
               const timestamp = BufferLineSplitter.timestamp()
               const remainingStr = connection.buffer.toString(encoding as BufferEncoding)
-              connection.onData?.({ data: remainingStr, timestamp })
-              connection.onLog?.(connection.splitter.toLogLine(remainingStr), timestamp)
+              const lineCount = remainingStr.split(/\r?\n/).filter((line) => line.trim() !== '').length || 1
+              const lineTimestamps = BufferLineSplitter.timestampSeries(lineCount)
+              connection.onData?.({ data: remainingStr, timestamp, lineTimestamps })
+              connection.onLog?.(connection.splitter.toLogLine(remainingStr), timestamp, lineTimestamps)
               connection.buffer = Buffer.alloc(0)
             }
             this.serialConnections.delete(sessionId)

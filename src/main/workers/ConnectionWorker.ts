@@ -37,6 +37,7 @@ interface WorkerResponse {
   connId?: string
   displayData?: string
   timestamp?: string
+  lineTimestamps?: string[]
   isHex?: boolean
   logStr?: string
   error?: string
@@ -128,7 +129,7 @@ async function handleStart(msg: WorkerMessage): Promise<void> {
     const result = await c.start(
       connInfo,
       // onData 回调：数据到达时回传主线程（HEX 转换在 Worker 中完成）
-      (dataObj: { data: string; timestamp: string }) => {
+      (dataObj: { data: string; timestamp: string; lineTimestamps?: string[] }) => {
         let displayData: string
         const isHex = receiveHex
 
@@ -148,6 +149,7 @@ async function handleStart(msg: WorkerMessage): Promise<void> {
           sessionId,
           displayData,
           timestamp: dataObj.timestamp,
+          lineTimestamps: dataObj.lineTimestamps,
           isHex
         })
       },
@@ -156,8 +158,8 @@ async function handleStart(msg: WorkerMessage): Promise<void> {
         postResponse({ type: 'close', sessionId })
       },
       // onLog 回调
-      (logStr: string, timestamp: string) => {
-        postResponse({ type: 'log', sessionId, logStr, timestamp })
+      (logStr: string, timestamp: string, lineTimestamps?: string[]) => {
+        postResponse({ type: 'log', sessionId, logStr, timestamp, lineTimestamps })
       }
     )
 

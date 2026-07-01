@@ -27,6 +27,7 @@ export interface WorkerToMainMessage {
   connId?: string
   displayData?: string
   timestamp?: string
+  lineTimestamps?: string[]
   isHex?: boolean
   logStr?: string
   error?: string
@@ -62,8 +63,8 @@ export default class WorkerPool {
   private requestCounter: number = 0
 
   // 全局回调（所有 Worker 的数据/日志/关闭事件都通过这里通知外部）
-  private onDataCallback: ((sessionId: string, displayData: string, timestamp: string, isHex: boolean) => void) | null = null
-  private onLogCallback: ((sessionId: string, logStr: string, timestamp: string) => void) | null = null
+  private onDataCallback: ((sessionId: string, displayData: string, timestamp: string, isHex: boolean, lineTimestamps?: string[]) => void) | null = null
+  private onLogCallback: ((sessionId: string, logStr: string, timestamp: string, lineTimestamps?: string[]) => void) | null = null
   private onCloseCallback: ((sessionId: string) => void) | null = null
 
   private constructor() {
@@ -81,8 +82,8 @@ export default class WorkerPool {
    * 设置全局回调
    */
   setCallbacks(
-    onData: (sessionId: string, displayData: string, timestamp: string, isHex: boolean) => void,
-    onLog: (sessionId: string, logStr: string, timestamp: string) => void,
+    onData: (sessionId: string, displayData: string, timestamp: string, isHex: boolean, lineTimestamps?: string[]) => void,
+    onLog: (sessionId: string, logStr: string, timestamp: string, lineTimestamps?: string[]) => void,
     onClose: (sessionId: string) => void
   ): void {
     this.onDataCallback = onData
@@ -160,7 +161,8 @@ export default class WorkerPool {
             msg.sessionId,
             msg.displayData,
             msg.timestamp || '',
-            msg.isHex || false
+            msg.isHex || false,
+            msg.lineTimestamps
           )
         }
         break
@@ -170,7 +172,8 @@ export default class WorkerPool {
           this.onLogCallback?.(
             msg.sessionId,
             msg.logStr,
-            msg.timestamp || ''
+            msg.timestamp || '',
+            msg.lineTimestamps
           )
         }
         break

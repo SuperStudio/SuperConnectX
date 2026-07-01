@@ -55,7 +55,7 @@
           stripe
           style="width: 100%; height: 100%"
           row-key="id"
-          :header-cell-style="{ background: '#2d2d2d', color: '#e0e0e0', fontWeight: '600' }"
+          :header-cell-style="{ background: 'var(--theme-table-header-bg)', color: 'var(--theme-table-header-text)', fontWeight: '600' }"
           :row-class-name="tableRowClassName"
           :highlight-current-row="true"
           :empty-text="t('commandEditor.emptyText')"
@@ -554,21 +554,21 @@ onMounted(() => {
 .command-editor {
   display: flex;
   height: 100%;
-  background: #1e1e1e;
-  color: #e0e0e0;
+  background: var(--theme-body-bg, #1e1e1e);
+  color: var(--theme-text-primary, #e0e0e0);
 }
 
 .sidebar {
   width: 250px;
-  background: #2d2d2d;
-  border-right: 1px solid #3c3c3c;
+  background: var(--theme-surface-strong-bg, #2d2d2d);
+  border-right: 1px solid var(--theme-border-color, #3c3c3c);
   display: flex;
   flex-direction: column;
 }
 
 .sidebar-header {
   padding: 12px;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--theme-border-color, #3c3c3c);
 }
 
 .add-group-btn {
@@ -585,7 +585,7 @@ onMounted(() => {
 
 .sidebar-search {
   padding: 8px 12px;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--theme-border-color, #3c3c3c);
 }
 
 .sidebar-list {
@@ -600,16 +600,16 @@ onMounted(() => {
 }
 
 .sidebar-list::-webkit-scrollbar-track {
-  background: #2d2d2d;
+  background: var(--theme-surface-strong-bg, #2d2d2d);
 }
 
 .sidebar-list::-webkit-scrollbar-thumb {
-  background: #555;
+  background: var(--theme-scrollbar-thumb, #555);
   border-radius: 3px;
 }
 
 .sidebar-list::-webkit-scrollbar-thumb:hover {
-  background: #666;
+  background: var(--theme-scrollbar-thumb-hover, #666);
 }
 
 .sidebar-item {
@@ -621,11 +621,12 @@ onMounted(() => {
 }
 
 .sidebar-item:hover {
-  background: #383838;
+  background: var(--theme-hover-overlay, #383838);
 }
 
 .sidebar-item.active {
-  background: #094771;
+  background: var(--menu-item-hover-bg, #094771);
+  color: var(--theme-text-primary, #ffffff);
 }
 
 .sidebar-item .group-name {
@@ -637,7 +638,7 @@ onMounted(() => {
 
 .sidebar-item .group-type {
   font-size: 10px;
-  color: #888;
+  color: var(--theme-text-muted, #888);
   margin-left: 8px;
 }
 
@@ -657,7 +658,7 @@ onMounted(() => {
 }
 
 .sidebar-item .group-actions .el-icon:hover {
-  color: #fff;
+  color: var(--theme-text-primary, #fff);
 }
 
 .main-content {
@@ -665,13 +666,15 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--theme-body-bg, #1e1e1e);
 }
 
 .toolbar {
   padding: 12px;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--theme-border-color, #3c3c3c);
   display: flex;
   gap: 8px;
+  background: var(--theme-surface-bg, #252526);
 }
 
 .toolbar .el-button:hover {
@@ -691,8 +694,8 @@ onMounted(() => {
 
 .command-table .el-table {
   height: 100%;
-  background: #1e1e1e;
-  color: #e0e0e0;
+  background: var(--theme-body-bg, #1e1e1e);
+  color: var(--theme-text-primary, #e0e0e0);
   border-radius: 0;
   border: none !important;
   box-shadow: none !important;
@@ -745,13 +748,13 @@ onMounted(() => {
 }
 
 .command-table .el-table :deep(.el-table__header) {
-  background: #2d2d2d !important;
+  background: var(--theme-table-header-bg, #2d2d2d) !important;
   border-bottom: none !important;
 }
 
 .command-table .el-table :deep(.el-table__header th) {
-  background: #2d2d2d !important;
-  color: #e0e0e0;
+  background: var(--theme-table-header-bg, #2d2d2d) !important;
+  color: var(--theme-table-header-text, #e0e0e0);
   font-weight: 600;
   padding: 12px 8px;
   border: none !important;
@@ -764,30 +767,31 @@ onMounted(() => {
 }
 
 .command-table .el-table :deep(.el-table__body) {
-  background: #1e1e1e !important;
+  background: var(--theme-body-bg, #1e1e1e) !important;
 }
 
 .command-table .el-table :deep(.el-table__body td) {
-  background: #1e1e1e !important;
+  background: var(--theme-body-bg, #1e1e1e) !important;
+  color: var(--theme-text-primary, #e0e0e0) !important;
   padding: 10px 8px;
   border: none !important;
   border-bottom: none !important;
 }
 
 .command-table .el-table :deep(.el-table__body tr) {
-  background: #1e1e1e !important;
+  background: var(--theme-body-bg, #1e1e1e) !important;
 }
 
 .command-table .el-table :deep(.el-table__body .el-table__row--striped) {
-  background: #252526 !important;
+  background: var(--theme-surface-bg, #252526) !important;
 }
 
 .command-table .el-table :deep(.el-table__body .el-table__row--striped td) {
-  background: #252526 !important;
+  background: var(--theme-surface-bg, #252526) !important;
 }
 
 .command-table .el-table :deep(.stripe-row) {
-  background: #252526 !important;
+  background: var(--theme-surface-bg, #252526) !important;
 }
 
 /* 隐藏表格空状态下的分隔线 */
@@ -798,15 +802,16 @@ onMounted(() => {
 /* 选中行背景 */
 .command-table .el-table :deep(.el-table__body tr:hover > td),
 .command-table .el-table :deep(.el-table__body .current-row > td) {
-  background: #094771 !important;
+  background: var(--menu-item-hover-bg, #094771) !important;
+  color: var(--theme-text-primary, #ffffff) !important;
 }
 
 /* 单元格输入框统一样式 */
 .command-table .el-table :deep(.cell-input .el-input__wrapper),
 .command-table .el-table :deep(.cell-seqnum .el-input__wrapper),
 .command-table .el-table :deep(.cell-command .el-input__wrapper) {
-  background: transparent;
-  box-shadow: none;
+  background: var(--theme-input-bg, transparent);
+  box-shadow: 0 0 0 1px var(--theme-border-soft, transparent) inset;
   padding: 6px 0;
   height: auto;
 }
@@ -815,6 +820,7 @@ onMounted(() => {
 .command-table .el-table :deep(.cell-seqnum .el-input__inner),
 .command-table .el-table :deep(.cell-command .el-input__inner) {
   background: transparent;
+  color: var(--theme-input-text, #1f2937);
   padding: 0 12px;
   height: auto;
   line-height: 20px;
@@ -842,7 +848,7 @@ onMounted(() => {
 }
 
 .command-table .el-table :deep(.cell-input .el-input__inner) {
-  color: #e0e0e0;
+  color: var(--theme-input-text, #e0e0e0);
 }
 
 .command-table .el-table :deep(.cell-seqnum) {
@@ -873,13 +879,13 @@ onMounted(() => {
 }
 
 .command-table .el-table :deep(.cell-seqnum .el-input__inner) {
-  color: #7ec699;
+  color: var(--theme-success-color, #7ec699);
   text-align: center;
   width: 20px;
 }
 
 .command-table .el-table :deep(.cell-command .el-input__inner) {
-  color: #ce9178;
+  color: var(--theme-input-text, #ce9178);
   font-family: 'Consolas', 'Monaco', monospace;
 }
 
@@ -888,18 +894,18 @@ onMounted(() => {
 }
 
 .command-table .el-table__empty-text {
-  color: #888;
+  color: var(--theme-text-muted, #888);
   padding: 40px 0;
 }
 
 .cmd-name {
   font-weight: 500;
-  color: #fff;
+  color: var(--theme-text-primary, #fff);
 }
 
 .cmd-delay {
   font-family: 'Consolas', 'Monaco', monospace;
-  color: #7ec699;
+  color: var(--theme-success-color, #7ec699);
 }
 
 .command-content {
@@ -914,8 +920,8 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: 'Consolas', 'Monaco', monospace;
-  color: #ce9178;
-  background: #2d2d2d;
+  color: var(--theme-input-text, #ce9178);
+  background: var(--theme-surface-strong-bg, #2d2d2d);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -927,39 +933,39 @@ onMounted(() => {
 }
 
 .command-table::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: var(--theme-body-bg, #1e1e1e);
 }
 
 .command-table::-webkit-scrollbar-thumb {
-  background: #555;
+  background: var(--theme-scrollbar-thumb, #555);
   border-radius: 4px;
 }
 
 .command-table::-webkit-scrollbar-thumb:hover {
-  background: #666;
+  background: var(--theme-scrollbar-thumb-hover, #666);
 }
 
 /* 对话框样式 */
 :deep(.el-dialog) {
-  background: #2d2d2d;
-  border: 1px solid #444;
+  background: var(--theme-dialog-bg, #2d2d2d);
+  border: 1px solid var(--theme-border-soft, #444);
 }
 
 :deep(.el-dialog__header) {
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid var(--theme-border-soft, #444);
 }
 
 :deep(.el-dialog__title) {
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
 }
 
 :deep(.el-form-item__label) {
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
 }
 
 :deep(.el-input__wrapper) {
-  background: #3a3a3a;
-  box-shadow: 0 0 0 1px #444 inset;
+  background: var(--theme-input-bg, #3a3a3a);
+  box-shadow: 0 0 0 1px var(--theme-border-soft, #444) inset;
 }
 
 :deep(.el-input__wrapper:hover) {
@@ -971,13 +977,13 @@ onMounted(() => {
 }
 
 :deep(.el-input__inner) {
-  color: #e0e0e0;
+  color: var(--theme-input-text, #e0e0e0);
 }
 
 :deep(.el-textarea__inner) {
-  background: #3a3a3a;
-  box-shadow: 0 0 0 1px #444 inset;
-  color: #e0e0e0;
+  background: var(--theme-input-bg, #3a3a3a);
+  box-shadow: 0 0 0 1px var(--theme-border-soft, #444) inset;
+  color: var(--theme-input-text, #e0e0e0);
   resize: vertical;
 }
 
@@ -990,6 +996,6 @@ onMounted(() => {
 }
 
 :deep(.el-select .el-input__wrapper) {
-  background: #3a3a3a;
+  background: var(--theme-input-bg, #3a3a3a);
 }
 </style>

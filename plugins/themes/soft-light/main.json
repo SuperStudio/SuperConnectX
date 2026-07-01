@@ -1,0 +1,16 @@
+{
+  "PluginMetaData": {
+    "PluginName": "柔光壁纸",
+    "Version": "1.0.0"
+  },
+  "Data": {
+    "Images": {
+      "Background": "./images/background.svg",
+      "Small": "./images/preview.svg"
+    },
+    "BgColorOpacity": 0.2,
+    "Colors": {
+      "Window.Background": "#e0e0e0"
+    }
+  }
+}

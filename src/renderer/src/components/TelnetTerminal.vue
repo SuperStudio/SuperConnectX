@@ -60,6 +60,19 @@ let preventAutoReconnect = false
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
 
+const formatTimestampedDisplay = (text: string, showTimestamp: boolean, timestamp?: string, lineTimestamps?: string[]): string => {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '')
+  if (lines.length === 0) return '\n'
+  if (!showTimestamp) return `${lines.join('\n')}\n`
+
+  const timestampedLines = lines.map((line, index) => {
+    const lineTimestamp = lineTimestamps?.[index] || timestamp
+    return lineTimestamp ? `[${lineTimestamp}] ${line}` : line
+  })
+
+  return `${timestampedLines.join('\n')}\n`
+}
+
 // 获取原始 connection id
 const getOriginalConnectionId = (): number | undefined => {
   const id = props.connection.id
@@ -258,8 +271,12 @@ const connect = async () => {
           if (data.connId !== currentConnId) return
           terminal.totalRxSize += data.data.length
           unifiedTerminalRef.value?.updateRxBytes(data.data.length)
-          const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
-          const displayText = `${prefix}${data.data}\n`
+          const displayText = formatTimestampedDisplay(
+            data.data,
+            terminal.showTimestamp.value,
+            data.timestamp,
+            data.lineTimestamps
+          )
           unifiedTerminalRef.value?.appendToTerminal(displayText)
         })
 

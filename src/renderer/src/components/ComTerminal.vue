@@ -232,6 +232,19 @@ const crcMethod = ref<string>('CRC-16/MODBUS')
 let removeMountedCloseListener: (() => void) | null = null
 let removeDataListener: (() => void) | null = null
 
+const formatTimestampedDisplay = (text: string, showTimestamp: boolean, timestamp?: string, lineTimestamps?: string[]): string => {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '')
+  if (lines.length === 0) return '\n'
+  if (!showTimestamp) return `${lines.join('\n')}\n`
+
+  const timestampedLines = lines.map((line, index) => {
+    const lineTimestamp = lineTimestamps?.[index] || timestamp
+    return lineTimestamp ? `[${lineTimestamp}] ${line}` : line
+  })
+
+  return `${timestampedLines.join('\n')}\n`
+}
+
 // 串口参数
 const baudRates = ref<number[]>([]) // 从全局设置加载
 const baudRate = ref(props.connection.baudRate || 9600)
@@ -595,8 +608,12 @@ const handleConnect = async () => {
         if (String(data.connId) !== String(currentSessionId.value)) return
         terminal.totalRxSize += data.data.length
         unifiedTerminalRef.value?.updateRxBytes(data.data.length)
-        const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
-        const displayText = `${prefix}${data.data}\n`
+        const displayText = formatTimestampedDisplay(
+          data.data,
+          terminal.showTimestamp.value,
+          data.timestamp,
+          data.lineTimestamps
+        )
         unifiedTerminalRef.value?.appendToTerminal(displayText)
       })
 
@@ -785,8 +802,8 @@ onUnmounted(() => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
-  color: #fff;
+  background: var(--theme-body-bg, #1e1e1e);
+  color: var(--theme-text-primary, #fff);
   font-family: 'Fira Code', 'Consolas', monospace;
   overflow: hidden;
 }
@@ -797,8 +814,8 @@ onUnmounted(() => {
   align-items: center;
   flex-wrap: wrap;
   padding: 8px 8px 8px 0px;
-  background-color: #2d2d2d;
-  border-bottom: 1px solid #333;
+  background-color: var(--theme-surface-strong-bg, #2d2d2d);
+  border-bottom: 1px solid var(--theme-border-color, #333);
   border-radius: 6px;
   margin: 2px 4px;
 }
@@ -811,7 +828,7 @@ onUnmounted(() => {
 
 .param-label {
   font-size: 12px;
-  color: #aaa;
+  color: var(--theme-text-secondary, #aaa);
   white-space: nowrap;
 }
 
@@ -862,7 +879,7 @@ onUnmounted(() => {
 
 .unit-label {
   margin-left: 8px;
-  color: #999;
+  color: var(--theme-text-muted, #999);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -876,7 +893,7 @@ onUnmounted(() => {
 
 .delete-icon {
   font-size: 12px;
-  color: #999;
+  color: var(--theme-text-muted, #999);
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.2s;
@@ -887,7 +904,7 @@ onUnmounted(() => {
 }
 
 .delete-icon:hover {
-  color: #f56c6c;
+  color: var(--theme-danger-color, #f56c6c);
 }
 
 .more-btn {
@@ -903,8 +920,8 @@ onUnmounted(() => {
 
 /* 下拉框和输入框边框样式 */
 :deep(.el-select .el-select__wrapper) {
-  border: 1px solid #4a4a4a !important;
-  background-color: #3a3a3a !important;
+  border: 1px solid var(--theme-border-soft, #4a4a4a) !important;
+  background-color: var(--theme-input-bg, #3a3a3a) !important;
   box-shadow: none !important;
 }
 
@@ -916,8 +933,8 @@ onUnmounted(() => {
 }
 
 :deep(.el-input__wrapper) {
-  background-color: #3a3a3a !important;
-  box-shadow: 0 0 0 1px #4a4a4a inset !important;
+  background-color: var(--theme-input-bg, #3a3a3a) !important;
+  box-shadow: 0 0 0 1px var(--theme-border-soft, #4a4a4a) inset !important;
 }
 
 :deep(.el-input__wrapper:hover),
@@ -926,6 +943,6 @@ onUnmounted(() => {
 }
 
 :deep(.el-input__inner) {
-  color: #e0e0e0 !important;
+  color: var(--theme-input-text, #e0e0e0) !important;
 }
 </style>
