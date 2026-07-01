@@ -8,7 +8,7 @@
       >
         <svg
           viewBox="0 0 1024 1024"
-          fill="white"
+          fill="currentColor"
           xmlns="http://www.w3.org/2000/svg"
           width="15"
           height="15"
@@ -136,7 +136,7 @@
     <div class="titlebar-right">
       <button class="titlebar-btn" @click="minimizeWindow">
         <svg
-          fill="white"
+          fill="currentColor"
           width="20"
           height="20"
           viewBox="0 0 1024 900"
@@ -151,7 +151,7 @@
       <button class="titlebar-btn" @click="maximizeWindow">
         <svg
           v-if="isMaximized"
-          fill="white"
+          fill="currentColor"
           width="12"
           height="12"
           viewBox="0 0 1024 900"
@@ -172,7 +172,7 @@
           xmlns="http://www.w3.org/2000/svg"
           width="12"
           height="12"
-          fill="white"
+          fill="currentColor"
         >
           <path
             d="M770.9 923.3H253.1c-83.8 0-151.9-68.2-151.9-151.9V253.6c0-83.8 68.2-151.9 151.9-151.9h517.8c83.8 0 151.9 68.2 151.9 151.9v517.8c0 83.8-68.1 151.9-151.9 151.9zM253.1 181.7c-39.7 0-71.9 32.3-71.9 71.9v517.8c0 39.7 32.3 71.9 71.9 71.9h517.8c39.7 0 71.9-32.3 71.9-71.9V253.6c0-39.7-32.3-71.9-71.9-71.9H253.1z"
@@ -182,7 +182,7 @@
       </button>
       <button class="titlebar-btn close-btn" @click="closeWindow">
         <svg
-          fill="white"
+          fill="currentColor"
           viewBox="0 0 1024 1024"
           xmlns="http://www.w3.org/2000/svg"
           width="20"
@@ -558,14 +558,14 @@ const handleClickOutside = (event: MouseEvent) => {
 <style scoped>
 .custom-titlebar {
   height: 30px;
-  background-color: #323233;
-  color: #c5c5c5;
+  background-color: var(--theme-titlebar-bg, #323233);
+  color: var(--theme-titlebar-text, #c5c5c5);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 0px;
   -webkit-app-region: drag;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--theme-titlebar-border, #333);
   user-select: none;
 }
 
@@ -614,7 +614,7 @@ const handleClickOutside = (event: MouseEvent) => {
   height: 30px;
   background: none;
   border: none;
-  color: white;
+  color: var(--theme-titlebar-text, white);
   font-size: 16px;
   cursor: pointer;
   display: flex;
@@ -625,7 +625,7 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .titlebar-btn:hover:not(.close-btn) {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--theme-hover-overlay, rgba(255, 255, 255, 0.1));
 }
 
 .close-btn:hover {
@@ -655,11 +655,11 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .toggle-connection-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--theme-hover-overlay, rgba(255, 255, 255, 0.1));
 }
 
 .toggle-connection-btn:active {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: var(--theme-active-overlay, rgba(255, 255, 255, 0.2));
 }
 
 .toggle-connection-btn.toggled svg {
@@ -683,7 +683,7 @@ const handleClickOutside = (event: MouseEvent) => {
   background: none;
   border: none;
   border-radius: 5px;
-  color: #c5c5c5;
+  color: var(--theme-titlebar-text, #c5c5c5);
   padding: 0 12px;
   height: 22px;
   font-size: 12px;
@@ -692,7 +692,7 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .menu-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--theme-hover-overlay, rgba(255, 255, 255, 0.1));
 }
 
 /* 下拉菜单 - 使用全局统一样式 */
@@ -725,7 +725,7 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .font-check {
-  color: #409eff;
+  color: var(--focus-border-color);
   font-weight: bold;
   width: 16px;
 }
@@ -744,15 +744,15 @@ const handleClickOutside = (event: MouseEvent) => {
   width: 16px;
   height: 16px;
   font-size: 11px;
-  color: #409eff;
+  color: var(--focus-border-color);
   font-weight: bold;
   flex-shrink: 0;
 }
 
 /* 当前选中字体项高亮 */
 .font-item-active {
-  background-color: rgba(64, 158, 255, 0.15) !important;
-  color: #409eff !important;
+  background-color: color-mix(in srgb, var(--focus-border-color) 15%, transparent) !important;
+  color: var(--focus-border-color) !important;
   font-weight: 600;
 }
 
@@ -796,18 +796,18 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .dropdown-submenu::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--theme-scrollbar-track, rgba(0, 0, 0, 0.1));
   border-radius: 3px;
 }
 
 .dropdown-submenu::-webkit-scrollbar-thumb {
-  background: #555;
+  background: var(--theme-scrollbar-thumb, #555);
   border-radius: 3px;
   transition: background 0.2s;
 }
 
 .dropdown-submenu::-webkit-scrollbar-thumb:hover {
-  background: #888;
+  background: var(--theme-scrollbar-thumb-hover, #888);
 }
 
 .dropdown-submenu::-webkit-scrollbar-corner {

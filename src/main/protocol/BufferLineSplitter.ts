@@ -110,7 +110,28 @@ export class BufferLineSplitter {
 
   /** 生成时间戳：YYYY-MM-DD HH:mm:ss.mmm */
   static timestamp(): string {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`
+    return BufferLineSplitter.formatTimestamp(new Date())
+  }
+
+  /** 按行生成一组递增时间戳，避免同一批多行数据共用一个时间 */
+  static timestampSeries(count: number, endTime: number = Date.now()): string[] {
+    if (count <= 0) return []
+
+    const spread = Math.min(count - 1, 200)
+    const startTime = endTime - spread
+
+    if (count === 1) {
+      return [BufferLineSplitter.formatTimestamp(new Date(endTime))]
+    }
+
+    return Array.from({ length: count }, (_, index) => {
+      const ratio = index / (count - 1)
+      const currentTime = Math.round(startTime + spread * ratio)
+      return BufferLineSplitter.formatTimestamp(new Date(currentTime))
+    })
+  }
+
+  static formatTimestamp(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}.${String(date.getMilliseconds()).padStart(3, '0')}`
   }
 }

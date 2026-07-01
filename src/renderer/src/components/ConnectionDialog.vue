@@ -262,20 +262,20 @@ defineExpose({ open, openEdit, closeOnSuccess, onSaveError })
 }
 
 .el-dialog__title {
-  color: #f0f0f0 !important;
+  color: var(--theme-text-primary, #f0f0f0) !important;
   font-size: 18px !important;
 }
 
 .el-form-item__label {
-  color: #e8e8e8 !important;
+  color: var(--theme-text-primary, #e8e8e8) !important;
 }
 
 .el-input,
 .el-select {
-  --el-input-bg-color: #cccccc !important;
-  --el-input-text-color: #000 !important;
-  --el-input-placeholder-color: #888 !important;
-  --el-border-color: #444 !important;
+  --el-input-bg-color: var(--theme-input-bg) !important;
+  --el-input-text-color: var(--theme-input-text) !important;
+  --el-input-placeholder-color: var(--theme-placeholder-color) !important;
+  --el-border-color: var(--theme-border-soft) !important;
 }
 
 .el-input:focus-within,
@@ -296,7 +296,7 @@ defineExpose({ open, openEdit, closeOnSuccess, onSaveError })
 }
 
 .protocol-tabs :deep(.el-tabs__nav-wrap::after) {
-  background-color: #3c3c3c !important;
+  background-color: var(--theme-border-color, #3c3c3c) !important;
 }
 
 .protocol-tabs :deep(.el-tabs__active-bar) {
@@ -304,17 +304,17 @@ defineExpose({ open, openEdit, closeOnSuccess, onSaveError })
 }
 
 .protocol-tabs :deep(.el-tabs__item) {
-  color: #a0a0a0 !important;
+  color: var(--theme-text-muted, #a0a0a0) !important;
   font-size: 14px !important;
   font-weight: 500 !important;
 }
 
 .protocol-tabs :deep(.el-tabs__item:hover) {
-  color: #f0f0f0 !important;
+  color: var(--theme-text-primary, #f0f0f0) !important;
 }
 
 .protocol-tabs :deep(.el-tabs__item.is-active) {
-  color: #f0f0f0 !important;
+  color: var(--theme-text-primary, #f0f0f0) !important;
 }
 
 .protocol-tabs :deep(.el-tabs__item.is-disabled) {
@@ -323,11 +323,11 @@ defineExpose({ open, openEdit, closeOnSuccess, onSaveError })
 }
 
 .el-checkbox {
-  color: #e0e0e0 !important;
+  color: var(--theme-text-primary, #e0e0e0) !important;
 }
 
 .el-checkbox__label {
-  color: #e0e0e0 !important;
+  color: var(--theme-text-primary, #e0e0e0) !important;
 }
 
 </style>

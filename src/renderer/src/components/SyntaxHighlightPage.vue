@@ -184,6 +184,9 @@ let previewApplyTimer: ReturnType<typeof setTimeout> | null = null
 const regexCache = new Map<string, RegExp | null>()
 const syntaxClassMap = new Map<string, string>()
 
+const getMonacoTheme = () =>
+  document.documentElement.getAttribute('data-theme') === 'light' ? 'vs' : 'vs-dark'
+
 // 颜色选择器预定义常用颜色
 const predefineColors = [
   // 黑白灰
@@ -462,7 +465,7 @@ const initPreviewEditor = () => {
     lineNumbers: 'on',
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
-    theme: 'vs-dark',
+    theme: getMonacoTheme(),
     automaticLayout: true,
     hover: { enabled: false },
     occurrencesHighlight: 'off',
@@ -645,6 +648,7 @@ onMounted(async () => {
     setPreviewText(activeGroup.value.previewText || '')
     schedulePreviewApply()
   }
+  window.addEventListener('settings-updated', handleSettingsUpdated)
   document.addEventListener('click', closeContextMenuOnClickOutside)
   document.addEventListener('contextmenu', () => {
     contextMenuVisible.value = false
@@ -671,11 +675,19 @@ onUnmounted(() => {
   if (previewModel) { previewModel.dispose(); previewModel = null }
   regexCache.clear()
   syntaxClassMap.clear()
+  window.removeEventListener('settings-updated', handleSettingsUpdated)
   document.removeEventListener('click', closeContextMenuOnClickOutside)
   document.removeEventListener('contextmenu', () => {
     contextMenuVisible.value = false
   })
 })
+
+const handleSettingsUpdated = (event: Event) => {
+  const updatedSettings = (event as CustomEvent).detail
+  if (updatedSettings && 'themeMode' in updatedSettings) {
+    monaco.editor.setTheme(getMonacoTheme())
+  }
+}
 </script>
 
 <style scoped>
@@ -683,7 +695,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #1e1e1e;
+  background: var(--theme-body-bg, #1e1e1e);
 }
 
 .syntax-page-body {
@@ -695,8 +707,8 @@ onUnmounted(() => {
 /* 左侧面板 */
 .syntax-left-panel {
   width: 200px;
-  background: #252526;
-  border-right: 1px solid #3c3c3c;
+  background: var(--theme-surface-bg, #252526);
+  border-right: 1px solid var(--theme-border-color, #3c3c3c);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -707,11 +719,11 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--theme-border-color, #3c3c3c);
 }
 
 .left-panel-title {
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
   font-size: 13px;
   font-weight: 600;
 }
@@ -732,15 +744,15 @@ onUnmounted(() => {
 }
 
 .group-list-item:hover {
-  background: #2a2d2e;
+  background: var(--theme-surface-strong-bg, #2a2d2e);
 }
 
 .group-list-item.active {
-  background: #094771;
+  background: var(--menu-item-hover-bg, #094771);
 }
 
 .group-list-name {
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -748,9 +760,9 @@ onUnmounted(() => {
 }
 
 .group-list-count {
-  color: #888;
+  color: var(--theme-text-muted, #888);
   font-size: 11px;
-  background: #3c3c3c;
+  background: var(--theme-surface-strong-bg, #3c3c3c);
   padding: 1px 6px;
   border-radius: 10px;
   min-width: 18px;
@@ -758,8 +770,8 @@ onUnmounted(() => {
 }
 
 .group-list-item.active .group-list-count {
-  background: rgba(255,255,255,0.2);
-  color: #fff;
+  background: var(--theme-active-overlay, rgba(255,255,255,0.2));
+  color: var(--theme-text-primary, #fff);
 }
 
 /* 右侧面板 */
@@ -775,13 +787,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  border-bottom: 1px solid #3c3c3c;
-  background: #252526;
+  border-bottom: 1px solid var(--theme-border-color, #3c3c3c);
+  background: var(--theme-surface-bg, #252526);
   flex-shrink: 0;
 }
 
 .right-panel-title {
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
   font-size: 14px;
   font-weight: 600;
 }
@@ -811,23 +823,24 @@ onUnmounted(() => {
 }
 
 .rules-table th {
-  background: #2a2a2a;
-  color: #aaa;
+  background: var(--theme-table-header-bg, #2a2a2a);
+  color: var(--theme-table-header-text, #aaa);
   font-size: 12px;
   font-weight: 600;
   padding: 8px 10px;
   text-align: left;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--theme-border-color, #3c3c3c);
 }
 
 .rules-table td {
   padding: 10px 10px;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--theme-border-color, #333);
   vertical-align: middle;
+  color: var(--theme-text-primary, #e0e0e0);
 }
 
 .rules-table tbody tr:hover {
-  background: #2a2a2a;
+  background: var(--theme-surface-strong-bg, #2a2a2a);
 }
 
 .col-del {
@@ -837,8 +850,8 @@ onUnmounted(() => {
 
 .col-del :deep(.el-button--danger.is-text:hover),
 .col-del :deep(.el-button--danger.is-text:focus) {
-  background-color: #f56c6c;
-  color: #fff;
+  background-color: var(--theme-danger-color, #f56c6c);
+  color: var(--theme-accent-hover-text, #fff);
 }
 
 .col-type {
@@ -872,8 +885,8 @@ onUnmounted(() => {
   height: 22px;
   font-size: 11px;
   font-weight: 700;
-  color: #666;
-  background: #333;
+  color: var(--theme-text-muted, #666);
+  background: var(--theme-surface-strong-bg, #333);
   border-radius: 3px;
   cursor: pointer;
   user-select: none;
@@ -881,17 +894,17 @@ onUnmounted(() => {
 }
 
 .style-toggle:hover {
-  background: #444;
-  color: #aaa;
+  background: var(--theme-hover-overlay, #444);
+  color: var(--theme-text-secondary, #aaa);
 }
 
 .style-toggle.active {
-  background: #2E5CC7;
-  color: #fff;
+  background: var(--theme-switch-on-bg, #2E5CC7);
+  color: var(--theme-accent-hover-text, #fff);
 }
 
 .empty-hint {
-  color: #808080;
+  color: var(--theme-text-muted, #808080);
   font-size: 13px;
   padding: 24px;
   text-align: center;
@@ -904,16 +917,16 @@ onUnmounted(() => {
   flex-shrink: 0;
   height: 200px;
   margin: 16px 16px 16px 16px;
-  border: 1px solid #3c3c3c;
+  border: 1px solid var(--theme-border-color, #3c3c3c);
   border-radius: 6px;
   overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s;
-  background: #1e1e1e;
+  background: var(--theme-body-bg, #1e1e1e);
 }
 
 .preview-section.preview-focused {
-  border-color: #2E5CC7;
-  box-shadow: 0 0 0 1px #2E5CC7;
+  border-color: var(--focus-border-color, #2E5CC7);
+  box-shadow: 0 0 0 1px var(--focus-border-color, #2E5CC7);
 }
 
 .preview-header {
@@ -921,13 +934,13 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 8px 14px;
-  background: #252526;
-  border-bottom: 1px solid #3c3c3c;
+  background: var(--theme-surface-bg, #252526);
+  border-bottom: 1px solid var(--theme-border-color, #3c3c3c);
   flex-shrink: 0;
 }
 
 .preview-title {
-  color: #aaa;
+  color: var(--theme-text-secondary, #aaa);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -972,13 +985,13 @@ onUnmounted(() => {
 
 .syntax-left-panel .left-panel-list::-webkit-scrollbar-thumb,
 .rules-table-wrapper::-webkit-scrollbar-thumb {
-  background: #424242;
+  background: var(--theme-scrollbar-thumb, #424242);
   border-radius: 3px;
 }
 
 .syntax-left-panel .left-panel-list::-webkit-scrollbar-thumb:hover,
 .rules-table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--theme-scrollbar-thumb-hover, #555);
 }
 
 /* 匹配类型下拉框：默认边框透明，悬浮/焦点时有边框 */
@@ -1037,7 +1050,7 @@ onUnmounted(() => {
 
 /* 背景颜色选择器默认显示边框（避免与背景色融为一体） */
 :deep(.bg-color-picker .el-color-picker__trigger) {
-  border: 1px solid #555 !important;
+  border: 1px solid var(--theme-border-soft, #555) !important;
 }
 
 :deep(.bg-color-picker .el-color-picker__trigger:hover),

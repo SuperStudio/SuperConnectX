@@ -48,18 +48,27 @@ watch(searchText, (val) => emit('search', val.trim()))
   width: 100%;
   height: 100%;
   padding: 0 28px 0 12px;
-  border: 1px solid transparent;
-  background-color: #3c3c3c;
-  color: #cccccc;
+  border: 1px solid var(--theme-border-soft, #4a4a4a);
+  background-color: var(--app-surface-strong-bg, var(--theme-surface-strong-bg, #3c3c3c));
+  color: var(--theme-input-text, #cccccc);
   border-radius: 4px;
   font-size: 13px;
   outline: none;
   box-sizing: border-box;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input:hover {
+  background-color: var(--theme-input-bg, #3c3c3c);
+}
+
+.search-input::placeholder {
+  color: var(--theme-placeholder-color, #9ca3af);
 }
 
 .search-input:focus {
   border-color: var(--focus-border-color);
+  background-color: var(--theme-input-bg, #3c3c3c);
   box-shadow: 0 0 0 1px var(--focus-border-color) inset;
 }
 
@@ -72,7 +81,7 @@ watch(searchText, (val) => emit('search', val.trim()))
   height: 20px;
   border: none;
   background: transparent;
-  color: #9ca3af;
+  color: var(--theme-placeholder-color, #9ca3af);
   font-size: 14px;
   cursor: pointer;
   padding: 0;
@@ -80,6 +89,6 @@ watch(searchText, (val) => emit('search', val.trim()))
 }
 
 .clear-btn:hover {
-  color: #111827;
+  color: var(--theme-text-primary, #111827);
 }
 </style>

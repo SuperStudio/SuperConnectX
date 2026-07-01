@@ -10,6 +10,7 @@ import SettingsStorage from '../storage/SettingsStorage'
 import CommandHistoryStorage from '../storage/CommandHistoryStorage'
 import IpcConnector from './IpcConnector'
 import BackupManager from '../utils/BackupManager'
+import { getThemePluginRoot, getThemePlugins } from '../utils/ThemePluginManager'
 
 export default class IpcStorage {
   private static sInstance: IpcStorage
@@ -93,6 +94,8 @@ export default class IpcStorage {
 
     ipcMain.handle('get-settings', () => settingsStorage.getSettings())
     ipcMain.handle('get-default-settings', () => settingsStorage.getDefaults())
+    ipcMain.handle('get-theme-plugins', () => getThemePlugins())
+    ipcMain.handle('get-theme-plugins-root', () => getThemePluginRoot())
     ipcMain.handle('save-settings', (_, settings: any) => {
       settingsStorage.saveSettings(settings)
       // 日志分片大小需实时生效，无需重启

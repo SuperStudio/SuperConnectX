@@ -386,7 +386,7 @@ defineExpose({ open })
 }
 
 .status-subtext {
-  color: #888;
+  color: var(--theme-text-muted, #888);
   font-size: 13px;
   margin: 0;
 }
@@ -394,8 +394,8 @@ defineExpose({ open })
 .release-notes {
   width: 100%;
   margin-top: 8px;
-  background: #1e1e1e;
-  border: 1px solid #3c3c3c;
+  background: var(--theme-body-bg, #1e1e1e);
+  border: 1px solid var(--theme-border-color, #3c3c3c);
   border-radius: 6px;
   padding: 10px;
   text-align: left;
@@ -404,22 +404,22 @@ defineExpose({ open })
 }
 
 .release-date {
-  color: #777;
+  color: var(--theme-text-muted, #777);
   font-size: 12px;
   margin-top: 2px;
 }
 
 .release-notes-title {
-  color: #ccc;
+  color: var(--theme-text-primary, #ccc);
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 6px;
   padding-bottom: 4px;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--theme-border-color, #3c3c3c);
 }
 
 .release-notes-content {
-  color: #aaa;
+  color: var(--theme-text-secondary, #aaa);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -430,7 +430,7 @@ defineExpose({ open })
 }
 
 .progress-wrapper :deep(.el-progress-bar__outer) {
-  background-color: #3c3c3c;
+  background-color: var(--theme-border-color, #3c3c3c);
 }
 
 .update-footer {
@@ -442,13 +442,13 @@ defineExpose({ open })
 
 .website-btn {
   background-color: transparent !important;
-  border: 1px solid #555 !important;
-  color: #aaa !important;
+  border: 1px solid var(--theme-border-soft, #555) !important;
+  color: var(--theme-text-secondary, #aaa) !important;
 }
 
 .website-btn:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border-color: #888 !important;
+  background-color: var(--theme-hover-overlay, rgba(255, 255, 255, 0.05)) !important;
+  border-color: var(--theme-text-muted, #888) !important;
   color: #ddd !important;
 }
 

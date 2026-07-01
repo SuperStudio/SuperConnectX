@@ -44,9 +44,10 @@ export default class TelnetClient extends BaseClient {
     connData.buffer = result.remainder
 
     if (result.count > 0) {
-      const timestamp = BufferLineSplitter.timestamp()
-      onData?.({ data: result.data, timestamp })
-      onLog?.(result.log, timestamp)
+      const lineTimestamps = BufferLineSplitter.timestampSeries(result.count)
+      const timestamp = lineTimestamps[lineTimestamps.length - 1] || BufferLineSplitter.timestamp()
+      onData?.({ data: result.data, timestamp, lineTimestamps })
+      onLog?.(result.log, timestamp, lineTimestamps)
     }
   }
 
@@ -106,8 +107,10 @@ export default class TelnetClient extends BaseClient {
         if (connData.buffer && connData.buffer.length > 0) {
           const timestamp = BufferLineSplitter.timestamp()
           const remainingStr = connData.buffer.toString('utf8')
-          connData.onData?.({ data: remainingStr, timestamp })
-          connData.onLog?.(remainingStr, timestamp)
+          const lineCount = remainingStr.split(/\r?\n/).filter((line) => line.trim() !== '').length || 1
+          const lineTimestamps = BufferLineSplitter.timestampSeries(lineCount)
+          connData.onData?.({ data: remainingStr, timestamp, lineTimestamps })
+          connData.onLog?.(remainingStr, timestamp, lineTimestamps)
           connData.buffer = Buffer.alloc(0)
         }
         this.telnetConnections.delete(sessionId)

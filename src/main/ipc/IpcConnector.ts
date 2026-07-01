@@ -11,7 +11,12 @@ import { getAppDataDir } from '../utils/AppDir'
 
 // 直连模式客户端接口（Telnet/COM 客户端均实现）
 interface DirectClient {
-  start(info: ConnectionInfo, onData: (dataObj: { data: string; timestamp: string }) => void, onClose: () => void, onLog: (logStr: string, timestamp: string) => void): Promise<object>
+  start(
+    info: ConnectionInfo,
+    onData: (dataObj: { data: string; timestamp: string; lineTimestamps?: string[] }) => void,
+    onClose: () => void,
+    onLog: (logStr: string, timestamp: string, lineTimestamps?: string[]) => void
+  ): Promise<object>
   send(sessionId: string, command: string, onComplete: (dataStr: string) => void): Promise<object>
   disconnect(sessionId: string): Promise<object>
   updateConfig(sessionId: string, config: Record<string, unknown>): Promise<object>
@@ -86,6 +91,22 @@ export default class IpcConnector {
     return connInfo
   }
 
+  private formatTimestampedText(content: string, showTimestamp: boolean, timestamp?: string, lineTimestamps?: string[]): string {
+    const lines = content.split(/\r?\n/).filter((line) => line.trim() !== '')
+    if (lines.length === 0) return ''
+    if (!showTimestamp) return lines.join('\n')
+
+    if (lineTimestamps && lineTimestamps.length === lines.length) {
+      return lines.map((line, index) => `[${lineTimestamps[index]}] ${line}`).join('\n')
+    }
+
+    if (timestamp) {
+      return lines.map((line) => `[${timestamp}] ${line}`).join('\n')
+    }
+
+    return lines.join('\n')
+  }
+
   init(_logger: ProtocolLogger, winRef: { mainWindow?: BrowserWindow | null }): void {
     this.windows = winRef
     this._logger = _logger
@@ -93,19 +114,20 @@ export default class IpcConnector {
     // 设置 Worker 池回调（Worker 模式下的数据/日志/关闭路由）
     this.workerPool.setCallbacks(
       // onData: Worker 回传的数据
-      (sessionId: string, displayData: string, timestamp: string, isHex: boolean) => {
+(sessionId: string, displayData: string, timestamp: string, isHex: boolean, lineTimestamps?: string[]) => {
         this.windows.mainWindow?.webContents.send('on-recv-data', {
           connId: sessionId,
           data: displayData,
           timestamp,
+          lineTimestamps,
           isHex
         })
       },
       // onLog: Worker 回传的日志
-      (sessionId: string, logStr: string, timestamp: string) => {
+(sessionId: string, logStr: string, timestamp: string, lineTimestamps?: string[]) => {
         if (!this._logger) return
         const showTimestamp = this.logTimestampMap.get(sessionId) ?? true
-        const finalLog = showTimestamp && timestamp ? `[${timestamp}] ${logStr}` : logStr
+        const finalLog = this.formatTimestampedText(logStr, showTimestamp, timestamp, lineTimestamps)
         this._logger.appendToConnLog(finalLog, sessionId)
       },
       // onClose: Worker 通知连接断开
@@ -390,13 +412,14 @@ export default class IpcConnector {
         }
         return await this._ftpServer.start(
           this.buildConnectInfo(conn),
-          (dataObj: { data: string; timestamp: string }) => {
+          (dataObj: { data: string; timestamp: string; lineTimestamps?: string[] }) => {
             const wc = this.windows.mainWindow?.webContents
             if (wc && !wc.isDestroyed()) {
               wc.send('on-recv-data', {
                 connId: sessionId,
                 data: dataObj.data,
                 timestamp: dataObj.timestamp,
+                lineTimestamps: dataObj.lineTimestamps,
                 isHex: false
               })
             }
@@ -412,9 +435,9 @@ export default class IpcConnector {
               wc.send('on-connect-close', sessionId)
             }
           },
-          (logStr: string, timestamp: string) => {
+          (logStr: string, timestamp: string, lineTimestamps?: string[]) => {
             const showTimestamp = this.logTimestampMap.get(sessionId) ?? true
-            const finalLog = showTimestamp && timestamp ? `[${timestamp}] ${logStr}` : logStr
+            const finalLog = this.formatTimestampedText(logStr, showTimestamp, timestamp, lineTimestamps)
             _logger.appendToConnLog(finalLog, sessionId)
           }
         )
@@ -425,13 +448,14 @@ export default class IpcConnector {
         this._ftpClients.set(sessionId, client)
         return await client.start(
           this.buildConnectInfo(conn),
-          (dataObj: { data: string; timestamp: string }) => {
+          (dataObj: { data: string; timestamp: string; lineTimestamps?: string[] }) => {
             const wc = this.windows.mainWindow?.webContents
             if (wc && !wc.isDestroyed()) {
               wc.send('on-recv-data', {
                 connId: sessionId,
                 data: dataObj.data,
                 timestamp: dataObj.timestamp,
+                lineTimestamps: dataObj.lineTimestamps,
                 isHex: false
               })
             }
@@ -448,9 +472,9 @@ export default class IpcConnector {
               wc.send('on-connect-close', sessionId)
             }
           },
-          (logStr: string, timestamp: string) => {
+          (logStr: string, timestamp: string, lineTimestamps?: string[]) => {
             const showTimestamp = this.logTimestampMap.get(sessionId) ?? true
-            const finalLog = showTimestamp && timestamp ? `[${timestamp}] ${logStr}` : logStr
+            const finalLog = this.formatTimestampedText(logStr, showTimestamp, timestamp, lineTimestamps)
             _logger.appendToConnLog(finalLog, sessionId)
           }
         )
@@ -467,7 +491,7 @@ export default class IpcConnector {
 
     return await client.start(
       this.buildConnectInfo(conn),
-      (dataObj: { data: string; timestamp: string }) => {
+      (dataObj: { data: string; timestamp: string; lineTimestamps?: string[] }) => {
         const wc = this.windows.mainWindow?.webContents
         if (!wc || wc.isDestroyed()) return
         const isHex = this.receiveHexMap.get(sessionId) ?? false
@@ -486,6 +510,7 @@ export default class IpcConnector {
           connId: sessionId,
           data: displayData,
           timestamp: dataObj.timestamp,
+          lineTimestamps: dataObj.lineTimestamps,
           isHex
         })
       },
@@ -500,9 +525,9 @@ export default class IpcConnector {
           wc.send('on-connect-close', sessionId)
         }
       },
-      (logStr: string, timestamp: string) => {
+      (logStr: string, timestamp: string, lineTimestamps?: string[]) => {
         const showTimestamp = this.logTimestampMap.get(sessionId) ?? true
-        const finalLog = showTimestamp && timestamp ? `[${timestamp}] ${logStr}` : logStr
+        const finalLog = this.formatTimestampedText(logStr, showTimestamp, timestamp, lineTimestamps)
         _logger.appendToConnLog(finalLog, sessionId)
       }
     )
@@ -613,20 +638,21 @@ export default class IpcConnector {
       sessionId,
       localFilePath,
       remoteFileName,
-      (dataObj: { data: string; timestamp: string }) => {
+      (dataObj: { data: string; timestamp: string; lineTimestamps?: string[] }) => {
         const wc = this.windows.mainWindow?.webContents
         if (wc && !wc.isDestroyed()) {
           wc.send('on-recv-data', {
             connId: sessionId,
             data: dataObj.data,
             timestamp: dataObj.timestamp,
+            lineTimestamps: dataObj.lineTimestamps,
             isHex: false
           })
         }
       },
-      (logStr: string, timestamp: string) => {
+      (logStr: string, timestamp: string, lineTimestamps?: string[]) => {
         const showTimestamp = this.logTimestampMap.get(sessionId) ?? true
-        const finalLog = showTimestamp && timestamp ? `[${timestamp}] ${logStr}` : logStr
+        const finalLog = this.formatTimestampedText(logStr, showTimestamp, timestamp, lineTimestamps)
         _logger.appendToConnLog(finalLog, sessionId)
       }
     )

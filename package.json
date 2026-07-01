@@ -24,7 +24,8 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run typecheck && electron-vite build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "npm run build && electron-builder --linux"
+    "build:linux": "npm run build && electron-builder --linux",
+    "release:notes": "node scripts/generate-release-notes.js"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -71,6 +72,8 @@
   "build": {
     "appId": "superconnectx.superstudio",
     "productName": "superconnectx",
+    "npmRebuild": false,
+    "buildDependenciesFromSource": false,
     "copyright": "Copyright © 2025 SuperStudio",
     "directories": {
       "output": "release"
@@ -79,6 +82,10 @@
       "out/**/*"
     ],
     "extraResources": [
+      {
+        "from": "plugins",
+        "to": "plugins"
+      },
       {
         "from": "build/icon.ico",
         "to": "icon.ico"

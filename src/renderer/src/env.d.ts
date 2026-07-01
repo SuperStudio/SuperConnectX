@@ -19,6 +19,18 @@ interface SerialPortInfo {
   type?: 'virtual' | 'usb' | 'bluetooth' | 'none'
 }
 
+interface ThemePluginInfo {
+  id: string
+  name: string
+  rootDir: string
+  backgroundImagePath: string
+  backgroundImageUrl: string
+  previewImagePath: string
+  previewImageUrl: string
+  bgColorOpacity: number
+  windowBackground: string
+}
+
 interface ToolApi {
   openDevtools: () => Promise<void>
   getAppResource: () => Promise<{ cpu: string; memory: string; memRate: string }>
@@ -50,6 +62,8 @@ interface StorageApi {
   saveAppSettings: (settings: any) => Promise<boolean>
   getSettings: () => Promise<any>
   getDefaultSettings: () => Promise<any>
+  getThemePlugins: () => Promise<ThemePluginInfo[]>
+  getThemePluginsRoot: () => Promise<string>
   saveSettings: (settings: any) => Promise<boolean>
   getShortcuts: () => Promise<any[]>
   getDefaultShortcuts: () => Promise<any[]>
@@ -64,7 +78,7 @@ interface ConnectApi {
   uploadFile: (data: { conn: any; localFilePath: string; remoteFileName: string }) => Promise<any>
   stopConnect: (conn: any) => Promise<any>
   updateConnect: (conn: any, config: any) => Promise<any>
-  onRecvData: (callback: (data: { connId: number; data: string; timestamp?: string; isHex?: boolean }) => void) => () => void
+  onRecvData: (callback: (data: { connId: number; data: string; timestamp?: string; lineTimestamps?: string[]; isHex?: boolean }) => void) => () => void
   onConnectClose: (callback: (connId: number) => void) => () => void
   onLogSplit: (callback: (data: { connId: string; oldFileName: string; newFileName: string }) => void) => () => void
   openConnectLog: (sessionId: string) => Promise<any>

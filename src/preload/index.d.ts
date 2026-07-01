@@ -30,6 +30,18 @@ declare global {
     previewText?: string
   }
 
+  interface ThemePluginInfo {
+    id: string
+    name: string
+    rootDir: string
+    backgroundImagePath: string
+    backgroundImageUrl: string
+    previewImagePath: string
+    previewImageUrl: string
+    bgColorOpacity: number
+    windowBackground: string
+  }
+
   interface Window {
     storageApi: {
       getConnections: () => Promise<any[]>
@@ -59,6 +71,8 @@ declare global {
       saveAppSettings: (settings: any) => Promise<boolean>
       getSettings: () => Promise<any>
       getDefaultSettings: () => Promise<any>
+      getThemePlugins: () => Promise<ThemePluginInfo[]>
+      getThemePluginsRoot: () => Promise<string>
       saveSettings: (settings: any) => Promise<boolean>
       getShortcuts: () => Promise<any[]>
       getDefaultShortcuts: () => Promise<any[]>
@@ -81,7 +95,7 @@ declare global {
       uploadFile: (data: { conn: any; localFilePath: string; remoteFileName: string }) => Promise<any>
       stopConnect: (conn: any) => Promise<any>
       updateConnect: (conn: any, config: any) => Promise<{ success: boolean; message?: string }>
-      onRecvData: (callback: (data: { connId: number; data: string; timestamp?: string; isHex?: boolean }) => void) => () => void
+      onRecvData: (callback: (data: { connId: number; data: string; timestamp?: string; lineTimestamps?: string[]; isHex?: boolean }) => void) => () => void
       onConnectClose: (callback: (connId: number) => void) => () => void
       onLogSplit: (callback: (data: { connId: string; oldFileName: string; newFileName: string }) => void) => () => void
       openConnectLog: (sessionId: string, mode?: 'folder' | 'file') => Promise<{ success: boolean; message?: string; filePath?: string }>

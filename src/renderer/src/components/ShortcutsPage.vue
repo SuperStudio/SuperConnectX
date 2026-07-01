@@ -25,7 +25,7 @@
         size="small"
         stripe
         style="width: 100%; height: 100%"
-        :header-cell-style="{ background: '#2d2d2d', color: '#e0e0e0', fontWeight: '600' }"
+        :header-cell-style="{ background: 'var(--theme-table-header-bg)', color: 'var(--theme-table-header-text)', fontWeight: '600' }"
         :empty-text="t('shortcutsPage.emptyText')"
         @row-dblclick="handleRowDblClick"
       >
@@ -489,7 +489,7 @@ const clearSearch = () => {
   flex-direction: column;
   height: 100%;
   padding: 16px;
-  background: #1e1e1e;
+  background: var(--theme-body-bg, #1e1e1e);
   gap: 12px;
 }
 
@@ -522,8 +522,8 @@ const clearSearch = () => {
   height: 100%;
   padding: 0 28px 0 12px;
   border: 1px solid transparent;
-  background-color: #3c3c3c;
-  color: #cccccc;
+  background-color: var(--theme-input-bg, #3c3c3c);
+  color: var(--theme-input-text, #cccccc);
   border-radius: 4px;
   font-size: 13px;
   outline: none;
@@ -545,7 +545,7 @@ const clearSearch = () => {
   height: 20px;
   border: none;
   background: transparent;
-  color: #9ca3af;
+  color: var(--theme-placeholder-color, #9ca3af);
   font-size: 14px;
   cursor: pointer;
   padding: 0;
@@ -553,7 +553,7 @@ const clearSearch = () => {
 }
 
 .clear-btn:hover {
-  color: #111827;
+  color: var(--theme-text-primary, #111827);
 }
 
 .shortcuts-table {
@@ -563,44 +563,44 @@ const clearSearch = () => {
 }
 
 .shortcuts-table :deep(.el-table) {
-  background: #1e1e1e;
-  color: #e0e0e0;
+  background: var(--theme-body-bg, #1e1e1e);
+  color: var(--theme-text-primary, #e0e0e0);
   border-radius: 4px;
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--theme-border-color, #3a3a3a);
   --el-table-border: none !important;
   --el-table-border-color: transparent !important;
 }
 
 .shortcuts-table :deep(.el-table__header-wrapper th) {
-  background: #2d2d2d !important;
-  color: #e0e0e0;
+  background: var(--theme-table-header-bg, #2d2d2d) !important;
+  color: var(--theme-table-header-text, #e0e0e0);
   font-weight: 600;
-  border-bottom: 1px solid #3a3a3a !important;
+  border-bottom: 1px solid var(--theme-border-color, #3a3a3a) !important;
 }
 
 .shortcuts-table :deep(.el-table__body-wrapper) {
-  background: #1e1e1e;
+  background: var(--theme-body-bg, #1e1e1e);
 }
 
 .shortcuts-table :deep(.el-table__body tr) {
-  background: #1e1e1e;
+  background: var(--theme-body-bg, #1e1e1e);
 }
 
 .shortcuts-table :deep(.el-table__body tr:hover > td) {
-  background: #094771 !important;
+  background: #6abee8 !important;
 }
 
 .shortcuts-table :deep(.el-table__body td) {
-  background: #1e1e1e;
-  border-bottom: 1px solid #2d2d2d !important;
+  background: var(--theme-body-bg, #1e1e1e);
+  border-bottom: 1px solid var(--theme-border-soft, #2d2d2d) !important;
 }
 
 .shortcuts-table :deep(.el-table__body .el-table__row--striped td) {
-  background: #252526 !important;
+  background: var(--theme-surface-bg, #252526) !important;
 }
 
 .shortcuts-table :deep(.el-table__empty-text) {
-  color: #888;
+  color: var(--theme-text-muted, #888);
   padding: 40px 0;
 }
 
@@ -611,12 +611,12 @@ const clearSearch = () => {
 }
 
 .action-name {
-  color: #e0e0e0;
+  color: var(--theme-text-primary, #e0e0e0);
   font-size: 14px;
 }
 
 .action-command {
-  color: #666;
+  color: var(--theme-text-muted, #666);
   font-size: 11px;
 }
 

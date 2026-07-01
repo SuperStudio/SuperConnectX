@@ -58,6 +58,8 @@ interface Settings {
   searchCaseSensitive?: boolean
   searchRegex?: boolean
   searchWholeWord?: boolean
+  themeMode?: 'dark' | 'light'
+  themePluginId?: string
   // 命令历史
   commandHistoryMaxCount?: number
   showCommandHistory?: boolean
@@ -227,6 +229,8 @@ const defaultSettings: Settings = {
   searchCaseSensitive: false,
   searchRegex: false,
   searchWholeWord: false,
+  themeMode: 'dark',
+  themePluginId: '',
   // 命令历史
   commandHistoryMaxCount: 10,
   showCommandHistory: true
