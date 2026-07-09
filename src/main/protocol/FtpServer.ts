@@ -76,6 +76,9 @@ export default class FtpServer {
     const username = info.username || ''
     const password = info.password || ''
 
+    // 确定 PASV URL：优先使用用户配置的 host，未配置则 undefined（由 ftp-srv 自动处理）
+    const pasvUrl = this.resolvePasvUrl(info.host)
+
     try {
       // 若已启动，先停止
       if (this.server) {
@@ -84,13 +87,15 @@ export default class FtpServer {
       }
 
       this.emitData(`[FTP] Initializing FTP server on ${host}:${port}...`)
+      this.emitData(`[FTP] PASV URL: ${pasvUrl}`)
       this.emitData(`[FTP] Root directory: ${root}`)
 
       // 初始化 FTP 服务端
-      // 监听 0.0.0.0 意味着接受所有网卡上的连接，PASV 模式下使用 undefined 由客户端自行决定
+      // 监听 0.0.0.0 意味着接受所有网卡上的连接
+      // pasv_url: 用户配置的 host（如 NAT 穿透场景），未配置时 undefined 由 ftp-srv 自动处理
       this.server = new FtpSrv({
         url: `ftp://${host}:${port}`,
-        pasv_url: undefined
+        pasv_url: pasvUrl as string | undefined
       })
 
       this.emitData('[FTP] Server instance created, registering login handler...')
@@ -431,6 +436,26 @@ export default class FtpServer {
       }
       return { success: false, message: errMsg }
     }
+  }
+
+  /**
+   * 解析 PASV URL
+   * 优先级：用户配置的 host > undefined（由 ftp-srv 自动处理）
+   *
+   * 注意：不能自动填充局域网 IP 作为 fallback。
+   * 当 FTP 客户端和服务端在同一台机器上通过 127.0.0.1 连接时，
+   * 如果 pasv_url 被设为局域网 IP，数据通道连接会失败。
+   * undefined 时 ftp-srv 会使用控制连接的实际 local address，
+   * 对本地连接返回 127.0.0.1，对远程连接返回对应的网卡 IP，行为正确。
+   */
+  private resolvePasvUrl(userHost: string): string | undefined {
+    // 如果用户配置了有效的 host（非空、非 "0.0.0.0"、非 "0000"），直接使用
+    if (userHost && userHost !== '0.0.0.0' && userHost !== '0000') {
+      return userHost
+    }
+
+    // 未配置时返回 undefined，由 ftp-srv 根据实际连接自动决定
+    return undefined
   }
 
   /**
