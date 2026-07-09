@@ -198,6 +198,7 @@
     "exportCmd": "Export Commands",
     "importFromSuperCom": "Import from SuperCom",
     "openAppDir": "Open App Directory",
+    "openUserDataDir": "Open User Data Folder",
     "exit": "Exit",
     "exitConfirm": "Are you sure you want to exit SuperConnectX?",
     "doc": "Documentation",

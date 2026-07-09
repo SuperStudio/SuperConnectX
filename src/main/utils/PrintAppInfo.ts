@@ -3,6 +3,7 @@ import os from 'os'
 import path from 'path'
 import logger from '../ipc/IpcAppLogger'
 import packageJson from '../../../package.json'
+import { getAppDataDir } from './AppDir'
 
 /**
  * 格式化字节数（如 1024 → 1KB）
@@ -46,8 +47,9 @@ export const printAppInfo = (mainWindow?: BrowserWindow) => {
     freeMemory: formatBytes(os.freemem()), // 可用内存
     username: os.userInfo().username, // 当前系统用户
     userDir: os.homedir(), // 用户主目录
-    appDataDir: app.getPath('userData'), // 应用数据目录
-    logDir: path.join(app.getPath('userData'), 'logs'), // 日志目录
+    appDataDir: getAppDataDir(), // 应用数据目录（智能路径）
+    logDir: path.join(getAppDataDir(), 'logs'), // 终端日志目录
+    appLogDir: path.join(getAppDataDir(), 'app-logs'), // 应用日志目录
     tempDir: app.getPath('temp') // 临时文件目录
   }
 

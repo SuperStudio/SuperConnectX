@@ -113,6 +113,7 @@ contextBridge.exposeInMainWorld('toolApi', {
   getAppResource: () => ipcRenderer.invoke('get-app-resource'),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   openAppDir: () => ipcRenderer.invoke('open-app-dir'),
+  openUserDataDir: () => ipcRenderer.invoke('open-user-data-dir'),
   writeFile: ({ path: filePath, content }: { path: string; content: string }) =>
     ipcRenderer.invoke('write-file', { path: filePath, content }),
   readFile: ({ path: filePath }: { path: string }) =>

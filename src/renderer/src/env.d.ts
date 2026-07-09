@@ -24,6 +24,7 @@ interface ToolApi {
   getAppResource: () => Promise<{ cpu: string; memory: string; memRate: string }>
   openExternalUrl: (url: string) => Promise<void>
   openAppDir: () => Promise<void>
+  openUserDataDir: () => Promise<void>
   showItemInFolder: (filePath: string) => Promise<void>
 }
 

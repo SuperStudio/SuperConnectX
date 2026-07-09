@@ -1,7 +1,7 @@
 import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { app } from 'electron'
+import { getAppDataDir } from './AppDir'
 
 const PREFIX = 'ENC:'
 
@@ -31,10 +31,10 @@ export default class SafeStorageString {
   private key: Buffer
 
   /**
-   * @param key 可注入 32 字节密钥（用于测试）；不传则从 userData/scx.key 加载或生成
+   * @param key 可注入 32 字节密钥（用于测试）；不传则从 appDataDir/scx.key 加载或生成
    */
   constructor(key?: Buffer) {
-    this.key = key ?? loadOrCreateKey(app.getPath('userData'))
+    this.key = key ?? loadOrCreateKey(getAppDataDir())
   }
 
   static getInstance(): SafeStorageString {

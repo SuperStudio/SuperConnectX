@@ -2,7 +2,7 @@ import os from 'os'
 import { shell, ipcMain } from 'electron'
 import logger from './IpcAppLogger'
 import fs from 'fs'
-import { getExeDir } from '../utils/AppDir'
+import { getExeDir, getAppDataDir } from '../utils/AppDir'
 
 const CPU_FLOAT_FIXED_SIZE = 2
 const MEM_FLOAT_FIXED_SIZE = 2
@@ -68,6 +68,7 @@ export default class IpcTools {
 
     ipcMain.handle('open-external-url', async (_, url) => await shell.openExternal(url))
     ipcMain.handle('open-app-dir', async () => await shell.openExternal(this.getAppExecutableDir()))
+    ipcMain.handle('open-user-data-dir', async () => await shell.openExternal(getAppDataDir()))
 
     ipcMain.handle('write-file', async (_, { path: filePath, content }) => {
       try {

@@ -198,6 +198,7 @@
     "exportCmd": "导出命令",
     "importFromSuperCom": "从 SuperCom 导入",
     "openAppDir": "打开程序所在路径",
+    "openUserDataDir": "打开用户数据文件夹",
     "exit": "退出",
     "exitConfirm": "确定要退出 SuperConnectX 吗？",
     "doc": "文档",

@@ -103,6 +103,7 @@ declare global {
       getAppResource: () => Promise<any>
       openExternalUrl: (url: string) => Promise<any>
       openAppDir: () => Promise<any>
+      openUserDataDir: () => Promise<any>
       writeFile: (options: { path: string; content: string }) => Promise<{ success: boolean }>
       readFile: (options: { path: string }) => Promise<{ success: boolean; content?: string; message?: string }>
       showItemInFolder: (filePath: string) => Promise<void>

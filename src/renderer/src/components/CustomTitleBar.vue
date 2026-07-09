@@ -40,6 +40,7 @@
           <div class="menu-item" @click="importFromSuperCom">{{ t('titlebar.importFromSuperCom') }}</div>
           <div class="menu-separator"></div>
           <div class="menu-item" @click="openAppDir">{{ t('titlebar.openAppDir') }}</div>
+          <div class="menu-item" @click="openUserDataDir">{{ t('titlebar.openUserDataDir') }}</div>
           <div class="menu-separator"></div>
           <div class="menu-item" @click="handleExit">{{ t('titlebar.exit') }}</div>
         </div>
@@ -375,6 +376,11 @@ const importFromSuperCom = async () => {
 const openAppDir = async () => {
   showFileMenu.value = false
   await window.toolApi.openAppDir()
+}
+
+const openUserDataDir = async () => {
+  showFileMenu.value = false
+  await window.toolApi.openUserDataDir()
 }
 
 const handleExit = async () => {

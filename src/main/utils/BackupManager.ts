@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import logger from '../ipc/IpcAppLogger'
-import { getExeDir } from './AppDir'
+import { getAppDataDir } from './AppDir'
 
 const BACKUP_DIR_NAME = 'backup'
 const USERDATA_DIR_NAME = 'userdata'
@@ -17,10 +17,10 @@ export default class BackupManager {
   }
 
   /**
-   * 获取 exe 所在目录
+   * 获取应用数据根目录（与 storage、logs 等统一使用 getAppDataDir）
    */
   private getAppDir(): string {
-    return getExeDir()
+    return getAppDataDir()
   }
 
   /**
