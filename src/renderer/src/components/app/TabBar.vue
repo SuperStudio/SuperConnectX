@@ -76,6 +76,8 @@
         <div class="menu-item" @click="$emit('moveToFirst')">{{ $t('tabs.moveToFirst') }}</div>
         <div class="menu-item" @click="$emit('moveToLast')">{{ $t('tabs.moveToLast') }}</div>
         <div class="menu-divider"></div>
+        <div class="menu-item" @click="$emit('splitToNewPanel')">{{ $t('tabs.splitToNewPanel') }}</div>
+        <div class="menu-divider"></div>
         <div class="menu-item" @click="$emit('togglePin')">
           {{ pinnedTabs.has(rightClickedTab?.id) ? $t('tabs.unpin') : $t('tabs.pin') }}
         </div>
@@ -118,6 +120,7 @@ const emit = defineEmits<{
   closeAll: []
   moveToFirst: []
   moveToLast: []
+  splitToNewPanel: []
   togglePin: []
   openRemarkDialog: []
   reorderTabsWithPin: [fromId: string, targetId: string, dropPosition: string, toPin: boolean]

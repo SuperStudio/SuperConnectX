@@ -241,8 +241,11 @@
     "pin": "Pin",
     "unpin": "Unpin",
     "editRemark": "Edit Remark",
-    "tabPinned": "This tab is pinned, please unpin first"
+    "tabPinned": "This tab is pinned, please unpin first",
+    "splitToNewPanel": "Split to New Panel"
   },
+
+
   "dialog": {
     "newConnection": "New Connection",
     "editRemark": "Edit Remark",
