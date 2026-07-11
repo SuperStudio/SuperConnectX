@@ -63,7 +63,7 @@
         >
           <el-table-column :label="t('commandEditor.columnAction')" width="80" align="center">
             <template #default="{ row }">
-              <el-tooltip :content="t('commandEditor.deleteCommand')" placement="top" effect="dark">
+              <el-tooltip :content="t('commandEditor.deleteCommand')" placement="top" effect="dark" :enterable="false">
                 <el-button type="danger" size="small" circle @click="deleteCommand(row)">
                   <el-icon><Delete /></el-icon>
                 </el-button>

@@ -28,7 +28,7 @@
       >
         {{ t('terminal.clear') }}
       </el-button>
-      <el-tooltip :content="autoScroll ? t('terminal.cancelAutoScroll') : t('terminal.autoScroll')" placement="bottom" effect="dark">
+      <el-tooltip :content="autoScroll ? t('terminal.cancelAutoScroll') : t('terminal.autoScroll')" placement="bottom" effect="dark" :enterable="false">
         <el-button
           size="small"
           class="auto-scroll-btn"
@@ -40,7 +40,7 @@
           </svg>
         </el-button>
       </el-tooltip>
-      <el-tooltip :content="t('terminal.openLogFolder')" placement="bottom" effect="dark">
+      <el-tooltip :content="t('terminal.openLogFolder')" placement="bottom" effect="dark" :enterable="false">
         <el-button
           size="small"
           class="icon-action-btn"
@@ -49,7 +49,7 @@
           <el-icon :size="14"><FolderOpened /></el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip :content="t('terminal.openLogFile')" placement="bottom" effect="dark">
+      <el-tooltip :content="t('terminal.openLogFile')" placement="bottom" effect="dark" :enterable="false">
         <el-button
           size="small"
           class="icon-action-btn"
@@ -88,7 +88,7 @@
           :value="group.id"
         />
       </el-select>
-      <el-tooltip :content="t('terminal.editSyntaxRules')" placement="bottom" effect="dark">
+      <el-tooltip :content="t('terminal.editSyntaxRules')" placement="bottom" effect="dark" :enterable="false">
         <el-button
           size="small"
           class="icon-action-btn"

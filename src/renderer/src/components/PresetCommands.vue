@@ -8,7 +8,7 @@
 
     <!-- 运行/停止按钮（移到组选择左边） -->
     <div class="group-actions-buttons">
-      <el-tooltip :content="isRunningAll ? t('presetCommands.stopLoopRunning') : t('presetCommands.loopRunning')" placement="bottom" effect="dark">
+      <el-tooltip :content="isRunningAll ? t('presetCommands.stopLoopRunning') : t('presetCommands.loopRunning')" placement="bottom" effect="dark" :enterable="false">
         <el-button
           size="small"
           :class="isRunningAll ? 'run-btn stop-btn' : 'run-btn'"

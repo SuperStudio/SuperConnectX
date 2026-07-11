@@ -25,13 +25,13 @@
             class="connection-dot"
             :class="getConnectionStatus(tab)"
           ></span>
-          <el-tooltip :content="tab.name || `${tab.host || tab.comName}:${tab.port || ''}`" placement="top" effect="dark">
+          <el-tooltip :content="tab.name || `${tab.host || tab.comName}:${tab.port || ''}`" placement="top" effect="dark" :enterable="false">
             <span class="tab-name">
               {{ tab.name || `${tab.host || tab.comName}:${tab.port || ''}` }}
               <span v-if="tab.connectionType === 'com' && tab.comName && serialRemarks[tab.comName]" class="tab-remark">{{ serialRemarks[tab.comName] }}</span>
             </span>
           </el-tooltip>
-          <el-tooltip :content="pinnedTabs.has(tab.id) ? $t('tabs.unpin') : $t('tabs.pin')" placement="top" effect="dark">
+          <el-tooltip :content="pinnedTabs.has(tab.id) ? $t('tabs.unpin') : $t('tabs.pin')" placement="top" effect="dark" :enterable="false">
             <span
               class="tab-action-btn"
               :class="{ pinned: pinnedTabs.has(tab.id) }"
