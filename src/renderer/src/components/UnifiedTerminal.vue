@@ -76,7 +76,6 @@
             inline-prompt
             size="small"
             class="terminal-switch-inline"
-            :disabled="!isConnected"
           />
           <el-switch
             width="50"
@@ -86,18 +85,15 @@
             inline-prompt
             size="small"
             class="terminal-switch-inline"
-            :disabled="!isConnected"
           />
         </div>
         <div class="input-wrapper" @click="commandInput?.focus()">
           <textarea
             v-model="currentCommand"
             @keydown="handleInputKeydown"
-            :placeholder="isConnected ? (hexMode ? t('terminal.hexPlaceholder') : (placeholder || t('terminal.inputPrompt'))) : t('terminal.disconnectedPlaceholder')"
+            :placeholder="hexMode ? t('terminal.hexPlaceholder') : (placeholder || t('terminal.inputPrompt'))"
             ref="commandInput"
             class="command-input"
-            :class="{ 'not-connected': !isConnected }"
-            :disabled="!isConnected"
             @input="onInputChange"
             @focus="onInputFocus"
             @blur="onInputBlur"
@@ -126,7 +122,6 @@
           size="small"
           class="btn-primary upload-btn"
           @click="handleFtpFileUpload"
-          :disabled="!isConnected"
         >
           {{ t('terminal.upload') }}
         </el-button>
@@ -135,7 +130,6 @@
           size="small"
           class="btn-primary send-btn"
           @click="handleSendCommand"
-          :disabled="!isConnected"
         >
           {{ t('terminal.send') }}
         </el-button>
@@ -1541,11 +1535,7 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   color: #666;
 }
 
-.command-input:disabled,
-.command-input.not-connected {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
+
 
 .input-controls {
   display: flex;
@@ -1608,10 +1598,7 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 
 
 
-.send-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+
 
 .scroll-wrapper {
   position: absolute;
