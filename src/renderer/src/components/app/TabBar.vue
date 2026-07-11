@@ -3,12 +3,26 @@
     <div class="tabs-header" ref="tabsHeaderRef" @wheel="handleTabsWheel">
       <div class="tabs-nav" @contextmenu="$emit('tabsNavContextMenu', $event)">
         <div
-          v-for="tab in connectionTabs"
+          v-for="(tab, index) in connectionTabs"
           :key="tab.id"
           class="tab-item"
-          :class="{ active: activeTabId === tab.id.toString(), pinned: pinnedTabs.has(tab.id) }"
+          :class="{
+            active: activeTabId === tab.id.toString(),
+            pinned: pinnedTabs.has(tab.id),
+            dragging: dragState.draggingId === tab.id,
+            'drag-over': dragState.overId === tab.id,
+            'drag-over-before': dragState.overId === tab.id && dragState.dropPosition === 'before'
+          }"
+          :draggable="!pinnedTabs.has(tab.id)"
+          @mousedown="$emit('switchTab', tab.id); $emit('hideTabMenu')"
           @click="$emit('switchTab', tab.id); $emit('hideTabMenu')"
           @contextmenu="$emit('tabContextMenu', $event, tab)"
+          @dragstart="onDragStart($event, tab, index)"
+          @dragover="onDragOver($event, tab, index)"
+          @dragenter.prevent="onDragEnter($event, tab)"
+          @dragleave="onDragLeave($event, tab)"
+          @drop="onDrop($event, tab)"
+          @dragend="onDragEnd"
           :data-tab-id="tab.id"
         >
           <span class="tab-icon">
@@ -75,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 
 const props = defineProps<{
   connectionTabs: any[]
@@ -106,15 +120,110 @@ const emit = defineEmits<{
   moveToLast: []
   togglePin: []
   openRemarkDialog: []
+  reorderTabs: [fromId: string, targetId: string, dropPosition: string]
 }>()
 
 const tabsHeaderRef = ref<HTMLElement | null>(null)
+
+// ---- 拖拽状态 ----
+const dragState = reactive({
+  draggingId: '' as string,
+  draggingIndex: -1,
+  overId: '' as string,
+  dropPosition: '' as 'before' | 'after' | ''
+})
 
 const handleTabsWheel = (e: WheelEvent) => {
   if (tabsHeaderRef.value) {
     e.preventDefault()
     tabsHeaderRef.value.scrollLeft += e.deltaY
   }
+}
+
+// ---- 拖拽事件处理 ----
+const onDragStart = (e: DragEvent, tab: any, index: number) => {
+  // 固定标签不允许拖拽
+  if (props.pinnedTabs.has(tab.id)) {
+    e.preventDefault()
+    return
+  }
+  dragState.draggingId = tab.id
+  dragState.draggingIndex = index
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', tab.id)
+    // 设置拖拽图像为半透明
+    const el = e.target as HTMLElement
+    if (el) {
+      e.dataTransfer.setDragImage(el, el.offsetWidth / 2, el.offsetHeight / 2)
+    }
+  }
+}
+
+const onDragOver = (e: DragEvent, tab: any, _index: number) => {
+  e.preventDefault()
+  if (!dragState.draggingId || dragState.draggingId === tab.id) return
+  // 固定标签和非固定标签不能交叉
+  const isFromPinned = props.pinnedTabs.has(dragState.draggingId)
+  const isToPinned = props.pinnedTabs.has(tab.id)
+  if (isFromPinned !== isToPinned) {
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'
+    return
+  }
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+
+  // 判断插入位置（鼠标在元素左半边还是右半边）
+  const el = (e.currentTarget as HTMLElement)
+  const rect = el.getBoundingClientRect()
+  const midX = rect.left + rect.width / 2
+  dragState.dropPosition = e.clientX < midX ? 'before' : 'after'
+}
+
+const onDragEnter = (e: DragEvent, tab: any) => {
+  e.preventDefault()
+  if (!dragState.draggingId || dragState.draggingId === tab.id) return
+  dragState.overId = tab.id
+}
+
+const onDragLeave = (e: DragEvent, tab: any) => {
+  // 只在真正离开元素时清除
+  const relatedTarget = e.relatedTarget as HTMLElement
+  const currentTarget = e.currentTarget as HTMLElement
+  if (!currentTarget.contains(relatedTarget)) {
+    if (dragState.overId === tab.id) {
+      dragState.overId = ''
+      dragState.dropPosition = ''
+    }
+  }
+}
+
+const onDrop = (e: DragEvent, tab: any) => {
+  e.preventDefault()
+  e.stopPropagation()
+  if (!dragState.draggingId || dragState.draggingId === tab.id) {
+    resetDragState()
+    return
+  }
+  // 固定标签和非固定标签不能交叉
+  const isFromPinned = props.pinnedTabs.has(dragState.draggingId)
+  const isToPinned = props.pinnedTabs.has(tab.id)
+  if (isFromPinned !== isToPinned) {
+    resetDragState()
+    return
+  }
+  emit('reorderTabs', dragState.draggingId, tab.id, dragState.dropPosition)
+  resetDragState()
+}
+
+const onDragEnd = () => {
+  resetDragState()
+}
+
+const resetDragState = () => {
+  dragState.draggingId = ''
+  dragState.draggingIndex = -1
+  dragState.overId = ''
+  dragState.dropPosition = ''
 }
 </script>
 
@@ -286,6 +395,37 @@ const handleTabsWheel = (e: WheelEvent) => {
 
 .tab-action-btn:hover::before {
   color: #fff;
+}
+
+/* 拖拽排序样式 */
+.tab-item.dragging {
+  opacity: 0.4;
+}
+
+.tab-item.drag-over {
+  position: relative;
+}
+
+.tab-item.drag-over-before::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #007fd4;
+  z-index: 10;
+}
+
+.tab-item.drag-over:not(.drag-over-before)::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #007fd4;
+  z-index: 10;
 }
 
 /* 右键菜单样式 */

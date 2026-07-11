@@ -79,6 +79,7 @@
           @closeAll="closeAllTabs"
           @moveToFirst="moveTabToFirst"
           @moveToLast="moveTabToLast"
+          @reorderTabs="reorderTabs"
           @togglePin="togglePinTab"
           @openRemarkDialog="openRemarkDialogHandler"
         />
@@ -188,7 +189,7 @@ const {
   connectAllTabs, disconnectAllTabs,
   closeTab, closeSingleTab,
   closeOtherTabs, closeLeftTabs, closeRightTabs, closeAllTabs,
-  moveTabToFirst, moveTabToLast,
+  reorderTabs, moveTabToFirst, moveTabToLast,
   togglePinTabByButton, togglePinTab,
   connectToServer, connectToSerialPort,
   openCommandEditorTab, openShortcutsTab, openSettingsTab

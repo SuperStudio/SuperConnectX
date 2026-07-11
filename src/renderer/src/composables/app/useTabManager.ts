@@ -221,6 +221,32 @@ export function useTabManager(
     hideTabMenu()
   }
 
+  // ---- 拖拽排序 ----
+  /**
+   * 获取目标拖拽插入位置
+   * @param fromId 被拖拽的 tab id
+   * @param targetId 目标位置上的 tab id（释放位置）
+   * @returns 插入索引，-1 表示不合法
+   */
+  const reorderTabs = (fromId: string, targetId: string, dropPosition: string = 'after') => {
+    const fromIndex = connectionTabs.value.findIndex(t => t.id === fromId)
+    let toIndex = connectionTabs.value.findIndex(t => t.id === targetId)
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return
+
+    const isFromPinned = pinnedTabs.has(fromId)
+    const isToPinned = pinnedTabs.has(targetId)
+
+    // 固定标签和非固定标签不能交叉
+    if (isFromPinned !== isToPinned) return
+
+    const tab = connectionTabs.value.splice(fromIndex, 1)[0]
+    // splice 后重新计算目标索引
+    toIndex = connectionTabs.value.findIndex(t => t.id === targetId)
+    // before: 插入到目标前面; after: 插入到目标后面
+    const insertIndex = dropPosition === 'before' ? toIndex : toIndex + 1
+    connectionTabs.value.splice(insertIndex, 0, tab)
+  }
+
   // ---- 移动 Tab ----
   const moveTabToFirst = () => {
     if (!rightClickedTab.value) return
@@ -427,6 +453,7 @@ export function useTabManager(
     closeLeftTabs,
     closeRightTabs,
     closeAllTabs,
+    reorderTabs,
     moveTabToFirst,
     moveTabToLast,
     togglePinTabByButton,
