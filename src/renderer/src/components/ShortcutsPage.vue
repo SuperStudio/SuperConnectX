@@ -25,7 +25,7 @@
         size="small"
         stripe
         style="width: 100%; height: 100%"
-        :header-cell-style="{ background: '#2d2d2d', color: '#e0e0e0', fontWeight: '600' }"
+        :header-cell-style="{ background: 'var(--shortcuts-table-header-bg)', color: 'var(--shortcuts-table-text)', fontWeight: '600' }"
         :empty-text="t('shortcutsPage.emptyText')"
         @row-dblclick="handleRowDblClick"
       >
@@ -489,7 +489,7 @@ const clearSearch = () => {
   flex-direction: column;
   height: 100%;
   padding: 16px;
-  background: #1e1e1e;
+  background: var(--shortcuts-page-bg);
   gap: 12px;
 }
 
@@ -522,8 +522,8 @@ const clearSearch = () => {
   height: 100%;
   padding: 0 28px 0 12px;
   border: 1px solid transparent;
-  background-color: #3c3c3c;
-  color: #cccccc;
+  background-color: var(--shortcuts-dialog-input-bg);
+  color: var(--shortcuts-dialog-input-color);
   border-radius: 4px;
   font-size: 13px;
   outline: none;
@@ -545,7 +545,7 @@ const clearSearch = () => {
   height: 20px;
   border: none;
   background: transparent;
-  color: #9ca3af;
+  color: var(--search-clear);
   font-size: 14px;
   cursor: pointer;
   padding: 0;
@@ -553,7 +553,7 @@ const clearSearch = () => {
 }
 
 .clear-btn:hover {
-  color: #111827;
+  color: var(--search-clear-hover);
 }
 
 .shortcuts-table {
@@ -563,44 +563,44 @@ const clearSearch = () => {
 }
 
 .shortcuts-table :deep(.el-table) {
-  background: #1e1e1e;
-  color: #e0e0e0;
+  background: var(--shortcuts-table-bg);
+  color: var(--shortcuts-table-text);
   border-radius: 4px;
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--shortcuts-table-border);
   --el-table-border: none !important;
   --el-table-border-color: transparent !important;
 }
 
 .shortcuts-table :deep(.el-table__header-wrapper th) {
-  background: #2d2d2d !important;
-  color: #e0e0e0;
+  background: var(--shortcuts-table-header-bg) !important;
+  color: var(--shortcuts-table-text);
   font-weight: 600;
-  border-bottom: 1px solid #3a3a3a !important;
+  border-bottom: 1px solid var(--shortcuts-table-header-border) !important;
 }
 
 .shortcuts-table :deep(.el-table__body-wrapper) {
-  background: #1e1e1e;
+  background: var(--shortcuts-table-bg);
 }
 
 .shortcuts-table :deep(.el-table__body tr) {
-  background: #1e1e1e;
+  background: var(--shortcuts-table-bg);
 }
 
 .shortcuts-table :deep(.el-table__body tr:hover > td) {
-  background: #094771 !important;
+  background: var(--shortcuts-table-row-hover) !important;
 }
 
 .shortcuts-table :deep(.el-table__body td) {
-  background: #1e1e1e;
-  border-bottom: 1px solid #2d2d2d !important;
+  background: var(--shortcuts-table-bg);
+  border-bottom: 1px solid var(--shortcuts-table-row-border) !important;
 }
 
 .shortcuts-table :deep(.el-table__body .el-table__row--striped td) {
-  background: #252526 !important;
+  background: var(--shortcuts-table-stripe-bg) !important;
 }
 
 .shortcuts-table :deep(.el-table__empty-text) {
-  color: #888;
+  color: var(--shortcuts-table-empty);
   padding: 40px 0;
 }
 
@@ -611,12 +611,12 @@ const clearSearch = () => {
 }
 
 .action-name {
-  color: #e0e0e0;
+  color: var(--shortcuts-action-name);
   font-size: 14px;
 }
 
 .action-command {
-  color: #666;
+  color: var(--shortcuts-action-command);
   font-size: 11px;
 }
 
@@ -631,12 +631,12 @@ const clearSearch = () => {
 .key-badge {
   display: inline-block;
   padding: 2px 8px;
-  background: #3a3a3a;
-  color: #e0e0e0;
+  background: var(--shortcuts-table-border);
+  color: var(--shortcuts-action-name);
   font-size: 12px;
   font-family: 'Consolas', 'Monaco', monospace;
   border-radius: 4px;
-  border: 1px solid #555;
+  border: 1px solid var(--key-badge-border);
   white-space: nowrap;
 }
 
@@ -647,16 +647,16 @@ const clearSearch = () => {
 }
 
 .shortcuts-table::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: var(--shortcuts-table-bg);
 }
 
 .shortcuts-table::-webkit-scrollbar-thumb {
-  background: #555;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 .shortcuts-table::-webkit-scrollbar-thumb:hover {
-  background: #666;
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* 对话框样式 */
@@ -667,7 +667,7 @@ const clearSearch = () => {
 }
 
 .dialog-tip {
-  color: #888;
+  color: var(--shortcuts-dialog-tip);
   font-size: 13px;
   margin: 0;
 }
@@ -676,9 +676,9 @@ const clearSearch = () => {
   width: 100%;
   height: 36px;
   padding: 0 12px;
-  border: 1px solid #3a3a3a;
-  background-color: #3c3c3c;
-  color: #cccccc;
+  border: 1px solid var(--shortcuts-dialog-input-border);
+  background-color: var(--shortcuts-dialog-input-bg);
+  color: var(--shortcuts-dialog-input-color);
   border-radius: 4px;
   font-size: 14px;
   outline: none;
@@ -690,7 +690,7 @@ const clearSearch = () => {
 }
 
 .key-input::placeholder {
-  color: #666;
+  color: var(--shortcuts-dialog-input-placeholder);
 }
 
 .preview-section {
@@ -701,7 +701,7 @@ const clearSearch = () => {
 }
 
 .preview-label {
-  color: #888;
+  color: var(--shortcuts-dialog-preview-label);
   font-size: 13px;
   flex-shrink: 0;
 }
@@ -717,49 +717,49 @@ const clearSearch = () => {
   font-size: 13px;
   padding: 8px 12px;
   border-radius: 4px;
-  background: #2d2d2d;
+  background: var(--shortcuts-dialog-validation-bg);
 }
 
 .validation-message.valid {
-  color: #4caf50;
-  background: rgba(76, 175, 80, 0.1);
+  color: var(--shortcut-valid-color);
+  background: var(--shortcut-valid-bg);
 }
 
 .validation-message.conflict {
-  color: #ff9800;
-  background: rgba(255, 152, 0, 0.1);
+  color: var(--shortcut-conflict-color);
+  background: var(--shortcut-conflict-bg);
 }
 
 .validation-message.invalid {
-  color: #f44336;
-  background: rgba(244, 67, 54, 0.1);
+  color: var(--shortcut-invalid-color);
+  background: var(--shortcut-invalid-bg);
 }
 
 /* 对话框深色主题覆盖 */
 :deep(.shortcut-dialog) {
-  --el-bg-color: #252526;
-  --el-text-color-primary: #e0e0e0;
-  --el-border-color: #3a3a3a;
+  --el-bg-color: var(--shortcuts-dialog-bg);
+  --el-text-color-primary: var(--shortcuts-table-text);
+  --el-border-color: var(--shortcuts-table-border);
 }
 
 :deep(.shortcut-dialog .el-dialog) {
-  background: #252526;
-  border: 1px solid #3a3a3a;
+  background: var(--shortcuts-dialog-bg);
+  border: 1px solid var(--shortcuts-dialog-border);
 }
 
 :deep(.shortcut-dialog .el-dialog__header) {
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--shortcuts-dialog-border);
 }
 
 :deep(.shortcut-dialog .el-dialog__title) {
-  color: #e0e0e0;
+  color: var(--shortcuts-table-text);
 }
 
 :deep(.shortcut-dialog .el-dialog__body) {
-  color: #e0e0e0;
+  color: var(--shortcuts-table-text);
 }
 
 :deep(.shortcut-dialog .el-dialog__footer) {
-  border-top: 1px solid #3a3a3a;
+  border-top: 1px solid var(--shortcuts-dialog-border);
 }
 </style>

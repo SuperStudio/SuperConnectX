@@ -354,19 +354,19 @@ defineExpose({ open })
 }
 
 .status-icon {
-  color: #888;
+  color: var(--update-status-icon-color);
 }
 
 .status-icon.success {
-  color: #67c23a;
+  color: var(--update-color-100);
 }
 
 .status-icon.error {
-  color: #f56c6c;
+  color: var(--color-danger);
 }
 
 .status-icon.info {
-  color: #409eff;
+  color: var(--update-color-70);
 }
 
 .status-icon.spinning {
@@ -379,14 +379,14 @@ defineExpose({ open })
 }
 
 .status-text {
-  color: #e0e0e0;
+  color: var(--update-text);
   font-size: 15px;
   font-weight: 600;
   margin: 4px 0;
 }
 
 .status-subtext {
-  color: #888;
+  color: var(--update-meta);
   font-size: 13px;
   margin: 0;
 }
@@ -394,8 +394,8 @@ defineExpose({ open })
 .release-notes {
   width: 100%;
   margin-top: 8px;
-  background: #1e1e1e;
-  border: 1px solid #3c3c3c;
+  background: var(--update-bg);
+  border: 1px solid var(--update-border);
   border-radius: 6px;
   padding: 10px;
   text-align: left;
@@ -404,22 +404,22 @@ defineExpose({ open })
 }
 
 .release-date {
-  color: #777;
+  color: var(--update-empty);
   font-size: 12px;
   margin-top: 2px;
 }
 
 .release-notes-title {
-  color: #ccc;
+  color: var(--update-changelog);
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 6px;
   padding-bottom: 4px;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--update-changelog-border);
 }
 
 .release-notes-content {
-  color: #aaa;
+  color: var(--update-changelog-link);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -430,7 +430,7 @@ defineExpose({ open })
 }
 
 .progress-wrapper :deep(.el-progress-bar__outer) {
-  background-color: #3c3c3c;
+  background-color: var(--update-progress-bg);
 }
 
 .update-footer {
@@ -441,27 +441,27 @@ defineExpose({ open })
 }
 
 .website-btn {
-  background-color: transparent !important;
-  border: 1px solid #555 !important;
-  color: #aaa !important;
+  background-color: var(--update-website-btn-bg) !important;
+  border: 1px solid var(--update-website-btn-border) !important;
+  color: var(--update-website-btn-color) !important;
 }
 
 .website-btn:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border-color: #888 !important;
-  color: #ddd !important;
+  background-color: var(--update-website-btn-hover-bg) !important;
+  border-color: var(--update-website-btn-hover-border) !important;
+  color: var(--update-website-btn-hover-color) !important;
 }
 
 .recheck-btn {
-  background-color: transparent !important;
-  border: 1px solid #555 !important;
-  color: #aaa !important;
+  background-color: var(--update-website-btn-bg) !important;
+  border: 1px solid var(--update-website-btn-border) !important;
+  color: var(--update-website-btn-color) !important;
 }
 
 .recheck-btn:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border-color: #888 !important;
-  color: #ddd !important;
+  background-color: var(--update-website-btn-hover-bg) !important;
+  border-color: var(--update-website-btn-hover-border) !important;
+  color: var(--update-website-btn-hover-color) !important;
   transform: translateY(-1px);
 }
 
@@ -480,11 +480,11 @@ defineExpose({ open })
 }
 
 .release-notes::-webkit-scrollbar-thumb {
-  background: #424242;
+  background: var(--update-progress-bar-bg);
   border-radius: 3px;
 }
 
 .release-notes::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--update-progress-bar-fill);
 }
 </style>

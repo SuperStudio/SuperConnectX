@@ -111,17 +111,17 @@ defineExpose({ open })
 
 <style scoped>
 .el-dialog {
-  background: #252526 !important;
+  background: var(--export-bg) !important;
   border-radius: 8px !important;
 }
 
 .el-dialog__title {
-  color: #f0f0f0 !important;
+  color: var(--export-text) !important;
   font-size: 18px !important;
 }
 
 .export-desc {
-  color: #a0a0a0;
+  color: var(--export-checkbox-desc);
   font-size: 13px;
   margin-bottom: 20px;
   line-height: 1.5;
@@ -143,17 +143,17 @@ defineExpose({ open })
 }
 
 .export-checkbox-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--overlay-hover);
 }
 
 .el-checkbox {
-  color: #e0e0e0 !important;
+  color: var(--export-checkbox-color) !important;
   --el-checkbox-checked-bg-color: var(--focus-border-color, #409eff);
   --el-checkbox-checked-input-border-color: var(--focus-border-color, #409eff);
 }
 
 .el-checkbox__label {
-  color: #e0e0e0 !important;
+  color: var(--export-checkbox-color) !important;
   padding-left: 10px;
 }
 
@@ -165,18 +165,18 @@ defineExpose({ open })
 
 .checkbox-label {
   font-size: 14px;
-  color: #e0e0e0;
+  color: var(--export-checkbox-color);
   font-weight: 500;
 }
 
 .checkbox-desc {
   font-size: 12px;
-  color: #888;
+  color: var(--export-meta);
 }
 
 .no-selection-hint {
   text-align: center;
-  color: #888;
+  color: var(--export-meta);
   font-size: 13px;
   margin-top: 12px;
 }

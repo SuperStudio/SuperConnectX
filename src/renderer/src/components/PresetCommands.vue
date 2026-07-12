@@ -919,7 +919,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 <style scoped>
 .preset-commands {
   padding: 8px 15px 8px 5px;
-  background: #252526;
+  background: var(--preset-bg);
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -934,7 +934,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .preset-commands::-webkit-scrollbar-thumb {
-  background-color: #444;
+  background-color: var(--preset-scrollbar-thumb);
   border-radius: 3px;
 }
 
@@ -959,9 +959,9 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .group-selector {
-  background-color: #3a3a3a !important;
+  background-color: var(--preset-group-selector-bg) !important;
   border: 2px solid transparent !important;
-  color: #fff !important;
+  color: var(--text-white) !important;
   padding: 6px 12px !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -969,7 +969,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .group-selector:hover {
-  border: 2px solid #0078d4 !important;
+  border: 2px solid var(--preset-group-selector-border) !important;
 }
 
 .group-selector-text {
@@ -997,19 +997,19 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .add-icon {
-  color: #42b983;
+  color: var(--preset-add-icon-color);
 }
 
 .edit-icon:hover {
-  color: #fff !important;
+  color: var(--text-white) !important;
 }
 
 .delete-icon {
-  color: #ff4d4f;
+  color: var(--preset-delete-icon-color);
 }
 
 .delete-icon:hover {
-  color: #ff6b6b !important;
+  color: var(--preset-delete-icon-hover) !important;
 }
 
 .add-preset-btn {
@@ -1035,19 +1035,19 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 .run-btn {
   background-color: transparent !important;
   border-color: transparent !important;
-  color: #99E699 !important;
+  color: var(--preset-run-color) !important;
   box-shadow: none !important;
   width: 28px !important;
   height: 28px !important;
 }
 
 .run-btn:hover:not(:disabled) {
-  background-color: rgba(153, 230, 153, 0.15) !important;
-  color: #99E699 !important;
+  background-color: var(--preset-run-bg) !important;
+  color: var(--preset-run-color) !important;
 }
 
 .run-btn:disabled {
-  color: #555 !important;
+  color: var(--border-light) !important;
 }
 
 /* 运行按钮的圆角三角形图标 */
@@ -1065,13 +1065,13 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 .run-btn.stop-btn {
   background-color: transparent !important;
   border-color: transparent !important;
-  color: #c45656 !important;
+  color: var(--preset-stop-color) !important;
   box-shadow: none !important;
 }
 
 .run-btn.stop-btn:hover:not(:disabled) {
-  background-color: rgba(196, 86, 86, 0.15) !important;
-  color: #c45656 !important;
+  background-color: var(--preset-stop-bg) !important;
+  color: var(--preset-stop-color) !important;
 }
 
 /* 正方形图标 */
@@ -1079,14 +1079,14 @@ const handlePresetCommandsChanged = (connectionType: string) => {
   display: inline-block;
   width: 10px;
   height: 10px;
-  background-color: #c45656;
+  background-color: var(--preset-stop-icon-bg);
   border-radius: 2px;
 }
 
 .preset-btn {
-  background-color: #3a3a3a !important;
-  border-color: #444 !important;
-  color: #e0e0e0 !important;
+  background-color: var(--preset-btn-bg) !important;
+  border-color: var(--preset-btn-border) !important;
+  color: var(--preset-btn-text) !important;
   margin: 2px 0 !important;
   transition: all 0.2s ease !important;
   position: relative !important;
@@ -1094,25 +1094,25 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .preset-btn:hover {
-  background-color: #4a4a4a !important;
-  border-color: #555 !important;
+  background-color: var(--preset-btn-hover-bg) !important;
+  border-color: var(--preset-btn-hover-border) !important;
   transform: translateY(-1px);
 }
 
 .preset-btn.looping {
   animation: pulse 1.5s infinite;
-  border-color: #165dff !important;
+  border-color: var(--preset-looping-border) !important;
 }
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(22, 93, 255, 0.4);
+    box-shadow: 0 0 0 0 var(--preset-pulse-color);
   }
   70% {
-    box-shadow: 0 0 0 8px rgba(22, 93, 255, 0);
+    box-shadow: 0 0 0 8px var(--preset-pulse-zero);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(22, 93, 255, 0);
+    box-shadow: 0 0 0 0 var(--preset-pulse-zero);
   }
 }
 
@@ -1165,26 +1165,26 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 .el-dialog {
-  background: #252526 !important;
+  background: var(--dialog-bg) !important;
   border-radius: 8px !important;
 }
 
 .el-dialog__title {
-  color: #f0f0f0 !important;
+  color: var(--dialog-text) !important;
   font-size: 18px !important;
 }
 
 .el-form-item__label {
-  color: #e8e8e8 !important;
+  color: var(--text-primary) !important;
   width: 100px;
 }
 
 .el-input,
 .el-select {
-  --el-input-bg-color: #cccccc !important;
-  --el-input-text-color: #000 !important;
-  --el-input-placeholder-color: #888 !important;
-  --el-border-color: #444 !important;
+  --el-input-bg-color: var(--dialog-input-bg-override) !important;
+  --el-input-text-color: var(--dialog-input-text-override) !important;
+  --el-input-placeholder-color: var(--dialog-input-placeholder-override) !important;
+  --el-border-color: var(--dialog-input-border-override) !important;
 }
 
 .el-input:focus-within,
@@ -1194,9 +1194,9 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 
 :deep(.custom-textarea .el-textarea__inner),
 :deep(.el-textarea__inner) {
-  background: #3a3a3a;
-  box-shadow: 0 0 0 1px #444 inset;
-  color: #e0e0e0;
+  background: var(--cmdeditor-dialog-input-bg);
+  box-shadow: 0 0 0 1px var(--cmdeditor-dialog-input-border) inset;
+  color: var(--text-secondary);
   resize: vertical;
   max-height: 200px;
 }
@@ -1236,12 +1236,12 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 :global(.group-dropdown-popper .el-scrollbar::-webkit-scrollbar-thumb) {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--preset-dropdown-scrollbar-thumb);
   border-radius: 3px;
 }
 
 :global(.group-dropdown-popper .el-scrollbar::-webkit-scrollbar-thumb:hover) {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--preset-dropdown-scrollbar-hover);
 }
 
 /* 组菜单项样式 */
@@ -1267,7 +1267,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 }
 
 :deep(.active-group) {
-  background-color: rgba(22, 93, 255, 0.15) !important;
+  background-color: var(--syntax-group-active) !important;
   border-left: 3px solid var(--focus-border-color) !important;
 }
 
@@ -1286,8 +1286,8 @@ const handlePresetCommandsChanged = (connectionType: string) => {
   padding: 2px 6px !important;
   border-radius: 3px !important;
   margin-right: 8px !important;
-  background-color: #444 !important;
-  color: #fff !important;
+  background-color: var(--preset-group-badge-bg) !important;
+  color: var(--preset-group-badge-text) !important;
 }
 
 .group-type-badge:empty {
@@ -1302,7 +1302,7 @@ const handlePresetCommandsChanged = (connectionType: string) => {
 .form-hint {
   margin-top: 10px;
   font-size: 12px;
-  color: #888;
+  color: var(--text-muted);
   line-height: 1.4;
 }
 </style>

@@ -1118,8 +1118,8 @@ onUnmounted(() => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
-  color: #fff;
+  background: var(--bg-primary);
+  color: var(--text-white);
   overflow: hidden;
 }
 
@@ -1163,12 +1163,12 @@ onUnmounted(() => {
 
 .sidebar-resizer:hover,
 .sidebar-resizer.resizing {
-  background-color: #409eff;
+  background-color: var(--sidebar-resizer-hover);
 }
 
 .status-bar {
   height: 25px;
-  background-color: #007acc;
+  background-color: var(--statusbar-bg-hover);
   display: flex;
 }
 
@@ -1186,7 +1186,7 @@ onUnmounted(() => {
 }
 
 .command-status {
-  color: #e0e0e0;
+  color: var(--statusbar-command-text);
   font-size: 12px;
   margin-left: auto;
   margin-right: 20px;
@@ -1203,7 +1203,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #1e1e1e;
+  background-color: var(--empty-placeholder-bg);
 }
 
 .logo-container {
@@ -1217,44 +1217,44 @@ onUnmounted(() => {
   width: 96px;
   height: 96px;
   object-fit: contain;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  filter: var(--logo-img-shadow);
 }
 
 .logo-container .logo-text {
   font-size: 24px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--empty-logo-text);
   letter-spacing: 2px;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  text-shadow: var(--logo-text-shadow);
 }
 
 .logo-container .copyright {
   font-size: 12px;
-  color: #888;
+  color: var(--empty-copyright);
   margin-top: 8px;
 }
 
 /* Element Plus 弹窗样式覆盖 */
 .el-dialog {
-  background: #252526 !important;
+  background: var(--dialog-bg) !important;
   border-radius: 8px !important;
 }
 
 .el-dialog__title {
-  color: #f0f0f0 !important;
+  color: var(--dialog-text) !important;
   font-size: 18px !important;
 }
 
 .el-form-item__label {
-  color: #e8e8e8 !important;
+  color: var(--text-primary) !important;
 }
 
 .el-input,
 .el-select {
-  --el-input-bg-color: #cccccc !important;
-  --el-input-text-color: #000 !important;
-  --el-input-placeholder-color: #888 !important;
-  --el-border-color: #444 !important;
+  --el-input-bg-color: var(--dialog-input-bg-override) !important;
+  --el-input-text-color: var(--dialog-input-text-override) !important;
+  --el-input-placeholder-color: var(--dialog-input-placeholder-override) !important;
+  --el-border-color: var(--dialog-input-border-override) !important;
 }
 
 .el-input:focus-within,

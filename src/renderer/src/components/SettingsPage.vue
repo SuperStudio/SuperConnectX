@@ -619,7 +619,7 @@ const handleSettingsUpdated = (event: Event) => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #1e1e1e;
+  background: var(--bg-primary);
 }
 
 .settings-search {
@@ -639,8 +639,8 @@ const handleSettingsUpdated = (event: Event) => {
   height: 100%;
   padding: 0 28px 0 12px;
   border: 1px solid transparent;
-  background-color: #3c3c3c;
-  color: #cccccc;
+  background-color: var(--bg-input);
+  color: var(--search-input-color);
   border-radius: 4px;
   font-size: 13px;
   outline: none;
@@ -662,7 +662,7 @@ const handleSettingsUpdated = (event: Event) => {
   height: 20px;
   border: none;
   background: transparent;
-  color: #9ca3af;
+  color: var(--search-clear);
   font-size: 14px;
   cursor: pointer;
   padding: 0;
@@ -670,7 +670,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .clear-btn:hover {
-  color: #111827;
+  color: var(--search-clear-hover);
 }
 
 .settings-content {
@@ -681,8 +681,8 @@ const handleSettingsUpdated = (event: Event) => {
 
 .settings-nav {
   width: 140px;
-  background: #252526;
-  border-right: 1px solid #3c3c3c;
+  background: var(--settings-nav-bg);
+  border-right: 1px solid var(--settings-nav-border);
   padding: 8px 0;
   flex-shrink: 0;
   display: flex;
@@ -691,25 +691,25 @@ const handleSettingsUpdated = (event: Event) => {
 
 .nav-item {
   padding: 8px 16px;
-  color: #e0e0e0;
+  color: var(--settings-nav-item-color);
   font-size: 13px;
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .nav-item:hover {
-  background: #2a2d2e;
+  background: var(--settings-nav-item-hover);
 }
 
 .nav-item.active {
-  background: #094771;
-  color: #fff;
+  background: var(--settings-nav-item-active-bg);
+  color: var(--settings-nav-item-active-color);
 }
 
 .nav-footer {
   margin-top: auto;
   padding: 16px 8px;
-  border-top: 1px solid #3c3c3c;
+  border-top: 1px solid var(--settings-nav-footer-border);
 }
 
 
@@ -751,7 +751,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .group-section {
-  background: #252526;
+  background: var(--settings-group-bg);
   border-radius: 6px;
   padding: 12px;
   margin-bottom: 16px;
@@ -767,14 +767,14 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .search-empty {
-  color: #808080;
+  color: var(--settings-search-empty);
   font-size: 14px;
   text-align: center;
   padding: 40px 0;
 }
 
 .search-result-section {
-  background: #252526;
+  background: var(--settings-search-section-bg);
   border-radius: 6px;
   padding: 12px;
   margin-bottom: 12px;
@@ -786,15 +786,15 @@ const handleSettingsUpdated = (event: Event) => {
   gap: 6px;
   padding-bottom: 8px;
   margin-bottom: 8px;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--settings-search-section-header-border);
   font-size: 12px;
-  color: #888;
+  color: var(--settings-search-section-header-color);
   cursor: pointer;
   transition: color 0.15s;
 }
 
 .search-section-header:hover {
-  color: #ccc;
+  color: var(--settings-search-section-header-hover);
 }
 
 .search-category {
@@ -803,7 +803,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .search-section {
-  color: #ccc;
+  color: var(--settings-search-section-header-hover);
   font-weight: 600;
 }
 
@@ -812,7 +812,7 @@ const handleSettingsUpdated = (event: Event) => {
   flex-direction: column;
   gap: 2px;
   padding: 6px 0;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--settings-search-result-item-border);
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -822,7 +822,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .search-result-item:hover {
-  background: #2a2d2e;
+  background: var(--settings-search-result-item-hover);
   margin: 0 -12px;
   padding-left: 12px;
   padding-right: 12px;
@@ -830,21 +830,21 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .search-label {
-  color: #e0e0e0;
+  color: var(--settings-search-label-color);
   font-size: 13px;
 }
 
 .search-label :deep(.search-highlight),
 .search-desc :deep(.search-highlight) {
-  background: #6b4c0a;
-  color: #ffd866;
+  background: var(--settings-highlight-bg);
+  color: var(--settings-highlight-color);
   border-radius: 2px;
   padding: 0 2px;
   font-weight: 600;
 }
 
 .search-desc {
-  color: #808080;
+  color: var(--settings-search-desc-color);
   font-size: 11px;
 }
 
@@ -852,7 +852,7 @@ const handleSettingsUpdated = (event: Event) => {
 .nav-item .match-count {
   margin-left: auto;
   background: var(--focus-border-color);
-  color: #fff;
+  color: var(--settings-nav-match-color);
   font-size: 11px;
   padding: 1px 6px;
   border-radius: 10px;
@@ -865,16 +865,16 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .nav-item.has-match:hover {
-  color: #0098ff;
+  color: var(--settings-nav-match-hover);
 }
 
 .group-title {
-  color: #e8e8e8;
+  color: var(--settings-group-title-color);
   font-size: 15px;
   font-weight: 700;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 2px solid #409eff;
+  border-bottom: 2px solid var(--settings-group-title-border);
 }
 
 .setting-item {
@@ -882,7 +882,7 @@ const handleSettingsUpdated = (event: Event) => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--settings-item-border);
 }
 
 .setting-item:last-child {
@@ -896,12 +896,12 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .label-text {
-  color: #e0e0e0;
+  color: var(--settings-label-text);
   font-size: 13px;
 }
 
 .label-desc {
-  color: #808080;
+  color: var(--settings-label-desc);
   font-size: 11px;
 }
 
@@ -912,7 +912,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .slider-value {
-  color: #e0e0e0;
+  color: var(--settings-slider-value);
   font-size: 12px;
   min-width: 50px;
   text-align: right;
@@ -944,7 +944,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .hint-title {
-  color: #808080;
+  color: var(--settings-label-desc);
   font-size: 11px;
   font-weight: 600;
   margin-bottom: 4px;
@@ -959,29 +959,29 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .hint-tag {
-  color: #999;
+  color: var(--notify-meta);
   font-size: 11px;
   white-space: nowrap;
 }
 
 .hint-tag code {
-  background: #3c3c3c;
-  color: #e0c060;
+  background: var(--settings-filename-code-bg);
+  color: var(--settings-filename-code-color);
   padding: 1px 4px;
   border-radius: 3px;
   font-size: 10px;
 }
 
 .hint-subtitle {
-  color: #808080;
+  color: var(--settings-label-desc);
   font-size: 11px;
   display: block;
   margin-top: 4px;
 }
 
 .hint-subtitle code {
-  background: #3c3c3c;
-  color: #e0c060;
+  background: var(--settings-filename-code-bg);
+  color: var(--settings-filename-code-color);
   padding: 1px 4px;
   border-radius: 3px;
   font-size: 10px;
@@ -989,17 +989,17 @@ const handleSettingsUpdated = (event: Event) => {
 
 /* Switch 样式与 TerminalControl 一致 */
 :deep(.el-switch) {
-  --el-switch-on-color: #165dff;
-  --el-switch-off-color: #444;
+  --el-switch-on-color: var(--settings-slider-bar);
+  --el-switch-off-color: var(--terminal-control-switch-off);
 }
 
 /* Slider 样式与 Switch 一致 */
 :deep(.el-slider__runway) {
-  background-color: #444;
+  background-color: var(--terminal-control-switch-off);
 }
 
 :deep(.el-slider__bar) {
-  background-color: #165dff;
+  background-color: var(--settings-slider-bar);
 }
 
 .baudrate-tags {
@@ -1011,13 +1011,13 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .baudrate-tag {
-  background: #3c3c3c;
-  border-color: #555;
-  color: #e0e0e0;
+  background: var(--settings-baudrate-tag-bg);
+  border-color: var(--settings-baudrate-tag-border);
+  color: var(--settings-baudrate-tag-color);
 }
 
 .baudrate-tag:hover {
-  background: #4c4c4c;
+  background: var(--settings-baudrate-tag-hover);
 }
 
 /* 滚动条美化 */
@@ -1026,20 +1026,20 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .settings-panel::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: var(--bg-primary);
 }
 
 .settings-panel::-webkit-scrollbar-thumb {
-  background: #424242;
+  background: var(--scrollbar-thumb-light);
   border-radius: 5px;
 }
 
 .settings-panel::-webkit-scrollbar-thumb:hover {
-  background: #4f4f4f;
+  background: var(--scrollbar-thumb-light-hover);
 }
 
 .settings-panel::-webkit-scrollbar-corner {
-  background: #1e1e1e;
+  background: var(--bg-primary);
 }
 
 /* 备份恢复样式 */
@@ -1048,7 +1048,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .no-backups {
-  color: #808080;
+  color: var(--settings-no-backups);
   font-size: 13px;
   text-align: center;
   padding: 20px 0;
@@ -1065,7 +1065,7 @@ const handleSettingsUpdated = (event: Event) => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--settings-backup-item-border);
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -1075,26 +1075,26 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .backup-item:hover {
-  background: #2a2d2e;
+  background: var(--settings-backup-item-hover);
 }
 
 .backup-item.selected {
-  background: #094771;
+  background: var(--settings-backup-item-selected);
 }
 
 .backup-date {
-  color: #e0e0e0;
+  color: var(--settings-backup-date);
   font-size: 13px;
 }
 
 .backup-size {
-  color: #808080;
+  color: var(--settings-backup-size);
   font-size: 12px;
 }
 
 .restore-action {
   padding: 12px 0 0 0;
-  border-top: 1px solid #3c3c3c;
+  border-top: 1px solid var(--settings-restore-border);
   margin-top: 8px;
 }
 
@@ -1107,26 +1107,26 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 .backup-list::-webkit-scrollbar-track {
-  background: #252526;
+  background: var(--settings-group-bg);
 }
 
 .backup-list::-webkit-scrollbar-thumb {
-  background: #424242;
+  background: var(--scrollbar-thumb-light);
   border-radius: 3px;
 }
 
 .backup-list::-webkit-scrollbar-thumb:hover {
-  background: #4f4f4f;
+  background: var(--scrollbar-thumb-light-hover);
 }
 
 .next-backup-value {
-  color: #e0e0e0;
+  color: var(--settings-next-backup-value);
   font-size: 13px;
   font-weight: 500;
 }
 
 .next-backup-value.today {
-  color: #f0a020;
+  color: var(--settings-next-backup-today);
 }
 
 

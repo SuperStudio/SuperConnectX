@@ -1,0 +1,639 @@
+/* ==============================
+   SuperConnectX 颜色变量 (Dark Theme)
+   所有颜色集中管理，方便后续换肤
+   ============================== */
+
+:root {
+  /* ---- 基础背景色 ---- */
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-tertiary: #2d2d2d;
+  --bg-input: #3c3c3c;
+  --bg-hover: #353535;
+  --bg-titlebar: #323233;
+  --bg-sidebar-footer: #252526;
+  --bg-tooltip: #2d2d2d;
+
+  /* ---- 边框颜色 ---- */
+  --border-primary: #333;
+  --border-secondary: #3a3a3a;
+  --border-tertiary: #3c3c3c;
+  --border-input: #4a4a4a;
+  --border-dark: #374151;
+  --border-light: #555;
+  --border-focus: #007fd4;
+
+  /* ---- 文本颜色 ---- */
+  --text-primary: #e8e8e8;
+  --text-secondary: #e0e0e0;
+  --text-tertiary: #ccc;
+  --text-muted: #888;
+  --text-disabled: #666;
+  --text-white: #fff;
+  --text-bright: #f0f0f0;
+  --text-dialog: #f5f5f5;
+  --text-dialog-title: #ffffff;
+  --text-message-title: #e2e8f0;
+  --text-titlebar: #c5c5c5;
+  --text-sidebar-brand: #ffc107;
+
+  /* ---- 占位符颜色 ---- */
+  --placeholder-color: #b0b0b0;
+  --placeholder-input: #888;
+  --placeholder-dark: #666;
+
+  /* ---- 按钮颜色 ---- */
+  --btn-primary-bg: #0e639c;
+  --btn-primary-hover: #1177bb;
+  --btn-primary-active: #0d5a8c;
+  --btn-primary-disabled-bg: #444;
+  --btn-primary-disabled-border: #555;
+  --btn-primary-disabled-text: #888;
+
+  --btn-danger-bg: #c45656;
+  --btn-danger-hover: #d66a6a;
+  --btn-danger-active: #b04545;
+  --btn-danger-light-bg: #d46060;
+
+  --btn-icon-text: #409eff;
+  --btn-icon-text-hover: #66b1ff;
+  --btn-close-hover: #ff4d4f;
+
+  /* ---- 菜单颜色（已使用变量） ---- */
+  --menu-bg-color: #2d2d2d;
+  --menu-border-color: #3a3a3a;
+  --menu-border-radius: 6px;
+  --menu-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --menu-item-padding: 8px 16px;
+  --menu-item-color: #e0e0e0;
+  --menu-item-font-size: 13px;
+  --menu-item-hover-bg: #094771;
+  --menu-item-hover-color: #fff;
+  --menu-divider-color: #3a3a3a;
+  --menu-divider-margin: 4px 0;
+  --menu-danger-color: #f56c6c;
+  --menu-danger-hover-bg: #f56c6c;
+  --focus-border-color: #007fd4;
+
+  /* ---- 选中/激活颜色 ---- */
+  --accent-blue: #409eff;
+  --accent-blue-hover: #0098ff;
+  --accent-blue-active: #2563eb;
+  --accent-blue-bright: #0ea5e9;
+  --accent-blue-dark: #2E5CC7;
+  --accent-blue-subtle: rgba(64, 158, 255, 0.15);
+  --accent-blue-btn: #326BF1;
+
+  /* ---- 状态颜色 ---- */
+  --color-success: #67c23a;
+  --color-success-green: #4caf50;
+  --color-success-connect: #18c138;
+  --color-warning: #e6a23c;
+  --color-warning-light: #f0a020;
+  --color-warning-orange: #ff9800;
+  --color-danger: #f56c6c;
+  --color-danger-red: #f44336;
+  --color-danger-bg: #c43e3e;
+  --color-info: #409eff;
+
+  /* ---- 终端专用颜色 ---- */
+  --terminal-bg: #1e1e1e;
+  --terminal-output-bg: #1e1e1e;
+  --terminal-splitter: #2a2a2a;
+  --terminal-input-bg: #2a2a2a;
+  --terminal-input-focus: #409eff;
+  --terminal-prompt: #cccccc;
+  --terminal-rx: #4ade80;
+  --terminal-tx: #60a5fa;
+  --terminal-scroll-bg: rgba(50, 50, 51, 0.8);
+  --terminal-scroll-hover: rgba(70, 70, 72, 0.9);
+  --terminal-scroll-border: #555;
+
+  /* ---- Switch 开关颜色 ---- */
+  --switch-off-bg: #131315;
+  --switch-off-hover: #2A2A2C;
+  --switch-on-bg: #2E5CC7;
+
+  /* ---- 滚动条颜色 ---- */
+  --scrollbar-thumb: #555;
+  --scrollbar-thumb-hover: #666;
+  --scrollbar-thumb-light: #424242;
+  --scrollbar-thumb-light-hover: #4f4f4f;
+  --scrollbar-thumb-dark: #464647;
+  --scrollbar-thumb-dark-hover: #6f6f70;
+  --scrollbar-track: #1e1e1e;
+  --scrollbar-track-transparent: transparent;
+
+  /* ---- 分割线 ---- */
+  --divider-color: #3c3c3c;
+  --divider-dark: #3a3a3a;
+  --divider-tab: #1e1e1e;
+
+  /* ---- 弹窗/对话框 ---- */
+  --dialog-bg: #252526;
+  --dialog-text: #f0f0f0;
+  --dialog-border: #cccccc;
+  --dialog-shadow: 0 4px 16px rgba(64, 158, 255, 0.5);
+  --dialog-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+
+  /* ---- 下拉/选择器 ---- */
+  --dropdown-bg: #3c3c3c;
+  --dropdown-border: #3c3c3c;
+  --dropdown-hover-bg: #094771;
+  --dropdown-selected-color: #0ea5e9;
+  --select-caret: #60a5fa;
+
+  /* ---- Radio Button ---- */
+  --radio-bg: #3c3c3c;
+  --radio-text: #a0a0a0;
+  --radio-hover-bg: #4a4a4a;
+  --radio-hover-text: #e0e0e0;
+  --radio-active-bg: #0e639c;
+  --radio-active-text: #ffffff;
+
+  /* ---- 通知 ---- */
+  --notify-bg: #252526;
+  --notify-border: #3a3a3a;
+  --notify-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --notify-focus-shadow: 0 0 0 2px rgba(0, 127, 212, 0.3);
+  --notify-text: #fff;
+  --notify-meta: #999;
+  --notify-meta-bg: #3a3a3a;
+  --notify-empty: #aaa;
+
+  /* ---- 搜索 ---- */
+  --search-border: #3a3a3a;
+  --search-text: #e0e0e0;
+  --search-placeholder: #808080;
+  --search-clear: #9ca3af;
+  --search-clear-hover: #111827;
+
+  /* ---- 快捷键 ---- */
+  --key-badge-bg: #3a3a3a;
+  --key-badge-text: #e0e0e0;
+  --key-badge-border: #555;
+
+  /* ---- 语法高亮编辑器 ---- */
+  --syntax-panel-bg: #2d2d2d;
+  --syntax-preview-bg: #1e1e1e;
+  --syntax-preview-header: #252526;
+  --syntax-preview-focus-border: #2E5CC7;
+  --syntax-group-active: rgba(22, 93, 255, 0.15);
+  --syntax-style-toggle-bg: #333;
+  --syntax-style-toggle-color: #666;
+  --syntax-style-toggle-hover-bg: #444;
+  --syntax-style-toggle-hover-color: #aaa;
+  --syntax-style-toggle-active-bg: #2E5CC7;
+  --syntax-style-toggle-active-color: #fff;
+
+  /* ---- 更新对话框 ---- */
+  --update-color-30: #e6a23c;
+  --update-color-70: #409eff;
+  --update-color-100: #67c23a;
+  --update-text: #e0e0e0;
+  --update-meta: #888;
+  --update-bg: #1e1e1e;
+  --update-border: #3c3c3c;
+  --update-empty: #777;
+  --update-changelog: #ccc;
+  --update-changelog-border: #3c3c3c;
+  --update-changelog-link: #aaa;
+  --update-progress-bg: #3c3c3c;
+  --update-progress-bar-bg: #424242;
+  --update-progress-bar-fill: #555;
+  --update-changelog-code-bg: #2a2a2a;
+
+  /* ---- 导出对话框 ---- */
+  --export-bg: #252526;
+  --export-text: #f0f0f0;
+  --export-checkbox-color: #e0e0e0;
+  --export-meta: #888;
+
+  /* ---- 设置页面 ---- */
+  --settings-group-title-border: #409eff;
+  --settings-item-border: #3c3c3c;
+  --settings-label-text: #e0e0e0;
+  --settings-label-desc: #808080;
+  --settings-slider-value: #e0e0e0;
+  --settings-baudrate-tag-bg: #3c3c3c;
+  --settings-baudrate-tag-border: #555;
+  --settings-baudrate-tag-color: #e0e0e0;
+  --settings-baudrate-tag-hover: #4c4c4c;
+  --settings-slider-bar: #165dff;
+
+  /* ---- 历史命令 ---- */
+  --history-bg: #2d2d2d;
+  --history-border: #3c3c3c;
+  --history-item-color: #ccc;
+  --history-item-border: #3a3a3a;
+  --history-item-hover-bg: #094771;
+  --history-item-hover-color: #fff;
+  --history-item-active-bg: #094771;
+  --history-item-active-color: #fff;
+  --history-delete-color: #888;
+  --history-delete-hover-bg: #c43e3e;
+  --history-delete-hover-color: #fff;
+  --history-scrollbar-track: #2d2d2d;
+
+  /* ---- CRC 相关 ---- */
+  --crc-menu-bg: #2d2d2d;
+  --crc-menu-border: #3c3c3c;
+  --crc-menu-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --crc-label: #ccc;
+  --crc-bar-border: #3c3c3c;
+  --crc-result-label: #999;
+  --crc-result-value: #4ec9b0;
+  --crc-result-error: #f48771;
+  --crc-result-empty: #666;
+
+  /* ---- 标签页 ---- */
+  --tab-bg: #2d2d2d;
+  --tab-hover-bg: #353535;
+  --tab-active-bg: #1e1e1e;
+  --tab-text: #ccc;
+  --tab-active-text: #fff;
+  --tab-border: #1e1e1e;
+  --tab-icon: #888;
+  --tab-active-icon: #fff;
+  --tab-close: #888;
+  --tab-close-hover-bg: #3b3c3c;
+  --tab-close-hover-color: #fff;
+  --tab-remark: #888;
+
+  /* ---- 侧边栏 ---- */
+  --sidebar-bg: #1e1e1e;
+  --sidebar-port-hover: #2a2d2e;
+  --sidebar-port-active: #094771;
+  --sidebar-port-text: #e0e0e0;
+  --sidebar-port-meta: #808080;
+  --sidebar-remark: #888;
+  --sidebar-no-ports: #888;
+  --sidebar-header-hover: #409eff;
+  --sidebar-header-text: #e0e0e0;
+  --sidebar-footer-bg: #252526;
+  --sidebar-footer-border: #333;
+  --sidebar-menu-btn: #888;
+  --sidebar-menu-btn-hover-bg: rgba(255, 255, 255, 0.1);
+  --sidebar-menu-btn-hover-color: #e0e0e0;
+  --sidebar-bluetooth-bg: #1f6feb;
+  --sidebar-bluetooth-border: #1f6feb;
+
+  /* ---- 备份恢复 ---- */
+  --backup-border: #3c3c3c;
+  --backup-hover: #2a2d2e;
+  --backup-selected: #094771;
+  --backup-date: #e0e0e0;
+  --backup-size: #808080;
+  --backup-scrollbar-track: #252526;
+
+  /* ---- 状态栏 ---- */
+  --statusbar-bg: #007acc;
+  --statusbar-text: white;
+  --statusbar-command-text: #e0e0e0;
+
+  /* ---- 空状态 ---- */
+  --empty-placeholder-bg: #1e1e1e;
+  --empty-logo-text: #ffffff;
+  --empty-copyright: #888;
+
+  /* ---- 透明叠加 ---- */
+  --overlay-hover: rgba(255, 255, 255, 0.1);
+  --overlay-active: rgba(255, 255, 255, 0.2);
+  --overlay-btn-hover: rgba(128, 128, 128, 0.2);
+
+  /* ---- 预定义色块 ---- */
+  --color-predefine-hover: #60a5fa;
+  --color-predefine-selected: #ffffff;
+
+  /* ---- 快捷键验证 ---- */
+  --shortcut-valid-color: #4caf50;
+  --shortcut-valid-bg: rgba(76, 175, 80, 0.1);
+  --shortcut-conflict-color: #ff9800;
+  --shortcut-conflict-bg: rgba(255, 152, 0, 0.1);
+  --shortcut-invalid-color: #f44336;
+  --shortcut-invalid-bg: rgba(244, 67, 54, 0.1);
+
+  /* ---- 资源监控 ---- */
+  --monitor-bar-bg: #e0e0e055;
+  --monitor-text: #fff;
+
+  /* ---- Message Box 关闭按钮 ---- */
+  --msgbox-close-color: #94a3b8;
+
+  /* ---- 连接状态 ---- */
+  --connect-status-connected-bg: rgba(24, 193, 56, 0.2);
+  --connect-status-disconnected-bg: rgba(128, 128, 128, 0.2);
+  --connect-dot-connected: #18c138;
+  --connect-dot-disconnected: #888888;
+
+  /* ---- 标签页 remark ---- */
+  --tab-remark: #888;
+  --tab-pin-icon-color: #888;
+  --tab-drag-indicator: #007fd4;
+  --tab-drag-opacity: 0.4;
+
+  /* ---- 侧边栏补充 ---- */
+  --sidebar-delete-color: #b23f3f;
+  --sidebar-ribbon-bg: #0e639c;
+  --sidebar-ribbon-text: #ffffff;
+  --sidebar-ribbon-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --sidebar-edit-color: #cccccc;
+  --sidebar-disconnect-color: #f56c6c;
+  --sidebar-disconnect-hover: #f78989;
+  --sidebar-card-hover-border: rgb(64, 158, 255);
+  --sidebar-card-hover-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+  --sidebar-card-bg: #2d2d2d;
+  --sidebar-card-border: #3a3a3a;
+  --sidebar-section-header-hover: #409eff;
+  --sidebar-btn-hover-bg: #454646;
+
+  /* ---- Split 分隔条 ---- */
+  --split-resizer-bg: #555;
+  --split-resizer-hover: #409eff;
+  --split-drop-zone-bg: rgba(64, 158, 255, 0.08);
+  --split-drop-zone-border: rgba(64, 158, 255, 0.4);
+  --split-drop-zone-text: rgba(64, 158, 255, 0.7);
+
+  /* ---- 预设命令补充 ---- */
+  --preset-bg: #252526;
+  --preset-btn-bg: #3a3a3a;
+  --preset-btn-border: #444;
+  --preset-btn-hover-bg: #4a4a4a;
+  --preset-btn-hover-border: #555;
+  --preset-btn-text: #e0e0e0;
+  --preset-group-selector-bg: #3a3a3a;
+  --preset-group-selector-border: #0078d4;
+  --preset-run-color: #99E699;
+  --preset-run-bg: rgba(153, 230, 153, 0.15);
+  --preset-stop-color: #c45656;
+  --preset-stop-bg: rgba(196, 86, 86, 0.15);
+  --preset-stop-icon-bg: #c45656;
+  --preset-looping-border: #165dff;
+  --preset-pulse-color: rgba(22, 93, 255, 0.4);
+  --preset-pulse-zero: rgba(22, 93, 255, 0);
+  --preset-add-icon-color: #42b983;
+  --preset-delete-icon-color: #ff4d4f;
+  --preset-delete-icon-hover: #ff6b6b;
+  --preset-group-badge-bg: #444;
+  --preset-group-badge-text: #fff;
+  --preset-scrollbar-thumb: #444;
+  --preset-form-hint: #888;
+  --preset-dropdown-scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --preset-dropdown-scrollbar-hover: rgba(255, 255, 255, 0.3);
+
+  /* ---- 终端控制栏补充 ---- */
+  --terminal-control-bg: #252526;
+  --terminal-control-close-bg: #FF0000;
+  --terminal-control-close-border: #FF0000;
+  --terminal-control-clear-bg: #c45656;
+  --terminal-control-clear-border: #c45656;
+  --terminal-control-clear-hover-bg: #d46060;
+  --terminal-control-clear-hover-border: #d46060;
+  --terminal-control-auto-scroll-active: #326BF1;
+  --terminal-control-switch-on: #165dff;
+  --terminal-control-switch-off: #444;
+  --terminal-control-syntax-select-bg: #3a3a3a;
+
+  /* ---- 命令编辑器补充 ---- */
+  --cmdeditor-bg: #1e1e1e;
+  --cmdeditor-sidebar-bg: #2d2d2d;
+  --cmdeditor-sidebar-border: #3c3c3c;
+  --cmdeditor-sidebar-item-hover: #383838;
+  --cmdeditor-sidebar-item-active: #094771;
+  --cmdeditor-sidebar-group-type: #888;
+  --cmdeditor-sidebar-action-hover: #fff;
+  --cmdeditor-table-header-bg: #2d2d2d;
+  --cmdeditor-table-header-text: #e0e0e0;
+  --cmdeditor-table-body-bg: #1e1e1e;
+  --cmdeditor-table-stripe-bg: #252526;
+  --cmdeditor-table-hover-bg: #094771;
+  --cmdeditor-drag-handle-color: #888;
+  --cmdeditor-drag-handle-hover: #409eff;
+  --cmdeditor-seqnum-color: #7ec699;
+  --cmdeditor-command-color: #ce9178;
+  --cmdeditor-command-bg: #2d2d2d;
+  --cmdeditor-empty-text: #888;
+  --cmdeditor-cmd-name: #fff;
+  --cmdeditor-dialog-bg: #2d2d2d;
+  --cmdeditor-dialog-border: #444;
+  --cmdeditor-dialog-input-bg: #3a3a3a;
+  --cmdeditor-dialog-input-border: #444;
+
+  /* ---- 关于对话框 ---- */
+  --about-title-color: #fff;
+  --about-version-color: #aaa;
+  --about-desc-color: #888;
+  --about-divider-bg: #3a3a3a;
+  --about-link-color: #409eff;
+
+  /* ---- COM 终端 ---- */
+  --com-terminal-bg: #1e1e1e;
+  --com-terminal-color: #fff;
+  --com-param-row-bg: #2d2d2d;
+  --com-param-row-border: #333;
+  --com-param-label: #aaa;
+  --com-unit-label: #999;
+  --com-delete-icon: #999;
+  --com-delete-icon-hover: #f56c6c;
+
+  /* ---- 通知 ---- */
+  --notify-close-color: #888;
+
+  /* ---- 对话框通用 ---- */
+  --dialog-input-bg-override: #cccccc;
+  --dialog-input-text-override: #000;
+  --dialog-input-placeholder-override: #888;
+  --dialog-input-border-override: #444;
+
+  /* ---- Tabs 协议标签 ---- */
+  --tabs-protocol-inactive: #a0a0a0;
+  --tabs-protocol-disabled: #5a5a5a;
+
+  /* ---- 导出 checkbox ---- */
+  --export-checkbox-desc: #a0a0a0;
+
+  /* ---- UpdateDialog changelog 内联 ---- */
+  --update-changelog-h1: #fff;
+  --update-changelog-h2: #eee;
+  --update-changelog-h3: #ddd;
+  --update-changelog-code-bg: #2a2a2a;
+
+  /* ---- 设置页搜索高亮 ---- */
+  --settings-highlight-bg: #6b4c0a;
+  --settings-highlight-color: #ffd866;
+  --settings-filename-code-bg: #3c3c3c;
+  --settings-filename-code-color: #e0c060;
+  --settings-next-backup-today: #f0a020;
+
+  /* ---- 语法高亮补充 ---- */
+  --syntax-rule-delete-bg: #f56c6c;
+  --syntax-rule-delete-color: #fff;
+  --syntax-preview-apply-border: #f0a020;
+  --syntax-preview-apply-color: #f0a020;
+  --syntax-preview-apply-hover-bg: rgba(240, 160, 32, 0.15);
+
+  /* ---- 通用阴影 ---- */
+  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-color-thumb: 0 0 2px rgba(0, 0, 0, 0.6);
+
+  /* ---- Status Bar ---- */
+  --statusbar-bg-hover: #007acc;
+
+  /* ---- Sidebar Resizer ---- */
+  --sidebar-resizer-hover: #409eff;
+
+  /* ---- Logo/Empty State ---- */
+  --logo-text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --logo-img-shadow: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+
+  /* ---- CRC 补充 ---- */
+  --crc-menu-bg: #2d2d2d;
+  --crc-menu-border: #3c3c3c;
+  --crc-menu-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --crc-label: #ccc;
+  --crc-bar-border: #3c3c3c;
+  --crc-result-label: #999;
+  --crc-result-value: #4ec9b0;
+  --crc-result-error: #f48771;
+  --crc-result-empty: #666;
+
+  /* ---- 历史命令弹窗 ---- */
+  --history-bg: #2d2d2d;
+  --history-border: #3c3c3c;
+  --history-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  --history-item-color: #ccc;
+  --history-item-border: #3a3a3a;
+  --history-item-hover-bg: #094771;
+  --history-item-hover-color: #fff;
+  --history-delete-color: #888;
+  --history-delete-hover-bg: #c43e3e;
+  --history-delete-hover-color: #fff;
+  --history-scrollbar-thumb: #555;
+  --history-scrollbar-thumb-hover: #666;
+  --history-scrollbar-track: #2d2d2d;
+
+  /* ---- 滚动按钮 ---- */
+  --scroll-btn-bg: rgba(50, 50, 51, 0.8);
+  --scroll-btn-border: #555;
+  --scroll-btn-color: #fff;
+  --scroll-btn-hover-bg: rgba(70, 70, 72, 0.9);
+
+  /* ---- 终端输出滚动条 ---- */
+  --terminal-output-scrollbar-thumb: #444;
+  --terminal-output-scrollbar-hover: #555;
+
+  /* ---- 命令输入区 ---- */
+  --command-input-bg: #2a2a2a;
+  --command-input-focus-border: #409eff;
+  --command-input-placeholder: #666;
+
+  /* ---- 终端输出区 ---- */
+  --terminal-output-focus-border: var(--focus-border-color);
+
+  /* ---- 垂直分隔条 ---- */
+  --vertical-splitter-bg: #2a2a2a;
+  --vertical-splitter-hover: #409eff;
+  --vertical-splitter-handle: #555;
+  --vertical-splitter-handle-hover: #fff;
+
+  /* ---- 预设命令行 ---- */
+  --preset-commands-row-bg: #252526;
+  --preset-commands-row-border: #333;
+
+  /* ---- 语法高亮编辑器 ---- */
+  --syntax-page-bg: #1e1e1e;
+  --syntax-left-panel-bg: #252526;
+  --syntax-left-panel-border: #3c3c3c;
+  --syntax-left-panel-title: #e0e0e0;
+  --syntax-group-item-hover: #2a2d2e;
+  --syntax-group-item-active: #094771;
+  --syntax-group-name: #e0e0e0;
+  --syntax-group-count: #888;
+  --syntax-group-count-bg: #3c3c3c;
+  --syntax-group-count-active-bg: rgba(255, 255, 255, 0.2);
+  --syntax-group-count-active-color: #fff;
+  --syntax-right-header-bg: #252526;
+  --syntax-right-header-border: #3c3c3c;
+  --syntax-right-title: #e0e0e0;
+  --syntax-table-header-bg: #2a2a2a;
+  --syntax-table-header-color: #aaa;
+  --syntax-table-header-border: #3c3c3c;
+  --syntax-table-row-border: #333;
+  --syntax-table-row-hover: #2a2a2a;
+  --syntax-empty-hint: #808080;
+
+  /* ---- 快捷键表格补充 ---- */
+  --shortcuts-page-bg: #1e1e1e;
+  --shortcuts-table-bg: #1e1e1e;
+  --shortcuts-table-text: #e0e0e0;
+  --shortcuts-table-border: #3a3a3a;
+  --shortcuts-table-header-bg: #2d2d2d;
+  --shortcuts-table-header-border: #3a3a3a;
+  --shortcuts-table-row-hover: #094771;
+  --shortcuts-table-row-border: #2d2d2d;
+  --shortcuts-table-stripe-bg: #252526;
+  --shortcuts-table-empty: #888;
+  --shortcuts-action-name: #e0e0e0;
+  --shortcuts-action-command: #666;
+  --shortcuts-dialog-tip: #888;
+  --shortcuts-dialog-input-border: #3a3a3a;
+  --shortcuts-dialog-input-bg: #3c3c3c;
+  --shortcuts-dialog-input-color: #cccccc;
+  --shortcuts-dialog-input-placeholder: #666;
+  --shortcuts-dialog-preview-label: #888;
+  --shortcuts-dialog-validation-bg: #2d2d2d;
+  --shortcuts-dialog-bg: #252526;
+  --shortcuts-dialog-border: #3a3a3a;
+
+  /* ---- 搜索输入 ---- */
+  --search-input-bg: #3c3c3c;
+  --search-input-color: #cccccc;
+
+  /* ---- 设置页导航 ---- */
+  --settings-nav-bg: #252526;
+  --settings-nav-border: #3c3c3c;
+  --settings-nav-item-color: #e0e0e0;
+  --settings-nav-item-hover: #2a2d2e;
+  --settings-nav-item-active-bg: #094771;
+  --settings-nav-item-active-color: #fff;
+  --settings-nav-footer-border: #3c3c3c;
+  --settings-group-bg: #252526;
+  --settings-group-title-color: #e8e8e8;
+  --settings-group-title-border: #409eff;
+  --settings-item-border: #3c3c3c;
+  --settings-search-empty: #808080;
+  --settings-search-section-bg: #252526;
+  --settings-search-section-header-border: #3c3c3c;
+  --settings-search-section-header-color: #888;
+  --settings-search-section-header-hover: #ccc;
+  --settings-search-category-color: var(--focus-border-color);
+  --settings-search-result-item-border: #333;
+  --settings-search-result-item-hover: #2a2d2e;
+  --settings-search-label-color: #e0e0e0;
+  --settings-search-desc-color: #808080;
+  --settings-nav-match-bg: var(--focus-border-color);
+  --settings-nav-match-color: #fff;
+  --settings-nav-match-hover: #0098ff;
+  --settings-no-backups: #808080;
+  --settings-backup-item-border: #3c3c3c;
+  --settings-backup-item-hover: #2a2d2e;
+  --settings-backup-item-selected: #094771;
+  --settings-backup-date: #e0e0e0;
+  --settings-backup-size: #808080;
+  --settings-restore-border: #3c3c3c;
+  --settings-next-backup-value: #e0e0e0;
+
+  /* ---- 字体子菜单滚动条 ---- */
+  --font-submenu-scrollbar-track: rgba(0, 0, 0, 0.1);
+  --font-submenu-scrollbar-thumb: #555;
+  --font-submenu-scrollbar-thumb-hover: #888;
+
+  /* ---- 更新对话框补充 ---- */
+  --update-status-icon-color: #888;
+  --update-website-btn-bg: transparent;
+  --update-website-btn-border: #555;
+  --update-website-btn-color: #aaa;
+  --update-website-btn-hover-bg: rgba(255, 255, 255, 0.05);
+  --update-website-btn-hover-border: #888;
+  --update-website-btn-hover-color: #ddd;
+}

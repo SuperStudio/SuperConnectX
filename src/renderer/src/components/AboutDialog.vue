@@ -77,44 +77,44 @@ const openDoc = () => {
 }
 
 .about-title {
-  color: #fff;
+  color: var(--about-title-color);
   font-size: 20px;
   margin: 0 0 8px 0;
 }
 
 .about-version {
-  color: #aaa;
+  color: var(--about-version-color);
   font-size: 14px;
   margin: 0 0 8px 0;
 }
 
 .about-desc {
-  color: #888;
+  color: var(--about-desc-color);
   font-size: 13px;
   margin: 0 0 16px 0;
 }
 
 .about-divider {
   height: 1px;
-  background: #3a3a3a;
+  background: var(--about-divider-bg);
   margin: 16px 0;
 }
 
 .about-author,
 .about-copyright {
-  color: #888;
+  color: var(--about-desc-color);
   font-size: 12px;
   margin: 4px 0;
 }
 
 .about-links {
-  color: #409eff;
+  color: var(--about-link-color);
   font-size: 13px;
   margin: 8px 0 0 0;
 }
 
 .about-links a {
-  color: #409eff;
+  color: var(--about-link-color);
   text-decoration: none;
   margin: 0 8px;
 }

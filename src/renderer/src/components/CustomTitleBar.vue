@@ -567,14 +567,14 @@ const handleClickOutside = (event: MouseEvent) => {
 <style scoped>
 .custom-titlebar {
   height: 30px;
-  background-color: #323233;
-  color: #c5c5c5;
+  background-color: var(--bg-titlebar);
+  color: var(--text-titlebar);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 0px;
   -webkit-app-region: drag;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--border-primary);
   user-select: none;
 }
 
@@ -623,7 +623,7 @@ const handleClickOutside = (event: MouseEvent) => {
   height: 30px;
   background: none;
   border: none;
-  color: white;
+  color: var(--text-white);
   font-size: 16px;
   cursor: pointer;
   display: flex;
@@ -634,11 +634,11 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .titlebar-btn:hover:not(.close-btn) {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--overlay-hover);
 }
 
 .close-btn:hover {
-  background-color: #ff4d4f;
+  background-color: var(--btn-close-hover);
 }
 
 .min-btn {
@@ -664,11 +664,11 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .toggle-connection-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--overlay-hover);
 }
 
 .toggle-connection-btn:active {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: var(--overlay-active);
 }
 
 .toggle-connection-btn.toggled svg {
@@ -692,7 +692,7 @@ const handleClickOutside = (event: MouseEvent) => {
   background: none;
   border: none;
   border-radius: 5px;
-  color: #c5c5c5;
+  color: var(--text-titlebar);
   padding: 0 12px;
   height: 22px;
   font-size: 12px;
@@ -701,7 +701,7 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .menu-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--overlay-hover);
 }
 
 /* 下拉菜单 - 使用全局统一样式 */
@@ -734,7 +734,7 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .font-check {
-  color: #409eff;
+  color: var(--btn-icon-text);
   font-weight: bold;
   width: 16px;
 }
@@ -753,15 +753,15 @@ const handleClickOutside = (event: MouseEvent) => {
   width: 16px;
   height: 16px;
   font-size: 11px;
-  color: #409eff;
+  color: var(--btn-icon-text);
   font-weight: bold;
   flex-shrink: 0;
 }
 
 /* 当前选中字体项高亮 */
 .font-item-active {
-  background-color: rgba(64, 158, 255, 0.15) !important;
-  color: #409eff !important;
+  background-color: var(--accent-blue-subtle) !important;
+  color: var(--btn-icon-text) !important;
   font-weight: 600;
 }
 
@@ -805,18 +805,18 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .dropdown-submenu::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--font-submenu-scrollbar-track);
   border-radius: 3px;
 }
 
 .dropdown-submenu::-webkit-scrollbar-thumb {
-  background: #555;
+  background: var(--font-submenu-scrollbar-thumb);
   border-radius: 3px;
   transition: background 0.2s;
 }
 
 .dropdown-submenu::-webkit-scrollbar-thumb:hover {
-  background: #888;
+  background: var(--font-submenu-scrollbar-thumb-hover);
 }
 
 .dropdown-submenu::-webkit-scrollbar-corner {

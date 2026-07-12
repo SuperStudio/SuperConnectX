@@ -109,12 +109,12 @@
                     </el-button>
                   </div>
                   <div class="connection-btn">
-                    <el-button class="el-button--primary" type="text" style="color: #cccccc" icon="edit" @click="$emit('editCreateDialog', conn)">
+                    <el-button class="el-button--primary" type="text" style="color: var(--sidebar-edit-color)" icon="edit" @click="$emit('editCreateDialog', conn)">
                       {{ t('common.edit') }}
                     </el-button>
                   </div>
                   <div class="connection-btn">
-                    <el-button type="text" class="el-button--primary" icon="Delete" @click="$emit('deleteConnection', conn)" style="color: #b23f3f">
+                    <el-button type="text" class="el-button--primary" icon="Delete" @click="$emit('deleteConnection', conn)" style="color: var(--sidebar-delete-color)">
                       {{ t('common.delete') }}
                     </el-button>
                   </div>
@@ -233,8 +233,8 @@ const toggleGroupExpanded = (type: string) => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #333;
-  background: #252526;
+  border-right: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
   overflow-x: hidden;
   min-height: 0;
 }
@@ -263,12 +263,12 @@ const toggleGroupExpanded = (type: string) => {
 }
 
 .connection-list-scroll::-webkit-scrollbar-thumb {
-  background: #464647;
+  background: var(--scrollbar-thumb-dark);
   border-radius: 4px;
 }
 
 .connection-list-scroll::-webkit-scrollbar-thumb:hover {
-  background: #6f6f70;
+  background: var(--scrollbar-thumb-dark-hover);
 }
 
 .connection-groups {
@@ -287,8 +287,8 @@ const toggleGroupExpanded = (type: string) => {
 }
 
 .connection-card {
-  background: #2d2d2d !important;
-  border: 1px solid #3a3a3a !important;
+  background: var(--sidebar-card-bg) !important;
+  border: 1px solid var(--sidebar-card-border) !important;
   margin-top: 12px;
   border-radius: 8px !important;
   overflow: hidden;
@@ -303,7 +303,7 @@ const toggleGroupExpanded = (type: string) => {
 }
 
 .connection-card:hover {
-  border: 1px solid rgb(64, 158, 255) !important;
+  border: 1px solid var(--sidebar-card-hover-border) !important;
 }
 
 .connection-info {
@@ -314,12 +314,12 @@ const toggleGroupExpanded = (type: string) => {
 .conn-name {
   font-size: 16px;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--text-secondary);
 }
 
 .conn-detail {
   font-size: 13px;
-  color: #aaa;
+  color: var(--text-muted);
   line-height: 1.6;
   overflow-x: hidden;
 }
@@ -334,7 +334,7 @@ const toggleGroupExpanded = (type: string) => {
   justify-content: left;
   padding: 8px 0;
   margin-top: 8px;
-  border-top: 1px solid #3a3a3a;
+  border-top: 1px solid var(--divider-dark);
   flex-shrink: 0;
 }
 
@@ -348,7 +348,7 @@ const toggleGroupExpanded = (type: string) => {
 }
 
 .connection-btn:deep(.el-button--primary:hover) {
-  background-color: #454646;
+  background-color: var(--sidebar-btn-hover-bg);
 }
 
 /* 斜角绑带式标签 */
@@ -364,13 +364,13 @@ const toggleGroupExpanded = (type: string) => {
   padding: 2px 0;
   font-size: 11px;
   font-weight: 600;
-  color: #ffffff;
-  background-color: #0e639c;
+  color: var(--sidebar-ribbon-text);
+  background-color: var(--sidebar-ribbon-bg);
   text-align: center;
   transform: rotate(45deg);
   transform-origin: center;
   z-index: 1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--sidebar-ribbon-shadow);
   letter-spacing: 1px;
 }
 
@@ -410,11 +410,11 @@ const toggleGroupExpanded = (type: string) => {
 }
 
 .serial-port-left .connection-dot.connected {
-  background-color: #18c138;
+  background-color: var(--connect-dot-connected);
 }
 
 .serial-port-left .connection-dot.disconnected {
-  background-color: #888888;
+  background-color: var(--connect-dot-disconnected);
 }
 
 .serial-port-right {
@@ -435,20 +435,20 @@ const toggleGroupExpanded = (type: string) => {
 }
 
 .disconnect-btn {
-  color: #f56c6c !important;
+  color: var(--sidebar-disconnect-color) !important;
 }
 
 .disconnect-btn:hover {
-  color: #f78989 !important;
+  color: var(--sidebar-disconnect-hover) !important;
 }
 
 .serial-port-card:hover {
-  border: 1px solid #409eff !important;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3) !important;
+  border: 1px solid var(--accent-blue) !important;
+  box-shadow: var(--sidebar-card-hover-shadow) !important;
 }
 
 .serial-remark {
-  color: #888;
+  color: var(--sidebar-remark);
   font-size: 13px;
   font-weight: normal;
   margin-left: 4px;
@@ -468,9 +468,9 @@ const toggleGroupExpanded = (type: string) => {
 }
 
 .bluetooth-tag {
-  background-color: #1f6feb !important;
-  border-color: #1f6feb !important;
-  color: #fff !important;
+  background-color: var(--sidebar-bluetooth-bg) !important;
+  border-color: var(--sidebar-bluetooth-border) !important;
+  color: var(--text-white) !important;
 }
 
 .section-header {
@@ -483,13 +483,13 @@ const toggleGroupExpanded = (type: string) => {
 }
 
 .section-header:hover .section-title {
-  color: #409eff;
+  color: var(--sidebar-section-header-hover);
 }
 
 .section-title {
   font-size: 13px;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--text-secondary);
 }
 
 .expand-icon {
@@ -506,7 +506,7 @@ const toggleGroupExpanded = (type: string) => {
 }
 
 .no-ports-tip {
-  color: #888;
+  color: var(--sidebar-remark);
   font-size: 12px;
   text-align: center;
   padding: 8px 0;
@@ -520,12 +520,12 @@ const toggleGroupExpanded = (type: string) => {
   align-items: center;
   justify-content: space-between;
   padding: 0 12px;
-  border-top: 1px solid #333;
-  background: #252526;
+  border-top: 1px solid var(--sidebar-footer-border);
+  background: var(--sidebar-footer-bg);
 }
 
 .sidebar-brand {
-  color: #ffc107;
+  color: var(--text-sidebar-brand);
   font-weight: 700;
   font-size: 13px;
 }
@@ -541,15 +541,15 @@ const toggleGroupExpanded = (type: string) => {
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  color: #888;
+  color: var(--sidebar-menu-btn);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .sidebar-menu-btn:hover,
 .sidebar-menu-btn.active {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #e0e0e0;
+  background-color: var(--sidebar-menu-btn-hover-bg);
+  color: var(--sidebar-menu-btn-hover-color);
 }
 
 .dropdown-menu {

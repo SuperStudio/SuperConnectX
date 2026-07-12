@@ -783,8 +783,8 @@ onUnmounted(() => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
-  color: #fff;
+  background: var(--com-terminal-bg);
+  color: var(--com-terminal-color);
   font-family: 'Fira Code', 'Consolas', monospace;
   overflow: hidden;
 }
@@ -795,8 +795,8 @@ onUnmounted(() => {
   align-items: center;
   flex-wrap: wrap;
   padding: 8px 8px 8px 0px;
-  background-color: #2d2d2d;
-  border-bottom: 1px solid #333;
+  background-color: var(--com-param-row-bg);
+  border-bottom: 1px solid var(--com-param-row-border);
   border-radius: 6px;
   margin: 2px 4px;
 }
@@ -809,7 +809,7 @@ onUnmounted(() => {
 
 .param-label {
   font-size: 12px;
-  color: #aaa;
+  color: var(--com-param-label);
   white-space: nowrap;
 }
 
@@ -860,7 +860,7 @@ onUnmounted(() => {
 
 .unit-label {
   margin-left: 8px;
-  color: #999;
+  color: var(--com-unit-label);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -874,7 +874,7 @@ onUnmounted(() => {
 
 .delete-icon {
   font-size: 12px;
-  color: #999;
+  color: var(--com-unit-label);
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.2s;
@@ -885,7 +885,7 @@ onUnmounted(() => {
 }
 
 .delete-icon:hover {
-  color: #f56c6c;
+  color: var(--com-delete-icon-hover);
 }
 
 .more-btn {
@@ -901,8 +901,8 @@ onUnmounted(() => {
 
 /* 下拉框和输入框边框样式 */
 :deep(.el-select .el-select__wrapper) {
-  border: 1px solid #4a4a4a !important;
-  background-color: #3a3a3a !important;
+  border: 1px solid var(--border-input) !important;
+  background-color: var(--divider-dark) !important;
   box-shadow: none !important;
 }
 
@@ -914,8 +914,8 @@ onUnmounted(() => {
 }
 
 :deep(.el-input__wrapper) {
-  background-color: #3a3a3a !important;
-  box-shadow: 0 0 0 1px #4a4a4a inset !important;
+  background-color: var(--divider-dark) !important;
+  box-shadow: 0 0 0 1px var(--border-input) inset !important;
 }
 
 :deep(.el-input__wrapper:hover),
@@ -924,6 +924,6 @@ onUnmounted(() => {
 }
 
 :deep(.el-input__inner) {
-  color: #e0e0e0 !important;
+  color: var(--text-secondary) !important;
 }
 </style>

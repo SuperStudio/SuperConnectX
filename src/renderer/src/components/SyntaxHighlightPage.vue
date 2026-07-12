@@ -693,7 +693,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #1e1e1e;
+  background: var(--syntax-page-bg);
 }
 
 .syntax-page-body {
@@ -705,8 +705,8 @@ onUnmounted(() => {
 /* 左侧面板 */
 .syntax-left-panel {
   width: 200px;
-  background: #252526;
-  border-right: 1px solid #3c3c3c;
+  background: var(--syntax-left-panel-bg);
+  border-right: 1px solid var(--syntax-left-panel-border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -717,11 +717,11 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--syntax-left-panel-border);
 }
 
 .left-panel-title {
-  color: #e0e0e0;
+  color: var(--syntax-left-panel-title);
   font-size: 13px;
   font-weight: 600;
 }
@@ -742,15 +742,15 @@ onUnmounted(() => {
 }
 
 .group-list-item:hover {
-  background: #2a2d2e;
+  background: var(--syntax-group-item-hover);
 }
 
 .group-list-item.active {
-  background: #094771;
+  background: var(--syntax-group-item-active);
 }
 
 .group-list-name {
-  color: #e0e0e0;
+  color: var(--syntax-group-name);
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -758,9 +758,9 @@ onUnmounted(() => {
 }
 
 .group-list-count {
-  color: #888;
+  color: var(--syntax-group-count);
   font-size: 11px;
-  background: #3c3c3c;
+  background: var(--syntax-group-count-bg);
   padding: 1px 6px;
   border-radius: 10px;
   min-width: 18px;
@@ -768,8 +768,8 @@ onUnmounted(() => {
 }
 
 .group-list-item.active .group-list-count {
-  background: rgba(255,255,255,0.2);
-  color: #fff;
+  background: var(--syntax-group-count-active-bg);
+  color: var(--syntax-group-count-active-color);
 }
 
 /* 右侧面板 */
@@ -785,13 +785,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  border-bottom: 1px solid #3c3c3c;
-  background: #252526;
+  border-bottom: 1px solid var(--syntax-right-header-border);
+  background: var(--syntax-right-header-bg);
   flex-shrink: 0;
 }
 
 .right-panel-title {
-  color: #e0e0e0;
+  color: var(--syntax-right-title);
   font-size: 14px;
   font-weight: 600;
 }
@@ -821,23 +821,23 @@ onUnmounted(() => {
 }
 
 .rules-table th {
-  background: #2a2a2a;
-  color: #aaa;
+  background: var(--syntax-table-header-bg);
+  color: var(--syntax-table-header-color);
   font-size: 12px;
   font-weight: 600;
   padding: 8px 10px;
   text-align: left;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--syntax-table-header-border);
 }
 
 .rules-table td {
   padding: 10px 10px;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--syntax-table-row-border);
   vertical-align: middle;
 }
 
 .rules-table tbody tr:hover {
-  background: #2a2a2a;
+  background: var(--syntax-table-row-hover);
 }
 
 .col-del {
@@ -847,8 +847,8 @@ onUnmounted(() => {
 
 .col-del :deep(.el-button--danger.is-text:hover),
 .col-del :deep(.el-button--danger.is-text:focus) {
-  background-color: #f56c6c;
-  color: #fff;
+  background-color: var(--syntax-rule-delete-bg);
+  color: var(--syntax-rule-delete-color);
 }
 
 .col-type {
@@ -882,8 +882,8 @@ onUnmounted(() => {
   height: 22px;
   font-size: 11px;
   font-weight: 700;
-  color: #666;
-  background: #333;
+  color: var(--syntax-style-toggle-color);
+  background: var(--syntax-style-toggle-bg);
   border-radius: 3px;
   cursor: pointer;
   user-select: none;
@@ -891,17 +891,17 @@ onUnmounted(() => {
 }
 
 .style-toggle:hover {
-  background: #444;
-  color: #aaa;
+  background: var(--syntax-style-toggle-hover-bg);
+  color: var(--syntax-style-toggle-hover-color);
 }
 
 .style-toggle.active {
-  background: #2E5CC7;
-  color: #fff;
+  background: var(--syntax-style-toggle-active-bg);
+  color: var(--syntax-style-toggle-active-color);
 }
 
 .empty-hint {
-  color: #808080;
+  color: var(--syntax-empty-hint);
   font-size: 13px;
   padding: 24px;
   text-align: center;
@@ -914,16 +914,16 @@ onUnmounted(() => {
   flex-shrink: 0;
   height: 200px;
   margin: 16px 16px 16px 16px;
-  border: 1px solid #3c3c3c;
+  border: 1px solid var(--syntax-left-panel-border);
   border-radius: 6px;
   overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s;
-  background: #1e1e1e;
+  background: var(--syntax-preview-bg);
 }
 
 .preview-section.preview-focused {
-  border-color: #2E5CC7;
-  box-shadow: 0 0 0 1px #2E5CC7;
+  border-color: var(--syntax-preview-focus-border);
+  box-shadow: 0 0 0 1px var(--syntax-preview-focus-border);
 }
 
 .preview-header {
@@ -931,13 +931,13 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 8px 14px;
-  background: #252526;
-  border-bottom: 1px solid #3c3c3c;
+  background: var(--syntax-preview-header);
+  border-bottom: 1px solid var(--syntax-left-panel-border);
   flex-shrink: 0;
 }
 
 .preview-title {
-  color: #aaa;
+  color: var(--syntax-table-header-color);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -952,15 +952,15 @@ onUnmounted(() => {
 }
 
 .apply-preview-btn.has-changes {
-  border-color: #f0a020 !important;
-  color: #f0a020 !important;
+  border-color: var(--syntax-preview-apply-border) !important;
+  color: var(--syntax-preview-apply-color) !important;
   background-color: transparent !important;
 }
 
 .apply-preview-btn.has-changes:hover {
-  background: rgba(240, 160, 32, 0.15) !important;
-  border-color: #f0a020 !important;
-  color: #f0a020 !important;
+  background: var(--syntax-preview-apply-hover-bg) !important;
+  border-color: var(--syntax-preview-apply-border) !important;
+  color: var(--syntax-preview-apply-color) !important;
 }
 
 .preview-editor {
@@ -982,13 +982,13 @@ onUnmounted(() => {
 
 .syntax-left-panel .left-panel-list::-webkit-scrollbar-thumb,
 .rules-table-wrapper::-webkit-scrollbar-thumb {
-  background: #424242;
+  background: var(--scrollbar-thumb-light);
   border-radius: 3px;
 }
 
 .syntax-left-panel .left-panel-list::-webkit-scrollbar-thumb:hover,
 .rules-table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--scrollbar-thumb);
 }
 
 /* 匹配类型下拉框：默认边框透明，悬浮/焦点时有边框 */
@@ -1047,7 +1047,7 @@ onUnmounted(() => {
 
 /* 背景颜色选择器默认显示边框（避免与背景色融为一体） */
 :deep(.bg-color-picker .el-color-picker__trigger) {
-  border: 1px solid #555 !important;
+  border: 1px solid var(--scrollbar-thumb) !important;
 }
 
 :deep(.bg-color-picker .el-color-picker__trigger:hover),

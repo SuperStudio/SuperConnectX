@@ -412,8 +412,8 @@ onMounted(() => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
-  color: #fff;
+  background: var(--bg-primary);
+  color: var(--text-white);
   font-family: 'Fira Code', 'Consolas', monospace;
   border-radius: 0px;
   overflow: hidden;

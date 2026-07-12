@@ -233,13 +233,13 @@ const resetDragState = () => {
   width: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #1e1e1e;
+  background-color: var(--bg-primary);
   flex-shrink: 0;
 }
 
 .tabs-header {
   height: 32px;
-  background: #252526;
+  background: var(--bg-secondary);
   flex-shrink: 0;
   overflow-x: auto;
   overflow-y: hidden;
@@ -255,12 +255,12 @@ const resetDragState = () => {
 }
 
 .tabs-header::-webkit-scrollbar-thumb {
-  background: #464647;
+  background: var(--scrollbar-thumb-dark);
   border-radius: 2px;
 }
 
 .tabs-header::-webkit-scrollbar-thumb:hover {
-  background: #6f6f70;
+  background: var(--scrollbar-thumb-dark-hover);
 }
 
 .tabs-nav {
@@ -278,21 +278,21 @@ const resetDragState = () => {
   min-width: 100px;
   max-width: 160px;
   height: 100%;
-  background-color: #2d2d2d;
-  color: #ccc;
+  background-color: var(--tab-bg);
+  color: var(--tab-text);
   cursor: pointer;
   user-select: none;
   position: relative;
-  border-right: 1px solid #1e1e1e;
+  border-right: 1px solid var(--tab-border);
 }
 
 .tab-item:hover {
-  background-color: #353535;
+  background-color: var(--tab-hover-bg);
 }
 
 .tab-item.active {
-  background-color: #1e1e1e;
-  color: #fff;
+  background-color: var(--bg-primary);
+  color: var(--tab-active-icon);
 }
 
 .tab-item .tab-icon {
@@ -303,11 +303,7 @@ const resetDragState = () => {
   width: 14px;
   height: 14px;
   margin-right: 4px;
-  color: #888;
-}
-
-.tab-item.active .tab-icon {
-  color: #fff;
+  color: var(--tab-icon);
 }
 
 .tab-item .tab-name {
@@ -327,18 +323,15 @@ const resetDragState = () => {
 }
 
 .tab-item .connection-dot.connected {
-  background-color: #18c138;
+  background-color: var(--connect-dot-connected);
 }
 
 .tab-item .connection-dot.disconnected {
-  background-color: #888888;
+  background-color: var(--connect-dot-disconnected);
 }
 
 .tab-remark {
-  color: #888;
-  font-size: 12px;
-  font-weight: normal;
-  margin-left: 4px;
+  color: var(--tab-remark);
 }
 
 .tab-action-btn {
@@ -365,7 +358,7 @@ const resetDragState = () => {
   transform: translate(-50%, -50%);
   font-size: 14px;
   line-height: 1;
-  color: #888;
+  color: var(--tab-close);
 }
 
 .tab-action-btn.pinned {
@@ -390,11 +383,11 @@ const resetDragState = () => {
 }
 
 .tab-action-btn:hover {
-  background-color: #3b3c3c;
+  background-color: var(--tab-close-hover-bg);
 }
 
 .tab-action-btn:hover::before {
-  color: #fff;
+  color: var(--tab-active-icon);
 }
 
 /* 拖拽排序样式 */
@@ -413,7 +406,7 @@ const resetDragState = () => {
   top: 0;
   bottom: 0;
   width: 2px;
-  background-color: #007fd4;
+  background-color: var(--tab-drag-indicator);
   z-index: 10;
 }
 
@@ -424,7 +417,7 @@ const resetDragState = () => {
   top: 0;
   bottom: 0;
   width: 2px;
-  background-color: #007fd4;
+  background-color: var(--tab-drag-indicator);
   z-index: 10;
 }
 

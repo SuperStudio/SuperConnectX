@@ -49,8 +49,8 @@ watch(searchText, (val) => emit('search', val.trim()))
   height: 100%;
   padding: 0 28px 0 12px;
   border: 1px solid transparent;
-  background-color: #3c3c3c;
-  color: #cccccc;
+  background-color: var(--search-input-bg);
+  color: var(--search-input-color);
   border-radius: 4px;
   font-size: 13px;
   outline: none;
@@ -72,7 +72,7 @@ watch(searchText, (val) => emit('search', val.trim()))
   height: 20px;
   border: none;
   background: transparent;
-  color: #9ca3af;
+  color: var(--search-clear);
   font-size: 14px;
   cursor: pointer;
   padding: 0;
@@ -80,6 +80,6 @@ watch(searchText, (val) => emit('search', val.trim()))
 }
 
 .clear-btn:hover {
-  color: #111827;
+  color: var(--search-clear-hover);
 }
 </style>

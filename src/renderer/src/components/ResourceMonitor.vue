@@ -78,7 +78,7 @@ onUnmounted(() => {
 .progress-bar {
   height: 18px;
   width: 100%;
-  background-color: #e0e0e055;
+  background-color: var(--monitor-bar-bg);
   border-radius: 4px;
   overflow: hidden;
   position: relative;
@@ -92,7 +92,7 @@ onUnmounted(() => {
 }
 
 .progress-text {
-  color: #fff;
+  color: var(--monitor-text);
   font-weight: 500;
   white-space: nowrap;
   font-size: 12px;

@@ -185,7 +185,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background-color: #252526;
+  background-color: var(--terminal-control-bg);
   box-sizing: border-box;
   border-radius: 0px 0px 6px 6px;
   margin: 0px 4px 2px 2px;
@@ -207,13 +207,13 @@ onMounted(() => {
 }
 
 .connection-status.connected {
-  background-color: rgba(24, 193, 56, 0.2);
-  color: #18c138;
+  background-color: var(--connect-status-connected-bg);
+  color: var(--connect-dot-connected);
 }
 
 .connection-status.disconnected {
-  background-color: rgba(128, 128, 128, 0.2);
-  color: #888888;
+  background-color: var(--connect-status-disconnected-bg);
+  color: var(--connect-dot-disconnected);
 }
 
 .close-btn {
@@ -222,8 +222,8 @@ onMounted(() => {
   border-radius: 4px !important;
   transition: all 0.2s ease !important;
   margin-left: 0 !important;
-  background-color: #FF0000 !important;
-  border-color: #FF0000 !important;
+  background-color: var(--terminal-control-close-bg) !important;
+  border-color: var(--terminal-control-close-border) !important;
 }
 
 .clear-btn {
@@ -234,14 +234,14 @@ onMounted(() => {
   transition: all 0.2s ease !important;
   margin-left: 4px !important;
   margin-right: 4px !important;
-  background-color: #c45656 !important;
-  border-color: #c45656 !important;
+  background-color: var(--terminal-control-clear-bg) !important;
+  border-color: var(--terminal-control-clear-border) !important;
 }
 
 .clear-btn:hover {
   transform: translateY(-1px);
-  background-color: #d46060 !important;
-  border-color: #d46060 !important;
+  background-color: var(--terminal-control-clear-hover-bg) !important;
+  border-color: var(--terminal-control-clear-hover-border) !important;
 }
 
 .add-preset-btn {
@@ -250,8 +250,8 @@ onMounted(() => {
   border-radius: 4px !important;
   transition: all 0.2s ease !important;
   margin-left: 0 !important;
-  background-color: #c45656 !important;
-  border-color: #c45656 !important;
+  background-color: var(--terminal-control-clear-bg) !important;
+  border-color: var(--terminal-control-clear-border) !important;
 }
 
 .log-btn {
@@ -274,7 +274,7 @@ onMounted(() => {
 .syntax-group-select :deep(.el-select__wrapper) {
   border-color: transparent !important;
   box-shadow: none !important;
-  background-color: #3a3a3a !important;
+  background-color: var(--terminal-control-syntax-select-bg) !important;
   min-height: 28px !important;
   height: 28px !important;
 }
@@ -323,26 +323,26 @@ onMounted(() => {
   justify-content: center !important;
   background-color: transparent !important;
   border: 1px solid transparent !important;
-  color: #fff !important;
+  color: var(--text-white) !important;
   transition: all 0.2s ease !important;
   margin-left: 0px !important;
   margin-right: 0px !important;
 }
 
 .auto-scroll-btn:hover {
-  background-color: rgba(128, 128, 128, 0.2) !important;
-  color: #fff !important;
+  background-color: var(--overlay-btn-hover) !important;
+  color: var(--text-white) !important;
 }
 
 .auto-scroll-active {
-  background-color: #326BF1 !important;
+  background-color: var(--terminal-control-auto-scroll-active) !important;
   border-color: transparent !important;
-  color: #fff !important;
+  color: var(--text-white) !important;
 }
 
 .auto-scroll-active:hover {
-  background-color: #326BF1 !important;
-  color: #fff !important;
+  background-color: var(--terminal-control-auto-scroll-active) !important;
+  color: var(--text-white) !important;
 }
 
 .icon-action-btn {
@@ -356,23 +356,23 @@ onMounted(() => {
   justify-content: center !important;
   background-color: transparent !important;
   border: 1px solid transparent !important;
-  color: #fff !important;
+  color: var(--text-white) !important;
   transition: all 0.2s ease !important;
   margin-left: 0px !important;
   margin-right: 2px !important;
 }
 
 .icon-action-btn:hover {
-  background-color: rgba(128, 128, 128, 0.2) !important;
-  color: #fff !important;
+  background-color: var(--overlay-btn-hover) !important;
+  color: var(--text-white) !important;
 }
 
 :deep(.el-switch) {
-  --el-switch-on-color: #165dff;
-  --el-switch-off-color: #444;
+  --el-switch-on-color: var(--terminal-control-switch-on);
+  --el-switch-off-color: var(--terminal-control-switch-off);
 }
 
 :deep(.el-switch__label) {
-  color: #e0e0e0;
+  color: var(--text-secondary);
 }
 </style>

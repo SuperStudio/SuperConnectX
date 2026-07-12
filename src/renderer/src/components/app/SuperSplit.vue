@@ -261,7 +261,7 @@ defineExpose({
 .super-split-resizer {
   width: 3px;
   height: 100%;
-  background: #555;
+  background: var(--split-resizer-bg);
   cursor: col-resize;
   flex-shrink: 0;
   z-index: 100;
@@ -274,7 +274,7 @@ defineExpose({
 
 .super-split-resizer:hover,
 .super-split-resizer.resizing {
-  background-color: #409eff;
+  background-color: var(--split-resizer-hover);
 }
 
 /* ---- 拖放分屏 Drop Zone ---- */
@@ -299,8 +299,8 @@ defineExpose({
 
 /* 当拖拽 tab 经过右侧区域时激活 */
 .super-split-drop-zone.drop-zone-active {
-  background-color: rgba(64, 158, 255, 0.08);
-  border-color: rgba(64, 158, 255, 0.4);
+  background-color: var(--split-drop-zone-bg);
+  border-color: var(--split-drop-zone-border);
 }
 
 .super-split-drop-zone .drop-zone-hint {
@@ -308,7 +308,7 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  color: rgba(64, 158, 255, 0.7);
+  color: var(--split-drop-zone-text);
   font-size: 13px;
   user-select: none;
 }
