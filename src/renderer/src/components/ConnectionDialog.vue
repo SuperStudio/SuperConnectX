@@ -200,7 +200,7 @@ const getRequiredFields = () => {
     if ((formData as any).connectionType !== 'ping') {
       fields.push({ prop: 'port', message: t('dialog.pleaseEnterPort') })
     }
-    if (!['tcp', 'udp', 'ftp'].includes(formData.connectionType)) {
+    if (!['tcp', 'udp', 'ftp', 'telnet'].includes(formData.connectionType)) {
       fields.push({ prop: 'username', message: t('dialog.pleaseEnterUsername') })
     }
     if (['tftp', 'http'].includes(formData.connectionType)) {
