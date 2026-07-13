@@ -39,13 +39,15 @@
             class="connection-dot"
             :class="getConnectionStatus(tab)"
           ></span>
-          <el-tooltip :content="tab.name || `${tab.host || tab.comName}:${tab.port || ''}`" placement="top" effect="dark" :enterable="false">
+          <el-tooltip :content="tab.name || `${tab.host || tab.comName}:${tab.port || ''}`" placement="top" effect="dark" :enterable="false" :show-after="500">
             <span class="tab-name">
               {{ tab.name || `${tab.host || tab.comName}:${tab.port || ''}` }}
-              <span v-if="tab.connectionType === 'com' && tab.comName && serialRemarks[tab.comName]" class="tab-remark">{{ serialRemarks[tab.comName] }}</span>
+              <el-tooltip v-if="tab.connectionType === 'com' && tab.comName && serialRemarks[tab.comName]" :content="serialRemarks[tab.comName]" placement="top" effect="dark" :enterable="false" :show-after="500">
+                <span class="tab-remark">{{ serialRemarks[tab.comName] }}</span>
+              </el-tooltip>
             </span>
           </el-tooltip>
-          <el-tooltip :content="pinnedTabs.has(tab.id) ? $t('tabs.unpin') : $t('tabs.pin')" placement="top" effect="dark" :enterable="false">
+          <el-tooltip :content="pinnedTabs.has(tab.id) ? $t('tabs.unpin') : $t('tabs.pin')" placement="top" effect="dark" :enterable="false" :show-after="500">
             <span
               class="tab-action-btn"
               :class="{ pinned: pinnedTabs.has(tab.id) }"
@@ -276,7 +278,7 @@ const resetDragState = () => {
   gap: 4px;
   padding: 0 36px 0 10px;
   min-width: 100px;
-  max-width: 160px;
+  max-width: 200px;
   height: 100%;
   background-color: var(--tab-bg);
   color: var(--tab-text);
@@ -332,6 +334,12 @@ const resetDragState = () => {
 
 .tab-remark {
   color: var(--tab-remark);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: 4px;
+  font-size: 12px;
 }
 
 .tab-action-btn {

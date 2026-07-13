@@ -37,15 +37,19 @@
                       class="connection-dot"
                       :class="isSerialPortConnected(port.path) ? 'connected' : 'disconnected'"
                     ></span>
-                    <div class="conn-name">
-                      {{ port.path }}
-                      <span v-if="serialRemarks[port.path]" class="serial-remark"> {{ serialRemarks[port.path] }}</span>
-                    </div>
-                    <div v-if="showPortType" class="serial-port-type">
-                      <el-tag v-if="port.type === 'virtual'" type="info" size="small" effect="dark">{{ t('sidebar.virtual') }}</el-tag>
-                      <el-tag v-else-if="port.type === 'usb'" type="success" size="small" effect="dark">{{ t('sidebar.usb') }}</el-tag>
-                      <el-tag v-else-if="port.type === 'bluetooth'" class="bluetooth-tag" size="small" effect="dark">{{ t('sidebar.bluetooth') }}</el-tag>
-                      <el-tag v-else type="info" size="small" effect="dark">{{ t('sidebar.noType') }}</el-tag>
+                    <div class="serial-port-info">
+                      <div class="serial-port-row">
+                        <span class="conn-name">{{ port.path }}</span>
+                        <span v-if="showPortType" class="serial-port-type">
+                          <el-tag v-if="port.type === 'virtual'" type="info" size="small" effect="dark">{{ t('sidebar.virtual') }}</el-tag>
+                          <el-tag v-else-if="port.type === 'usb'" type="success" size="small" effect="dark">{{ t('sidebar.usb') }}</el-tag>
+                          <el-tag v-else-if="port.type === 'bluetooth'" class="bluetooth-tag" size="small" effect="dark">{{ t('sidebar.bluetooth') }}</el-tag>
+                          <el-tag v-else type="info" size="small" effect="dark">{{ t('sidebar.noType') }}</el-tag>
+                        </span>
+                      </div>
+                      <el-tooltip v-if="serialRemarks[port.path]" :content="serialRemarks[port.path]" placement="top" effect="dark" :enterable="false" :show-after="500">
+                        <span class="serial-remark">{{ serialRemarks[port.path] }}</span>
+                      </el-tooltip>
                     </div>
                   </div>
                   <div class="serial-port-right">
@@ -315,6 +319,12 @@ const toggleGroupExpanded = (type: string) => {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-secondary);
+  display: inline-block;
+  width: 80px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .conn-detail {
@@ -398,8 +408,19 @@ const toggleGroupExpanded = (type: string) => {
   min-width: 0;
   overflow-x: hidden;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+}
+
+.serial-port-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.serial-port-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .serial-port-left .connection-dot {
@@ -407,6 +428,7 @@ const toggleGroupExpanded = (type: string) => {
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+  margin-top: 6px;
 }
 
 .serial-port-left .connection-dot.connected {
@@ -448,14 +470,18 @@ const toggleGroupExpanded = (type: string) => {
 }
 
 .serial-remark {
+  display: block;
   color: var(--sidebar-remark);
   font-size: 13px;
   font-weight: normal;
-  margin-left: 4px;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .serial-port-type {
-  margin-top: 2px;
+  margin-top: 4px;
   margin-left: 22px;
   font-size: 11px;
 }
