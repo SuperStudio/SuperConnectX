@@ -275,7 +275,7 @@ export default class WorkerPool {
    * 创建新连接（创建独立 Worker）
    */
   async startConnection(connInfo: any, connectionType: string): Promise<{ success: boolean; message?: string; connId?: string }> {
-    const sessionId = connInfo.sessionId
+    const sessionId = String(connInfo.sessionId)
 
     // 如果已有同 sessionId 的 Worker，先清理
     if (this.workerMap.has(sessionId)) {
@@ -349,9 +349,10 @@ export default class WorkerPool {
    */
   async sendData(sessionId: string, _connectionType: string, command: string): Promise<{ success: boolean; message?: string }> {
     try {
-      const result = await this.sendToWorker(sessionId, {
+      const normalizedSessionId = String(sessionId)
+      const result = await this.sendToWorker(normalizedSessionId, {
         type: 'send',
-        sessionId,
+        sessionId: normalizedSessionId,
         command
       })
 
@@ -368,17 +369,18 @@ export default class WorkerPool {
    * 断开连接（终止 Worker）
    */
   async stopConnection(sessionId: string, _connectionType: string): Promise<{ success: boolean; message?: string }> {
+    const normalizedSessionId = String(sessionId)
     // 先通知 Worker 主动断开
     try {
-      await this.sendToWorker(sessionId, {
+      await this.sendToWorker(normalizedSessionId, {
         type: 'stop',
-        sessionId
+        sessionId: normalizedSessionId
       }, 5000) // 断开超时设为 5 秒
     } catch {
       // 超时或失败都继续 terminate
     }
 
-    await this.terminateWorker(sessionId)
+    await this.terminateWorker(normalizedSessionId)
     return { success: true }
   }
 
@@ -391,9 +393,10 @@ export default class WorkerPool {
     config: any
   ): Promise<{ success: boolean; message?: string }> {
     try {
-      const result = await this.sendToWorker(sessionId, {
+      const normalizedSessionId = String(sessionId)
+      const result = await this.sendToWorker(normalizedSessionId, {
         type: 'update-config',
-        sessionId,
+        sessionId: normalizedSessionId,
         config
       })
 

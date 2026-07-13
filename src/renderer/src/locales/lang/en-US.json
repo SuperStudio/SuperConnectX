@@ -362,7 +362,7 @@
     "openLogFile": "Open Log File",
     "showTimestamp": "Timestamp",
     "showLog": "Show Log",
-    "saveLogAs": "Save Log As",
+    "logRotate": "Rotate Log",
     "syntaxHighlight": "Syntax Highlight",
     "editSyntaxRules": "Edit Syntax Rules",
     "commandSendFailed": "Failed to send command",
@@ -383,6 +383,7 @@
     "openLogFileFailedWithError": "Failed to open log file: {error}",
     "saveFailed": "Save failed: {message}",
     "saveFailedWithError": "Save failed: {error}",
+    "logRotateSuccess": "Log rotated: {oldName} → {newName}",
     "unknownError": "Unknown error",
     "clearAll": "Clear All"
   },

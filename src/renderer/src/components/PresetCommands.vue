@@ -449,7 +449,7 @@ const getCurrentConnect = () => {
     id: props.connection?.id,
     name: props.connection?.name,
     connectionType: props.connection?.connectionType,
-    sessionId: props.connection?.sessionId
+    sessionId: String(props.connection?.sessionId ?? '')
   }
   if (props.connection?.connectionType === 'com') {
     conn.comName = props.connection.comName

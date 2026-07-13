@@ -105,7 +105,7 @@ export default class IpcConnector {
       const debugConn = { ...conn }
       if (debugConn.password) debugConn.password = '***'
       logger.debug(JSON.stringify(debugConn))
-      _logger.createConnLogFile(conn.sessionId, conn.name, conn.remark || '')
+      _logger.createConnLogFile(String(conn.sessionId), conn.name, conn.remark || '')
       this.initConnectionState(conn)
       return this.routeStart(conn)
     })
@@ -118,16 +118,16 @@ export default class IpcConnector {
         logger.error(`connection not found for id: ${id}`)
         return { success: false, message: `连接不存在 (id: ${id})` }
       }
-      // 统一 sessionId 为 number 类型（与 stop-connect 等其他 handler 保持一致）
-      const numericSessionId = typeof sessionId === 'string' ? parseInt(sessionId, 10) : sessionId
-      const conn = { ...(extraFields || {}), ...storedConn, sessionId: numericSessionId }
+      // sessionId 统一为 string（ProtocolLogger 的 Map key 都是 string 类型）
+      const normalizedSessionId = String(sessionId)
+      const conn = { ...(extraFields || {}), ...storedConn, sessionId: normalizedSessionId }
       if (storedConn.password) {
         conn.password = storedConn.password
       }
       const debugConn = { ...conn }
       if (debugConn.password) debugConn.password = '***'
       logger.debug(`start-connect-by-id conn: ${JSON.stringify(debugConn)}`)
-      _logger.createConnLogFile(conn.sessionId, conn.name, conn.remark || '')
+      _logger.createConnLogFile(normalizedSessionId, conn.name, conn.remark || '')
       this.initConnectionState(conn)
       return this.routeStart(conn)
     })
@@ -189,6 +189,10 @@ export default class IpcConnector {
 
     ipcMain.handle('copy-log-file', async (_, { sessionId, destPath }: { sessionId: string; destPath: string }) => {
       return await _logger.copyLogFile(sessionId, destPath)
+    })
+
+    ipcMain.handle('rotate-log-file', async (_, sessionId: string) => {
+      return await _logger.rotateLogFile(sessionId)
     })
 
     ipcMain.handle('write-to-log', async (_, { sessionId, content }: { sessionId: string; content: string }) => {

@@ -71,6 +71,7 @@ interface ConnectApi {
   openConnectLog: (sessionId: string) => Promise<any>
   getLogFilePath: (sessionId: string) => Promise<string>
   copyLogFile: (sessionId: string, destPath: string) => Promise<any>
+  rotateLogFile: (sessionId: string) => Promise<any>
   listSerialPorts: () => Promise<any[]>
   writeToLog: (sessionId: string, content: string) => Promise<any>
 }

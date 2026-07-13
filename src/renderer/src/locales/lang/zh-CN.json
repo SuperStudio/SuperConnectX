@@ -362,7 +362,7 @@
     "openLogFile": "打开日志文件",
     "showTimestamp": "时间戳",
     "showLog": "显示日志",
-    "saveLogAs": "日志另存为",
+    "logRotate": "日志归档",
     "syntaxHighlight": "语法高亮",
     "editSyntaxRules": "编辑高亮规则",
     "commandSendFailed": "命令发送失败",
@@ -383,6 +383,7 @@
     "openLogFileFailedWithError": "打开日志文件失败：{error}",
     "saveFailed": "保存失败：{message}",
     "saveFailedWithError": "保存失败：{error}",
+    "logRotateSuccess": "日志已归档：{oldName} → {newName}",
     "unknownError": "未知错误",
     "clearAll": "清空全部"
   },

@@ -479,4 +479,53 @@ export default class ProtocolLogger {
       }
     }
   }
+
+  // 日志归档：保留旧文件不动，创建新日志文件继续写入
+  // 后续的日志写入、打开文件/文件夹操作都指向新文件
+  async rotateLogFile(connId: string): Promise<{ success: boolean; message?: string; oldFileName?: string; newFileName?: string }> {
+    try {
+      this.flushAllLogs(true) // 确保所有日志都已写入
+
+      const oldFileName = this.connLogFiles.get(connId)
+      if (!oldFileName) {
+        return { success: false, message: 'Log file not found' }
+      }
+
+      const connName = this.connLogNames.get(connId) || 'unknown'
+      const remark = this.connLogRemarks.get(connId)
+      const logDir = this.getConnLogDir(connId)
+
+      // 用 resolveFileName 生成新文件名（与断开重连时的规则一致）
+      let newLogFileName = `${this.resolveFileName(connName, remark)}.log`
+      let newLogPath = join(logDir, newLogFileName)
+
+      // 如果目标文件已存在，追加序号避免覆盖
+      let counter = 1
+      while (existsSync(newLogPath)) {
+        newLogFileName = `${this.resolveFileName(connName, remark)}-${counter}.log`
+        newLogPath = join(logDir, newLogFileName)
+        counter++
+      }
+
+      // 创建新的空日志文件
+      writeFileSync(newLogPath, '', 'utf-8')
+
+      // 更新内部映射，后续写入和打开操作都指向新文件
+      this.connLogFiles.set(connId, newLogFileName)
+      this.connLogIndexes.set(connId, 0)
+      this.currentFileSizes.set(connId, 0)
+
+      return {
+        success: true,
+        oldFileName: oldFileName,
+        newFileName: newLogFileName
+      }
+    } catch (error) {
+      console.error('Failed to rotate log file:', error)
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to rotate log file'
+      }
+    }
+  }
 }

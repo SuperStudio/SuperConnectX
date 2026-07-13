@@ -158,22 +158,14 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
     }
   }
 
-  // 保存日志文件
+  // 日志归档：将当前日志重命名为新文件（与断开重连时创建文件的规则一致），并开始写入新文件
   const saveLogFile = async () => {
     try {
-      const namePart = connectionType === 'telnet' ? `${conn.host}_${conn.port}` : conn.comName
-      const result = await window.dialogApi.saveFileDialog({
-        title: '保存日志',
-        defaultPath: `${connectionType}_${namePart}_${Date.now()}.log`,
-        filters: [{ name: '日志文件', extensions: ['log', 'txt'] }]
-      })
-      if (result.filePath) {
-        const copyResult = await window.connectApi.copyLogFile(String(conn.sessionId), result.filePath)
-        if (copyResult.success) {
-          window.toolApi.showItemInFolder(result.filePath)
-        } else {
-          ElMessage.error(t('terminal.saveFailed', { message: copyResult.message || t('terminal.unknownError') }))
-        }
+      const result = await window.connectApi.rotateLogFile(String(conn.sessionId))
+      if (result.success) {
+        ElMessage.success(t('terminal.logRotateSuccess', { oldName: result.oldFileName, newName: result.newFileName }))
+      } else {
+        ElMessage.error(t('terminal.saveFailed', { message: result.message || t('terminal.unknownError') }))
       }
     } catch (error) {
       ElMessage.error(t('terminal.saveFailedWithError', { error: error instanceof Error ? error.message : t('terminal.unknownError') }))

@@ -89,6 +89,7 @@ declare global {
       openConnectLog: (sessionId: string, mode?: 'folder' | 'file') => Promise<{ success: boolean; message?: string; filePath?: string }>
       getLogFilePath: (sessionId: string) => Promise<{ success: boolean; filePath?: string; message?: string }>
       copyLogFile: (sessionId: string, destPath: string) => Promise<{ success: boolean; message?: string }>
+      rotateLogFile: (sessionId: string) => Promise<{ success: boolean; message?: string; oldFileName?: string; newFileName?: string }>
       listSerialPorts: () => Promise<SerialPortInfo[]>
       writeToLog: (sessionId: string, content: string) => Promise<any>
     }
