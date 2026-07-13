@@ -647,8 +647,13 @@ const buildRegexFromRule = (rule: SyntaxSubRule): RegExp | null => {
       const escaped = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
       regex = new RegExp(escaped.join('|'), rule.caseSensitive ? 'g' : 'gi')
     } else {
-      // 空 pattern 会创建空正则导致死循环
       if (!rule.pattern) return null
+      // 检测退化正则：以 | 开头/结尾、连续 ||，会导致空匹配死循环
+      const trimmed = rule.pattern.trim()
+      if (/^\||\|$/.test(trimmed) || /\|\|/.test(trimmed)) {
+        regexCache.set(cacheKey, null)
+        return null
+      }
       regex = new RegExp(rule.pattern, rule.caseSensitive ? 'g' : 'gi')
     }
     if (regex) {
@@ -759,7 +764,12 @@ const applySyntaxWithClasses = () => {
       let match: RegExpExecArray | null
       while ((match = regex.exec(newText)) !== null) {
         const matchStr = match[0]
-        if (!matchStr) continue
+        // 空匹配保护：退化正则的每个位置都可能产生空匹配，跳过并前进
+        if (!matchStr) {
+          regex.lastIndex++
+          if (regex.lastIndex > newText.length) break
+          continue
+        }
         const globalIndex = newTextOffset + match.index
         const startPos = editorModel.getPositionAt(globalIndex)
         const endPos = editorModel.getPositionAt(globalIndex + matchStr.length)

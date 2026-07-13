@@ -546,8 +546,8 @@ const applyPreviewSyntax = () => {
       syntaxClassMap.set(styleKey, className)
     }
 
-    // 检测退化正则：模式以 '|' 结尾（右侧为空，会产生海量空匹配）
-    if (rule.matchType === 'regex' && /\|$/.test(rule.pattern.trim())) {
+    // 检测退化正则：以 | 开头/结尾、连续 ||，会导致空匹配死循环
+    if (rule.matchType === 'regex' && /(^\||\|$|\|\|)/.test(rule.pattern.trim())) {
       continue
     }
 
