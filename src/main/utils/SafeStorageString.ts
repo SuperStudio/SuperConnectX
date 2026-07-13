@@ -42,9 +42,6 @@ export default class SafeStorageString {
    */
   private _useOsKeychain: boolean | null = null
 
-  /** 测试模式标志 */
-  private testMode: boolean
-
   /**
    * @param key 可注入 32 字节密钥（用于测试）；注入时强制使用 APP 加密模式
    */
@@ -52,9 +49,6 @@ export default class SafeStorageString {
     if (key) {
       this.appKey = key
       this._useOsKeychain = false
-      this.testMode = true
-    } else {
-      this.testMode = false
     }
   }
 

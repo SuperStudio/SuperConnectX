@@ -637,7 +637,7 @@ const appendToTerminal = (content: string) => {
 const buildRegexFromRule = (rule: SyntaxSubRule): RegExp | null => {
   const cacheKey = `${rule.matchType}|${rule.pattern}|${rule.caseSensitive}`
   const cached = regexCache.get(cacheKey)
-  if (cached) return cached
+  if (cached !== undefined) return cached
 
   try {
     let regex: RegExp | null = null
@@ -668,7 +668,7 @@ const buildRegexFromRule = (rule: SyntaxSubRule): RegExp | null => {
 let syntaxClassCounter = 0
 const syntaxClassMap = new Map<string, string>()
 // 正则缓存，避免每次重建 RegExp 对象
-const regexCache = new Map<string, RegExp>()
+const regexCache = new Map<string, RegExp | null>()
 // 每个实例的唯一标识，避免多选项卡之间的样式冲突
 const syntaxInstanceId = `syntax-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
