@@ -32,11 +32,13 @@ jobs:
       - name: Install Python setuptools
         run: python3 -m pip install setuptools
 
-      - name: Install dependencies
-        run: npm install --ignore-scripts
-
       - name: Downgrade Electron to 35 for Ubuntu 24 compatibility
-        run: npm install electron@35.7.5 --save-dev
+        # 仅更新 package.json 与 lock，随后用 npm ci 一次安装；
+        # 避免 node_modules 已存在时二次 npm install 触发 npm optional deps bug（丢失 @rollup/rollup-linux-x64-gnu）
+        run: npm install electron@35.7.5 --save-dev --package-lock-only
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
 
       - name: Remove problematic cpu-features
         run: |
