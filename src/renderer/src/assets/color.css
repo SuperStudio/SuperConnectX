@@ -224,13 +224,13 @@
   --settings-slider-bar: #165dff;
 
   /* ---- 历史命令 ---- */
-  --history-bg: #2d2d2d;
+  --history-bg: rgba(45, 45, 45, 0.85);
   --history-border: #3c3c3c;
   --history-item-color: #ccc;
   --history-item-border: #3a3a3a;
-  --history-item-hover-bg: #094771;
+  --history-item-hover-bg: rgba(9, 71, 113, 0.7);
   --history-item-hover-color: #fff;
-  --history-item-active-bg: #094771;
+  --history-item-active-bg: rgba(9, 71, 113, 0.7);
   --history-item-active-color: #fff;
   --history-delete-color: #888;
   --history-delete-hover-bg: #c43e3e;
@@ -500,12 +500,12 @@
   --crc-result-empty: #666;
 
   /* ---- 历史命令弹窗 ---- */
-  --history-bg: #2d2d2d;
+  --history-bg: rgba(45, 45, 45, 0.85);
   --history-border: #3c3c3c;
   --history-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
   --history-item-color: #ccc;
   --history-item-border: #3a3a3a;
-  --history-item-hover-bg: #094771;
+  --history-item-hover-bg: rgba(9, 71, 113, 0.7);
   --history-item-hover-color: #fff;
   --history-delete-color: #888;
   --history-delete-hover-bg: #c43e3e;
@@ -866,13 +866,13 @@
   --settings-slider-bar: #2672d9;
 
   /* ---- 历史命令 ---- */
-  --history-bg: #ffffff;
+  --history-bg: rgba(255, 255, 255, 0.85);
   --history-border: #d0d0d0;
   --history-item-color: #555555;
   --history-item-border: #e0e0e0;
-  --history-item-hover-bg: #e8f4fd;
+  --history-item-hover-bg: rgba(232, 244, 253, 0.7);
   --history-item-hover-color: #1a1a1a;
-  --history-item-active-bg: #e8f4fd;
+  --history-item-active-bg: rgba(232, 244, 253, 0.7);
   --history-item-active-color: #1a1a1a;
   --history-delete-color: #999999;
   --history-delete-hover-bg: #fde8e8;
@@ -1141,12 +1141,12 @@
   --crc-result-empty: #999999;
 
   /* ---- 历史命令弹窗 ---- */
-  --history-bg: #ffffff;
+  --history-bg: rgba(255, 255, 255, 0.85);
   --history-border: #d0d0d0;
   --history-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
   --history-item-color: #555555;
   --history-item-border: #e0e0e0;
-  --history-item-hover-bg: #e8f4fd;
+  --history-item-hover-bg: rgba(232, 244, 253, 0.7);
   --history-item-hover-color: #1a1a1a;
   --history-delete-color: #999999;
   --history-delete-hover-bg: #fde8e8;

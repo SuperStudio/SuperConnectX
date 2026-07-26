@@ -1779,6 +1779,7 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   z-index: 100;
   margin-bottom: 2px;
   box-shadow: var(--history-shadow);
+
 }
 
 .history-item {
@@ -1817,7 +1818,7 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 }
 
 .history-item-delete {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 20px;
@@ -1830,11 +1831,11 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   cursor: pointer;
   text-align: center;
   line-height: 1;
-  transition: all 0.15s;
+  visibility: hidden;
 }
 
 .history-item:hover .history-item-delete {
-  display: flex;
+  visibility: visible;
 }
 
 .history-item-delete:hover {
