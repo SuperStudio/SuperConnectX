@@ -40,10 +40,10 @@ export default class IpcSerialPort {
           return false
         }
 
-        // Keep Windows ports unless the driver explicitly identifies them as virtual.
+        // Windows: keep all COM ports. Software-virtualised serial ports (com0com,
+        // Eltima, VSPD, etc.) are also valid ports users may want to connect to.
         if (platform === 'win32') {
-          const description = `${port.friendlyName || ''} ${port.manufacturer || ''}`.toLowerCase()
-          return !/(virtual|bluetooth[- ]incoming|com0com|eltima|vspd|vspe)/i.test(description)
+          return true
         }
 
         // macOS: exclude Apple's virtual Bluetooth-incoming port.
