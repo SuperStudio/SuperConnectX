@@ -2,6 +2,14 @@
  * Buffer 行分割器
  * 在原始 Buffer 中查找换行符再解码，彻底避免多字节字符被 data 事件分割导致数据损坏
  */
+import * as iconv from 'iconv-lite'
+
+/** Node.js 原生支持的 Buffer 编码 */
+const NATIVE_ENCODINGS = new Set([
+  'ascii', 'utf8', 'utf-8', 'utf16le', 'ucs2', 'ucs-2',
+  'base64', 'base64url', 'latin1', 'binary', 'hex'
+])
+
 export interface LineSplitResult {
   /** 合并后的行文本（用 \n 拼接） */
   data: string
@@ -31,6 +39,31 @@ export class BufferLineSplitter {
   }
 
   /**
+   * 将整个 Buffer 解码为字符串（不分行）。
+   * 用于空闲超时刷新等场景。
+   */
+  decodeFull(buffer: Buffer): string {
+    return this.decodeBuffer(buffer, 0, buffer.length)
+  }
+
+  /**
+   * 将 Buffer 片段解码为字符串。
+   * 对于 Node.js 原生支持的编码（utf8/ascii/latin1 等），直接使用 buffer.toString()；
+   * 对于 gb2312/gbk/gb18030/big5 等编码，使用 iconv-lite 解码。
+   */
+  private decodeBuffer(buffer: Buffer, start: number, end: number): string {
+    if (NATIVE_ENCODINGS.has(this.encoding)) {
+      return buffer.toString(this.encoding as BufferEncoding, start, end)
+    }
+    try {
+      return iconv.decode(buffer.subarray(start, end), this.encoding)
+    } catch {
+      // 编码不支持时，回退为 latin1（按字节原样输出）
+      return buffer.toString('latin1', start, end)
+    }
+  }
+
+  /**
    * 从 Buffer 中提取所有完整的行
    * 支持 \r\n、\r、\n 三种换行符
    */
@@ -54,7 +87,7 @@ export class BufferLineSplitter {
         const lfPos = buffer.indexOf(LF, offset)
         if (lfPos === -1) break
 
-        const line = buffer.toString(this.encoding as BufferEncoding, offset, lfPos)
+        const line = this.decodeBuffer(buffer, offset, lfPos)
         offset = lfPos + 1
         if (line) {
           dataLines.push(line)
@@ -65,7 +98,7 @@ export class BufferLineSplitter {
 
       // 检查 \r\n 组合
       if (crPos + 1 < bufLen && buffer[crPos + 1] === LF) {
-        const line = buffer.toString(this.encoding as BufferEncoding, offset, crPos)
+        const line = this.decodeBuffer(buffer, offset, crPos)
         offset = crPos + 2
         if (line) {
           dataLines.push(line)
@@ -77,7 +110,7 @@ export class BufferLineSplitter {
         break
       } else {
         // 单独的 \r（后面不是 \n 且不是 buffer 末尾）
-        const line = buffer.toString(this.encoding as BufferEncoding, offset, crPos)
+        const line = this.decodeBuffer(buffer, offset, crPos)
         offset = crPos + 1
         if (line) {
           dataLines.push(line)

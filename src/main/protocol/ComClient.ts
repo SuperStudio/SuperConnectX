@@ -2,6 +2,7 @@ import { SerialPort } from 'serialport'
 import BaseClient, { ILogger } from './BaseClient'
 import ConnectionInfo from './ConnectionInfo'
 import { BufferLineSplitter } from './BufferLineSplitter'
+import * as iconv from 'iconv-lite'
 
 const DEFAULT_BAUD_RATE = 9600
 const DEFAULT_DATA_BITS = 8
@@ -36,16 +37,20 @@ export default class ComClient extends BaseClient {
 
   // 处理缓冲区数据，按行分割并添加时间戳
   private processBuffer(connection: SerialConnection): void {
-    const { buffer, splitter, onData, onLog } = connection
-    if (!buffer || buffer.length === 0) return
+    try {
+      const { buffer, splitter, onData, onLog } = connection
+      if (!buffer || buffer.length === 0) return
 
-    const result = splitter.split(buffer)
-    connection.buffer = result.remainder
+      const result = splitter.split(buffer)
+      connection.buffer = result.remainder
 
-    if (result.count > 0) {
-      const timestamp = BufferLineSplitter.timestamp()
-      onData?.({ data: result.data, timestamp })
-      onLog?.(result.log, timestamp)
+      if (result.count > 0) {
+        const timestamp = BufferLineSplitter.timestamp()
+        onData?.({ data: result.data, timestamp })
+        onLog?.(result.log, timestamp)
+      }
+    } catch (err: any) {
+      this.logger.error(`processBuffer error: ${err?.message || err}`)
     }
   }
 
@@ -58,9 +63,9 @@ export default class ComClient extends BaseClient {
     const elapsed = Date.now() - connection.lastDataTime
     if (elapsed < FLUSH_TIMEOUT_MS) return
 
-    const { buffer, splitter, onData, onLog, encoding } = connection
+    const { buffer, splitter, onData, onLog } = connection
     const timestamp = BufferLineSplitter.timestamp()
-    const remainingStr = buffer.toString(encoding as BufferEncoding)
+    const remainingStr = splitter.decodeFull(buffer)
     connection.buffer = Buffer.alloc(0)
     connection.lastDataTime = Date.now()
 
@@ -212,9 +217,30 @@ export default class ComClient extends BaseClient {
     try {
       const dataStr = `[${new Date().toISOString()}] SEND >>>>>>>>>> ${command}`
       const commandWithNewline = command.endsWith(COMMAND_LINE_TERMINATOR) ? command : (command.endsWith('\n') ? command.replace(/\n$/, COMMAND_LINE_TERMINATOR) : command + COMMAND_LINE_TERMINATOR)
-      
+
+      // Node.js 原生 Buffer 编码集有限（utf8/ascii/latin1 等），不支持 gb2312/gbk/gb18030/big5 等
+      // 对于非原生编码，使用 iconv-lite 先将字符串转为 Buffer 再写入串口
+      const encoding = connection.encoding || DEFAULT_ENCODING
+      const nativeEncodings = new Set(['ascii', 'utf8', 'utf-8', 'utf16le', 'ucs2', 'ucs-2', 'base64', 'base64url', 'latin1', 'binary', 'hex'])
+
       return new Promise((resolve) => {
-        connection.port.write(commandWithNewline, connection.encoding as BufferEncoding, (err: Error | null | undefined) => {
+        let writeData: Buffer | string
+        let writeEncoding: BufferEncoding | undefined
+        if (nativeEncodings.has(encoding)) {
+          writeData = commandWithNewline
+          writeEncoding = encoding as BufferEncoding
+        } else {
+          try {
+            writeData = iconv.encode(commandWithNewline, encoding)
+            writeEncoding = undefined // Buffer 模式下不需要 encoding 参数
+          } catch (encodeErr: any) {
+            this.logger.error(`iconv encode failed for ${encoding}: ${encodeErr?.message || encodeErr}`)
+            resolve({ success: false, message: `编码转换失败 (${encoding}): ${encodeErr?.message || encodeErr}` })
+            return
+          }
+        }
+
+        connection.port.write(writeData, writeEncoding, (err: Error | null | undefined) => {
           if (err) {
             this.logger.error(`serial write error: ${err.message}`)
             resolve({ success: false, message: err.message })

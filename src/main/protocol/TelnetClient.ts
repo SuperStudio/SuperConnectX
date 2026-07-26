@@ -34,19 +34,23 @@ export default class TelnetClient extends BaseClient {
 
   // 处理缓冲区数据，按行分割并添加时间戳
   private processBuffer(sessionId: string): void {
-    const connData = this.telnetConnectionData.get(sessionId)
-    if (!connData) return
+    try {
+      const connData = this.telnetConnectionData.get(sessionId)
+      if (!connData) return
 
-    const { buffer, splitter, onData, onLog } = connData
-    if (!buffer || buffer.length === 0) return
+      const { buffer, splitter, onData, onLog } = connData
+      if (!buffer || buffer.length === 0) return
 
-    const result = splitter.split(buffer)
-    connData.buffer = result.remainder
+      const result = splitter.split(buffer)
+      connData.buffer = result.remainder
 
-    if (result.count > 0) {
-      const timestamp = BufferLineSplitter.timestamp()
-      onData?.({ data: result.data, timestamp })
-      onLog?.(result.log, timestamp)
+      if (result.count > 0) {
+        const timestamp = BufferLineSplitter.timestamp()
+        onData?.({ data: result.data, timestamp })
+        onLog?.(result.log, timestamp)
+      }
+    } catch (err: any) {
+      this.logger.error(`processBuffer error: ${err?.message || err}`)
     }
   }
 

@@ -39,6 +39,7 @@
     "electron-updater": "^6.6.2",
     "element-plus": "^2.11.9",
     "ftp-srv": "^4.6.3",
+    "iconv-lite": "^0.7.3",
     "monaco-editor": "^0.55.1",
     "serialport": "^13.0.0",
     "sortablejs": "^1.15.7",
