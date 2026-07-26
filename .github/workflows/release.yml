@@ -10,8 +10,24 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: windows-2022
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-2022
+            artifact-name: windows-release
+          - name: macOS (Apple Silicon)
+            os: macos-14
+            mac-arch: arm64
+            artifact-name: macos-arm64
+          - name: macOS (Intel)
+            os: macos-15-intel
+            mac-arch: x64
+            artifact-name: macos-x64
 
     steps:
       - name: Checkout
@@ -22,13 +38,19 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install Python setuptools (for node-gyp)
+        if: runner.os != 'macOS'
+        run: pip install setuptools
+
+      - name: Install Python setuptools (macOS)
+        if: runner.os == 'macOS'
+        run: pip install setuptools --break-system-packages
+
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Install Python setuptools (for node-gyp)
-        run: pip install setuptools
-
-      - name: Remove problematic cpu-features (ssh2 works without it)
+      - name: Remove problematic cpu-features (Windows)
+        if: runner.os == 'Windows'
         run: |
           if (Test-Path node_modules\cpu-features) {
             Remove-Item -Recurse -Force node_modules\cpu-features
@@ -37,6 +59,12 @@ jobs:
             Remove-Item -Recurse -Force node_modules\ssh2\node_modules\cpu-features
           }
 
+      - name: Remove problematic cpu-features (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          rm -rf node_modules/cpu-features
+          rm -rf node_modules/ssh2/node_modules/cpu-features
+
       - name: Run tests
         run: npm test
 
@@ -44,49 +72,120 @@ jobs:
         run: npx electron-builder install-app-deps
 
       - name: Build (Windows)
+        if: runner.os == 'Windows'
         run: npm run build:win
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Release and Upload Assets
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Pack win-unpacked zip (Windows)
+        if: runner.os == 'Windows'
         run: |
-          $releaseBody = Get-Content -Path latest.md -Raw -Encoding UTF8
-          $repo = $env:GITHUB_REPOSITORY
-          $pkg = Get-Content package.json -Encoding UTF8 | ConvertFrom-Json
-          $projectName = $pkg.name
-          $version = $pkg.version
-          $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
-
-          Write-Host "Tag: $tag"
-
-          # Pack win-unpacked into zip if it exists
           $unpackedDir = "release\win-unpacked"
           if (Test-Path $unpackedDir) {
-            $zipName = "$projectName-$version-win-x64.zip"
-            $zipPath = "release\$zipName"
-            Write-Host "Packing $unpackedDir -> $zipPath ..."
-            Compress-Archive -Path "$unpackedDir\*" -DestinationPath $zipPath -CompressionLevel Optimal
-            Write-Host "Zip created: $zipName"
+            $pkg = Get-Content package.json -Encoding UTF8 | ConvertFrom-Json
+            $zipName = "$($pkg.name)-$($pkg.version)-win-x64.zip"
+            Write-Host "Packing $unpackedDir -> release\$zipName ..."
+            Compress-Archive -Path "$unpackedDir\*" -DestinationPath "release\$zipName" -CompressionLevel Optimal
           } else {
             Write-Host "[WARN] win-unpacked not found, skipping zip"
           }
 
-          # Collect built assets
-          $assets = Get-ChildItem -Path release\*.exe,release\*.yml,release\*.blockmap,release\*.zip | ForEach-Object { $_.FullName }
+      - name: Upload artifacts (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: |
+            release/*.exe
+            release/*.yml
+            release/*.blockmap
+            release/*.zip
+          if-no-files-found: error
 
-          if ($assets.Count -eq 0) {
-            Write-Error "No build artifacts found in release/"
+      - name: Build renderer and main (macOS)
+        if: runner.os == 'macOS'
+        run: npx electron-vite build
+
+      - name: Build package (macOS)
+        if: runner.os == 'macOS'
+        run: npx electron-builder --mac --${{ matrix.mac-arch }} --publish never
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify macOS DMG artifact
+        if: runner.os == 'macOS'
+        run: |
+          shopt -s nullglob
+          dmg_files=(release/*${{ matrix.mac-arch }}.dmg)
+          if [ ${#dmg_files[@]} -eq 0 ]; then
+            echo "Expected macOS ${{ matrix.mac-arch }} DMG was not generated"
+            ls -la release
             exit 1
-          }
+          fi
 
-          Write-Host "Assets found: $($assets.Count) file(s)"
-          $assets | ForEach-Object { Write-Host "  - $_" }
+      - name: Upload artifacts (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: |
+            release/*.dmg
+            release/*.yml
+            release/*.blockmap
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate combined latest-mac.yml
+        run: |
+          cd release-assets
+          if ls *.dmg 1>/dev/null 2>&1; then
+            VERSION=$(ls *.dmg | head -1 | grep -oP '\d+\.\d+\.\d+' || echo '0.0.0')
+            echo "version: $VERSION" > latest-mac.yml
+            echo "releaseDate: '$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'" >> latest-mac.yml
+            echo "files:" >> latest-mac.yml
+            for dmg in *.dmg; do
+              SIZE=$(stat -c%s "$dmg")
+              SHA512=$(sha512sum "$dmg" | cut -d' ' -f1)
+              echo "  - url: $dmg" >> latest-mac.yml
+              echo "    sha512: $SHA512" >> latest-mac.yml
+              echo "    size: $SIZE" >> latest-mac.yml
+            done
+            echo "Generated latest-mac.yml with $(ls *.dmg | wc -l) architecture(s)"
+            cat latest-mac.yml
+          fi
+
+      - name: Create Release and Upload Assets
+        run: |
+          tag="$GITHUB_REF_NAME"
+          repo="$GITHUB_REPOSITORY"
+
+          shopt -s nullglob
+          assets=(release-assets/*)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No build artifacts found"
+            exit 1
+          fi
+          echo "Assets found: ${#assets[@]} file(s)"
 
           # Delete existing release/draft if any (ignore errors)
-          gh release delete $tag --repo $repo --cleanup-tag 2>$null
+          gh release delete "$tag" --repo "$repo" --cleanup-tag --yes 2>/dev/null || true
 
-          # Create release with notes and upload all assets
-          gh release create $tag --repo $repo --title $tag --notes "$releaseBody" $assets
+          # Create release with notes from latest.md and upload all assets
+          gh release create "$tag" --repo "$repo" --title "$tag" --notes-file latest.md "${assets[@]}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
