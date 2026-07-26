@@ -533,7 +533,9 @@
     "recheck": "Recheck",
     "openWebsite": "Download",
     "error": "Update Error",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "proxyWarning": "Needs to connect to GitHub. May be blocked by security software in proxy environments. Continue?",
+    "continueCheck": "Continue"
   },
   "exportDialog": {
     "title": "Export Data",

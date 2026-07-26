@@ -533,7 +533,9 @@
     "recheck": "重新检测",
     "openWebsite": "官网下载",
     "error": "更新出错",
-    "unknownError": "未知错误"
+    "unknownError": "未知错误",
+    "proxyWarning": "需连接 GitHub，在代理环境下可能会被安全软件拦截。是否继续？",
+    "continueCheck": "继续检查"
   },
   "exportDialog": {
     "title": "导出数据",

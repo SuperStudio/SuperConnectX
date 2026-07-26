@@ -7,7 +7,6 @@ import IpcTray from './IpcTray'
 import IpcConnector from './IpcConnector'
 import SettingsStorage from '../storage/SettingsStorage'
 import BackupManager from '../utils/BackupManager'
-import AppUpdater from '../updater/AppUpdater'
 import fs from 'fs'
 import path from 'path'
 
@@ -209,23 +208,52 @@ export default class IpcMain {
     })
 
     // ========== 自动更新 IPC ==========
+    // electron-updater 默认不加载，避免在公司内网代理环境触发告警
+    // 前端在调用 checkForUpdates 前应先弹出确认框
+
+    let updaterLoaded = false
+    const ensureUpdater = async () => {
+      if (updaterLoaded) {
+        const { default: AppUpdater } = await import('../updater/AppUpdater')
+        return AppUpdater
+      }
+      return null
+    }
+
     ipcMain.handle('check-for-updates', async () => {
+      const mainWindow = windows.mainWindow
+      if (!mainWindow) return
+
+      // 动态加载 electron-updater
+      const { default: AppUpdater } = await import('../updater/AppUpdater')
+      if (!updaterLoaded) {
+        AppUpdater.getInstance().init(mainWindow)
+        updaterLoaded = true
+      }
       await AppUpdater.getInstance().checkForUpdates()
     })
 
     ipcMain.handle('start-download', async () => {
+      const AppUpdater = await ensureUpdater()
+      if (!AppUpdater) return
       await AppUpdater.getInstance().startDownload()
     })
 
-    ipcMain.handle('quit-and-install', () => {
+    ipcMain.handle('quit-and-install', async () => {
+      const AppUpdater = await ensureUpdater()
+      if (!AppUpdater) return
       AppUpdater.getInstance().quitAndInstall()
     })
 
-    ipcMain.handle('cancel-download', () => {
+    ipcMain.handle('cancel-download', async () => {
+      const AppUpdater = await ensureUpdater()
+      if (!AppUpdater) return
       AppUpdater.getInstance().cancelDownload()
     })
 
-    ipcMain.handle('get-cached-update-info', () => {
+    ipcMain.handle('get-cached-update-info', async () => {
+      const AppUpdater = await ensureUpdater()
+      if (!AppUpdater) return null
       return AppUpdater.getInstance().cachedUpdateInfo
     })
 

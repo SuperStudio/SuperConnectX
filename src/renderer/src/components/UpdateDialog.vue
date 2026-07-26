@@ -125,6 +125,7 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loading, CircleCheck, CircleClose, InfoFilled } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
 
 const { t } = useI18n()
 
@@ -312,6 +313,23 @@ const open = async () => {
   if (cached && cached.version) {
     status.value = 'update-available'
     updateInfo.value = cached
+    return
+  }
+
+  // 弹出确认框，提醒用户更新检查会连接 GitHub
+  try {
+    await ElMessageBox.confirm(
+      t('update.proxyWarning'),
+      t('update.checkUpdate'),
+      {
+        confirmButtonText: t('update.continueCheck'),
+        cancelButtonText: t('common.cancel'),
+        type: 'warning'
+      }
+    )
+  } catch {
+    // 用户取消
+    visible.value = false
     return
   }
 
