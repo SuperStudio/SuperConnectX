@@ -157,12 +157,10 @@ describe('AppDir - pure logic', () => {
       let exeDir = path.dirname(exePath)
       // macOS: go up 3 levels from MacOS/
       exeDir = path.resolve(exeDir, '../../..')
-      // On non-Windows, path.resolve with absolute Unix path works correctly
-      // On Windows, path.resolve prepends drive letter so the result differs
-      // We verify the logic works by checking the path ends with MyApp.app
-      // on platforms that support Unix paths natively
+      // path.resolve normalizes the path, .. traverses through .app directory
+      // /Applications/MyApp.app/Contents/MacOS -> ../../.. -> /Applications
       if (process.platform !== 'win32') {
-        expect(exeDir).toBe('/Applications/MyApp.app')
+        expect(exeDir).toBe('/Applications')
       } else {
         // On Windows, the path gets a drive letter prepended, just verify it exists
         expect(exeDir).toBeTruthy()
@@ -170,9 +168,18 @@ describe('AppDir - pure logic', () => {
     })
 
     it('should keep Windows exe path as-is (dirname only)', () => {
-      const exePath = 'C:\\Program Files\\MyApp\\MyApp.exe'
-      const exeDir = path.dirname(exePath)
-      expect(exeDir).toBe(path.join('C:', 'Program Files', 'MyApp'))
+      // On Linux, backslashes are not path separators, so dirname returns '.'
+      // On Windows, it would return 'C:\Program Files\MyApp'
+      if (process.platform === 'win32') {
+        const exePath = 'C:\\Program Files\\MyApp\\MyApp.exe'
+        const exeDir = path.dirname(exePath)
+        expect(exeDir).toBe(path.join('C:', 'Program Files', 'MyApp'))
+      } else {
+        // On non-Windows, backslashes are treated as part of filename
+        const exePath = 'C:\\Program Files\\MyApp\\MyApp.exe'
+        const exeDir = path.dirname(exePath)
+        expect(exeDir).toBe('.')
+      }
     })
   })
 
