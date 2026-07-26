@@ -20,8 +20,8 @@ vi.mock('electron', () => ({
   },
   Menu: { buildFromTemplate: vi.fn((t: any[]) => t) },
   nativeImage: {
-    createFromPath: vi.fn(() => ({ isEmpty: () => false, resize: () => ({}) })),
-    createEmpty: vi.fn(() => ({ isEmpty: () => true, resize: () => ({}) }))
+    createFromPath: vi.fn(() => ({ isEmpty: () => false, resize: () => ({ setTemplateImage: vi.fn() }) })),
+    createEmpty: vi.fn(() => ({ isEmpty: () => true, resize: () => ({ setTemplateImage: vi.fn() }) }))
   },
   BrowserWindow: class {}
 }))
