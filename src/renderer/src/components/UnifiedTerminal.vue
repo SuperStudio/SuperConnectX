@@ -807,11 +807,13 @@ const scrollToStart = () => {
   editor?.revealLine(1)
 }
 
-// 点击滚动到底部按钮：滚动到底部，然后取消自动滚动
+// 点击滚动到底部按钮：滚动到底部，并开启自动滚动（取消屏幕固定）
 const handleScrollToBottom = () => {
+  // 先滚动到底部
   scrollToEnd()
+  // 开启自动滚动：新数据到达时自动滚动到底部
   isInternalChange = true
-  isAutoScroll.value = false
+  isAutoScroll.value = true
 }
 
 // 点击滚动到顶部按钮：滚动到顶部，然后取消自动滚动
