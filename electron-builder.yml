@@ -14,6 +14,14 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   - '!**/node_modules/{CHANGELOG.md,README.md,readme.md,test,__tests__,tests,powered-test,example,examples}'
   - '!**/node_modules/.bin'
+extraResources:
+  - from: build/icon.ico
+    to: icon.ico
+  - from: build/icon.png
+    to: icon.png
+asarUnpack:
+  - node_modules/serialport/**
+  - node_modules/@serialport/**
 win:
   executableName: SuperConnectX
 nsis:
@@ -44,7 +52,8 @@ linux:
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
-npmRebuild: false
+afterPack: ./scripts/afterPack.js
+npmRebuild: true
 publish:
   provider: github
   owner: SuperStudio
