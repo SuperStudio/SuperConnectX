@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:   # 允许手动触发
+  workflow_dispatch:   # 允许手动触发（仅构建，不发布）
 
 permissions:
   contents: write
@@ -19,38 +19,71 @@ jobs:
         include:
           - name: Windows
             os: windows-2022
+            builder-target: --win
             artifact-name: windows-release
+            artifact-path: |
+              release/*.exe
+              release/*.zip
+              release/*.yml
+              release/*.blockmap
+          - name: Linux
+            os: ubuntu-22.04
+            builder-target: --linux
+            artifact-name: linux-release
+            artifact-path: |
+              release/*.AppImage
+              release/*.snap
+              release/*.deb
+              release/*.yml
+              release/*.blockmap
           - name: macOS (Apple Silicon)
             os: macos-14
+            builder-target: --mac --arm64
             mac-arch: arm64
             artifact-name: macos-arm64
+            artifact-path: |
+              release/*arm64.dmg
           - name: macOS (Intel)
             os: macos-15-intel
+            builder-target: --mac --x64
             mac-arch: x64
             artifact-name: macos-x64
+            artifact-path: |
+              release/*x64.dmg
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 使用 Node 24：lock 文件缺少非 Windows 平台 optional 依赖实体条目，
+      # node 20 自带 npm 10 会触发 npm/cli#4828（丢失 @rollup/rollup-* 平台包），npm 11+ 可正确安装
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
-      - name: Install Python setuptools (for node-gyp)
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libarchive-tools
+
+      - name: Install Python setuptools
         if: runner.os != 'macOS'
-        run: pip install setuptools
+        run: python3 -m pip install setuptools
 
       - name: Install Python setuptools (macOS)
         if: runner.os == 'macOS'
-        run: pip install setuptools --break-system-packages
+        run: python3 -m pip install setuptools --break-system-packages
 
+      # 统一用 npm install 而非 npm ci：lock 文件缺少部分平台相关依赖的实体条目
+      #（dmg-license、@rollup/rollup-* 等），npm ci 严格校验会报错或丢包（npm/cli#4828）
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: npm install --ignore-scripts
 
       - name: Remove problematic cpu-features (Windows)
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           if (Test-Path node_modules\cpu-features) {
             Remove-Item -Recurse -Force node_modules\cpu-features
@@ -58,6 +91,12 @@ jobs:
           if (Test-Path node_modules\ssh2\node_modules\cpu-features) {
             Remove-Item -Recurse -Force node_modules\ssh2\node_modules\cpu-features
           }
+
+      - name: Remove problematic cpu-features (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          rm -rf node_modules/cpu-features
+          rm -rf node_modules/ssh2/node_modules/cpu-features
 
       - name: Remove problematic cpu-features (macOS)
         if: runner.os == 'macOS'
@@ -71,44 +110,27 @@ jobs:
       - name: Rebuild native modules
         run: npx electron-builder install-app-deps
 
-      - name: Build (Windows)
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build renderer and main
+        run: npx electron-vite build
+
+      - name: Build package (Windows)
         if: runner.os == 'Windows'
-        run: npm run build:win
+        run: npx electron-builder --win nsis zip --publish never
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pack win-unpacked zip (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          $unpackedDir = "release\win-unpacked"
-          if (Test-Path $unpackedDir) {
-            $pkg = Get-Content package.json -Encoding UTF8 | ConvertFrom-Json
-            $zipName = "$($pkg.name)-$($pkg.version)-win-x64.zip"
-            Write-Host "Packing $unpackedDir -> release\$zipName ..."
-            Compress-Archive -Path "$unpackedDir\*" -DestinationPath "release\$zipName" -CompressionLevel Optimal
-          } else {
-            Write-Host "[WARN] win-unpacked not found, skipping zip"
-          }
-
-      - name: Upload artifacts (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact-name }}
-          path: |
-            release/*.exe
-            release/*.yml
-            release/*.blockmap
-            release/*.zip
-          if-no-files-found: error
-
-      - name: Build renderer and main (macOS)
-        if: runner.os == 'macOS'
-        run: npx electron-vite build
+      - name: Build package (Linux)
+        if: runner.os == 'Linux'
+        run: npx electron-builder --linux --config electron-builder.yml --publish never
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build package (macOS)
         if: runner.os == 'macOS'
-        run: npx electron-builder --mac --${{ matrix.mac-arch }} --publish never
+        run: npx electron-builder ${{ matrix.builder-target }} --config electron-builder.yml --publish never
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -123,21 +145,82 @@ jobs:
             exit 1
           fi
 
-      - name: Upload artifacts (macOS)
-        if: runner.os == 'macOS'
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.artifact-path }}
+          if-no-files-found: error
+
+  # Electron 38 构建的包在 Ubuntu 24.04 上无法运行，降级 Electron 35 单独构建一版兼容包
+  build-ubuntu24:
+    name: Build Linux (Ubuntu 24 compatible)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libarchive-tools
+
+      - name: Install Python setuptools
+        run: python3 -m pip install setuptools
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Downgrade Electron to 35 for Ubuntu 24 compatibility
+        run: npm install electron@35.7.5 --save-dev
+
+      - name: Remove problematic cpu-features
+        run: |
+          rm -rf node_modules/cpu-features
+          rm -rf node_modules/ssh2/node_modules/cpu-features
+
+      - name: Run tests
+        run: npm test
+
+      - name: Rebuild native modules
+        run: npx electron-builder install-app-deps
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build renderer and main
+        run: npx electron-vite build
+
+      - name: Build package (Linux Ubuntu 24)
+        run: npx electron-builder --linux AppImage deb --config electron-builder.yml --publish never
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Rename Ubuntu 24 artifacts
+        run: |
+          cd release
+          for f in *.AppImage; do mv "$f" "${f%.AppImage}-ubuntu24.AppImage"; done
+          for f in *.deb; do mv "$f" "${f%.deb}-ubuntu24.deb"; done
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-ubuntu24-release
           path: |
-            release/*.dmg
-            release/*.yml
-            release/*.blockmap
+            release/*-ubuntu24.AppImage
+            release/*-ubuntu24.deb
           if-no-files-found: error
 
   release:
     name: Create GitHub Release
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, build-ubuntu24]
+    if: startsWith(github.ref, 'refs/tags/v')   # 仅打 tag 时发布，手动触发只构建
     runs-on: ubuntu-22.04
 
     steps:
@@ -159,8 +242,8 @@ jobs:
             echo "releaseDate: '$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'" >> latest-mac.yml
             echo "files:" >> latest-mac.yml
             for dmg in *.dmg; do
-              SIZE=$(stat -c%s "$dmg")
-              SHA512=$(sha512sum "$dmg" | cut -d' ' -f1)
+              SIZE=$(stat -c%s "$dmg" 2>/dev/null || stat -f%z "$dmg" 2>/dev/null || echo 0)
+              SHA512=$(sha512sum "$dmg" 2>/dev/null | cut -d' ' -f1 || shasum -a 512 "$dmg" 2>/dev/null | cut -d' ' -f1 || echo '')
               echo "  - url: $dmg" >> latest-mac.yml
               echo "    sha512: $SHA512" >> latest-mac.yml
               echo "    size: $SIZE" >> latest-mac.yml
@@ -170,9 +253,11 @@ jobs:
           fi
 
       - name: Create Release and Upload Assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
           tag="$GITHUB_REF_NAME"
-          repo="$GITHUB_REPOSITORY"
 
           shopt -s nullglob
           assets=(release-assets/*)
@@ -183,9 +268,12 @@ jobs:
           echo "Assets found: ${#assets[@]} file(s)"
 
           # Delete existing release/draft if any (ignore errors)
-          gh release delete "$tag" --repo "$repo" --cleanup-tag --yes 2>/dev/null || true
+          gh release delete "$tag" --repo "$REPO" --cleanup-tag --yes 2>/dev/null || true
 
           # Create release with notes from latest.md and upload all assets
-          gh release create "$tag" --repo "$repo" --title "$tag" --notes-file latest.md "${assets[@]}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          gh release create "$tag" \
+            --repo "$REPO" \
+            --target "$GITHUB_SHA" \
+            --title "$tag" \
+            --notes-file latest.md \
+            "${assets[@]}"
