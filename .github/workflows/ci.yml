@@ -1,0 +1,136 @@
+name: CI Build
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: CI ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-2022
+            builder-target: --win nsis zip
+            artifact-name: windows-release
+            artifact-path: |
+              release/*.exe
+              release/*.zip
+              release/*.yml
+              release/*.blockmap
+          - name: Linux
+            os: ubuntu-22.04
+            builder-target: --linux
+            artifact-name: linux-release
+            artifact-path: |
+              release/*.AppImage
+              release/*.snap
+              release/*.deb
+              release/*.yml
+              release/*.blockmap
+          - name: macOS (Apple Silicon)
+            os: macos-14
+            builder-target: --mac --arm64
+            mac-arch: arm64
+            artifact-name: macos-arm64
+            artifact-path: release/*arm64.dmg
+          - name: macOS (Intel)
+            os: macos-15-intel
+            builder-target: --mac --x64
+            mac-arch: x64
+            artifact-name: macos-x64
+            artifact-path: release/*x64.dmg
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libarchive-tools
+
+      - name: Install Python setuptools
+        if: runner.os != 'macOS'
+        run: python3 -m pip install setuptools
+
+      - name: Install Python setuptools (macOS)
+        if: runner.os == 'macOS'
+        run: python3 -m pip install setuptools --break-system-packages
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Remove problematic cpu-features (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (Test-Path node_modules\cpu-features) {
+            Remove-Item -Recurse -Force node_modules\cpu-features
+          }
+          if (Test-Path node_modules\ssh2\node_modules\cpu-features) {
+            Remove-Item -Recurse -Force node_modules\ssh2\node_modules\cpu-features
+          }
+
+      - name: Remove problematic cpu-features (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          rm -rf node_modules/cpu-features
+          rm -rf node_modules/ssh2/node_modules/cpu-features
+
+      - name: Remove problematic cpu-features (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          rm -rf node_modules/cpu-features
+          rm -rf node_modules/ssh2/node_modules/cpu-features
+
+      - name: Run tests
+        run: npm test
+
+      - name: Rebuild native modules
+        run: npx electron-builder install-app-deps
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build renderer and main
+        run: npx electron-vite build
+
+      - name: Build packages
+        run: npx electron-builder ${{ matrix.builder-target }} --config electron-builder.yml --publish never
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify macOS DMG artifact
+        if: runner.os == 'macOS'
+        run: |
+          shopt -s nullglob
+          dmg_files=(release/*${{ matrix.mac-arch }}.dmg)
+          if [ ${#dmg_files[@]} -eq 0 ]; then
+            echo "Expected macOS ${{ matrix.mac-arch }} DMG was not generated"
+            ls -la release
+            exit 1
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.artifact-path }}
+          retention-days: 7
+          if-no-files-found: error
