@@ -544,6 +544,57 @@ const initEditor = async () => {
     }
   })
 
+  // 自定义复制：将 \0（null 字符）替换为可见字符 ␀，避免系统剪贴板截断
+  const customCopy = () => {
+    const selection = editor?.getSelection()
+    if (!selection || selection.isEmpty() || !editorModel) return
+    const text = editorModel.getValueInRange(selection)
+    if (text && /\x00/.test(text)) {
+      const sanitized = text.replace(/\x00/g, '␀')
+      navigator.clipboard.writeText(sanitized).catch((err) => {
+        console.error('clipboard write failed:', err)
+      })
+      return true // 表示已处理
+    }
+    return false // 没有 \0，走默认复制
+  }
+
+  // 拦截 Ctrl+C / Cmd+C 键盘事件
+  editor.onKeyDown((e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.keyCode === monaco.KeyCode.KeyC) {
+      if (customCopy()) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+  })
+
+  // 覆盖 Monaco 默认的 Copy action（处理右键菜单 "Copy"）
+  // 注意：addAction 的 id 与内置 action 冲突时，高优先级者胜出
+  editor.addAction({
+    id: 'editor.action.clipboardCopyAction',
+    label: 'Copy',
+    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC],
+    precondition: undefined,
+    run: () => {
+      customCopy()
+    }
+  })
+
+  // 拦截 DOM 级别的 copy 事件作为兜底（右键菜单、Edit 菜单等场景）
+  if (domNode) {
+    domNode.addEventListener('copy', (e: ClipboardEvent) => {
+      const selection = editor?.getSelection()
+      if (!selection || selection.isEmpty() || !editorModel) return
+      const text = editorModel.getValueInRange(selection)
+      if (text && /\x00/.test(text)) {
+        e.preventDefault()
+        const sanitized = text.replace(/\x00/g, '␀')
+        e.clipboardData?.setData('text/plain', sanitized)
+      }
+    })
+  }
+
   // 监听滚动位置变化（用于检测是否滚动到底部）
   editor.onDidScrollChange(() => {
     if (!autoScrollOnWheel || !editor) return
