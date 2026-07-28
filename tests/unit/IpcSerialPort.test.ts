@@ -130,8 +130,8 @@ describe('IpcSerialPort', () => {
         expect(ports).toHaveLength(1)
         expect(ports[0].path).toBe('/dev/ttyUSB0')
       } else if (process.platform === 'win32') {
-        expect(ports).toHaveLength(1)
-        expect(ports[0].path).toBe('COM1')
+        // Windows keeps all COM ports, including software-virtualised ones
+        expect(ports).toHaveLength(2)
       } else {
         expect(ports).toHaveLength(3)
       }
