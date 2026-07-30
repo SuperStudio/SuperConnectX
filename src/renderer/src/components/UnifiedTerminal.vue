@@ -189,6 +189,7 @@ import TerminalControl from './TerminalControl.vue'
 import { parseAnsiToSegments } from '../utils/AnsiParser'
 import { AnsiDecorationManager } from '../utils/AnsiDecorationManager'
 import { getMonacoTheme } from '../utils/MonacoTheme'
+import { getDefaultTerminalFont } from '../utils/FontDetector'
 
 const maxClearSizeMB = ref(30)
 
@@ -282,7 +283,7 @@ const hexMode = ref(false) // 是否为HEX发送模式
 const hexDisplayMode = ref(false) // 是否为HEX显示模式（接收端）
 const showTimestamp = ref(true) // 是否显示时间戳
 const fontSize = ref(14) // 终端字体大小
-const fontFamily = ref('Consolas') // 终端字体系列
+const fontFamily = ref(getDefaultTerminalFont()) // 终端字体系列（平台感知默认值）
 const MIN_FONT_SIZE = 8
 const MAX_FONT_SIZE = 30
 
@@ -1473,7 +1474,7 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   flex-direction: column;
   background: var(--terminal-bg);
   color: var(--text-white);
-  font-family: 'Fira Code', 'Consolas', monospace;
+  font-family: 'Fira Code', 'Consolas', 'Ubuntu Mono', 'Noto Sans Mono CJK SC', monospace;
   overflow: hidden;
 }
 
@@ -1787,7 +1788,7 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   cursor: pointer;
   color: var(--history-item-color);
   font-size: 12px;
-  font-family: 'Fira Code', 'Consolas', monospace;
+  font-family: 'Fira Code', 'Consolas', 'Ubuntu Mono', 'Noto Sans Mono CJK SC', monospace;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1949,7 +1950,7 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: 'Fira Code', 'Consolas', monospace;
+  font-family: 'Fira Code', 'Consolas', 'Ubuntu Mono', 'Noto Sans Mono CJK SC', monospace;
   font-size: 12px;
 }
 

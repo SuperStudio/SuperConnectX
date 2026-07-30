@@ -910,7 +910,7 @@ onBeforeUnmount(() => {
 
 .command-table .el-table :deep(.cell-command .el-input__inner) {
   color: var(--cmdeditor-command-color);
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: 'Consolas', 'Monaco', 'Ubuntu Mono', 'Noto Sans Mono CJK SC', monospace;
 }
 
 .command-table .el-table :deep(.cell-command .el-input__inner:focus) {
@@ -928,7 +928,7 @@ onBeforeUnmount(() => {
 }
 
 .cmd-delay {
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: 'Consolas', 'Monaco', 'Ubuntu Mono', 'Noto Sans Mono CJK SC', monospace;
   color: var(--cmdeditor-seqnum-color);
 }
 
@@ -943,7 +943,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: 'Consolas', 'Monaco', 'Ubuntu Mono', 'Noto Sans Mono CJK SC', monospace;
   color: var(--cmdeditor-command-color);
   background: var(--cmdeditor-command-bg);
   padding: 2px 8px;

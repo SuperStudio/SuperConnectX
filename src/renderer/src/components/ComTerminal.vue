@@ -171,6 +171,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import UnifiedTerminal from './UnifiedTerminal.vue'
 import { useTerminal } from '../composables/useTerminal'
+import { getDefaultTerminalFont } from '../utils/FontDetector'
 
 const { t } = useI18n()
 
@@ -414,7 +415,7 @@ const loadComSettings = async () => {
       crcEnabled.value = settings.crcEnabled !== undefined ? settings.crcEnabled : true
       crcMethod.value = settings.crcMethod || 'CRC-16/MODBUS'
       terminal.fontSize.value = settings.fontSize !== undefined ? settings.fontSize : 14
-      terminal.fontFamily.value = settings.fontFamily || 'Fira Code'
+      terminal.fontFamily.value = settings.fontFamily || getDefaultTerminalFont()
       const savedInput = settings.commandInput || ''
 
       unifiedTerminalRef.value?.setHexDisplayMode?.(hexDisplayMode.value)
@@ -785,7 +786,7 @@ onUnmounted(() => {
   flex-direction: column;
   background: var(--com-terminal-bg);
   color: var(--com-terminal-color);
-  font-family: 'Fira Code', 'Consolas', monospace;
+  font-family: 'Fira Code', 'Consolas', 'Ubuntu Mono', 'Noto Sans Mono CJK SC', monospace;
   overflow: hidden;
 }
 

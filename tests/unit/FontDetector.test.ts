@@ -1,7 +1,47 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { formatFontName, getSystemFonts } from '../../src/renderer/src/utils/FontDetector'
+import {
+  formatFontName,
+  getSystemFonts,
+  getDefaultTerminalFont
+} from '../../src/renderer/src/utils/FontDetector'
 
 describe('FontDetector', () => {
+  describe('getDefaultTerminalFont', () => {
+    it('Windows 返回 Fira Code/Cascadia/Consolas 链', () => {
+      const ua =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Electron/33.0.0'
+      const font = getDefaultTerminalFont(ua)
+      expect(font).toContain('Fira Code')
+      expect(font).toContain('Cascadia Mono')
+      expect(font).toContain('Consolas')
+      expect(font).toContain('monospace')
+    })
+
+    it('macOS 返回 Fira Code/Menlo/Monaco 链', () => {
+      const ua =
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130.0.0.0 Electron/33.0.0'
+      const font = getDefaultTerminalFont(ua)
+      expect(font).toContain('Fira Code')
+      expect(font).toContain('Menlo')
+      expect(font).toContain('Monaco')
+      expect(font).toContain('monospace')
+    })
+
+    it('Linux 返回 Fira Code/Ubuntu Mono/Noto CJK 链', () => {
+      const ua =
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/130.0.0.0 Electron/33.0.0'
+      const font = getDefaultTerminalFont(ua)
+      expect(font).toContain('Fira Code')
+      expect(font).toContain('Ubuntu Mono')
+      expect(font).toContain('Noto Sans Mono CJK SC')
+      expect(font).toContain('DejaVu Sans Mono')
+      expect(font).toContain('monospace')
+      // Linux 链不应包含 Windows/macOS 专有字体
+      expect(font).not.toContain('Consolas')
+      expect(font).not.toContain('Menlo')
+    })
+  })
+
   describe('formatFontName', () => {
     it('映射已知字体名称', () => {
       expect(formatFontName('SimSun')).toBe('宋体')

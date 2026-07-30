@@ -256,7 +256,7 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { getSystemFonts, formatFontName } from '../utils/FontDetector'
+import { getSystemFonts, formatFontName, getDefaultTerminalFont } from '../utils/FontDetector'
 import ExportDialog from './ExportDialog.vue'
 
 const { t } = useI18n()
@@ -270,7 +270,7 @@ const showHelpMenu = ref(false)
 const showFontSubmenu = ref(false)
 const fontsLoaded = ref(false)
 const systemFonts = ref<string[]>([])
-const currentFontFamily = ref('Fira Code') // 当前活动的字体
+const currentFontFamily = ref(getDefaultTerminalFont()) // 当前活动的字体
 
 // ---- 皮肤切换 ----
 const showThemePanel = ref(false)
@@ -314,7 +314,7 @@ const props = defineProps({
   },
   currentFont: {
     type: String,
-    default: 'Fira Code'
+    default: () => getDefaultTerminalFont()
   },
   wordWrap: {
     type: Boolean,

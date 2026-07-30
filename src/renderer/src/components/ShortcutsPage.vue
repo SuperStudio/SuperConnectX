@@ -634,7 +634,7 @@ const clearSearch = () => {
   background: var(--shortcuts-table-border);
   color: var(--shortcuts-action-name);
   font-size: 12px;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: 'Consolas', 'Monaco', 'Ubuntu Mono', 'Noto Sans Mono CJK SC', monospace;
   border-radius: 4px;
   border: 1px solid var(--key-badge-border);
   white-space: nowrap;

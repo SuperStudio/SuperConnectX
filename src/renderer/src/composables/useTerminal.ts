@@ -1,6 +1,7 @@
 import { ref, watch, onUnmounted, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import { getDefaultTerminalFont } from '../utils/FontDetector'
 
 export interface TerminalConnection {
   id: string | number
@@ -74,7 +75,7 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
 
   // 状态
   const fontSize = ref(14)
-  const fontFamily = ref('Fira Code')
+  const fontFamily = ref(getDefaultTerminalFont())
   const showTimestamp = ref(true)
   let totalRxSize = 0
   let totalTxSize = 0
