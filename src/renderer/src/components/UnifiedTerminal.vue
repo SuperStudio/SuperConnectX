@@ -573,12 +573,16 @@ const initEditor = async () => {
   // 覆盖 Monaco 默认的 Copy action（处理右键菜单 "Copy"）
   // 注意：addAction 的 id 与内置 action 冲突时，高优先级者胜出
   editor.addAction({
-    id: 'editor.action.clipboardCopyAction',
+    id: 'editor.action.clipboardCopyWithNullReplacement',
     label: 'Copy',
     keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC],
     precondition: undefined,
     run: () => {
-      customCopy()
+      if (!customCopy()) {
+        // 没有 \0 字符时，走 Monaco 默认复制逻辑
+        editor?.focus()
+        document.execCommand('copy')
+      }
     }
   })
 
