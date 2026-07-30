@@ -145,6 +145,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import * as monaco from 'monaco-editor'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { getMonacoTheme } from '../utils/MonacoTheme'
+import { getDefaultTerminalFont } from '../utils/FontDetector'
 
 const { t } = useI18n()
 
@@ -476,7 +477,7 @@ const initPreviewEditor = () => {
     links: false,
     wordWrap: 'on',
     fontSize: 13,
-    fontFamily: "'Fira Code', 'Consolas', monospace"
+    fontFamily: getDefaultTerminalFont()
   })
 
   // 监听文本变化，同步到 activeGroup.previewText

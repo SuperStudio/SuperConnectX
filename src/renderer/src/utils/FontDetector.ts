@@ -18,6 +18,22 @@ const waitForPageVisible = () => {
   })
 }
 
+/**
+ * 平台感知的终端默认等宽字体链。
+ * Fira Code 全平台优先（用户自行安装则生效），其后按平台回退到系统自带等宽字体，
+ * 避免 Linux 上 Fira Code/Consolas 均不存在时浏览器随意 fallback 导致中西文宽度失调。
+ */
+export const getDefaultTerminalFont = (userAgent?: string): string => {
+  const ua = userAgent ?? navigator.userAgent
+  if (ua.includes('Windows')) {
+    return "'Fira Code', 'Cascadia Mono', 'Consolas', monospace"
+  }
+  if (ua.includes('Mac')) {
+    return "'Fira Code', 'Menlo', 'Monaco', monospace"
+  }
+  return "'Fira Code', 'Ubuntu Mono', 'Noto Sans Mono CJK SC', 'WenQuanYi Micro Hei Mono', 'DejaVu Sans Mono', monospace"
+}
+
 export const formatFontName = (fontName: string) => {
   const fontNameMap: Record<string, string> = {
     SimSun: '宋体',

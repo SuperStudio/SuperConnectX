@@ -414,7 +414,7 @@ onMounted(() => {
   flex-direction: column;
   background: var(--bg-primary);
   color: var(--text-white);
-  font-family: 'Fira Code', 'Consolas', monospace;
+  font-family: 'Fira Code', 'Consolas', 'Ubuntu Mono', 'Noto Sans Mono CJK SC', monospace;
   border-radius: 0px;
   overflow: hidden;
 }

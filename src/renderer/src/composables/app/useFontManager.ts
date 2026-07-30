@@ -3,13 +3,14 @@
  * 管理：当前活动字体获取、字体/字体大小变更
  */
 import { ref, watch, nextTick } from 'vue'
+import { getDefaultTerminalFont } from '../../utils/FontDetector'
 
 export function useFontManager(
   activeTabId: any,
   comTerminalRefs: Record<string, any>,
   telnetTerminalRefs: Record<string, any>
 ) {
-  const currentFont = ref('Fira Code')
+  const currentFont = ref(getDefaultTerminalFont())
 
   const updateCurrentFont = (tabId: string, retries = 5) => {
     const tryGetFont = () => {
@@ -32,7 +33,7 @@ export function useFontManager(
       if (retryCount < retries) {
         setTimeout(retry, 100)
       } else {
-        currentFont.value = 'Fira Code'
+        currentFont.value = getDefaultTerminalFont()
       }
     }
     setTimeout(retry, 100)
