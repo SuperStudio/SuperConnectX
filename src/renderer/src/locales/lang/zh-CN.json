@@ -433,7 +433,8 @@
     "startLoopMessage": "已开始循环发送: {name} (间隔{interval}ms)",
     "deleteGroupConfirm": "确认删除 {name} 及其所有命令?",
     "deleteGroupTitle": "删除组",
-    "commandSendFailed": "命令发送失败"
+    "commandSendFailed": "命令发送失败",
+    "invalidHexFormat": "无效的HEX格式"
   },
   "commandEditor": {
     "title": "命令编辑器",

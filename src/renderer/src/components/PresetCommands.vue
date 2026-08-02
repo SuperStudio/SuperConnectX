@@ -272,6 +272,10 @@ const presetForm = ref<{
 // 定义属性
 const props = defineProps<{
   isConnected: boolean
+  hexMode?: boolean
+  autoNewline?: boolean
+  crcEnabled?: boolean
+  crcMethod?: string
   connection: {
     id: string | number
     host?: string
@@ -286,7 +290,7 @@ const props = defineProps<{
 // 定义事件
 const emit = defineEmits<{
   (e: 'commandSent', cmdName: string): void
-  (e: 'commandSentContent', content: string): void
+  (e: 'commandSentContent', content: string, byteLength?: number): void
   (e: 'openCommandEditor', connectionType: string): void
 }>()
 
@@ -757,6 +761,47 @@ const closeContextMenuOnClickOutside = (event: MouseEvent) => {
   }
 }
 
+// 解析HEX字符串为二进制
+const parseHexString = (hex: string): string | null => {
+  try {
+    const cleaned = hex.replace(/[\s\n\r]+/g, '')
+    if (!/^[0-9A-Fa-f]*$/.test(cleaned) || cleaned.length % 2 !== 0) {
+      console.error('Invalid HEX format')
+      return null
+    }
+    let result = ''
+    for (let i = 0; i < cleaned.length; i += 2) {
+      result += String.fromCharCode(parseInt(cleaned.substr(i, 2), 16))
+    }
+    return result
+  } catch (error) {
+    console.error('HEX parse error:', error)
+    return null
+  }
+}
+
+// 计算 CRC 校验字节（异步，通过主进程 DataCheckEngine）
+const computeCrcBytes = async (hexInput: string): Promise<string | null> => {
+  if (!props.crcEnabled || !props.crcMethod || !hexInput) return null
+  try {
+    const result = await window.dataCheckApi.checkData(props.crcMethod, hexInput)
+    const hex = result.hexResult
+    const byteLen = hex.length / 2
+    const bytes = new Uint8Array(byteLen)
+    for (let i = 0; i < hex.length; i += 2) {
+      bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
+    }
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    return binary
+  } catch {
+    console.error('CRC compute error')
+    return null
+  }
+}
+
 const sendPresetCommand = async (cmd: any) => {
   if (!props.isConnected) {
     ElMessage.warning(t('terminal.notConnected'))
@@ -764,13 +809,59 @@ const sendPresetCommand = async (cmd: any) => {
   }
 
   try {
+    let sendData: string = cmd.command.trim()
+    const displayContent: string = cmd.command
+
+    // HEX模式：将HEX字符串转为二进制
+    if (props.hexMode) {
+      const parsed = parseHexString(sendData)
+      if (parsed === null) {
+        ElMessage.warning(t('presetCommands.invalidHexFormat'))
+        return
+      }
+      sendData = parsed
+
+      // 先附加回车换行（CRLF属于原始数据的一部分）
+      if (props.autoNewline) {
+        sendData = sendData + '\r\n'
+      }
+
+      // 附加CRC（如果启用，CRC计算的数据已包含CRLF）
+      if (props.crcEnabled && props.crcMethod) {
+        // 需要计算CRC的输入数据：原始HEX命令 + CRLF（如果启用）
+        const cleaned = cmd.command.trim().replace(/[\s\n\r]+/g, '')
+        let crcInputHex = cleaned
+        if (props.autoNewline) {
+          crcInputHex += '0D0A' // CRLF 的 HEX
+        }
+        const crcBytes = await computeCrcBytes(crcInputHex)
+        if (crcBytes) {
+          sendData = sendData + crcBytes
+        }
+      }
+    } else {
+      // 追加CRLF
+      if (props.autoNewline) {
+        sendData = sendData + '\r\n'
+      }
+    }
+
     emit('commandSent', cmd.name.trim())
-    emit('commandSentContent', cmd.command)
+    // HEX 模式下将实际发送的二进制数据转成 HEX 显示（包含 CRLF 和 CRC 字节）
+    if (props.hexMode) {
+      const hexBytes: string[] = []
+      for (let i = 0; i < sendData.length; i++) {
+        hexBytes.push(sendData.charCodeAt(i).toString(16).padStart(2, '0').toUpperCase())
+      }
+      emit('commandSentContent', hexBytes.join(' '), sendData.length)
+    } else {
+      emit('commandSentContent', displayContent)
+    }
     const conn = getCurrentConnect()
-    console.log('Send command - connection info:', JSON.stringify(conn), 'command:', cmd.command.trim())
+    console.log('Send command - connection info:', JSON.stringify(conn), 'command:', sendData)
     const result = await window.connectApi.sendData({
       conn: conn,
-      command: cmd.command.trim()
+      command: sendData
     })
     console.log('Send result:', JSON.stringify(result))
     if (!result.success) {

@@ -433,7 +433,8 @@
     "startLoopMessage": "Started loop: {name} (interval: {interval}ms)",
     "deleteGroupConfirm": "Confirm delete {name} and all its commands?",
     "deleteGroupTitle": "Delete Group",
-    "commandSendFailed": "Failed to send command"
+    "commandSendFailed": "Failed to send command",
+    "invalidHexFormat": "Invalid HEX format"
   },
   "commandEditor": {
     "title": "Command Editor",

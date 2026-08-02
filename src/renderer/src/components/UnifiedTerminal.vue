@@ -56,9 +56,13 @@
       <PresetCommands
         :is-connected="isConnected"
         :connection="connection"
+        :hex-mode="hexMode"
+        :auto-newline="autoNewline"
+        :crc-enabled="crcEnabled"
+        :crc-method="crcMethod"
         ref="presetCommandsRef"
         @commandSent="handleCommandSent"
-        @commandSentContent="appendCommandToTerminal"
+        @commandSentContent="(content: string, byteLength?: number) => appendCommandToTerminal(content, byteLength)"
         @openCommandEditor="(connectionType: string) => emit('onOpenCommandEditor', connectionType)"
       />
     </div>
@@ -1147,11 +1151,11 @@ const parseHexString = (hex: string): string | null => {
   }
 }
 
-const appendCommandToTerminal = (content: string) => {
+const appendCommandToTerminal = (content: string, byteLength?: number) => {
   const now = new Date()
   const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`
   appendToTerminal(`\n[${timestamp}] SEND>>>>>>>>>>>>> ${content}\n`)
-  totalTxSize += content.length
+  totalTxSize += byteLength !== undefined ? byteLength : content.length
   txBytes.value = formatBytes(totalTxSize)
 }
 
