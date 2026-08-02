@@ -224,6 +224,7 @@ onMounted(() => {
   margin-left: 0 !important;
   background-color: var(--terminal-control-close-bg) !important;
   border-color: var(--terminal-control-close-border) !important;
+  color: var(--btn-danger-text) !important;
 }
 
 .clear-btn {
@@ -236,6 +237,7 @@ onMounted(() => {
   margin-right: 4px !important;
   background-color: var(--terminal-control-clear-bg) !important;
   border-color: var(--terminal-control-clear-border) !important;
+  color: var(--btn-danger-text) !important;
 }
 
 .clear-btn:hover {

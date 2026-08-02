@@ -233,6 +233,11 @@ body {
   border-color: var(--btn-danger-hover) !important;
 }
 
+/* 全局危险按钮前景色为白色 */
+.el-button--danger {
+  color: var(--btn-danger-text) !important;
+}
+
 /* MessageBox 遮罩层支持穿透点击 */
 
 /* ElMessage 半透明 + 穿透点击 */

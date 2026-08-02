@@ -56,6 +56,7 @@
   --btn-danger-hover: #d66a6a;
   --btn-danger-active: #b04545;
   --btn-danger-light-bg: #d46060;
+  --btn-danger-text: #fff;
 
   --btn-icon-text: #409eff;
   --btn-icon-text-hover: #66b1ff;
@@ -702,6 +703,7 @@
   --btn-danger-hover: #e07070;
   --btn-danger-active: #c05050;
   --btn-danger-light-bg: #d46060;
+  --btn-danger-text: #fff;
 
   --btn-icon-text: #2672d9;
   --btn-icon-text-hover: #409eff;
