@@ -47,7 +47,7 @@
               </el-tooltip>
             </span>
           </el-tooltip>
-          <el-tooltip :content="pinnedTabs.has(tab.id) ? $t('tabs.unpin') : $t('tabs.pin')" placement="top" effect="dark" :enterable="false" :show-after="500">
+          <el-tooltip :content="pinnedTabs.has(tab.id) ? $t('tabs.unpin') : $t('tabs.close')" placement="top" effect="dark" :enterable="false" :show-after="500">
             <span
               class="tab-action-btn"
               :class="{ pinned: pinnedTabs.has(tab.id) }"
