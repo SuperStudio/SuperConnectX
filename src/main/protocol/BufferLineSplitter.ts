@@ -48,17 +48,26 @@ export class BufferLineSplitter {
 
   /**
    * 将 Buffer 片段解码为字符串。
-   * 对于 Node.js 原生支持的编码（utf8/ascii/latin1 等），直接使用 buffer.toString()；
-   * 对于 gb2312/gbk/gb18030/big5 等编码，使用 iconv-lite 解码。
+   * - HEX 模式：直接输出 hex 字符串（如 "aa 22 0d 0a 61 05"），不经过任何字符编码层
+   * - STR 模式：按 encoding 解码（utf8/gb2312/gbk 等）
    */
   private decodeBuffer(buffer: Buffer, start: number, end: number): string {
+    if (this.receiveHex) {
+      // HEX 模式：直接逐字节转 hex，不经过任何字符编码
+      let hex = ''
+      for (let i = start; i < end; i++) {
+        hex += buffer[i].toString(16).padStart(2, '0') + ' '
+      }
+      return hex.trimEnd()
+    }
+
+    // STR 模式：按 encoding 解码
     if (NATIVE_ENCODINGS.has(this.encoding)) {
       return buffer.toString(this.encoding as BufferEncoding, start, end)
     }
     try {
       return iconv.decode(buffer.subarray(start, end), this.encoding)
     } catch {
-      // 编码不支持时，回退为 latin1（按字节原样输出）
       return buffer.toString('latin1', start, end)
     }
   }
@@ -66,10 +75,22 @@ export class BufferLineSplitter {
   /**
    * 从 Buffer 中提取所有完整的行
    * 支持 \r\n、\r、\n 三种换行符
+   * HEX 模式下不做行切割，直接输出整个 buffer 的 hex（换行符也是有效数据）
    */
   split(buffer: Buffer): LineSplitResult {
     if (!buffer || buffer.length === 0) {
       return { data: '', log: '', count: 0, remainder: Buffer.alloc(0) }
+    }
+
+    // HEX 模式：不切割行，整个 buffer 直接转 hex，包含换行符字节
+    if (this.receiveHex) {
+      const hexData = this.decodeBuffer(buffer, 0, buffer.length)
+      return {
+        data: hexData,
+        log: hexData,
+        count: hexData ? 1 : 0,
+        remainder: Buffer.alloc(0)
+      }
     }
 
     const CR = 0x0d
@@ -131,14 +152,11 @@ export class BufferLineSplitter {
     }
   }
 
-  /** 将一行文本转换为日志格式（支持 hex 模式） */
+  /** 将一行文本转换为日志格式（HEX 模式下 line 已经是 hex 字符串，原样返回） */
   toLogLine(line: string): string {
     if (!this.receiveHex) return line
-    let hexLog = ''
-    for (let i = 0; i < line.length; i++) {
-      hexLog += line.charCodeAt(i).toString(16).padStart(2, '0') + ' '
-    }
-    return hexLog.trim()
+    // HEX 模式下 decodeBuffer 已经输出 hex 字符串，直接返回即可
+    return line
   }
 
   /** 生成时间戳：YYYY-MM-DD HH:mm:ss.mmm */

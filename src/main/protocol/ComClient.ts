@@ -11,7 +11,6 @@ const DEFAULT_PARITY = 'none' as const
 const DEFAULT_ENCODING = 'utf8'
 const READ_INTERVAL_MS = 10 // 固定10ms读取间隔
 const FLUSH_TIMEOUT_MS = 100 // 空闲超时：buffer 中有数据但超过此时间无新数据到达，强制刷新
-const COMMAND_LINE_TERMINATOR = '\r\n'
 
 interface SerialConnection {
   port: SerialPort
@@ -171,7 +170,7 @@ export default class ComClient extends BaseClient {
             // 关闭前输出缓冲区中剩余的数据
             if (connection.buffer && connection.buffer.length > 0) {
               const timestamp = BufferLineSplitter.timestamp()
-              const remainingStr = connection.buffer.toString(encoding as BufferEncoding)
+              const remainingStr = connection.splitter.decodeFull(connection.buffer)
               connection.onData?.({ data: remainingStr, timestamp })
               connection.onLog?.(connection.splitter.toLogLine(remainingStr), timestamp)
               connection.buffer = Buffer.alloc(0)
@@ -208,6 +207,21 @@ export default class ComClient extends BaseClient {
     }
   }
 
+  /**
+   * 检测字符串是否包含非 ASCII 字节（0x80-0xFF），即是否为 HEX 模式发送的二进制数据。
+   * HEX 模式下 parseHexString 使用 String.fromCharCode() 将每个字节转为 JS 字符串中的字符，
+   * 0x80-0xFF 范围的字节在 JS 字符串中对应 charCode 128-255，这些不是合法 UTF-8 单字节字符。
+   */
+  private isBinaryString(str: string): boolean {
+    for (let i = 0; i < str.length; i++) {
+      const code = str.charCodeAt(i)
+      if (code >= 0x80 && code <= 0xff) {
+        return true
+      }
+    }
+    return false
+  }
+
   async send(connId: string, command: string, onComplete: any): Promise<object> {
     const connection = this.serialConnections.get(connId)
     if (!connection) {
@@ -215,8 +229,15 @@ export default class ComClient extends BaseClient {
     }
 
     try {
-      const dataStr = `[${new Date().toISOString()}] SEND >>>>>>>>>> ${command}`
-      const commandWithNewline = command.endsWith(COMMAND_LINE_TERMINATOR) ? command : (command.endsWith('\n') ? command.replace(/\n$/, COMMAND_LINE_TERMINATOR) : command + COMMAND_LINE_TERMINATOR)
+      // HEX 模式下 command 是二进制字符串（含不可打印字符），日志需要转 hex 显示
+      const isBinary = this.isBinaryString(command)
+      const logCommand = isBinary
+        ? Array.from({ length: command.length }, (_, i) => command.charCodeAt(i).toString(16).padStart(2, '0')).join(' ').toUpperCase()
+        : command
+      const dataStr = `[${new Date().toISOString()}] SEND >>>>>>>>>> ${logCommand}`
+
+      // 检测是否为 HEX 模式发送的二进制数据（包含 0x80-0xFF 范围的字节）
+      // 这类数据不能经过 UTF-8 等文本编码，必须作为原始字节直接写入串口
 
       // Node.js 原生 Buffer 编码集有限（utf8/ascii/latin1 等），不支持 gb2312/gbk/gb18030/big5 等
       // 对于非原生编码，使用 iconv-lite 先将字符串转为 Buffer 再写入串口
@@ -226,12 +247,20 @@ export default class ComClient extends BaseClient {
       return new Promise((resolve) => {
         let writeData: Buffer | string
         let writeEncoding: BufferEncoding | undefined
-        if (nativeEncodings.has(encoding)) {
-          writeData = commandWithNewline
+        if (isBinary) {
+          // HEX 模式二进制数据：直接构造 Buffer，逐字节写入，完全绕过字符编码层
+          const buf = Buffer.alloc(command.length)
+          for (let i = 0; i < command.length; i++) {
+            buf[i] = command.charCodeAt(i) & 0xff
+          }
+          writeData = buf
+          writeEncoding = undefined // Buffer 模式不需要 encoding 参数
+        } else if (nativeEncodings.has(encoding)) {
+          writeData = command
           writeEncoding = encoding as BufferEncoding
         } else {
           try {
-            writeData = iconv.encode(commandWithNewline, encoding)
+            writeData = iconv.encode(command, encoding)
             writeEncoding = undefined // Buffer 模式下不需要 encoding 参数
           } catch (encodeErr: any) {
             this.logger.error(`iconv encode failed for ${encoding}: ${encodeErr?.message || encodeErr}`)
@@ -247,7 +276,7 @@ export default class ComClient extends BaseClient {
             return
           }
           onComplete?.(dataStr)
-          this.logger.info(`send command: ${command}`)
+          this.logger.info(`send command: ${logCommand}`)
           resolve({ success: true })
         })
       })

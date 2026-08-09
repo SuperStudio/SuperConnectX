@@ -127,28 +127,15 @@ async function handleStart(msg: WorkerMessage): Promise<void> {
   try {
     const result = await c.start(
       connInfo,
-      // onData 回调：数据到达时回传主线程（HEX 转换在 Worker 中完成）
+      // onData 回调：数据到达时回传主线程
+      // HEX 转换已下沉到 BufferLineSplitter.decodeBuffer() 中完成，此处不再重复转换
       (dataObj: { data: string; timestamp: string }) => {
-        let displayData: string
-        const isHex = receiveHex
-
-        if (isHex) {
-          let hexResult = ''
-          for (let i = 0; i < dataObj.data.length; i++) {
-            const hex = dataObj.data.charCodeAt(i).toString(16)
-            hexResult += hex.padStart(2, '0') + ' '
-          }
-          displayData = hexResult.trim()
-        } else {
-          displayData = dataObj.data
-        }
-
         postResponse({
           type: 'data',
           sessionId,
-          displayData,
+          displayData: dataObj.data,
           timestamp: dataObj.timestamp,
-          isHex
+          isHex: receiveHex
         })
       },
       // onClose 回调

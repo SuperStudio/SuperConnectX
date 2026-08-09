@@ -105,15 +105,4 @@ export default class ConnectionStateManager {
     })
   }
 
-  /**
-   * HEX 转换工具：将字符串转为 HEX 显示格式
-   */
-  static convertToHex(data: string): string {
-    let result = ''
-    for (let i = 0; i < data.length; i++) {
-      const hex = data.charCodeAt(i).toString(16)
-      result += hex.padStart(2, '0') + ' '
-    }
-    return result.trim()
-  }
 }

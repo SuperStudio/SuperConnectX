@@ -38,8 +38,8 @@ export default class DirectConnector {
   private createOnData(sessionId: string) {
     return (dataObj: { data: string; timestamp: string }) => {
       const isHex = this.stateManager.getReceiveHex(sessionId)
-      const displayData = isHex ? ConnectionStateManager.convertToHex(dataObj.data) : dataObj.data
-      this.stateManager.sendDataToRenderer(sessionId, displayData, dataObj.timestamp, isHex)
+      // HEX 转换已下沉到 BufferLineSplitter.decodeBuffer() 中完成，此处不再重复转换
+      this.stateManager.sendDataToRenderer(sessionId, dataObj.data, dataObj.timestamp, isHex)
     }
   }
 
