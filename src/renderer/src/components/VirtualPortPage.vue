@@ -60,44 +60,19 @@
         empty-text=""
         v-if="pairList.length > 0"
       >
+        <el-table-column :label="t('common.delete')" width="60" align="center">
+          <template #default="{ row }">
+            <el-icon size="16" class="action-icon delete-icon" @click="handleRemovePair(row)">
+              <Delete />
+            </el-icon>
+          </template>
+        </el-table-column>
         <el-table-column :label="t('virtualPort.pairIndex')" width="80" align="center">
           <template #default="{ $index }">{{ $index + 1 }}</template>
         </el-table-column>
         <el-table-column prop="portA" :label="t('virtualPort.portA')" />
         <el-table-column prop="portB" :label="t('virtualPort.portB')" />
-        <el-table-column :label="t('virtualPort.status')" width="120" align="center">
-          <template #default="{ row }">
-            <el-tag v-if="row.active" type="success" size="small">{{ t('virtualPort.active') }}</el-tag>
-            <el-tag v-else type="info" size="small">{{ t('virtualPort.inactive') }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('virtualPort.actions')" width="160" align="center">
-          <template #default="{ row }">
-            <el-button
-              v-if="row.active"
-              size="small"
-              class="btn-cancel"
-              @click="handleDeactivatePair(row)"
-            >
-              {{ t('virtualPort.deactivate') }}
-            </el-button>
-            <el-button
-              v-else
-              size="small"
-              class="btn-primary"
-              @click="handleActivatePair(row)"
-            >
-              {{ t('virtualPort.activate') }}
-            </el-button>
-            <el-button
-              size="small"
-              class="btn-cancel"
-              @click="handleRemovePair(row)"
-            >
-              {{ t('common.delete') }}
-            </el-button>
-          </template>
-        </el-table-column>
+
       </el-table>
 
       <div v-else class="empty-pair-list">
@@ -111,7 +86,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CircleCheck, CircleClose } from '@element-plus/icons-vue'
+import { CircleCheck, CircleClose, Delete } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
 
@@ -286,6 +261,23 @@ const handleRemovePair = (_row: VirtualPortPair) => {
   overflow: hidden;
 }
 
+.pair-list-section :deep(.el-table__body tr) {
+  background: var(--panel-bg);
+}
+
+.pair-list-section :deep(.el-table__body tr:hover > td) {
+  background: var(--shortcuts-table-row-hover) !important;
+}
+
+.pair-list-section :deep(.el-table__body td) {
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--shortcuts-table-row-border) !important;
+}
+
+.pair-list-section :deep(.el-table__body .el-table__row--striped td) {
+  background: var(--shortcuts-table-stripe-bg) !important;
+}
+
 .empty-pair-list {
   display: flex;
   align-items: center;
@@ -293,5 +285,25 @@ const handleRemovePair = (_row: VirtualPortPair) => {
   height: 200px;
   background-color: var(--panel-bg);
   border-radius: 8px;
+}
+
+/* 删除图标 */
+.action-icon {
+  cursor: pointer;
+  transition: all 0.2s ease !important;
+  opacity: 0.8 !important;
+}
+
+.action-icon:hover {
+  transform: scale(1.1) !important;
+  opacity: 1 !important;
+}
+
+.delete-icon {
+  color: var(--preset-delete-icon-color);
+}
+
+.delete-icon:hover {
+  color: var(--preset-delete-icon-hover) !important;
 }
 </style>
