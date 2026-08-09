@@ -46,6 +46,12 @@ Tab drag and drop support
 
 <img src="Image/image-20260712223209692.png" alt="image-20260712223209692" style="zoom:80%;" />
 
+Batch Command Loop Execution
+
+<img src="Image/2.gif" alt="2" style="zoom:80%;" />
+
+
+
 ## Serial CRC Checksum
 
 <img src="Image/image-20260712223233500.png" alt="image-20260712223233500" style="zoom:80%;" />
@@ -65,6 +71,10 @@ COM / Telnet / FTP
 <img src="Image/image-20260712222905898.png" alt="image-20260712222905898" style="zoom:80%;" />
 
 <img src="Image/image-20260712222929409.png" alt="image-20260712222929409" style="zoom:80%;" />
+
+## Virtual Serial Port Emulation
+
+<img src="Image/image-20260809175628990.png" alt="image-20260809175628990" style="zoom:80%;" />
 
 ## Keyboard Shortcuts
 

@@ -46,6 +46,12 @@ SuperConnectX 是**超级终端工具**，支持 com、telnet 等终端连接，
 
 <img src="Image/image-20260712223209692.png" alt="image-20260712223209692" style="zoom:80%;" />
 
+命令循环批量运行
+
+<img src="Image/2.gif" alt="2" style="zoom:80%;" />
+
+
+
 ## 串口CRC校验
 
 <img src="Image/image-20260712223233500.png" alt="image-20260712223233500" style="zoom:80%;" />
@@ -65,6 +71,10 @@ com/telnet/ftp
 <img src="Image/image-20260712222905898.png" alt="image-20260712222905898" style="zoom:80%;" />
 
 <img src="Image/image-20260712222929409.png" alt="image-20260712222929409" style="zoom:80%;" />
+
+## 支持虚拟串口模拟
+
+<img src="Image/image-20260809175628990.png" alt="image-20260809175628990" style="zoom:80%;" />
 
 ## 快捷键
 
