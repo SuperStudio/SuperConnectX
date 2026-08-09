@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    :title="t('dialog.newConnection')"
+    :title="isEditMode ? t('dialog.editConnection') : t('dialog.newConnection')"
     v-model="dialogVisible"
     width="640px"
     @keydown.enter.native="handleSubmit"

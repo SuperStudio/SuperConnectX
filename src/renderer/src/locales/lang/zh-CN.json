@@ -254,6 +254,7 @@
 
   "dialog": {
     "newConnection": "新建连接",
+    "editConnection": "编辑连接",
     "editRemark": "编辑备注",
     "remarkPlaceholder": "请输入备注名称",
     "protocolType": "协议类型",

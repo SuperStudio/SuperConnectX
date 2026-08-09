@@ -254,6 +254,7 @@
 
   "dialog": {
     "newConnection": "New Connection",
+    "editConnection": "Edit Connection",
     "editRemark": "Edit Remark",
     "remarkPlaceholder": "Enter remark name",
     "protocolType": "Protocol Type",
