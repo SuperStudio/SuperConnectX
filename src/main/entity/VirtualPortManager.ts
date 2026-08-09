@@ -375,6 +375,7 @@ export default class VirtualPortManager {
   async updatePorts(ports: VirtualPort[]): Promise<boolean> {
     if (!this.isReady() || !ports || ports.length === 0) return false
 
+    let anyFailed = false
     for (const port of ports) {
       const updateStr = port.toUpdateString()
       logger.info(`VirtualPortManager updatePorts: change ${port.ID} ${updateStr}`)
@@ -382,23 +383,15 @@ export default class VirtualPortManager {
       try {
         const lines = await this.execSetupCmdAdmin(`change ${port.ID} ${updateStr}`)
         logger.info(`VirtualPortManager updatePorts stdout lines: ${JSON.stringify(lines)}`)
-        let completed = false
-        for (const line of lines) {
-          if (line.includes(`Restarted ${port.ID}`)) {
-            completed = true
-            break
-          }
-        }
-        if (!completed) {
-          logger.error(`VirtualPortManager updatePorts: change ${port.ID} did not restart`)
-          return false
-        }
+        // setupc change 通过管理员权限执行，只要没有抛异常即视为成功
+        // 注意：admin 提权执行时 stdout 可能被重定向到临时文件，输出内容不可靠
+        logger.info(`VirtualPortManager updatePorts: change ${port.ID} completed`)
       } catch (error) {
         logger.error(`VirtualPortManager updatePorts: change ${port.ID} failed: ${error}`)
-        return false
+        anyFailed = true
       }
     }
 
-    return true
+    return !anyFailed
   }
 }

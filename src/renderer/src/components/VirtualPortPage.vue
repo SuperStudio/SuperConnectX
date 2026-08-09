@@ -104,21 +104,45 @@
         </el-table-column>
 
         <!-- 模拟真实插拔 -->
-        <el-table-column :label="t('virtualPort.plugInMode')" min-width="100" align="center">
+        <el-table-column min-width="100" align="center">
+          <template #header>
+            <span class="col-header">
+              {{ t('virtualPort.plugInMode') }}
+              <el-tooltip :content="t('virtualPort.plugInModeHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER">
+                <el-icon :size="14" class="col-help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </span>
+          </template>
           <template #default="{ row }">
             <el-switch v-model="row.PlugInMode" size="small" class="terminal-switch" />
           </template>
         </el-table-column>
 
         <!-- 独占模式 -->
-        <el-table-column :label="t('virtualPort.exclusiveMode')" min-width="90" align="center">
+        <el-table-column min-width="90" align="center">
+          <template #header>
+            <span class="col-header">
+              {{ t('virtualPort.exclusiveMode') }}
+              <el-tooltip :content="t('virtualPort.exclusiveModeHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER">
+                <el-icon :size="14" class="col-help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </span>
+          </template>
           <template #default="{ row }">
             <el-switch v-model="row.ExclusiveMode" size="small" class="terminal-switch" />
           </template>
         </el-table-column>
 
         <!-- 误码率 -->
-        <el-table-column :label="t('virtualPort.emuNoise')" min-width="110">
+        <el-table-column min-width="110">
+          <template #header>
+            <span class="col-header">
+              {{ t('virtualPort.emuNoise') }}
+              <el-tooltip :content="t('virtualPort.emuNoiseHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER">
+                <el-icon :size="14" class="col-help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </span>
+          </template>
           <template #default="{ row }">
             <el-input
               v-model="row.EmuNoise"
@@ -130,7 +154,15 @@
         </el-table-column>
 
         <!-- RTTO(ms) -->
-        <el-table-column :label="t('virtualPort.rtto')" min-width="100">
+        <el-table-column min-width="100">
+          <template #header>
+            <span class="col-header">
+              {{ t('virtualPort.rtto') }}
+              <el-tooltip :content="t('virtualPort.rttoHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER">
+                <el-icon :size="14" class="col-help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </span>
+          </template>
           <template #default="{ row }">
             <el-input
               v-model="row.AddRTTO"
@@ -142,7 +174,15 @@
         </el-table-column>
 
         <!-- RITO(ms) -->
-        <el-table-column :label="t('virtualPort.rito')" min-width="100">
+        <el-table-column min-width="100">
+          <template #header>
+            <span class="col-header">
+              {{ t('virtualPort.rito') }}
+              <el-tooltip :content="t('virtualPort.ritoHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER">
+                <el-icon :size="14" class="col-help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </span>
+          </template>
           <template #default="{ row }">
             <el-input
               v-model="row.AddRITO"
@@ -204,9 +244,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CircleCheck, CircleClose } from '@element-plus/icons-vue'
+import { CircleCheck, CircleClose, QuestionFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { isProperPortName } from '@renderer/utils/virtualPort'
+import { TOOLTIP_SHOW_AFTER } from '@renderer/utils/constants'
 
 const { t } = useI18n()
 
@@ -234,6 +275,9 @@ interface VirtualPortRow {
 
 const portList = reactive<VirtualPortRow[]>([])
 
+// 保存刷新时的原始快照，用于比对变更
+const portListSnapshot = ref<VirtualPortRow[]>([])
+
 // 保存/应用状态
 const saving = ref(false)
 
@@ -244,6 +288,11 @@ const addPairForm = reactive({
   portA: '',
   portB: ''
 })
+
+// 深拷贝 portList 作为快照
+function snapshotPortList(): VirtualPortRow[] {
+  return portList.map((row) => ({ ...row }))
+}
 
 // 刷新列表
 const refreshPorts = async () => {
@@ -264,6 +313,7 @@ const refreshPorts = async () => {
         HiddenMode: !!p.HiddenMode
       })
     }
+    portListSnapshot.value = snapshotPortList()
   } catch (error) {
     console.error('[VirtualPortPage] listPorts failed:', error)
   }
@@ -358,11 +408,44 @@ function toPlainPort(row: VirtualPortRow): Record<string, unknown> {
   }
 }
 
+// 比较两个端口是否一致
+function portRowEquals(a: VirtualPortRow, b: VirtualPortRow): boolean {
+  return (
+    a.ID === b.ID &&
+    a.Name === b.Name &&
+    a.EmuBR === b.EmuBR &&
+    a.EmuOverrun === b.EmuOverrun &&
+    a.EmuNoise === b.EmuNoise &&
+    a.AddRTTO === b.AddRTTO &&
+    a.AddRITO === b.AddRITO &&
+    a.PlugInMode === b.PlugInMode &&
+    a.ExclusiveMode === b.ExclusiveMode &&
+    a.HiddenMode === b.HiddenMode
+  )
+}
+
 // 保存
 const handleSave = async () => {
   saving.value = true
   try {
-    const ports = portList.map(toPlainPort)
+    // 找出变更的端口（对比快照）
+    const changedPorts: VirtualPortRow[] = []
+    const snapshotMap = new Map(portListSnapshot.value.map((s) => [s.ID, s]))
+
+    for (const row of portList) {
+      const snap = snapshotMap.get(row.ID)
+      if (!snap || !portRowEquals(row, snap)) {
+        changedPorts.push(row)
+      }
+    }
+
+    if (changedPorts.length === 0) {
+      ElMessage.info(t('virtualPort.noChanges'))
+      saving.value = false
+      return
+    }
+
+    const ports = changedPorts.map(toPlainPort)
     const result = await window.virtualPortApi.updatePorts(ports)
     if (result.success) {
       ElMessage.success(t('virtualPort.updateSuccess'))
@@ -453,6 +536,22 @@ const handleSave = async () => {
   min-width: 0;
 }
 
+.col-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.col-help-icon {
+  color: var(--text-tertiary);
+  cursor: help;
+  flex-shrink: 0;
+}
+
+.col-help-icon:hover {
+  color: var(--text-primary);
+}
+
 .port-list-section :deep(.el-table) {
   --el-table-bg-color: var(--panel-bg);
   --el-table-tr-bg-color: var(--panel-bg);
@@ -466,17 +565,6 @@ const handleSave = async () => {
 
 .port-list-section :deep(.el-table__body-wrapper) {
   overflow-x: auto;
-}
-
-.port-list-section :deep(.el-table) {
-  --el-table-bg-color: var(--panel-bg);
-  --el-table-tr-bg-color: var(--panel-bg);
-  --el-table-header-bg-color: var(--table-header-bg);
-  --el-table-border-color: var(--border-color);
-  --el-table-text-color: var(--text-primary);
-  --el-table-header-text-color: var(--text-secondary);
-  border-radius: 8px;
-  overflow: hidden;
 }
 
 .port-list-section :deep(.el-table__body tr) {
