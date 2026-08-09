@@ -34,6 +34,11 @@
             "command": "npm run typecheck"
         },
         {
+            "label": "npm run test",
+            "type": "shell",
+            "command": "npm run test"
+        },
+        {
             "label": "npm run test:coverage",
             "type": "shell",
             "command": "npm run test:coverage"

@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
+// Mock child_process.execSync so registry queries don't affect test counts
+vi.mock('child_process', () => ({
+  execSync: vi.fn().mockReturnValue('')
+}))
+
 // Mock serialport
 vi.mock('serialport', () => ({
   SerialPort: {
