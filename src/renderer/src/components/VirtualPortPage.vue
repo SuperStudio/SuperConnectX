@@ -61,6 +61,7 @@
         style="width: 100%"
         size="small"
         empty-text=""
+        table-layout="auto"
         v-if="portList.length > 0"
       >
         <!-- 序号 -->
@@ -69,7 +70,7 @@
         </el-table-column>
 
         <!-- 串口号 -->
-        <el-table-column :label="t('virtualPort.portNumber')" width="110">
+        <el-table-column :label="t('virtualPort.portNumber')" min-width="110">
           <template #default="{ row }">
             <el-input
               v-model="row.Name"
@@ -82,42 +83,42 @@
         </el-table-column>
 
         <!-- 隐藏 -->
-        <el-table-column :label="t('virtualPort.hidden')" width="70" align="center">
+        <el-table-column :label="t('virtualPort.hidden')" min-width="70" align="center">
           <template #default="{ row }">
             <el-switch v-model="row.HiddenMode" size="small" class="terminal-switch" />
           </template>
         </el-table-column>
 
         <!-- 模拟波特率 -->
-        <el-table-column :label="t('virtualPort.emuBR')" width="90" align="center">
+        <el-table-column :label="t('virtualPort.emuBR')" min-width="90" align="center">
           <template #default="{ row }">
             <el-switch v-model="row.EmuBR" size="small" class="terminal-switch" />
           </template>
         </el-table-column>
 
         <!-- 缓冲区溢出 -->
-        <el-table-column :label="t('virtualPort.emuOverrun')" width="90" align="center">
+        <el-table-column :label="t('virtualPort.emuOverrun')" min-width="90" align="center">
           <template #default="{ row }">
             <el-switch v-model="row.EmuOverrun" size="small" class="terminal-switch" />
           </template>
         </el-table-column>
 
         <!-- 模拟真实插拔 -->
-        <el-table-column :label="t('virtualPort.plugInMode')" width="100" align="center">
+        <el-table-column :label="t('virtualPort.plugInMode')" min-width="100" align="center">
           <template #default="{ row }">
             <el-switch v-model="row.PlugInMode" size="small" class="terminal-switch" />
           </template>
         </el-table-column>
 
         <!-- 独占模式 -->
-        <el-table-column :label="t('virtualPort.exclusiveMode')" width="90" align="center">
+        <el-table-column :label="t('virtualPort.exclusiveMode')" min-width="90" align="center">
           <template #default="{ row }">
             <el-switch v-model="row.ExclusiveMode" size="small" class="terminal-switch" />
           </template>
         </el-table-column>
 
         <!-- 误码率 -->
-        <el-table-column :label="t('virtualPort.emuNoise')" width="110">
+        <el-table-column :label="t('virtualPort.emuNoise')" min-width="110">
           <template #default="{ row }">
             <el-input
               v-model="row.EmuNoise"
@@ -129,7 +130,7 @@
         </el-table-column>
 
         <!-- RTTO(ms) -->
-        <el-table-column :label="t('virtualPort.rtto')" width="100">
+        <el-table-column :label="t('virtualPort.rtto')" min-width="100">
           <template #default="{ row }">
             <el-input
               v-model="row.AddRTTO"
@@ -141,7 +142,7 @@
         </el-table-column>
 
         <!-- RITO(ms) -->
-        <el-table-column :label="t('virtualPort.rito')" width="100">
+        <el-table-column :label="t('virtualPort.rito')" min-width="100">
           <template #default="{ row }">
             <el-input
               v-model="row.AddRITO"
@@ -449,6 +450,21 @@ const handleSave = async () => {
 .port-list-section {
   flex: 1;
   min-height: 0;
+  min-width: 0;
+}
+
+.port-list-section :deep(.el-table) {
+  --el-table-bg-color: var(--panel-bg);
+  --el-table-tr-bg-color: var(--panel-bg);
+  --el-table-header-bg-color: var(--table-header-bg);
+  --el-table-border-color: var(--border-color);
+  --el-table-text-color: var(--text-primary);
+  --el-table-header-text-color: var(--text-secondary);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.port-list-section :deep(.el-table__body-wrapper) {
   overflow-x: auto;
 }
 
