@@ -4,10 +4,53 @@
  * 统一使用 Electron 的 userData 目录存放所有用户数据：
  * - 日志、备份、终端日志、用户数据均在此目录下
  * - 首次启动时，若 EXE 同目录存在旧数据，自动迁移并删除
+ *
+ * 多实例支持：
+ * - 单实例时，Chromium 和业务数据都在 userData 根目录下（与旧版本兼容）
+ * - 多实例时，每个实例使用独立的 Chromium 目录（_instance_N），
+ *   避免 Chromium 内核的 lockfile/SingletonLock 文件冲突
+ * - 业务数据（storage JSON、日志、备份等）始终在 userData 根目录下，
+ *   所有实例共享，目录结构不变，无需数据迁移
+ * - 实例索引通过命令行参数 --instance-index=N 传入，默认 0
  */
 import { app } from 'electron'
 import fs from 'fs'
 import path from 'path'
+
+/**
+ * 获取当前实例索引。
+ *
+ * 通过命令行参数 --instance-index=N 区分不同实例。
+ * 如果未指定，默认为 0（主实例）。
+ *
+ * 多实例场景下，用户手动启动第二个实例时需要加 `--instance-index=1`。
+ * 或者也可以让应用自动检测已有实例数量并分配索引，但 Electron 本身
+ * 没有提供这样的 API，建议在启动脚本/shortcut 中处理。
+ */
+let _instanceIndex: number | undefined
+
+export function getInstanceIndex(): number {
+  if (_instanceIndex !== undefined) return _instanceIndex
+
+  // 优先从命令行参数读取：--instance-index=N
+  const idxArg = process.argv.find((a) => a.startsWith('--instance-index='))
+  if (idxArg) {
+    const parsed = parseInt(idxArg.split('=')[1], 10)
+    _instanceIndex = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0
+    return _instanceIndex
+  }
+
+  // 备选：从环境变量读取（开发模式下 electron-vite dev 不透明传命令行参数）
+  const envIdx = process.env.SCX_INSTANCE_INDEX
+  if (envIdx !== undefined) {
+    const parsed = parseInt(envIdx, 10)
+    _instanceIndex = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0
+    return _instanceIndex
+  }
+
+  _instanceIndex = 0
+  return _instanceIndex
+}
 
 /**
  * 获取 exe 所在目录（兼容 macOS 的 .app bundle 结构）
@@ -24,10 +67,26 @@ export function getExeDir(): string {
 /**
  * 获取应用数据根目录
  *
- * 统一使用 electron userData 目录
+ * 返回 userData 原始值，所有实例共享。
+ * 业务数据（storage JSON、日志、备份等）都在这下面，与旧版本目录结构一致。
  */
 export function getAppDataDir(): string {
   return app.getPath('userData')
+}
+
+/**
+ * 获取 Chromium 数据目录（多实例隔离）。
+ *
+ * 多实例时返回独立的子目录（_instance_N），避免 lockfile/SingletonLock 冲突。
+ * 仅 initAppPaths 和 cleanupChromiumClutter 使用。
+ */
+export function getChromiumDataDir(): string {
+  const base = app.getPath('userData')
+  const instanceIdx = getInstanceIndex()
+  if (instanceIdx > 0) {
+    return path.join(base, `_instance_${instanceIdx}`)
+  }
+  return base
 }
 
 /**
@@ -43,7 +102,8 @@ export function getAppDataDir(): string {
  * **cleanupChromiumClutter() 在 app.whenReady() 之后调用。**
  */
 export function initAppPaths(): void {
-  const userData = getAppDataDir()
+  const userData = getChromiumDataDir()  // 多实例时指向 userData/_instance_N
+  const instanceIdx = getInstanceIndex()
 
   // 将 Chromium 运行时数据集中到 _runtime/ 子目录下
   const runtimeDir = path.join(userData, '_runtime')
@@ -52,10 +112,13 @@ export function initAppPaths(): void {
   // 不能重定向到 userData 的子目录，因为 Chromium 会在这些目录下创建以
   // 应用名命名的子目录，并可能把 userData 也重定向过去（如 _runtime/Cache/superconnectx）。
   //
-  // 解决方案：将 sessionData 放到 userData 的**兄弟目录**，而非子目录。
-  // 这样 Chromium 的 Local Storage、blob_storage 等杂散文件不会污染 userData 根目录，
-  // 也不会影响 app.getPath('userData') 的返回值。
-  const sessionDir = path.join(path.dirname(userData), 'superconnectx-session')
+  // 解决方案：将 sessionData 放到 userData 根目录下，与 _instance_N 同级。
+  // 这样所有数据都在 Roaming\SuperConnectX\ 下，不会散落到 Roaming 根目录。
+  //
+  // 多实例：每个实例使用独立的 sessionData 目录，避免 Chromium 内部文件冲突。
+  const userDataBase = app.getPath('userData')  // 原始值，非实例目录
+  const sessionSuffix = instanceIdx > 0 ? `_${instanceIdx}` : ''
+  const sessionDir = path.join(userDataBase, `superconnectx-session${sessionSuffix}`)
   try {
     app.setPath('sessionData', sessionDir)
   } catch {
@@ -74,11 +137,12 @@ export function initAppPaths(): void {
   }
 
   // 确保业务目录存在
-  const bizDirs = ['app-logs', 'logs']
+  const bizDirs = ['app-logs', 'logs', 'userdata']
   for (const dir of bizDirs) {
-    const dirPath = path.join(userData, dir)
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true })
+    // 共享目录（userData 根目录）下的业务目录
+    const bizPath = path.join(getAppDataDir(), dir)
+    if (!fs.existsSync(bizPath)) {
+      fs.mkdirSync(bizPath, { recursive: true })
     }
   }
 }
@@ -149,7 +213,7 @@ const CHROMIUM_CLUTTER_PATTERNS = [
  * 所以这个方法清理的是上次运行残留的目录。新产生的目录需要等下次启动时清理。
  */
 export function cleanupChromiumClutter(logger?: { info: (msg: string) => void }): void {
-  const userData = getAppDataDir()
+  const userData = getChromiumDataDir()  // 多实例时指向 userData/_instance_N
 
   // 1. 清理 userData 根目录下的 Chromium 杂散目录/文件
   for (const name of CHROMIUM_CLUTTER_PATTERNS) {
@@ -264,6 +328,11 @@ function getLegacyDataDirs(): string[] {
  * @param logger 可选的日志函数，用于记录迁移过程
  */
 export function migrateDataIfNeeded(logger?: { info: (msg: string) => void }): void {
+  // 多实例：只由实例 0 执行迁移
+  if (getInstanceIndex() > 0) {
+    logger?.info(`[AppDir] migrateDataIfNeeded skipped (instance ${getInstanceIndex()}, only instance 0 migrates)`)
+    return
+  }
   const appDataDir = getAppDataDir()
   const legacyDirs = getLegacyDataDirs()
 
@@ -271,8 +340,18 @@ export function migrateDataIfNeeded(logger?: { info: (msg: string) => void }): v
 
   for (const legacyDir of legacyDirs) {
     // 如果 legacyDir 就是目标目录，跳过
-    if (path.resolve(legacyDir).toUpperCase() === path.resolve(appDataDir).toUpperCase()) {
-      continue
+    // 用 fs.realpathSync 解析符号链接和规范化路径，跨平台安全
+    try {
+      const legacyReal = fs.realpathSync(legacyDir)
+      const targetReal = fs.realpathSync(appDataDir)
+      if (legacyReal === targetReal) {
+        continue
+      }
+    } catch {
+      // realpathSync 可能因目录不存在而抛异常，回退到 path.resolve 比较
+      if (path.resolve(legacyDir) === path.resolve(appDataDir)) {
+        continue
+      }
     }
 
     for (const dirName of dirsToMigrate) {

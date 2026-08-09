@@ -73,7 +73,9 @@ vi.mock('../../src/main/pool/WorkerPool', () => ({
 }))
 
 vi.mock('../../src/main/utils/AppDir', () => ({
-  getAppDataDir: vi.fn(() => '/mock/userData')
+  getAppDataDir: vi.fn(() => '/mock/userData'),
+  getChromiumDataDir: vi.fn(() => '/mock/userData'),
+  getInstanceIndex: vi.fn(() => 0)
 }))
 
 import IpcConnector from '../../src/main/ipc/IpcConnector'

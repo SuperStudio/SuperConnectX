@@ -8,7 +8,7 @@ import IpcSerialPort from './ipc/IpcSerialPort'
 import IpcMain from './ipc/IpcMain'
 import IpcDataCheck from './ipc/IpcDataCheck'
 import logger from './ipc/IpcAppLogger'
-import { migrateDataIfNeeded, initAppPaths, cleanupChromiumClutter } from './utils/AppDir'
+import { migrateDataIfNeeded, initAppPaths, cleanupChromiumClutter, getInstanceIndex } from './utils/AppDir'
 
 // 禁用 Chromium 自动网络请求，避免公司内网代理环境触发安全告警
 // Chromium 启动时会连接 Google 服务（组件更新、网络检测等），在代理环境下可能被拦截
@@ -20,10 +20,12 @@ app.commandLine.appendSwitch('disable-background-networking')   // 禁用后台�
 // 重定向到 userData 子目录，避免根目录散乱
 initAppPaths()
 
+const instanceIdx = getInstanceIndex()
+
 const protocolLogger = new ProtocolLogger()
 const windows = { mainWindow: undefined as BrowserWindow | undefined }
 
-logger.info(`======== start superconnect-x ========`)
+logger.info(`======== start superconnect-x (instance ${instanceIdx}) ========`)
 logger.info(JSON.stringify(IpcMain.getInstance().getVersionInfo()))
 
 // 迁移旧数据：如果 EXE 目录下存在旧的 userdata/backup，拷贝到 appDataDir 并删除旧目录
@@ -45,4 +47,4 @@ app.whenReady().then(() => {
   cleanupChromiumClutter(logger)
 })
 
-logger.info(`======== start superconnect-x ok ========`)
+logger.info(`======== start superconnect-x ok (instance ${instanceIdx}) ========`)

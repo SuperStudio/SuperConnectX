@@ -14,6 +14,16 @@
             "command": "npm run dev"
         },
         {
+            "label": "运行实例1",
+            "type": "shell",
+            "command": "set SCX_INSTANCE_INDEX=1 && npm run dev"
+        },
+        {
+            "label": "运行实例2",
+            "type": "shell",
+            "command": "set SCX_INSTANCE_INDEX=2 && npm run dev"
+        },
+        {
             "label": "start update server",
             "type": "shell",
             "command": "node scripts/test-update-server.js"

@@ -16,6 +16,11 @@ vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
 // Mock electron to redirect app.getPath('exe') to our test dir
 const TEST_ROOT = path.join(os.tmpdir(), 'superconnectx-backup-test')
 
+// App data dir used by BackupManager (via getAppDataDir)
+// getAppDataDir() = userData = TEST_ROOT/fake-app
+const SHARED_DIR = path.join(TEST_ROOT, 'fake-app')
+const APP_DIR = path.join(SHARED_DIR)
+
 vi.mock('electron', async () => {
   const actual = await vi.importActual('../__mocks__/electron') as any
   return {
@@ -23,11 +28,8 @@ vi.mock('electron', async () => {
     app: {
       getPath(name: string): string {
         if (name === 'exe') {
-          // Return a fake exe path inside TEST_ROOT so BackupManager uses TEST_ROOT as app dir
           return path.join(TEST_ROOT, 'fake-app', 'SuperConnectX.exe')
         }
-        // userData also returns the fake-app dir so BackupManager.getAppDataDir()
-        // points to the same location where tests create userdata/backup
         if (name === 'userData') {
           return path.join(TEST_ROOT, 'fake-app')
         }
@@ -89,18 +91,16 @@ describe('BackupManager', () => {
     })
 
     it('创建 userdata 目录后可执行备份', () => {
-      // Create the userdata dir that BackupManager expects
-      // BackupManager looks for <appDir>/userdata, where appDir is dirname of exe
-      const appDir = path.join(TEST_ROOT, 'fake-app')
-      const userdataDir = path.join(appDir, 'userdata')
+      // BackupManager uses getAppDataDir() = TEST_ROOT/fake-app
+      const userdataDir = path.join(SHARED_DIR, 'userdata')
       fs.mkdirSync(userdataDir, { recursive: true })
       fs.writeFileSync(path.join(userdataDir, 'test.json'), '{"key":"value"}')
 
       const bm = getInstance()
       expect(() => bm.performBackup(0)).not.toThrow() // interval=0 means always backup
 
-      // Check backup was created
-      const backupDir = path.join(appDir, 'backup')
+      // Check backup was created in shared dir
+      const backupDir = path.join(SHARED_DIR, 'backup')
       expect(fs.existsSync(backupDir)).toBe(true)
     })
   })
@@ -112,8 +112,7 @@ describe('BackupManager', () => {
     })
 
     it('backup 目录存在且有空备份目录时返回空', () => {
-      const appDir = path.join(TEST_ROOT, 'fake-app')
-      const backupDir = path.join(appDir, 'backup')
+      const backupDir = path.join(SHARED_DIR, 'backup')
       fs.mkdirSync(backupDir, { recursive: true })
 
       const bm = getInstance()
@@ -121,8 +120,7 @@ describe('BackupManager', () => {
     })
 
     it('返回日期目录的备份列表（降序）', () => {
-      const appDir = path.join(TEST_ROOT, 'fake-app')
-      const backupDir = path.join(appDir, 'backup')
+      const backupDir = path.join(SHARED_DIR, 'backup')
       fs.mkdirSync(path.join(backupDir, '2024-06-15'), { recursive: true })
       fs.mkdirSync(path.join(backupDir, '2024-06-16'), { recursive: true })
       fs.writeFileSync(path.join(backupDir, '2024-06-15', 'data.txt'), 'hello')
@@ -137,8 +135,7 @@ describe('BackupManager', () => {
     })
 
     it('忽略非日期格式的目录', () => {
-      const appDir = path.join(TEST_ROOT, 'fake-app')
-      const backupDir = path.join(appDir, 'backup')
+      const backupDir = path.join(SHARED_DIR, 'backup')
       fs.mkdirSync(path.join(backupDir, '2024-06-15'), { recursive: true })
       fs.mkdirSync(path.join(backupDir, 'not-a-date'), { recursive: true })
 
@@ -164,8 +161,7 @@ describe('BackupManager', () => {
     })
 
     it('有最近备份时，返回 lastDate + interval', () => {
-      const appDir = path.join(TEST_ROOT, 'fake-app')
-      const backupDir = path.join(appDir, 'backup')
+      const backupDir = path.join(SHARED_DIR, 'backup')
       // Create a backup dated 10 days ago
       const tenDaysAgo = new Date()
       tenDaysAgo.setDate(tenDaysAgo.getDate() - 10)
@@ -195,8 +191,7 @@ describe('BackupManager', () => {
     })
 
     it('恢复已存在的备份', () => {
-      const appDir = path.join(TEST_ROOT, 'fake-app')
-      const backupDir = path.join(appDir, 'backup')
+      const backupDir = path.join(SHARED_DIR, 'backup')
       const backupPath = path.join(backupDir, '2024-06-15')
       fs.mkdirSync(backupPath, { recursive: true })
       fs.writeFileSync(path.join(backupPath, 'data.txt'), 'restored data')
@@ -205,8 +200,8 @@ describe('BackupManager', () => {
       const result = bm.restoreBackup('2024-06-15')
       expect(result.success).toBe(true)
 
-      // Check userdata was restored
-      const userdataPath = path.join(appDir, 'userdata')
+      // Check userdata was restored in shared dir
+      const userdataPath = path.join(SHARED_DIR, 'userdata')
       expect(fs.existsSync(path.join(userdataPath, 'data.txt'))).toBe(true)
       expect(fs.readFileSync(path.join(userdataPath, 'data.txt'), 'utf8')).toBe('restored data')
     })
