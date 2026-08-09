@@ -137,21 +137,21 @@ describe('BufferLineSplitter', () => {
       expect(s.toLogLine('ABC')).toBe('ABC')
     })
 
-    it('hex 模式开启时返回 hex 字符串', () => {
+    it('hex 模式开启时原样返回（decodeBuffer 已输出 hex）', () => {
       const s = new BufferLineSplitter('utf8', true)
-      // 'A' = 0x41, 'B' = 0x42, 'C' = 0x43
-      expect(s.toLogLine('ABC')).toBe('41 42 43')
+      // HEX 转换已下沉到 decodeBuffer()，toLogLine 直接返回 hex 字符串原值
+      expect(s.toLogLine('41 42 43')).toBe('41 42 43')
     })
 
-    it('hex 模式单字符', () => {
+    it('hex 模式单字符原样返回', () => {
       const s = new BufferLineSplitter('utf8', true)
-      expect(s.toLogLine('!')).toBe('21')
+      expect(s.toLogLine('21')).toBe('21')
     })
 
-    it('hex 模式中文字符', () => {
+    it('hex 模式中文字符 hex 原样返回', () => {
       const s = new BufferLineSplitter('utf8', true)
-      // '中' charCode = 0x4E2D, hex = '4e2d'
-      expect(s.toLogLine('中')).toBe('4e2d')
+      // decodeBuffer 已输出 hex，toLogLine 直接返回
+      expect(s.toLogLine('4e2d')).toBe('4e2d')
     })
   })
 
@@ -167,7 +167,8 @@ describe('BufferLineSplitter', () => {
     it('updateReceiveHex 切换 hex 模式', () => {
       const splitter = new BufferLineSplitter()
       splitter.updateReceiveHex(true)
-      expect(splitter.toLogLine('AB')).toBe('41 42')
+      // HEX 模式下 toLogLine 原样返回（decodeBuffer 已输出 hex）
+      expect(splitter.toLogLine('41 42')).toBe('41 42')
       splitter.updateReceiveHex(false)
       expect(splitter.toLogLine('AB')).toBe('AB')
     })

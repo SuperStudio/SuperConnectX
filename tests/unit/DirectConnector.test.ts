@@ -190,7 +190,7 @@ describe('DirectConnector', () => {
       expect(sendSpy).toHaveBeenCalledWith('s1', 'hello', '12:00:00', false)
     })
 
-    it('onData should convert to HEX when receiveHex is true', async () => {
+    it('onData should pass through data directly when receiveHex is true (HEX conversion moved to BufferLineSplitter)', async () => {
       const { dc, sm } = createDirectConnector()
       const sendSpy = vi.spyOn(sm, 'sendDataToRenderer')
 
@@ -201,7 +201,8 @@ describe('DirectConnector', () => {
       const onData = mockComStart.mock.calls[0][1]
       onData({ data: 'A', timestamp: '12:00:00' })
 
-      expect(sendSpy).toHaveBeenCalledWith('s1', '41', '12:00:00', true)
+      // HEX 转换已下沉到 BufferLineSplitter.decodeBuffer()，DirectConnector 直接透传
+      expect(sendSpy).toHaveBeenCalledWith('s1', 'A', '12:00:00', true)
     })
 
     it('onClose should call stateManager.cleanupOnClose and delete client', async () => {

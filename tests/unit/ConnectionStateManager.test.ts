@@ -238,39 +238,6 @@ describe('ConnectionStateManager', () => {
     })
   })
 
-  // ============ convertToHex (static) ============
-
-  describe('convertToHex', () => {
-    it('should convert ASCII characters to hex', () => {
-      expect(ConnectionStateManager.convertToHex('A')).toBe('41')
-      expect(ConnectionStateManager.convertToHex('AB')).toBe('41 42')
-    })
-
-    it('should handle empty string', () => {
-      expect(ConnectionStateManager.convertToHex('')).toBe('')
-    })
-
-    it('should handle space and special chars', () => {
-      expect(ConnectionStateManager.convertToHex(' ')).toBe('20')
-      expect(ConnectionStateManager.convertToHex('!')).toBe('21')
-    })
-
-    it('should handle newline and carriage return', () => {
-      expect(ConnectionStateManager.convertToHex('\r')).toBe('0d')
-      expect(ConnectionStateManager.convertToHex('\n')).toBe('0a')
-      expect(ConnectionStateManager.convertToHex('\r\n')).toBe('0d 0a')
-    })
-
-    it('should handle digits', () => {
-      expect(ConnectionStateManager.convertToHex('0')).toBe('30')
-      expect(ConnectionStateManager.convertToHex('9')).toBe('39')
-    })
-
-    it('should handle multi-byte characters (Chinese)', () => {
-      // 中 = U+4E2D, charCodeAt returns 0x4E2D
-      const result = ConnectionStateManager.convertToHex('中')
-      // padStart(2, '0') is no-op for >2 chars, so we get the full code point
-      expect(result).toBe('4e2d')
-    })
-  })
+  // convertToHex 已从 ConnectionStateManager 中移除
+  // HEX 转换逻辑已下沉到 BufferLineSplitter.decodeBuffer() 中完成
 })
