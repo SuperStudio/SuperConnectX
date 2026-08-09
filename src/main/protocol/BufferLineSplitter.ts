@@ -53,10 +53,10 @@ export class BufferLineSplitter {
    */
   private decodeBuffer(buffer: Buffer, start: number, end: number): string {
     if (this.receiveHex) {
-      // HEX 模式：直接逐字节转 hex，不经过任何字符编码
+      // HEX 模式：直接逐字节转 hex（大写），不经过任何字符编码
       let hex = ''
       for (let i = start; i < end; i++) {
-        hex += buffer[i].toString(16).padStart(2, '0') + ' '
+        hex += buffer[i].toString(16).padStart(2, '0').toUpperCase() + ' '
       }
       return hex.trimEnd()
     }
