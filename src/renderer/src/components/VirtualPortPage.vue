@@ -11,32 +11,18 @@
     <div class="checks-section">
       <div class="check-item">
         <div class="check-label">
-          <el-icon :size="16" :color="virtualPortInstalled ? 'var(--connect-dot-connected)' : 'var(--connect-dot-disconnected)'">
-            <CircleCheck v-if="virtualPortInstalled" />
+          <el-icon :size="16" :color="(virtualPortInstalled && virtualPortPathSelected) ? 'var(--connect-dot-connected)' : 'var(--connect-dot-disconnected)'">
+            <CircleCheck v-if="virtualPortInstalled && virtualPortPathSelected" />
             <CircleClose v-else />
           </el-icon>
           <span>{{ t('virtualPort.checkInstalled') }}</span>
-        </div>
-      </div>
-
-      <div class="check-item check-item-vertical">
-        <div class="check-label">
-          <el-icon :size="16" :color="virtualPortPathSelected ? 'var(--connect-dot-connected)' : 'var(--connect-dot-disconnected)'">
-            <CircleCheck v-if="virtualPortPathSelected" />
-            <CircleClose v-else />
-          </el-icon>
-          <span>{{ t('virtualPort.checkPath') }}</span>
-        </div>
-        <div class="path-selector">
           <el-input
             v-model="virtualPortPath"
             :placeholder="t('virtualPort.pathPlaceholder')"
             size="small"
             style="flex: 1"
+            disabled
           />
-          <el-button size="small" class="btn-primary" style="width: auto !important" @click="handleSelectPath">
-            {{ t('virtualPort.selectPath') }}
-          </el-button>
         </div>
       </div>
     </div>
@@ -522,6 +508,7 @@ const handleSave = async () => {
   gap: 8px;
   font-size: 14px;
   color: var(--text-primary);
+  width: 100%;
 }
 
 .check-item-vertical {
