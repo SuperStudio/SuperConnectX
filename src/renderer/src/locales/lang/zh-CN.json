@@ -588,6 +588,7 @@
     "activate": "启用",
     "deactivate": "停用",
     "actions": "操作",
-    "noPairs": "暂无虚拟串口对"
+    "noPairs": "暂无虚拟串口对",
+    "notSupported": "当前虚拟串口模拟仅支持 Windows 系统"
   }
 }

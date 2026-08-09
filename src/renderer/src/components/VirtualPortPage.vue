@@ -1,5 +1,12 @@
 <template>
   <div class="virtualport-page">
+    <!-- 非 Windows 系统提示 -->
+    <div v-if="!isWindows" class="not-supported">
+      <el-empty :description="t('virtualPort.notSupported')" :image-size="80" />
+    </div>
+
+    <!-- Windows 系统正常显示 -->
+    <template v-else>
     <!-- 校验区域 -->
     <div class="checks-section">
       <div class="check-item">
@@ -10,8 +17,6 @@
           </el-icon>
           <span>{{ t('virtualPort.checkInstalled') }}</span>
         </div>
-        <el-tag v-if="virtualPortInstalled" type="success" size="small">{{ t('virtualPort.installed') }}</el-tag>
-        <el-tag v-else type="danger" size="small">{{ t('virtualPort.notInstalled') }}</el-tag>
       </div>
 
       <div class="check-item check-item-vertical">
@@ -99,6 +104,7 @@
         <el-empty :description="t('virtualPort.noPairs')" :image-size="80" />
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -108,6 +114,9 @@ import { useI18n } from 'vue-i18n'
 import { CircleCheck, CircleClose } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
+
+// 是否为 Windows 系统
+const isWindows = ref(window.virtualPortApi.getPlatform() === 'win32')
 
 // 校验状态
 const virtualPortInstalled = ref(false)
@@ -137,9 +146,11 @@ const checkConditions = async () => {
   }
 }
 
-// 组件挂载时检测条件
+// 组件挂载时检测条件（仅 Windows）
 onMounted(() => {
-  checkConditions()
+  if (isWindows.value) {
+    checkConditions()
+  }
 })
 
 // 选择虚拟串口程序路径

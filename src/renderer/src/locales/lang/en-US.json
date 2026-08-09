@@ -588,6 +588,7 @@
     "activate": "Activate",
     "deactivate": "Deactivate",
     "actions": "Actions",
-    "noPairs": "No virtual serial port pairs"
+    "noPairs": "No virtual serial port pairs",
+    "notSupported": "Virtual serial port emulation is only supported on Windows"
   }
 }

@@ -141,6 +141,7 @@ declare global {
     }
     virtualPortApi: {
       checkConditions: () => Promise<{ installed: boolean; pathSelected: boolean; path: string }>
+      getPlatform: () => NodeJS.Platform
     }
   }
 }
