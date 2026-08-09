@@ -104,7 +104,8 @@ export default class VirtualPortManager {
         const installLocation = installMatch[1].trim()
         logger.info(`VirtualPortManager autoDetect: InstallLocation=${installLocation}`)
 
-        const exePath = path.join(installLocation, VirtualPortManager.EXE_NAME)
+        // 注册表返回 Windows 路径，用 \\ 拼接以确保跨平台测试兼容
+        const exePath = installLocation.replace(/[\\/]+$/, '') + '\\' + VirtualPortManager.EXE_NAME
         if (!fs.existsSync(exePath)) {
           logger.error(`VirtualPortManager autoDetect: setupc.exe not found at ${exePath}`)
           continue
