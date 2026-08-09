@@ -47,7 +47,7 @@
                           <el-tag v-else type="info" size="small" effect="dark">{{ t('sidebar.noType') }}</el-tag>
                         </span>
                       </div>
-                      <el-tooltip v-if="serialRemarks[port.path]" :content="serialRemarks[port.path]" placement="top" effect="dark" :enterable="false" :show-after="500">
+                      <el-tooltip v-if="serialRemarks[port.path]" :content="serialRemarks[port.path]" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
                         <span class="serial-remark">{{ serialRemarks[port.path] }}</span>
                       </el-tooltip>
                     </div>
@@ -160,6 +160,7 @@
 import { ref, onMounted, onUnmounted, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SearchInput from '../SearchInput.vue'
+import { TOOLTIP_SHOW_AFTER } from '../../utils/constants'
 
 const { t } = useI18n()
 

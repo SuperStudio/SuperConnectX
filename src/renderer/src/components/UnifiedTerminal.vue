@@ -114,7 +114,7 @@
               @mouseenter="historySelectedIndex = index"
             >
               <span class="history-item-text">{{ item }}</span>
-              <el-tooltip :content="t('historySettings.deleteCommand')" placement="top" effect="dark" :enterable="false">
+              <el-tooltip :content="t('historySettings.deleteCommand')" placement="top" effect="dark" :show-after="TOOLTIP_SHOW_AFTER" :enterable="false">
                 <span class="history-item-delete" @mousedown.prevent.stop="deleteHistoryItem(item)">×</span>
               </el-tooltip>
             </div>
@@ -194,6 +194,7 @@ import { parseAnsiToSegments } from '../utils/AnsiParser'
 import { AnsiDecorationManager } from '../utils/AnsiDecorationManager'
 import { getMonacoTheme } from '../utils/MonacoTheme'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
+import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
 
 const maxClearSizeMB = ref(30)
 

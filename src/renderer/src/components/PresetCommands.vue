@@ -8,7 +8,7 @@
 
     <!-- 运行/停止按钮（移到组选择左边） -->
     <div class="group-actions-buttons">
-      <el-tooltip :content="isRunningAll ? t('presetCommands.stopLoopRunning') : t('presetCommands.loopRunning')" placement="bottom" effect="dark" :enterable="false">
+      <el-tooltip :content="isRunningAll ? t('presetCommands.stopLoopRunning') : t('presetCommands.loopRunning')" placement="bottom" effect="dark" :show-after="TOOLTIP_SHOW_AFTER" :enterable="false">
         <el-button
           size="small"
           :class="isRunningAll ? 'run-btn stop-btn' : 'run-btn'"
@@ -89,6 +89,7 @@
       :content="cmd.command"
       placement="top"
       effect="dark"
+      :show-after="TOOLTIP_SHOW_AFTER"
       :hide-after="0"
       :enterable="false"
     >
@@ -221,6 +222,7 @@ import { ElSelect, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon } from 'el
 import { Plus, Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
 import FormUtils from '../utils/FormUtils'
 import eventBus from '../utils/EventBus'
+import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
 
 // 组相关状态
 const groups = ref<any[]>([])

@@ -62,19 +62,19 @@
                   </td>
                   <td class="col-style">
                     <div class="style-edit-cell">
-                      <el-tooltip :content="t('syntaxSettings.foreground')" placement="top" effect="dark" :enterable="false">
+                      <el-tooltip :content="t('syntaxSettings.foreground')" placement="top" effect="dark" :show-after="TOOLTIP_SHOW_AFTER" :enterable="false">
                         <span class="color-picker-wrap"><el-color-picker v-model="rule.foreground" size="small" :predefine="predefineColors" @change="onStyleChanged" /></span>
                       </el-tooltip>
-                      <el-tooltip :content="t('syntaxSettings.background')" placement="top" effect="dark" :enterable="false">
+                      <el-tooltip :content="t('syntaxSettings.background')" placement="top" effect="dark" :show-after="TOOLTIP_SHOW_AFTER" :enterable="false">
                         <span class="color-picker-wrap"><el-color-picker v-model="rule.background" size="small" class="bg-color-picker" :predefine="predefineColors" @change="onStyleChanged" /></span>
                       </el-tooltip>
-                      <el-tooltip :content="t('syntaxSettings.bold')" placement="top" effect="dark" :enterable="false">
+                      <el-tooltip :content="t('syntaxSettings.bold')" placement="top" effect="dark" :show-after="TOOLTIP_SHOW_AFTER" :enterable="false">
                         <span class="style-toggle" :class="{ active: rule.bold }" @click="rule.bold = !rule.bold; onStyleChanged()">B</span>
                       </el-tooltip>
-                      <el-tooltip :content="t('syntaxSettings.italic')" placement="top" effect="dark" :enterable="false">
+                      <el-tooltip :content="t('syntaxSettings.italic')" placement="top" effect="dark" :show-after="TOOLTIP_SHOW_AFTER" :enterable="false">
                         <span class="style-toggle" :class="{ active: rule.italic }" @click="rule.italic = !rule.italic; onStyleChanged()">I</span>
                       </el-tooltip>
-                      <el-tooltip :content="t('syntaxSettings.underline')" placement="top" effect="dark" :enterable="false">
+                      <el-tooltip :content="t('syntaxSettings.underline')" placement="top" effect="dark" :show-after="TOOLTIP_SHOW_AFTER" :enterable="false">
                         <span class="style-toggle" :class="{ active: rule.underline }" @click="rule.underline = !rule.underline; onStyleChanged()">U</span>
                       </el-tooltip>
                     </div>
@@ -146,6 +146,7 @@ import * as monaco from 'monaco-editor'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { getMonacoTheme } from '../utils/MonacoTheme'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
+import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
 
 const { t } = useI18n()
 

@@ -68,7 +68,7 @@
           </el-table-column>
           <el-table-column :label="t('commandEditor.columnAction')" width="80" align="center">
             <template #default="{ row }">
-              <el-tooltip :content="t('commandEditor.deleteCommand')" placement="top" effect="dark" :enterable="false">
+              <el-tooltip :content="t('commandEditor.deleteCommand')" placement="top" effect="dark" :show-after="TOOLTIP_SHOW_AFTER" :enterable="false">
                 <el-button type="danger" size="small" circle @click="deleteCommand(row)">
                   <el-icon><Delete /></el-icon>
                 </el-button>
@@ -151,6 +151,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import Sortable from 'sortablejs'
 import eventBus from '../utils/EventBus'
+import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
 
 const { t } = useI18n()
 
