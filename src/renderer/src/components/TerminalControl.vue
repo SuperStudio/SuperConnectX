@@ -15,6 +15,7 @@
         icon="Refresh"
         size="small"
         class="btn-primary reconnect-btn toggle-btn"
+        :class="{ 'is-connecting': isConnecting }"
         @click="emit('onReconnect')"
         :disabled="isConnecting"
       >
@@ -313,6 +314,16 @@ onMounted(() => {
 
 .reconnect-btn:disabled {
   cursor: not-allowed !important;
+}
+
+/* 连接中图标旋转动画 */
+.reconnect-btn.is-connecting :deep(.el-icon) {
+  animation: connecting-spin 1s linear infinite;
+}
+
+@keyframes connecting-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .auto-scroll-btn {
