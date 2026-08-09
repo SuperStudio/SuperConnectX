@@ -35,7 +35,7 @@
             <el-icon v-else-if="tab.connectionType === 'settings'" :size="14"><Setting /></el-icon>
           </span>
           <span
-            v-if="tab.connectionType !== 'commandEditor' && tab.connectionType !== 'shortcuts' && tab.connectionType !== 'settings'"
+            v-if="tab.connectionType !== 'commandEditor' && tab.connectionType !== 'shortcuts' && tab.connectionType !== 'settings' && tab.connectionType !== 'virtualPort'"
             class="connection-dot"
             :class="getConnectionStatus(tab)"
           ></span>

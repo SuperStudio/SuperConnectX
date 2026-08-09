@@ -568,5 +568,26 @@
     "commandsImported": "命令: 新增{added}, 跳过{skipped}",
     "connectionsImported": "连接: 新增{added}, 跳过{skipped}",
     "invalidFormat": "ZIP 文件格式不符合规范：未找到可导入的数据文件"
+  },
+  "virtualPort": {
+    "title": "虚拟串口模拟",
+    "checkInstalled": "检测虚拟串口程序是否已安装",
+    "installed": "已安装",
+    "notInstalled": "未安装",
+    "checkPath": "检测虚拟串口程序路径",
+    "pathPlaceholder": "请选择虚拟串口程序路径",
+    "selectPath": "选择路径",
+    "addPair": "新增串口对",
+    "refresh": "刷新",
+    "pairIndex": "序号",
+    "portA": "串口 A",
+    "portB": "串口 B",
+    "status": "状态",
+    "active": "已启用",
+    "inactive": "未启用",
+    "activate": "启用",
+    "deactivate": "停用",
+    "actions": "操作",
+    "noPairs": "暂无虚拟串口对"
   }
 }

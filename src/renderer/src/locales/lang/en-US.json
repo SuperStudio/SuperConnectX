@@ -568,5 +568,26 @@
     "commandsImported": "Commands: {added} added, {skipped} skipped",
     "connectionsImported": "Connections: {added} added, {skipped} skipped",
     "invalidFormat": "Invalid ZIP format: no importable data files found"
+  },
+  "virtualPort": {
+    "title": "Virtual Serial Port Emulation",
+    "checkInstalled": "Check if virtual port program is installed",
+    "installed": "Installed",
+    "notInstalled": "Not Installed",
+    "checkPath": "Check virtual port program path",
+    "pathPlaceholder": "Please select virtual port program path",
+    "selectPath": "Select Path",
+    "addPair": "Add Pair",
+    "refresh": "Refresh",
+    "pairIndex": "No.",
+    "portA": "Port A",
+    "portB": "Port B",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "actions": "Actions",
+    "noPairs": "No virtual serial port pairs"
   }
 }

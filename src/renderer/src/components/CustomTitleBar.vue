@@ -110,6 +110,7 @@
           <div class="menu-item" @click="handleSettings">{{ t('sidebar.settings') }}</div>
           <div class="menu-item" @click="handleShortcuts">{{ t('sidebar.shortcuts') }}</div>
           <div class="menu-separator"></div>
+          <div class="menu-item" @click="handleVirtualPort">{{ t('virtualPort.title') }}</div>
           <div class="menu-item" @click="handleCheckUpdate">{{ t('sidebar.checkUpdate') }}</div>
           <div class="menu-item" @click="handlePlugins">{{ t('sidebar.plugins') }}</div>
         </div>
@@ -300,6 +301,7 @@ const emit = defineEmits([
   'open-about',
   'open-settings',
   'open-shortcuts',
+  'open-virtualPort',
   'check-update',
   'open-plugins',
   'toggle-word-wrap',
@@ -502,6 +504,11 @@ const handleSettings = () => {
 const handleShortcuts = () => {
   showToolsMenu.value = false
   emit('open-shortcuts')
+}
+
+const handleVirtualPort = () => {
+  showToolsMenu.value = false
+  emit('open-virtualPort')
 }
 
 const handleCheckUpdate = () => {

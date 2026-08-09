@@ -441,6 +441,14 @@ export function useTabManager(
     activeTabId.value = newTabId
   }
 
+  const openVirtualPortTab = () => {
+    const existingTab = connectionTabs.value.find((t) => t.connectionType === 'virtualPort')
+    if (existingTab) { activeTabId.value = existingTab.id; return }
+    const newTabId = 'virtualPort-' + Date.now()
+    connectionTabs.value.push({ connectionType: 'virtualPort', name: '虚拟串口模拟', id: newTabId, sessionId: newTabId })
+    activeTabId.value = newTabId
+  }
+
   return {
     connectionTabs,
     activeTabId,
@@ -472,6 +480,7 @@ export function useTabManager(
     connectToSerialPort,
     openCommandEditorTab,
     openShortcutsTab,
-    openSettingsTab
+    openSettingsTab,
+    openVirtualPortTab
   }
 }
