@@ -94,6 +94,13 @@
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoScrollOnWheel" />
             </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('basicSettings.clearInputAfterSend') }}</span>
+                <span class="label-desc">{{ t('basicSettings.clearInputAfterSendDesc') }}</span>
+              </div>
+              <el-switch class="terminal-switch" v-model="settings.clearInputAfterSend" />
+            </div>
           </div>
 
         </div>

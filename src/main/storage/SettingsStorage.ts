@@ -61,6 +61,8 @@ interface Settings {
   // 命令历史
   commandHistoryMaxCount?: number
   showCommandHistory?: boolean
+  // 输入栏
+  clearInputAfterSend?: boolean
 }
 
 const defaultSettings: Settings = {
@@ -229,7 +231,9 @@ const defaultSettings: Settings = {
   searchWholeWord: false,
   // 命令历史
   commandHistoryMaxCount: 10,
-  showCommandHistory: true
+  showCommandHistory: true,
+  // 输入栏
+  clearInputAfterSend: false
 }
 
 export default class SettingsStorage {

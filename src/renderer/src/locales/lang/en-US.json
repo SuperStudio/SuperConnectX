@@ -59,6 +59,8 @@
     "autoScrollAfterSendDesc": "Automatically disable auto scroll after sending command",
     "autoScrollOnWheel": "Mouse Scroll Auto Scroll",
     "autoScrollOnWheelDesc": "Scroll up to pause auto scroll, scroll to bottom to resume",
+    "clearInputAfterSend": "Clear Input After Send",
+    "clearInputAfterSendDesc": "Automatically clear input field after sending command",
     "maxDisplayText": "Max Display Text",
     "maxDisplayTextDesc": "Auto clear terminal when text size exceeds this limit (MB)",
     "backup": "Backup",
