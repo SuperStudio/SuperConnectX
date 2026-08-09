@@ -50,8 +50,17 @@
         table-layout="auto"
         v-if="portList.length > 0"
       >
+        <!-- 删除 -->
+        <el-table-column width="50" align="center" fixed="left">
+          <template #default="{ row }">
+            <el-icon :size="16" class="action-icon delete-icon" @click="handleDeletePair(row)">
+              <Delete />
+            </el-icon>
+          </template>
+        </el-table-column>
+
         <!-- 序号 -->
-        <el-table-column :label="t('virtualPort.pairIndex')" width="60" align="center" fixed="left">
+        <el-table-column :label="t('virtualPort.pairIndex')" width="60" align="center">
           <template #default="{ $index }">{{ $index + 1 }}</template>
         </el-table-column>
 
@@ -237,8 +246,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CircleCheck, CircleClose, QuestionFilled } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { CircleCheck, CircleClose, QuestionFilled, Delete } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { isProperPortName } from '@renderer/utils/virtualPort'
 import { TOOLTIP_SHOW_AFTER } from '@renderer/utils/constants'
 
@@ -398,6 +407,54 @@ const handleConfirmAddPair = async () => {
 const handleRefresh = () => {
   refreshPorts()
 }
+
+// 从 ID 中提取串口对索引（CNCA0 -> 0, CNCB1 -> 1）
+function extractPairIndex(id: string): number | null {
+  const match = id.match(/^CNC[AB](\d+)$/)
+  return match ? parseInt(match[1], 10) : null
+}
+
+// 删除串口对
+const handleDeletePair = async (row: VirtualPortRow) => {
+  const index = extractPairIndex(row.ID)
+  if (index === null) {
+    ElMessage.error(t('virtualPort.deletePairFailed'))
+    return
+  }
+
+  // 构建端口对名称用于确认提示
+  const portA = row.Name
+  const portB = row.PairedName || '?'
+
+  try {
+    await ElMessageBox.confirm(
+      t('virtualPort.deletePairConfirm', { portA, portB }),
+      t('common.warning'),
+      {
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
+        type: 'warning',
+        center: true
+      }
+    )
+
+    const result = await window.virtualPortApi.deletePair(index)
+    if (result.success) {
+      ElMessage.success(t('virtualPort.deletePairSuccess'))
+      await refreshPorts()
+    } else {
+      ElMessage.error(result.error || t('virtualPort.deletePairFailed'))
+    }
+  } catch (error) {
+    // 用户取消也会走到这里
+    if (error !== 'cancel' && error !== 'close') {
+      console.error('[VirtualPortPage] deletePair failed:', error)
+      ElMessage.error(t('virtualPort.deletePairFailed'))
+    }
+  }
+}
+
+// 刷新列表
 
 // 将 VirtualPortRow 转换为 IPC 需要的纯对象
 function toPlainPort(row: VirtualPortRow): Record<string, unknown> {
@@ -559,6 +616,26 @@ const handleSave = async () => {
 
 .col-help-icon:hover {
   color: var(--text-primary);
+}
+
+.action-icon {
+  cursor: pointer;
+  transition: all 0.2s ease !important;
+  opacity: 0.8 !important;
+  vertical-align: middle;
+}
+
+.action-icon:hover {
+  transform: scale(1.1) !important;
+  opacity: 1 !important;
+}
+
+.delete-icon {
+  color: var(--preset-delete-icon-color);
+}
+
+.delete-icon:hover {
+  color: var(--preset-delete-icon-hover) !important;
 }
 
 .paired-port-text {
