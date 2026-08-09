@@ -10,7 +10,6 @@ function setupTestDir(): void {
     fs.rmSync(TEST_ROOT, { recursive: true, force: true })
   }
   fs.mkdirSync(TEST_ROOT, { recursive: true })
-  // Ensure app dir exists for isPackaged path logic
   fs.mkdirSync(path.join(TEST_ROOT, 'app'), { recursive: true })
 }
 
@@ -38,11 +37,8 @@ describe('ProtocolLogger', () => {
   describe('constructor', () => {
     it('创建实例时自动创建默认日志目录', async () => {
       const logger = await createLogger()
-      // app.isPackaged=true so it uses app.getPath('exe') which is process.execPath
-      // The logs dir is created at <exeDir>/logs
       const exeDir = path.dirname(process.execPath)
       const logDir = path.join(exeDir, 'logs')
-      // Just verify it doesn't throw and logDir is set
       expect(logger.getLogDir()).toBeTruthy()
     })
   })
@@ -104,8 +100,6 @@ describe('ProtocolLogger', () => {
     it('设置自定义日志目录模板', async () => {
       const logger = await createLogger()
       logger.setLogDir('%C-%Y-%M-%D')
-      // Setting a pattern doesn't immediately change logDir, it stores the pattern
-      // getLogDir still returns the current active dir
       const dir = logger.getLogDir()
       expect(dir).toContain('logs')
     })
@@ -144,7 +138,6 @@ describe('ProtocolLogger', () => {
       expect(result).toContain('TestConn')
       expect(result).toContain('.log')
 
-      // Check log file was created on disk (in the actual log dir)
       const logDir = logger.getLogDir()
       const logFile = path.join(logDir, result)
       expect(fs.existsSync(logFile)).toBe(true)
@@ -304,12 +297,90 @@ describe('ProtocolLogger', () => {
   describe('日志分片逻辑', () => {
     it('小文件不触发分片', async () => {
       const logger = await createLogger()
-      logger.setLogSplitSize(100) // 100 MB
+      logger.setLogSplitSize(100)
       logger.createConnLogFile('conn-1', 'Test')
       logger.writeToConnLog('small data', 'conn-1')
       logger.flush()
-      // 不应该出错
       expect(true).toBe(true)
+    })
+  })
+
+  describe('rotateLogFile', () => {
+    it('未创建连接时返回失败', async () => {
+      const logger = await createLogger()
+      const result = await logger.rotateLogFile('nonexistent')
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('not found')
+    })
+
+    it('已创建连接时可以归档并创建新文件', async () => {
+      const logger = await createLogger()
+      const oldFileName = logger.createConnLogFile('conn-1', 'Test')
+      logger.writeToConnLog('data before rotate', 'conn-1')
+      logger.flush()
+
+      const result = await logger.rotateLogFile('conn-1')
+      expect(result.success).toBe(true)
+      expect(result.oldFileName).toBe(oldFileName)
+      expect(result.newFileName).toBeTruthy()
+      expect(result.newFileName).toContain('Test')
+      expect(result.newFileName).not.toBe(oldFileName)
+    })
+  })
+
+  describe('日志文件名模板解析', () => {
+    it('应支持连接名占位符 %C', async () => {
+      const logger = await createLogger()
+      logger.setLogFileName('%C.log')
+      const result = logger.createConnLogFile('conn-c', 'MyConn')
+      expect(result).toContain('MyConn')
+      expect(result).toContain('.log')
+    })
+
+    it('应支持日期占位符 %Y %M %D', async () => {
+      const logger = await createLogger()
+      logger.setLogFileName('log-%Y-%M-%D.log')
+      const result = logger.createConnLogFile('conn-d', 'ConnD')
+      const now = new Date()
+      const year = String(now.getFullYear())
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      expect(result).toContain(year)
+      expect(result).toContain(month)
+    })
+
+    it('应支持备注占位符 %R', async () => {
+      const logger = await createLogger()
+      logger.setLogFileName('%C-%R.log')
+      const result = logger.createConnLogFile('conn-r', 'ConnR', 'MyRemark')
+      expect(result).toContain('MyRemark')
+    })
+
+    it('非法文件名字符应被替换', async () => {
+      const logger = await createLogger()
+      const result = logger.createConnLogFile('conn-bad', 'Test*Conn?Name')
+      expect(result).not.toContain('*')
+      expect(result).not.toContain('?')
+      expect(result).toContain('Test')
+    })
+  })
+
+  describe('日志目录模板解析', () => {
+    it('空模板使用默认目录', async () => {
+      const logger = await createLogger()
+      logger.setLogDir('')
+      logger.createConnLogFile('conn-dir', 'Test')
+      const result = await logger.getLogFilePath('conn-dir')
+      expect(result.success).toBe(true)
+    })
+
+    it('自定义模板创建对应目录', async () => {
+      const logger = await createLogger()
+      const customDir = path.join(TEST_ROOT, 'custom-logs')
+      logger.setLogDir(customDir)
+      logger.createConnLogFile('conn-dir2', 'Test')
+      const result = await logger.getLogFilePath('conn-dir2')
+      expect(result.success).toBe(true)
+      expect(result.filePath).toContain('custom-logs')
     })
   })
 })

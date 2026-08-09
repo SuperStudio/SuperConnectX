@@ -152,6 +152,152 @@ describe('IpcSerialPort', () => {
     })
   })
 
+  describe('getWindowsRegistryPorts (via listSerialPorts on win32)', () => {
+    it('should supplement ports from registry when execSync returns valid data', async () => {
+      // Simulate Windows platform
+      const platformStub = vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+
+      const { SerialPort } = await import('serialport')
+      // serialport returns COM1 only
+      ;(SerialPort.list as any).mockResolvedValueOnce([
+        { path: 'COM1', manufacturer: 'USB', serialNumber: 'SN1' }
+      ])
+
+      const { execSync } = await import('child_process')
+      // registry returns COM55 and COM56
+      ;(execSync as any).mockReturnValueOnce(
+        '    \\Device\\com0com10    REG_SZ    COM55\r\n    \\Device\\com0com20    REG_SZ    COM56\r\n'
+      )
+
+      const instance = IpcSerialPort.getInstance()
+      const ports = await instance.listSerialPorts()
+
+      // COM1 from serialport + COM55, COM56 from registry
+      expect(ports).toHaveLength(3)
+      expect(ports.map((p: any) => p.path).sort()).toEqual(['COM1', 'COM55', 'COM56'])
+
+      platformStub.mockRestore()
+    })
+
+    it('should deduplicate registry ports already in serialport list', async () => {
+      const platformStub = vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+
+      const { SerialPort } = await import('serialport')
+      ;(SerialPort.list as any).mockResolvedValueOnce([
+        { path: 'COM1', manufacturer: 'USB' },
+        { path: 'COM55', manufacturer: 'Virtual' }
+      ])
+
+      const { execSync } = await import('child_process')
+      // registry returns COM55 (duplicate) and COM56 (new)
+      ;(execSync as any).mockReturnValueOnce(
+        '    \\Device\\com0com10    REG_SZ    COM55\r\n    \\Device\\com0com20    REG_SZ    COM56\r\n'
+      )
+
+      const instance = IpcSerialPort.getInstance()
+      const ports = await instance.listSerialPorts()
+
+      // COM1 + COM55 (from serialport) + COM56 (from registry, not duplicate)
+      expect(ports).toHaveLength(3)
+      expect(ports.map((p: any) => p.path).sort()).toEqual(['COM1', 'COM55', 'COM56'])
+
+      platformStub.mockRestore()
+    })
+
+    it('should handle empty registry output', async () => {
+      const platformStub = vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+
+      const { SerialPort } = await import('serialport')
+      ;(SerialPort.list as any).mockResolvedValueOnce([
+        { path: 'COM1' }
+      ])
+
+      const { execSync } = await import('child_process')
+      ;(execSync as any).mockReturnValueOnce('')
+
+      const instance = IpcSerialPort.getInstance()
+      const ports = await instance.listSerialPorts()
+
+      expect(ports).toHaveLength(1)
+      expect(ports[0].path).toBe('COM1')
+
+      platformStub.mockRestore()
+    })
+
+    it('should handle execSync throwing error gracefully', async () => {
+      const platformStub = vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+
+      const { SerialPort } = await import('serialport')
+      ;(SerialPort.list as any).mockResolvedValueOnce([
+        { path: 'COM1' }
+      ])
+
+      const { execSync } = await import('child_process')
+      ;(execSync as any).mockImplementationOnce(() => {
+        throw new Error('registry access denied')
+      })
+
+      const instance = IpcSerialPort.getInstance()
+      const ports = await instance.listSerialPorts()
+
+      // Should still return serialport ports despite registry error
+      expect(ports).toHaveLength(1)
+      expect(ports[0].path).toBe('COM1')
+
+      platformStub.mockRestore()
+    })
+
+    it('should parse COM ports with various registry line formats', async () => {
+      const platformStub = vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+
+      const { SerialPort } = await import('serialport')
+      ;(SerialPort.list as any).mockResolvedValueOnce([])
+
+      const { execSync } = await import('child_process')
+      // Mix of different device names and COM port numbers
+      ;(execSync as any).mockReturnValueOnce(
+        '    \\Device\\VSerial_0    REG_SZ    COM20\r\n' +
+        '    \\Device\\BthModem0    REG_SZ    COM7\r\n' +
+        '    \\Device\\com0com11    REG_SZ    COM66\r\n'
+      )
+
+      const instance = IpcSerialPort.getInstance()
+      const ports = await instance.listSerialPorts()
+
+      expect(ports).toHaveLength(3)
+      const paths = ports.map((p: any) => p.path).sort()
+      expect(paths).toEqual(['COM20', 'COM66', 'COM7'])
+
+      platformStub.mockRestore()
+    })
+
+    it('should NOT supplement registry ports on non-Windows platforms', async () => {
+      // On Linux, registry logic is skipped entirely
+      const platformStub = vi.spyOn(process, 'platform', 'get').mockReturnValue('linux')
+
+      const { SerialPort } = await import('serialport')
+      ;(SerialPort.list as any).mockResolvedValueOnce([
+        { path: '/dev/ttyUSB0', manufacturer: 'USB', serialNumber: 'SN1' },
+        { path: '/dev/ttyS0' },
+        { path: '/dev/ttyprintk' }
+      ])
+
+      const { execSync } = await import('child_process')
+      // Even if execSync would return something, it should not be called on Linux
+      const execSyncSpy = vi.spyOn({ execSync }, 'execSync')
+
+      const instance = IpcSerialPort.getInstance()
+      const ports = await instance.listSerialPorts()
+
+      // Only ttyUSB0 passes Linux filter
+      expect(ports).toHaveLength(1)
+      expect(ports[0].path).toBe('/dev/ttyUSB0')
+      expect(execSyncSpy).not.toHaveBeenCalled()
+
+      platformStub.mockRestore()
+    })
+  })
+
   describe('init', () => {
     it('should have init method', () => {
       const instance = IpcSerialPort.getInstance()
