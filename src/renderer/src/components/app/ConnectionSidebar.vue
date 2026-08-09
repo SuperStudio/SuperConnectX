@@ -143,13 +143,13 @@
           </svg>
         </div>
         <div class="dropdown-menu" ref="sidebarMenuRef" v-if="showSidebarMenu" @click.stop>
-          <div class="menu-item" @click="$emit('sidebarMenuCommand', 'settings')">{{ t('sidebar.settings') }}</div>
-          <div class="menu-item" @click="$emit('sidebarMenuCommand', 'shortcuts')">{{ t('sidebar.shortcuts') }}</div>
+          <div class="menu-item" @click="handleMenuClick('settings')">{{ t('sidebar.settings') }}</div>
+          <div class="menu-item" @click="handleMenuClick('shortcuts')">{{ t('sidebar.shortcuts') }}</div>
           <div class="menu-divider"></div>
-          <div class="menu-item" @click="$emit('sidebarMenuCommand', 'plugins')">{{ t('sidebar.plugins') }}</div>
-          <div class="menu-item" @click="$emit('sidebarMenuCommand', 'checkUpdate')">{{ t('sidebar.checkUpdate') }}</div>
+          <div class="menu-item" @click="handleMenuClick('plugins')">{{ t('sidebar.plugins') }}</div>
+          <div class="menu-item" @click="handleMenuClick('checkUpdate')">{{ t('sidebar.checkUpdate') }}</div>
           <div class="menu-divider"></div>
-          <div class="menu-item" @click="$emit('sidebarMenuCommand', 'about')">{{ t('titlebar.about') }}</div>
+          <div class="menu-item" @click="handleMenuClick('about')">{{ t('titlebar.about') }}</div>
         </div>
       </div>
     </div>
@@ -209,6 +209,11 @@ onUnmounted(() => {
 
 const toggleGroupExpanded = (type: string) => {
   emit('sidebarMenuCommand', '__toggleGroup__' + type)
+}
+
+const handleMenuClick = (command: string) => {
+  showSidebarMenu.value = false
+  emit('sidebarMenuCommand', command)
 }
 </script>
 
