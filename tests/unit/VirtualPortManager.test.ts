@@ -1,0 +1,310 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { exec } from 'child_process'
+import VirtualPort from '../../src/main/entity/VirtualPort'
+import VirtualPortManager from '../../src/main/entity/VirtualPortManager'
+
+// 保存 callback 队列，支持多次 exec 调用
+const execCallbacks: Array<(error: Error | null, stdout: string, stderr: string) => void> = []
+
+vi.mock('child_process', () => {
+  return {
+    exec: vi.fn((
+      _cmd: string,
+      _options: unknown,
+      callback: (error: Error | null, stdout: string, stderr: string) => void
+    ) => {
+      execCallbacks.push(callback)
+    })
+  }
+})
+
+const mockExec = vi.mocked(exec)
+
+vi.mock('fs', () => {
+  return {
+    default: {
+      existsSync: vi.fn((_path: string) => true)
+    },
+    existsSync: vi.fn((_path: string) => true)
+  }
+})
+
+// 辅助：触发下一个 exec 回调
+function resolveExec(error: Error | null, stdout: string, stderr: string = ''): void {
+  const cb = execCallbacks.shift()
+  if (cb) {
+    cb(error, stdout, stderr)
+  }
+}
+
+describe('VirtualPortManager', () => {
+  let manager: VirtualPortManager
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    execCallbacks.length = 0
+    manager = new VirtualPortManager()
+    manager.init('C:\\Program Files\\com0com\\setupc.exe')
+  })
+
+  describe('常量', () => {
+    it('PROGRAM_NAME', () => {
+      expect(VirtualPortManager.PROGRAM_NAME).toBe('Null-modem emulator (com0com)')
+    })
+
+    it('EXE_NAME', () => {
+      expect(VirtualPortManager.EXE_NAME).toBe('setupc.exe')
+    })
+
+    it('CMD_TIMEOUT', () => {
+      expect(VirtualPortManager.CMD_TIMEOUT).toBe(3000)
+    })
+  })
+
+  describe('init / isReady', () => {
+    it('初始化后 isReady 为 true', () => {
+      expect(manager.isReady()).toBe(true)
+    })
+
+    it('getAppPath 返回设置的路径', () => {
+      expect(manager.getAppPath()).toBe('C:\\Program Files\\com0com\\setupc.exe')
+    })
+
+    it('未初始化时 isReady 为 false', () => {
+      const m = new VirtualPortManager()
+      expect(m.isReady()).toBe(false)
+      expect(m.getAppPath()).toBe('')
+    })
+  })
+
+  describe('parseVirtualPort', () => {
+    it('解析完整行 CNCA0', () => {
+      const line = 'CNCA0 PortName=COM2,EmuBR=yes,EmuOverrun=yes'
+      const port = VirtualPortManager.parseVirtualPort(line)
+      expect(port).not.toBeNull()
+      expect(port!.ID).toBe('CNCA0')
+      expect(port!.Name).toBe('COM2')
+      expect(port!.EmuBR).toBe(true)
+      expect(port!.EmuOverrun).toBe(true)
+    })
+
+    it('解析 CNCB0', () => {
+      const line = 'CNCB0 PortName=COM4,EmuBR=yes,EmuOverrun=yes'
+      const port = VirtualPortManager.parseVirtualPort(line)
+      expect(port!.ID).toBe('CNCB0')
+      expect(port!.Name).toBe('COM4')
+    })
+
+    it('解析带数值的行', () => {
+      const line = 'CNCA1 PortName=COM5,EmuBR=no,EmuOverrun=no,EmuNoise=0.5,AddRTTO=100,AddRITO=200'
+      const port = VirtualPortManager.parseVirtualPort(line)
+      expect(port!.ID).toBe('CNCA1')
+      expect(port!.Name).toBe('COM5')
+      expect(port!.EmuBR).toBe(false)
+      expect(port!.EmuOverrun).toBe(false)
+      expect(port!.EmuNoise).toBe(0.5)
+      expect(port!.AddRTTO).toBe(100)
+      expect(port!.AddRITO).toBe(200)
+    })
+
+    it('解析带模式的行', () => {
+      const line = 'CNCA2 PortName=COM6,PlugInMode=yes,ExclusiveMode=no,HiddenMode=yes'
+      const port = VirtualPortManager.parseVirtualPort(line)
+      expect(port!.PlugInMode).toBe(true)
+      expect(port!.ExclusiveMode).toBe(false)
+      expect(port!.HiddenMode).toBe(true)
+    })
+
+    it('空字符串返回 null', () => {
+      expect(VirtualPortManager.parseVirtualPort('')).toBeNull()
+    })
+
+    it('无空格的行返回 null', () => {
+      expect(VirtualPortManager.parseVirtualPort('CNCA0')).toBeNull()
+    })
+
+    it('忽略未知属性', () => {
+      const line = 'CNCA0 PortName=COM2,UnknownProp=abc'
+      const port = VirtualPortManager.parseVirtualPort(line)
+      expect(port).not.toBeNull()
+      expect(port!.Name).toBe('COM2')
+    })
+
+    it('忽略格式错误的键值对', () => {
+      const line = 'CNCA0 PortName=COM2,badprop,=value'
+      const port = VirtualPortManager.parseVirtualPort(line)
+      expect(port).not.toBeNull()
+      expect(port!.Name).toBe('COM2')
+    })
+  })
+
+  describe('listAllPorts', () => {
+    it('成功解析一对串口', async () => {
+      const promise = manager.listAllPorts()
+      resolveExec(null, 'CNCA0 PortName=COM2,EmuBR=yes,EmuOverrun=yes\nCNCB0 PortName=COM4,EmuBR=yes,EmuOverrun=yes\n')
+
+      const ports = await promise
+      expect(ports).toHaveLength(2)
+      expect(ports[0].ID).toBe('CNCA0')
+      expect(ports[1].ID).toBe('CNCB0')
+    })
+
+    it('未初始化时返回空数组', async () => {
+      const m = new VirtualPortManager()
+      const ports = await m.listAllPorts()
+      expect(ports).toEqual([])
+    })
+
+    it('exec 错误时返回空数组', async () => {
+      const promise = manager.listAllPorts()
+      resolveExec(new Error('command failed'), '', 'some error')
+
+      const ports = await promise
+      expect(ports).toEqual([])
+    })
+
+    it('空输出返回空数组', async () => {
+      const promise = manager.listAllPorts()
+      resolveExec(null, '', '')
+
+      const ports = await promise
+      expect(ports).toEqual([])
+    })
+  })
+
+  describe('insertPort', () => {
+    it('成功安装串口对', async () => {
+      const portA = new VirtualPort('COM10')
+      const portB = new VirtualPort('COM11')
+
+      expect(manager.isReady()).toBe(true)
+
+      const promise = manager.insertPort(portA, portB)
+
+      // 给 microtask 时间让 exec 被调用
+      await Promise.resolve()
+
+      expect(mockExec).toHaveBeenCalledTimes(1)
+      expect(execCallbacks.length).toBe(1)
+
+      resolveExec(null, 'CNCA0 logged as "in use"\nCNCB0 logged as "in use"\n')
+
+      const result = await promise
+      expect(result).toBe(true)
+    })
+
+    it('只匹配一个 in use 返回 false', async () => {
+      const portA = new VirtualPort('COM10')
+      const portB = new VirtualPort('COM11')
+
+      const promise = manager.insertPort(portA, portB)
+      await Promise.resolve()
+      resolveExec(null, 'CNCA0 logged as "in use"\n')
+
+      const result = await promise
+      expect(result).toBe(false)
+    })
+
+    it('端口名为空返回 false', async () => {
+      const portA = new VirtualPort()
+      const portB = new VirtualPort('COM11')
+      const result = await manager.insertPort(portA, portB)
+      expect(result).toBe(false)
+    })
+
+    it('未初始化时返回 false', async () => {
+      const m = new VirtualPortManager()
+      const result = await m.insertPort(new VirtualPort('COM10'), new VirtualPort('COM11'))
+      expect(result).toBe(false)
+    })
+
+    it('exec 失败时返回 false', async () => {
+      const portA = new VirtualPort('COM10')
+      const portB = new VirtualPort('COM11')
+
+      const promise = manager.insertPort(portA, portB)
+      await Promise.resolve()
+      resolveExec(new Error('install failed'), '', 'error')
+
+      const result = await promise
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('deletePort', () => {
+    it('成功删除串口对', async () => {
+      const promise = manager.deletePort(0)
+      await Promise.resolve()
+      resolveExec(null, 'Removed CNCA0\nRemoved CNCB0\n')
+
+      const result = await promise
+      expect(result).toBe(true)
+    })
+
+    it('只删除一个返回 false', async () => {
+      const promise = manager.deletePort(0)
+      await Promise.resolve()
+      resolveExec(null, 'Removed CNCA0\n')
+
+      const result = await promise
+      expect(result).toBe(false)
+    })
+
+    it('n 为负数返回 false', async () => {
+      const result = await manager.deletePort(-1)
+      expect(result).toBe(false)
+    })
+
+    it('未初始化时返回 false', async () => {
+      const m = new VirtualPortManager()
+      const result = await m.deletePort(0)
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('updatePorts', () => {
+    it('成功更新单个端口', async () => {
+      const port = new VirtualPort('COM2')
+      port.ID = 'CNCA0'
+      port.EmuBR = true
+
+      const promise = manager.updatePorts([port])
+      await Promise.resolve()
+      resolveExec(null, 'Restarted CNCA0\n')
+
+      const result = await promise
+      expect(result).toBe(true)
+    })
+
+    it('端口为空数组返回 false', async () => {
+      const result = await manager.updatePorts([])
+      expect(result).toBe(false)
+    })
+
+    it('未初始化时返回 false', async () => {
+      const m = new VirtualPortManager()
+      const result = await m.updatePorts([new VirtualPort('COM2')])
+      expect(result).toBe(false)
+    })
+
+    it('端口配置更新但未 restart 返回 false', async () => {
+      const port = new VirtualPort('COM2')
+      port.ID = 'CNCA0'
+
+      const promise = manager.updatePorts([port])
+      await Promise.resolve()
+      resolveExec(null, 'Some other output\n')
+
+      const result = await promise
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('singleton', () => {
+    it('getInstance 返回同一实例', () => {
+      const a = VirtualPortManager.getInstance()
+      const b = VirtualPortManager.getInstance()
+      expect(a).toBe(b)
+    })
+  })
+})
