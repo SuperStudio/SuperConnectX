@@ -82,6 +82,13 @@
           </template>
         </el-table-column>
 
+        <!-- 绑定串口（只读） -->
+        <el-table-column :label="t('virtualPort.pairedPort')" min-width="110" align="center">
+          <template #default="{ row }">
+            <span class="paired-port-text">{{ row.PairedName || '-' }}</span>
+          </template>
+        </el-table-column>
+
         <!-- 隐藏 -->
         <el-table-column :label="t('virtualPort.hidden')" min-width="70" align="center">
           <template #default="{ row }">
@@ -90,21 +97,21 @@
         </el-table-column>
 
         <!-- 模拟波特率 -->
-        <el-table-column :label="t('virtualPort.emuBR')" min-width="90" align="center">
+        <el-table-column :label="t('virtualPort.emuBR')" width="100" align="center">
           <template #default="{ row }">
             <el-switch v-model="row.EmuBR" size="small" class="terminal-switch" />
           </template>
         </el-table-column>
 
         <!-- 缓冲区溢出 -->
-        <el-table-column :label="t('virtualPort.emuOverrun')" min-width="90" align="center">
+        <el-table-column :label="t('virtualPort.emuOverrun')" width="100" align="center">
           <template #default="{ row }">
             <el-switch v-model="row.EmuOverrun" size="small" class="terminal-switch" />
           </template>
         </el-table-column>
 
         <!-- 模拟真实插拔 -->
-        <el-table-column min-width="100" align="center">
+        <el-table-column min-width="105" align="center">
           <template #header>
             <span class="col-header">
               {{ t('virtualPort.plugInMode') }}
@@ -119,7 +126,7 @@
         </el-table-column>
 
         <!-- 独占模式 -->
-        <el-table-column min-width="90" align="center">
+        <el-table-column min-width="95" align="center">
           <template #header>
             <span class="col-header">
               {{ t('virtualPort.exclusiveMode') }}
@@ -263,6 +270,8 @@ const virtualPortPath = ref('')
 interface VirtualPortRow {
   ID: string
   Name: string
+  /** 配对的端口名称（如 COM6），不可编辑，仅展示 */
+  PairedName: string
   EmuBR: boolean
   EmuOverrun: boolean
   EmuNoise: string
@@ -294,6 +303,17 @@ function snapshotPortList(): VirtualPortRow[] {
   return portList.map((row) => ({ ...row }))
 }
 
+// 根据 ID 找到配对端口名（CNCA0 <-> CNCB0）
+function findPairedName(id: string, ports: Array<{ ID: string; Name: string }>): string {
+  // ID 格式如 CNCA0 / CNCB0，提取数字后缀
+  const match = id.match(/^(CNC[AB])(\d+)$/)
+  if (!match) return ''
+  const peerPrefix = match[1] === 'CNCA' ? 'CNCB' : 'CNCA'
+  const peerId = peerPrefix + match[2]
+  const peer = ports.find((p) => p.ID === peerId)
+  return peer ? (peer.Name || '') : ''
+}
+
 // 刷新列表
 const refreshPorts = async () => {
   try {
@@ -303,6 +323,7 @@ const refreshPorts = async () => {
       portList.push({
         ID: p.ID,
         Name: p.Name || '',
+        PairedName: findPairedName(p.ID as string, ports as Array<{ ID: string; Name: string }>),
         EmuBR: !!p.EmuBR,
         EmuOverrun: !!p.EmuOverrun,
         EmuNoise: String(p.EmuNoise ?? ''),
@@ -540,6 +561,7 @@ const handleSave = async () => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
 }
 
 .col-help-icon {
@@ -552,6 +574,11 @@ const handleSave = async () => {
   color: var(--text-primary);
 }
 
+.paired-port-text {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
 .port-list-section :deep(.el-table) {
   --el-table-bg-color: var(--panel-bg);
   --el-table-tr-bg-color: var(--panel-bg);
@@ -561,6 +588,10 @@ const handleSave = async () => {
   --el-table-header-text-color: var(--text-secondary);
   border-radius: 8px;
   overflow: hidden;
+}
+
+.port-list-section :deep(.el-table__header-wrapper th) {
+  white-space: nowrap;
 }
 
 .port-list-section :deep(.el-table__body-wrapper) {

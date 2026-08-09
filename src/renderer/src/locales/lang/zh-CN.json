@@ -592,6 +592,7 @@
     "deletePairConfirm": "确认删除虚拟串口对 {portA} <-> {portB}？",
     "portNumber": "串口号",
     "portNumberPlaceholder": "如 COM5",
+    "pairedPort": "绑定串口",
     "hidden": "隐藏",
     "emuBR": "模拟波特率",
     "emuOverrun": "缓冲区溢出",

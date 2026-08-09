@@ -592,6 +592,7 @@
     "deletePairConfirm": "Confirm to delete virtual port pair {portA} <-> {portB}?",
     "portNumber": "Port Number",
     "portNumberPlaceholder": "e.g. COM5",
+    "pairedPort": "Paired Port",
     "hidden": "Hidden",
     "emuBR": "Emu Baud Rate",
     "emuOverrun": "Buffer Overrun",
