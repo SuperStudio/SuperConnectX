@@ -154,5 +154,7 @@ contextBridge.exposeInMainWorld('updateApi', {
 contextBridge.exposeInMainWorld('virtualPortApi', {
   checkConditions: () => ipcRenderer.invoke('virtualport:check-conditions'),
   listPorts: () => ipcRenderer.invoke('virtualport:list-ports'),
+  insertPair: (portA: string, portB: string) => ipcRenderer.invoke('virtualport:insert-pair', portA, portB),
+  deletePair: (index: number) => ipcRenderer.invoke('virtualport:delete-pair', index),
   getPlatform: () => process.platform
 })

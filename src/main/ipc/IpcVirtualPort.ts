@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import VirtualPort from '../entity/VirtualPort'
 import VirtualPortManager from '../entity/VirtualPortManager'
 import logger from './IpcAppLogger'
 
@@ -56,6 +57,37 @@ export default class IpcVirtualPort {
       }
 
       return pairs
+    })
+
+    // 新增串口对
+    ipcMain.handle('virtualport:insert-pair', async (_event, portA: string, portB: string) => {
+      logger.info(`virtualport:insert-pair - portA=${portA}, portB=${portB}`)
+
+      if (!manager.isReady()) {
+        logger.error('virtualport:insert-pair - manager not ready')
+        return { success: false, error: 'setupc.exe not found' }
+      }
+
+      const vpA = new VirtualPort(portA)
+      const vpB = new VirtualPort(portB)
+
+      const result = await manager.insertPort(vpA, vpB)
+      logger.info(`virtualport:insert-pair - result: ${result}`)
+      return { success: result }
+    })
+
+    // 删除串口对
+    ipcMain.handle('virtualport:delete-pair', async (_event, index: number) => {
+      logger.info(`virtualport:delete-pair - index=${index}`)
+
+      if (!manager.isReady()) {
+        logger.error('virtualport:delete-pair - manager not ready')
+        return { success: false, error: 'setupc.exe not found' }
+      }
+
+      const result = await manager.deletePort(index)
+      logger.info(`virtualport:delete-pair - result: ${result}`)
+      return { success: result }
     })
 
     logger.info('init IpcVirtualPort done')

@@ -79,6 +79,45 @@
         <el-empty :description="t('virtualPort.noPairs')" :image-size="80" />
       </div>
     </div>
+
+    <!-- 新增串口对对话框 -->
+    <el-dialog
+      v-model="addPairDialogVisible"
+      :title="t('virtualPort.addPairTitle')"
+      width="400px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="addPairForm" label-position="top" @submit.prevent>
+        <el-form-item :label="t('virtualPort.addPairPortA')">
+          <el-input
+            v-model="addPairForm.portA"
+            :placeholder="t('virtualPort.addPairPortAPlaceholder')"
+            maxlength="6"
+            @input="addPairForm.portA = addPairForm.portA.replace(/\D/g, '')"
+          >
+            <template #prepend>COM</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item :label="t('virtualPort.addPairPortB')">
+          <el-input
+            v-model="addPairForm.portB"
+            :placeholder="t('virtualPort.addPairPortBPlaceholder')"
+            maxlength="6"
+            @input="addPairForm.portB = addPairForm.portB.replace(/\D/g, '')"
+          >
+            <template #prepend>COM</template>
+          </el-input>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button size="small" class="btn-cancel" style="width: auto !important" @click="addPairDialogVisible = false">
+          {{ t('common.cancel') }}
+        </el-button>
+        <el-button size="small" class="btn-primary" style="width: auto !important" @click="handleConfirmAddPair" :loading="addPairLoading">
+          {{ t('common.confirm') }}
+        </el-button>
+      </template>
+    </el-dialog>
     </template>
   </div>
 </template>
@@ -87,6 +126,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CircleCheck, CircleClose, Delete } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { isProperPortName } from '@renderer/utils/virtualPort'
 
 const { t } = useI18n()
 
@@ -100,12 +141,21 @@ const virtualPortPath = ref('')
 
 // 虚拟串口列表
 interface VirtualPortPair {
+  index: number
   portA: string
   portB: string
   active: boolean
 }
 
 const pairList = reactive<VirtualPortPair[]>([])
+
+// 新增串口对对话框
+const addPairDialogVisible = ref(false)
+const addPairLoading = ref(false)
+const addPairForm = reactive({
+  portA: '',
+  portB: ''
+})
 
 // 刷新列表
 const refreshPorts = async () => {
@@ -114,6 +164,7 @@ const refreshPorts = async () => {
     pairList.length = 0
     for (const p of pairs) {
       pairList.push({
+        index: p.index,
         portA: p.portA || '',
         portB: p.portB || '',
         active: p.portA !== '' && p.portB !== ''
@@ -151,9 +202,50 @@ const handleSelectPath = () => {
   // TODO: 实现路径选择
 }
 
-// 新增串口对
+// 打开新增串口对对话框
 const handleAddPair = () => {
-  // TODO: 实现新增串口对
+  if (!virtualPortInstalled.value) {
+    ElMessage.warning(t('virtualPort.notInstalled'))
+    return
+  }
+  addPairForm.portA = ''
+  addPairForm.portB = ''
+  addPairDialogVisible.value = true
+}
+
+// 确认新增串口对
+const handleConfirmAddPair = async () => {
+  const portA = 'COM' + addPairForm.portA.trim()
+  const portB = 'COM' + addPairForm.portB.trim()
+
+  // 校验端口名
+  if (!isProperPortName(portA) || !isProperPortName(portB)) {
+    ElMessage.warning(t('virtualPort.addPairInvalidName'))
+    return
+  }
+
+  // 校验不能相同
+  if (portA === portB) {
+    ElMessage.warning(t('virtualPort.addPairSameName'))
+    return
+  }
+
+  addPairLoading.value = true
+  try {
+    const result = await window.virtualPortApi.insertPair(portA, portB)
+    if (result.success) {
+      ElMessage.success(t('virtualPort.addPairSuccess'))
+      addPairDialogVisible.value = false
+      await refreshPorts()
+    } else {
+      ElMessage.error(result.error || t('virtualPort.addPairFailed'))
+    }
+  } catch (error) {
+    console.error('[VirtualPortPage] insertPair failed:', error)
+    ElMessage.error(t('virtualPort.addPairFailed'))
+  } finally {
+    addPairLoading.value = false
+  }
 }
 
 // 刷新列表
@@ -161,19 +253,34 @@ const handleRefresh = () => {
   refreshPorts()
 }
 
-// 启用串口对
-const handleActivatePair = (_row: VirtualPortPair) => {
-  // TODO: 实现启用
-}
-
-// 停用串口对
-const handleDeactivatePair = (_row: VirtualPortPair) => {
-  // TODO: 实现停用
-}
-
 // 删除串口对
-const handleRemovePair = (_row: VirtualPortPair) => {
-  // TODO: 实现删除
+const handleRemovePair = async (row: VirtualPortPair) => {
+  try {
+    await ElMessageBox.confirm(
+      t('virtualPort.deletePairConfirm', { portA: row.portA, portB: row.portB }),
+      t('common.warning'),
+      {
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
+        type: 'warning',
+        center: true,
+        cancelButtonClass: 'el-button--danger'
+      }
+    )
+    const result = await window.virtualPortApi.deletePair(row.index)
+    if (result.success) {
+      ElMessage.success(t('virtualPort.deletePairSuccess'))
+      await refreshPorts()
+    } else {
+      ElMessage.error(result.error || t('virtualPort.deletePairFailed'))
+    }
+  } catch (error) {
+    // 用户取消时 ElMessageBox 会抛出异常
+    if (error !== 'cancel' && error !== 'close') {
+      console.error('[VirtualPortPage] deletePair failed:', error)
+      ElMessage.error(t('virtualPort.deletePairFailed'))
+    }
+  }
 }
 </script>
 
@@ -305,5 +412,22 @@ const handleRemovePair = (_row: VirtualPortPair) => {
 
 .delete-icon:hover {
   color: var(--preset-delete-icon-hover) !important;
+}
+
+/* 输入框 prepend COM 前缀适配深浅皮肤，无边框 */
+:deep(.el-input-group__prepend) {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 4px 0 0 4px !important;
+}
+:deep(.el-input-group__prepend + .el-input__wrapper) {
+  border-left: none !important;
+  box-shadow: 0 0 0 1px var(--border-input) inset !important;
+}
+:deep(.el-input-group) {
+  box-shadow: 0 0 0 1px var(--border-input) inset;
+  border-radius: 4px;
 }
 </style>
