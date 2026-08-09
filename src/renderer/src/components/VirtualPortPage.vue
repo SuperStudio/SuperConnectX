@@ -108,7 +108,7 @@
           <template #header>
             <span class="col-header">
               {{ t('virtualPort.plugInMode') }}
-              <el-tooltip :content="t('virtualPort.plugInModeHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER">
+              <el-tooltip :content="t('virtualPort.plugInModeHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER" popper-class="col-header-tooltip" :fallback-placements="['bottom']">
                 <el-icon :size="14" class="col-help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </span>
@@ -123,7 +123,7 @@
           <template #header>
             <span class="col-header">
               {{ t('virtualPort.exclusiveMode') }}
-              <el-tooltip :content="t('virtualPort.exclusiveModeHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER">
+              <el-tooltip :content="t('virtualPort.exclusiveModeHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER" popper-class="col-header-tooltip" :fallback-placements="['bottom']">
                 <el-icon :size="14" class="col-help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </span>
@@ -138,7 +138,7 @@
           <template #header>
             <span class="col-header">
               {{ t('virtualPort.emuNoise') }}
-              <el-tooltip :content="t('virtualPort.emuNoiseHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER">
+              <el-tooltip :content="t('virtualPort.emuNoiseHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER" popper-class="col-header-tooltip" :fallback-placements="['bottom']">
                 <el-icon :size="14" class="col-help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </span>
@@ -158,7 +158,7 @@
           <template #header>
             <span class="col-header">
               {{ t('virtualPort.rtto') }}
-              <el-tooltip :content="t('virtualPort.rttoHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER">
+              <el-tooltip :content="t('virtualPort.rttoHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER" popper-class="col-header-tooltip" :fallback-placements="['bottom']">
                 <el-icon :size="14" class="col-help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </span>
@@ -178,7 +178,7 @@
           <template #header>
             <span class="col-header">
               {{ t('virtualPort.rito') }}
-              <el-tooltip :content="t('virtualPort.ritoHint')" placement="top" :show-after="TOOLTIP_SHOW_AFTER">
+              <el-tooltip :content="t('virtualPort.ritoHint')" placement="top-end" :show-after="TOOLTIP_SHOW_AFTER" popper-class="col-header-tooltip" :fallback-placements="['bottom-end']">
                 <el-icon :size="14" class="col-help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </span>
@@ -613,5 +613,13 @@ const handleSave = async () => {
 :deep(.el-input-group) {
   box-shadow: 0 0 0 1px var(--border-input) inset;
   border-radius: 4px;
+}
+</style>
+
+<style>
+/* 列头 tooltip popper 限制宽度，防止撑开窗口产生滚动条 */
+.col-header-tooltip {
+  max-width: 280px !important;
+  word-break: break-word;
 }
 </style>
