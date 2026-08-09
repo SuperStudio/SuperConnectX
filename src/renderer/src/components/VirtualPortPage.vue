@@ -369,11 +369,6 @@ onMounted(() => {
   }
 })
 
-// 选择虚拟串口程序路径
-const handleSelectPath = () => {
-  // TODO: 实现路径选择
-}
-
 // 点击安装按钮，运行 setup.exe
 const handleInstall = async () => {
   installing.value = true
