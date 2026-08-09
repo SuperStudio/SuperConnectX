@@ -304,7 +304,19 @@ export default class ComClient extends BaseClient {
         connection.flushTimer = null
       }
 
-      // 主动断开前移除 close 事件监听器，防止触发 onClose 回调导致重连
+      // 断开前刷新缓冲区中剩余的数据
+      if (connection.buffer && connection.buffer.length > 0) {
+        const timestamp = BufferLineSplitter.timestamp()
+        const remainingStr = connection.splitter.decodeFull(connection.buffer)
+        connection.onData?.({ data: remainingStr, timestamp })
+        connection.onLog?.(connection.splitter.toLogLine(remainingStr), timestamp)
+        connection.buffer = Buffer.alloc(0)
+      }
+
+      // 主动断开前先调用 onClose 回调（触发 flushConnLog 将缓存日志写入文件），
+      // 然后移除 close 监听器防止 port 关闭时再次触发
+      const savedOnClose = connection.onClose
+      connection.onClose = undefined
       connection.port.removeAllListeners('close')
       connection.port.close((err: Error | null) => {
         if (err) {
@@ -312,6 +324,8 @@ export default class ComClient extends BaseClient {
         }
       })
       this.serialConnections.delete(connId)
+      // 在 port.close() 之后调用 onClose，确保端口资源已释放
+      savedOnClose?.()
     } else {
       this.logger.warn('not find connId for disconnect', { connId })
     }
