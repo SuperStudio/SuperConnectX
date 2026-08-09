@@ -153,5 +153,6 @@ contextBridge.exposeInMainWorld('updateApi', {
 
 contextBridge.exposeInMainWorld('virtualPortApi', {
   checkConditions: () => ipcRenderer.invoke('virtualport:check-conditions'),
+  listPorts: () => ipcRenderer.invoke('virtualport:list-ports'),
   getPlatform: () => process.platform
 })

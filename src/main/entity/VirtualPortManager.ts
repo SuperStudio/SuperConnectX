@@ -67,6 +67,12 @@ export default class VirtualPortManager {
    * @returns 是否成功找到并初始化
    */
   autoDetect(): boolean {
+    // 仅 Windows 支持注册表查询
+    if (process.platform !== 'win32') {
+      logger.info('VirtualPortManager autoDetect: non-Windows platform, skipping registry check')
+      return false
+    }
+
     const regKeys = [
       'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
       'HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'

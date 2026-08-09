@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { exec, execSync } from 'child_process'
 import VirtualPort from '../../src/main/entity/VirtualPort'
 import VirtualPortManager from '../../src/main/entity/VirtualPortManager'
@@ -311,6 +311,9 @@ describe('VirtualPortManager', () => {
   })
 
   describe('autoDetect', () => {
+    // 保存原始 platform
+    const originalPlatform = process.platform
+
     // reg query /s /f 的搜索输出格式
     function makeSearchOutput(installLocation: string): string {
       return `\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\com0com\n    DisplayName    REG_SZ    Null-modem emulator (com0com)\n    InstallLocation    REG_SZ    ${installLocation}\n\n搜索结束: 找到 2 匹配。\n`
@@ -324,7 +327,20 @@ describe('VirtualPortManager', () => {
       return `\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\com0com\n    DisplayName    REG_SZ    Null-modem emulator (com0com)\n\n搜索结束: 找到 1 匹配。\n`
     }
 
+    function setPlatform(platform: string): void {
+      Object.defineProperty(process, 'platform', {
+        value: platform,
+        configurable: true
+      })
+    }
+
+    // 确保每次测试后恢复 platform
+    afterEach(() => {
+      setPlatform(originalPlatform)
+    })
+
     it('在注册表中找到 com0com 并成功初始化', () => {
+      setPlatform('win32')
       mockExecSync.mockReset()
 
       // 第一个 reg key 无匹配
@@ -341,6 +357,7 @@ describe('VirtualPortManager', () => {
     })
 
     it('第一个 reg key 就找到，不再查第二个', () => {
+      setPlatform('win32')
       mockExecSync.mockReset()
 
       mockExecSync.mockImplementationOnce(() => makeSearchOutput('C:\\com0com\\'))
@@ -353,6 +370,7 @@ describe('VirtualPortManager', () => {
     })
 
     it('搜索结果中没有 InstallLocation 返回 false', () => {
+      setPlatform('win32')
       mockExecSync.mockReset()
 
       mockExecSync.mockImplementationOnce(() => makeNoMatchOutput())
@@ -365,6 +383,7 @@ describe('VirtualPortManager', () => {
     })
 
     it('注册表中没有任何匹配项返回 false', () => {
+      setPlatform('win32')
       mockExecSync.mockReset()
 
       mockExecSync.mockImplementationOnce(() => makeNoMatchOutput())
@@ -377,6 +396,7 @@ describe('VirtualPortManager', () => {
     })
 
     it('reg query 抛出异常时继续尝试下一个注册表键', () => {
+      setPlatform('win32')
       mockExecSync.mockReset()
 
       // 第一个 reg key 抛异常
@@ -390,6 +410,28 @@ describe('VirtualPortManager', () => {
       const result = m.autoDetect()
       expect(result).toBe(false)
       expect(mockExecSync).toHaveBeenCalledTimes(2)
+    })
+
+    it('非 Windows 平台直接返回 false，不查询注册表', () => {
+      setPlatform('linux')
+      mockExecSync.mockReset()
+
+      const m = new VirtualPortManager()
+      const result = m.autoDetect()
+      expect(result).toBe(false)
+      expect(m.isReady()).toBe(false)
+      expect(mockExecSync).not.toHaveBeenCalled()
+    })
+
+    it('macOS 平台直接返回 false，不查询注册表', () => {
+      setPlatform('darwin')
+      mockExecSync.mockReset()
+
+      const m = new VirtualPortManager()
+      const result = m.autoDetect()
+      expect(result).toBe(false)
+      expect(m.isReady()).toBe(false)
+      expect(mockExecSync).not.toHaveBeenCalled()
     })
   })
 })

@@ -40,6 +40,24 @@ export default class IpcVirtualPort {
       }
     })
 
+    // 列出所有虚拟串口对
+    ipcMain.handle('virtualport:list-ports', async () => {
+      const ports = await manager.listAllPorts()
+      logger.info(`virtualport:list-ports - found ${ports.length} ports`)
+
+      // 每两个端口为一对，组装成 pair 数组
+      const pairs: Array<{ index: number; portA: string; portB: string }> = []
+      for (let i = 0; i + 1 < ports.length; i += 2) {
+        pairs.push({
+          index: i / 2,
+          portA: ports[i].Name,
+          portB: ports[i + 1].Name
+        })
+      }
+
+      return pairs
+    })
+
     logger.info('init IpcVirtualPort done')
   }
 }

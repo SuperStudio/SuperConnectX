@@ -132,6 +132,23 @@ interface VirtualPortPair {
 
 const pairList = reactive<VirtualPortPair[]>([])
 
+// 刷新列表
+const refreshPorts = async () => {
+  try {
+    const pairs = await window.virtualPortApi.listPorts()
+    pairList.length = 0
+    for (const p of pairs) {
+      pairList.push({
+        portA: p.portA || '',
+        portB: p.portB || '',
+        active: p.portA !== '' && p.portB !== ''
+      })
+    }
+  } catch (error) {
+    console.error('[VirtualPortPage] listPorts failed:', error)
+  }
+}
+
 // 检测两个虚拟串口条件
 const checkConditions = async () => {
   try {
@@ -146,10 +163,11 @@ const checkConditions = async () => {
   }
 }
 
-// 组件挂载时检测条件（仅 Windows）
+// 组件挂载时检测条件并加载列表（仅 Windows）
 onMounted(() => {
   if (isWindows.value) {
     checkConditions()
+    refreshPorts()
   }
 })
 
@@ -165,7 +183,7 @@ const handleAddPair = () => {
 
 // 刷新列表
 const handleRefresh = () => {
-  // TODO: 实现刷新
+  refreshPorts()
 }
 
 // 启用串口对
