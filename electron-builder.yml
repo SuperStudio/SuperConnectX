@@ -19,6 +19,8 @@ extraResources:
     to: icon.ico
   - from: build/icon.png
     to: icon.png
+  - from: resources/exe/setup.exe
+    to: exe/setup.exe
 asarUnpack:
   - node_modules/serialport/**
   - node_modules/@serialport/**

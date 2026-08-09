@@ -1,4 +1,5 @@
-import { ipcMain } from 'electron'
+import { ipcMain, shell } from 'electron'
+import path from 'path'
 import VirtualPort from '../entity/VirtualPort'
 import VirtualPortManager from '../entity/VirtualPortManager'
 import logger from './IpcAppLogger'
@@ -91,6 +92,20 @@ export default class IpcVirtualPort {
       const result = await manager.deletePort(index)
       logger.info(`virtualport:delete-pair - result: ${result}`)
       return { success: result }
+    })
+
+    // 运行 setup.exe 安装程序
+    ipcMain.handle('virtualport:run-setup', async () => {
+      // 在打包后的应用中，extraResources 会被放到 process.resourcesPath 下
+      const setupPath = path.join(process.resourcesPath!, 'exe', 'setup.exe')
+      logger.info(`virtualport:run-setup - launching ${setupPath}`)
+      try {
+        await shell.openPath(setupPath)
+        return { success: true }
+      } catch (e) {
+        logger.error(`virtualport:run-setup - failed: ${e}`)
+        return { success: false, error: String(e) }
+      }
     })
 
     // 更新端口配置

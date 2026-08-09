@@ -16,13 +16,26 @@
             <CircleClose v-else />
           </el-icon>
           <span>{{ t('virtualPort.checkInstalled') }}</span>
+          <!-- 已安装：显示路径（只读） -->
           <el-input
+            v-if="virtualPortInstalled && virtualPortPathSelected"
             v-model="virtualPortPath"
             :placeholder="t('virtualPort.pathPlaceholder')"
             size="small"
             style="flex: 1"
             disabled
           />
+          <!-- 未安装：显示安装按钮 -->
+          <el-button
+            v-else
+            size="small"
+            class="btn-primary install-btn"
+            :loading="installing"
+            style="width: auto !important"
+            @click="handleInstall"
+          >
+            {{ t('virtualPort.clickToInstall') }}
+          </el-button>
         </div>
       </div>
     </div>
@@ -260,6 +273,7 @@ const isWindows = ref(window.virtualPortApi.getPlatform() === 'win32')
 const virtualPortInstalled = ref(false)
 const virtualPortPathSelected = ref(false)
 const virtualPortPath = ref('')
+const installing = ref(false)
 
 // 虚拟串口列表（每个端口一行，携带完整参数）
 interface VirtualPortRow {
@@ -358,6 +372,24 @@ onMounted(() => {
 // 选择虚拟串口程序路径
 const handleSelectPath = () => {
   // TODO: 实现路径选择
+}
+
+// 点击安装按钮，运行 setup.exe
+const handleInstall = async () => {
+  installing.value = true
+  try {
+    const result = await window.virtualPortApi.runSetup()
+    if (result.success) {
+      ElMessage.success(t('virtualPort.installLaunched'))
+    } else {
+      ElMessage.error(result.error || t('virtualPort.installFailed'))
+    }
+  } catch (error) {
+    console.error('[VirtualPortPage] runSetup failed:', error)
+    ElMessage.error(t('virtualPort.installFailed'))
+  } finally {
+    installing.value = false
+  }
 }
 
 // 打开新增串口对对话框
@@ -566,6 +598,10 @@ const handleSave = async () => {
   font-size: 14px;
   color: var(--text-primary);
   width: 100%;
+}
+
+.install-btn {
+  flex-shrink: 0;
 }
 
 .check-item-vertical {
