@@ -491,6 +491,7 @@ const clearSearch = () => {
   padding: 16px;
   background: var(--shortcuts-page-bg);
   gap: 12px;
+  box-sizing: border-box;
 }
 
 .shortcuts-search {
