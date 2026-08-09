@@ -5,6 +5,7 @@ import IpcConnector from './ipc/IpcConnector'
 import IpcWindow from './ipc/IpcWindow'
 import IpcTools from './ipc/IpcTools'
 import IpcSerialPort from './ipc/IpcSerialPort'
+import IpcVirtualPort from './ipc/IpcVirtualPort'
 import IpcMain from './ipc/IpcMain'
 import IpcDataCheck from './ipc/IpcDataCheck'
 import logger from './ipc/IpcAppLogger'
@@ -36,6 +37,7 @@ IpcConnector.getInstance().init(protocolLogger, windows)
 IpcWindow.getInstance().init(windows)
 IpcTools.getInstance().init(windows)
 IpcSerialPort.getInstance().init(protocolLogger, windows)
+IpcVirtualPort.getInstance().init(protocolLogger, windows)
 IpcMain.getInstance().init(protocolLogger, windows)
 IpcDataCheck.getInstance().init()
 

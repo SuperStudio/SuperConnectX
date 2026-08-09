@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { exec } from 'child_process'
+import { exec, execSync } from 'child_process'
 import VirtualPort from '../../src/main/entity/VirtualPort'
 import VirtualPortManager from '../../src/main/entity/VirtualPortManager'
 
@@ -14,11 +14,13 @@ vi.mock('child_process', () => {
       callback: (error: Error | null, stdout: string, stderr: string) => void
     ) => {
       execCallbacks.push(callback)
-    })
+    }),
+    execSync: vi.fn()
   }
 })
 
 const mockExec = vi.mocked(exec)
+const mockExecSync = vi.mocked(execSync)
 
 vi.mock('fs', () => {
   return {
@@ -305,6 +307,89 @@ describe('VirtualPortManager', () => {
       const a = VirtualPortManager.getInstance()
       const b = VirtualPortManager.getInstance()
       expect(a).toBe(b)
+    })
+  })
+
+  describe('autoDetect', () => {
+    // reg query /s /f 的搜索输出格式
+    function makeSearchOutput(installLocation: string): string {
+      return `\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\com0com\n    DisplayName    REG_SZ    Null-modem emulator (com0com)\n    InstallLocation    REG_SZ    ${installLocation}\n\n搜索结束: 找到 2 匹配。\n`
+    }
+
+    function makeNoMatchOutput(): string {
+      return '\n搜索结束: 找到 0 匹配。\n'
+    }
+
+    function makeNoInstallLocationOutput(): string {
+      return `\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\com0com\n    DisplayName    REG_SZ    Null-modem emulator (com0com)\n\n搜索结束: 找到 1 匹配。\n`
+    }
+
+    it('在注册表中找到 com0com 并成功初始化', () => {
+      mockExecSync.mockReset()
+
+      // 第一个 reg key 无匹配
+      mockExecSync.mockImplementationOnce(() => makeNoMatchOutput())
+      // 第二个 reg key 找到 com0com
+      mockExecSync.mockImplementationOnce(() => makeSearchOutput('D:\\soft\\com0com\\'))
+
+      const m = new VirtualPortManager()
+      const result = m.autoDetect()
+      expect(result).toBe(true)
+      expect(m.isReady()).toBe(true)
+      expect(m.getAppPath()).toBe('D:\\soft\\com0com\\setupc.exe')
+      expect(mockExecSync).toHaveBeenCalledTimes(2)
+    })
+
+    it('第一个 reg key 就找到，不再查第二个', () => {
+      mockExecSync.mockReset()
+
+      mockExecSync.mockImplementationOnce(() => makeSearchOutput('C:\\com0com\\'))
+
+      const m = new VirtualPortManager()
+      const result = m.autoDetect()
+      expect(result).toBe(true)
+      expect(m.getAppPath()).toBe('C:\\com0com\\setupc.exe')
+      expect(mockExecSync).toHaveBeenCalledTimes(1)
+    })
+
+    it('搜索结果中没有 InstallLocation 返回 false', () => {
+      mockExecSync.mockReset()
+
+      mockExecSync.mockImplementationOnce(() => makeNoMatchOutput())
+      mockExecSync.mockImplementationOnce(() => makeNoInstallLocationOutput())
+
+      const m = new VirtualPortManager()
+      const result = m.autoDetect()
+      expect(result).toBe(false)
+      expect(m.isReady()).toBe(false)
+    })
+
+    it('注册表中没有任何匹配项返回 false', () => {
+      mockExecSync.mockReset()
+
+      mockExecSync.mockImplementationOnce(() => makeNoMatchOutput())
+      mockExecSync.mockImplementationOnce(() => makeNoMatchOutput())
+
+      const m = new VirtualPortManager()
+      const result = m.autoDetect()
+      expect(result).toBe(false)
+      expect(m.isReady()).toBe(false)
+    })
+
+    it('reg query 抛出异常时继续尝试下一个注册表键', () => {
+      mockExecSync.mockReset()
+
+      // 第一个 reg key 抛异常
+      mockExecSync.mockImplementationOnce(() => {
+        throw new Error('access denied')
+      })
+      // 第二个 reg key 正常，但也没有匹配
+      mockExecSync.mockImplementationOnce(() => makeNoMatchOutput())
+
+      const m = new VirtualPortManager()
+      const result = m.autoDetect()
+      expect(result).toBe(false)
+      expect(mockExecSync).toHaveBeenCalledTimes(2)
     })
   })
 })

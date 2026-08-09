@@ -150,3 +150,7 @@ contextBridge.exposeInMainWorld('updateApi', {
     return () => ipcRenderer.removeListener('update-status', listener)
   }
 })
+
+contextBridge.exposeInMainWorld('virtualPortApi', {
+  checkConditions: () => ipcRenderer.invoke('virtualport:check-conditions')
+})

@@ -103,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CircleCheck, CircleClose } from '@element-plus/icons-vue'
 
@@ -122,6 +122,25 @@ interface VirtualPortPair {
 }
 
 const pairList = reactive<VirtualPortPair[]>([])
+
+// 检测两个虚拟串口条件
+const checkConditions = async () => {
+  try {
+    console.log('[VirtualPortPage] calling checkConditions...')
+    const result = await window.virtualPortApi.checkConditions()
+    console.log('[VirtualPortPage] checkConditions result:', JSON.stringify(result))
+    virtualPortInstalled.value = result.installed
+    virtualPortPathSelected.value = result.pathSelected
+    virtualPortPath.value = result.path
+  } catch (error) {
+    console.error('[VirtualPortPage] checkConditions failed:', error)
+  }
+}
+
+// 组件挂载时检测条件
+onMounted(() => {
+  checkConditions()
+})
 
 // 选择虚拟串口程序路径
 const handleSelectPath = () => {

@@ -6,7 +6,7 @@
  *
  * 对应 C# 版本 SuperCom.Entity.VirtualPortManager
  */
-import { exec, ExecException } from 'child_process'
+import { exec, ExecException, execSync } from 'child_process'
 import path from 'path'
 import fs from 'fs'
 import VirtualPort from './VirtualPort'
@@ -54,6 +54,66 @@ export default class VirtualPortManager {
   /** 获取 appPath */
   getAppPath(): string {
     return this.appPath
+  }
+
+  /**
+   * 从 Windows 注册表自动检测 com0com 的安装路径
+   *
+   * 使用 reg query /s /f 在 Uninstall 注册表键中递归搜索 "com0com" 字符串，
+   * 直接从搜索结果中解析 InstallLocation 并拼接 setupc.exe 路径。
+   *
+   * 对应 C# 版 RegistryHelper.GetInstalledApp()
+   *
+   * @returns 是否成功找到并初始化
+   */
+  autoDetect(): boolean {
+    const regKeys = [
+      'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+      'HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'
+    ]
+
+    logger.info('VirtualPortManager autoDetect: searching registry for com0com...')
+
+    for (const regKey of regKeys) {
+      try {
+        // /s 递归搜索子键, /f "com0com" 按数据内容搜索, /d 搜索数据值
+        const output = execSync(
+          `reg query "${regKey}" /s /f "com0com" /d 2>&1`,
+          { encoding: 'utf-8', timeout: 5000 }
+        )
+
+        // 检查是否找到匹配
+        if (output.includes('搜索结束: 找到 0 匹配') || !output.includes('InstallLocation')) {
+          logger.info(`VirtualPortManager autoDetect: no match in ${regKey}`)
+          continue
+        }
+
+        // 直接从输出中解析 InstallLocation
+        const installMatch = output.match(/InstallLocation\s+REG_SZ\s+(.+)/i)
+        if (!installMatch) {
+          logger.info(`VirtualPortManager autoDetect: InstallLocation not found in ${regKey} output`)
+          continue
+        }
+
+        const installLocation = installMatch[1].trim()
+        logger.info(`VirtualPortManager autoDetect: InstallLocation=${installLocation}`)
+
+        const exePath = path.join(installLocation, VirtualPortManager.EXE_NAME)
+        if (!fs.existsSync(exePath)) {
+          logger.error(`VirtualPortManager autoDetect: setupc.exe not found at ${exePath}`)
+          continue
+        }
+
+        this.init(exePath)
+        logger.info(`VirtualPortManager autoDetect: success, init with ${exePath}`)
+        return true
+      } catch (e) {
+        logger.info(`VirtualPortManager autoDetect: failed to query ${regKey}: ${e}`)
+      }
+    }
+
+    logger.info('VirtualPortManager autoDetect: com0com not found in registry')
+    return false
   }
 
   // ==================== 命令解析 ====================

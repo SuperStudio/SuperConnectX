@@ -139,6 +139,9 @@ declare global {
       error: (message: string, meta?: any) => Promise<void>
       debug: (message: string, meta?: any) => Promise<void>
     }
+    virtualPortApi: {
+      checkConditions: () => Promise<{ installed: boolean; pathSelected: boolean; path: string }>
+    }
   }
 }
 
