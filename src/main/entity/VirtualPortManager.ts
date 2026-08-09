@@ -9,6 +9,7 @@
 import { exec, ExecException, execSync } from 'child_process'
 import path from 'path'
 import fs from 'fs'
+import os from 'os'
 import VirtualPort from './VirtualPort'
 import logger from '../ipc/IpcAppLogger'
 
@@ -219,6 +220,72 @@ export default class VirtualPortManager {
     })
   }
 
+  /**
+   * 以管理员权限执行 setupc 命令
+   * 通过 PowerShell Start-Process -Verb RunAs 提权，输出重定向到临时文件
+   */
+  private execSetupCmdAdmin(args: string): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.isReady()) {
+        reject(new Error('setupc.exe not found or not initialized'))
+        return
+      }
+
+      const cmd = `cd /d "${this.appDir}" && ${VirtualPortManager.EXE_NAME} ${args}`
+      const outFile = path.join(os.tmpdir(), `setupc_out_${Date.now()}.txt`)
+      const errFile = path.join(os.tmpdir(), `setupc_err_${Date.now()}.txt`)
+
+      // 用 PowerShell Start-Process 以管理员身份运行，重定向 stdout/stderr
+      const psCmd = `Start-Process cmd.exe -ArgumentList '/C', '${cmd.replace(/'/g, "''")} > "${outFile}" 2> "${errFile}"' -Verb RunAs -Wait`
+      logger.info(`VirtualPortManager execAdmin: ${cmd}`)
+
+      exec(
+        `powershell -Command "${psCmd.replace(/"/g, '\\"')}"`,
+        {
+          timeout: VirtualPortManager.CMD_TIMEOUT + 5000,
+          maxBuffer: 1024 * 1024,
+          windowsHide: true
+        },
+        (error: ExecException | null, _stdout: string, stderr: string) => {
+          try {
+            if (error) {
+              logger.error(`VirtualPortManager execAdmin powershell error: ${error.message}`)
+            }
+            if (stderr) {
+              logger.info(`VirtualPortManager execAdmin powershell stderr: ${stderr}`)
+            }
+
+            // 读取重定向的输出文件
+            let stdout = ''
+            let setupcStderr = ''
+            try {
+              if (fs.existsSync(outFile)) {
+                stdout = fs.readFileSync(outFile, 'utf-8')
+                fs.unlinkSync(outFile)
+              }
+              if (fs.existsSync(errFile)) {
+                setupcStderr = fs.readFileSync(errFile, 'utf-8')
+                fs.unlinkSync(errFile)
+              }
+            } catch (fileErr) {
+              logger.error(`VirtualPortManager execAdmin read output file error: ${fileErr}`)
+            }
+
+            if (setupcStderr) {
+              logger.info(`VirtualPortManager execAdmin setupc stderr: ${setupcStderr}`)
+            }
+
+            const lines = stdout.split('\n').map((l) => l.trim()).filter(Boolean)
+            logger.info(`VirtualPortManager execAdmin stdout lines: ${JSON.stringify(lines)}`)
+            resolve(lines)
+          } catch (e) {
+            reject(e)
+          }
+        }
+      )
+    })
+  }
+
   // ==================== 公共 API ====================
 
   /**
@@ -313,7 +380,8 @@ export default class VirtualPortManager {
       logger.info(`VirtualPortManager updatePorts: change ${port.ID} ${updateStr}`)
 
       try {
-        const lines = await this.execSetupCmd(`change ${port.ID} ${updateStr}`)
+        const lines = await this.execSetupCmdAdmin(`change ${port.ID} ${updateStr}`)
+        logger.info(`VirtualPortManager updatePorts stdout lines: ${JSON.stringify(lines)}`)
         let completed = false
         for (const line of lines) {
           if (line.includes(`Restarted ${port.ID}`)) {

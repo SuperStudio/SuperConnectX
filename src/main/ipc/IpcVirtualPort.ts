@@ -3,6 +3,22 @@ import VirtualPort from '../entity/VirtualPort'
 import VirtualPortManager from '../entity/VirtualPortManager'
 import logger from './IpcAppLogger'
 
+/** 序列化 VirtualPort 为纯对象，去除 prototype（IPC 要求 plain object） */
+function serializePort(port: VirtualPort): Record<string, unknown> {
+  return {
+    ID: port.ID,
+    Name: port.Name,
+    EmuBR: port.EmuBR,
+    EmuOverrun: port.EmuOverrun,
+    EmuNoise: port.EmuNoise,
+    AddRTTO: port.AddRTTO,
+    AddRITO: port.AddRITO,
+    PlugInMode: port.PlugInMode,
+    ExclusiveMode: port.ExclusiveMode,
+    HiddenMode: port.HiddenMode
+  }
+}
+
 export default class IpcVirtualPort {
   private static sInstance: IpcVirtualPort
 
@@ -32,31 +48,18 @@ export default class IpcVirtualPort {
       logger.info(`virtualport:check-conditions - installed=${ready}, pathSelected=${appPath !== ''}, path=${appPath}`)
 
       return {
-        // 条件1: setupc.exe 已设置路径且文件存在
         installed: ready,
-        // 条件2: 路径是否已选择（设置了 appPath）
         pathSelected: appPath !== '',
-        // 当前已设置的路径
         path: appPath
       }
     })
 
-    // 列出所有虚拟串口对
+    // 列出所有虚拟串口（每个端口一行，携带完整参数）
     ipcMain.handle('virtualport:list-ports', async () => {
       const ports = await manager.listAllPorts()
       logger.info(`virtualport:list-ports - found ${ports.length} ports`)
 
-      // 每两个端口为一对，组装成 pair 数组
-      const pairs: Array<{ index: number; portA: string; portB: string }> = []
-      for (let i = 0; i + 1 < ports.length; i += 2) {
-        pairs.push({
-          index: i / 2,
-          portA: ports[i].Name,
-          portB: ports[i + 1].Name
-        })
-      }
-
-      return pairs
+      return ports.map((p) => serializePort(p))
     })
 
     // 新增串口对
@@ -87,6 +90,36 @@ export default class IpcVirtualPort {
 
       const result = await manager.deletePort(index)
       logger.info(`virtualport:delete-pair - result: ${result}`)
+      return { success: result }
+    })
+
+    // 更新端口配置
+    ipcMain.handle('virtualport:update-ports', async (_event, ports: Array<Record<string, unknown>>) => {
+      logger.info(`virtualport:update-ports - updating ${ports.length} ports`)
+
+      if (!manager.isReady()) {
+        logger.error('virtualport:update-ports - manager not ready')
+        return { success: false, error: 'setupc.exe not found' }
+      }
+
+      const vps: VirtualPort[] = []
+      for (const p of ports) {
+        const vp = new VirtualPort()
+        vp.ID = p.ID as string
+        vp.Name = p.Name as string
+        vp.EmuBR = !!p.EmuBR
+        vp.EmuOverrun = !!p.EmuOverrun
+        vp.EmuNoise = Number(p.EmuNoise) || 0
+        vp.AddRTTO = Number(p.AddRTTO) || 0
+        vp.AddRITO = Number(p.AddRITO) || 0
+        vp.PlugInMode = !!p.PlugInMode
+        vp.ExclusiveMode = !!p.ExclusiveMode
+        vp.HiddenMode = !!p.HiddenMode
+        vps.push(vp)
+      }
+
+      const result = await manager.updatePorts(vps)
+      logger.info(`virtualport:update-ports - result: ${result}`)
       return { success: result }
     })
 

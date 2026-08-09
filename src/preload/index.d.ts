@@ -141,9 +141,15 @@ declare global {
     }
     virtualPortApi: {
       checkConditions: () => Promise<{ installed: boolean; pathSelected: boolean; path: string }>
-      listPorts: () => Promise<Array<{ index: number; portA: string; portB: string }>>
+      listPorts: () => Promise<Array<{
+        ID: string; Name: string
+        EmuBR: boolean; EmuOverrun: boolean; EmuNoise: number
+        AddRTTO: number; AddRITO: number
+        PlugInMode: boolean; ExclusiveMode: boolean; HiddenMode: boolean
+      }>>
       insertPair: (portA: string, portB: string) => Promise<{ success: boolean; error?: string }>
       deletePair: (index: number) => Promise<{ success: boolean; error?: string }>
+      updatePorts: (ports: Record<string, unknown>[]) => Promise<{ success: boolean; error?: string }>
       getPlatform: () => NodeJS.Platform
     }
   }

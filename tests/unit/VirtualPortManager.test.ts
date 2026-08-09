@@ -6,6 +6,10 @@ import VirtualPortManager from '../../src/main/entity/VirtualPortManager'
 // 保存 callback 队列，支持多次 exec 调用
 const execCallbacks: Array<(error: Error | null, stdout: string, stderr: string) => void> = []
 
+// 预设的 setupc 管理员模式输出（execSetupCmdAdmin 读取临时文件时返回）
+let presetAdminStdout: string = ''
+let presetAdminStderr: string = ''
+
 vi.mock('child_process', () => {
   return {
     exec: vi.fn((
@@ -25,18 +29,47 @@ const mockExecSync = vi.mocked(execSync)
 vi.mock('fs', () => {
   return {
     default: {
-      existsSync: vi.fn((_path: string) => true)
+      existsSync: vi.fn((_path: string) => true),
+      readFileSync: vi.fn((path: string, _encoding: string) => {
+        const p = String(path)
+        if (p.includes('setupc_out_')) return presetAdminStdout
+        if (p.includes('setupc_err_')) return presetAdminStderr
+        return ''
+      }),
+      unlinkSync: vi.fn(() => {})
     },
-    existsSync: vi.fn((_path: string) => true)
+    existsSync: vi.fn((_path: string) => true),
+    readFileSync: vi.fn((path: string, _encoding: string) => {
+      const p = String(path)
+      if (p.includes('setupc_out_')) return presetAdminStdout
+      if (p.includes('setupc_err_')) return presetAdminStderr
+      return ''
+    }),
+    unlinkSync: vi.fn(() => {})
   }
 })
 
-// 辅助：触发下一个 exec 回调
+vi.mock('os', () => {
+  return {
+    default: {
+      tmpdir: vi.fn(() => 'C:\\Temp')
+    },
+    tmpdir: vi.fn(() => 'C:\\Temp')
+  }
+})
+
+// 辅助：触发下一个 exec 回调（普通模式 / 管理员模式的 powershell）
 function resolveExec(error: Error | null, stdout: string, stderr: string = ''): void {
   const cb = execCallbacks.shift()
   if (cb) {
     cb(error, stdout, stderr)
   }
+}
+
+// 辅助：设置 execSetupCmdAdmin 模式下读取到的 setupc stdout
+function setAdminOutput(stdout: string, stderr: string = ''): void {
+  presetAdminStdout = stdout
+  presetAdminStderr = stderr
 }
 
 describe('VirtualPortManager', () => {
@@ -45,6 +78,8 @@ describe('VirtualPortManager', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     execCallbacks.length = 0
+    presetAdminStdout = ''
+    presetAdminStderr = ''
     manager = new VirtualPortManager()
     manager.init('C:\\Program Files\\com0com\\setupc.exe')
   })
@@ -270,9 +305,10 @@ describe('VirtualPortManager', () => {
       port.ID = 'CNCA0'
       port.EmuBR = true
 
+      setAdminOutput('Restarted CNCA0\n')
       const promise = manager.updatePorts([port])
       await Promise.resolve()
-      resolveExec(null, 'Restarted CNCA0\n')
+      resolveExec(null, '') // 触发 powershell exec 回调
 
       const result = await promise
       expect(result).toBe(true)
@@ -293,9 +329,10 @@ describe('VirtualPortManager', () => {
       const port = new VirtualPort('COM2')
       port.ID = 'CNCA0'
 
+      setAdminOutput('Some other output\n')
       const promise = manager.updatePorts([port])
       await Promise.resolve()
-      resolveExec(null, 'Some other output\n')
+      resolveExec(null, '')
 
       const result = await promise
       expect(result).toBe(false)

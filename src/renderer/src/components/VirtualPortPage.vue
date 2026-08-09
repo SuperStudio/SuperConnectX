@@ -49,30 +49,108 @@
       <el-button size="small" class="btn-primary toolbar-btn" icon="Refresh" @click="handleRefresh">
         {{ t('virtualPort.refresh') }}
       </el-button>
+      <el-button size="small" class="btn-primary toolbar-btn" @click="handleSave" :loading="saving">
+        {{ t('virtualPort.save') }}
+      </el-button>
     </div>
 
-    <!-- 虚拟串口列表 -->
-    <div class="pair-list-section">
+    <!-- 虚拟串口列表（每个端口一行） -->
+    <div class="port-list-section">
       <el-table
-        :data="pairList"
+        :data="portList"
         style="width: 100%"
         size="small"
         empty-text=""
-        v-if="pairList.length > 0"
+        v-if="portList.length > 0"
       >
-        <el-table-column :label="t('common.delete')" width="60" align="center">
-          <template #default="{ row }">
-            <el-icon size="16" class="action-icon delete-icon" @click="handleRemovePair(row)">
-              <Delete />
-            </el-icon>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('virtualPort.pairIndex')" width="80" align="center">
+        <!-- 序号 -->
+        <el-table-column :label="t('virtualPort.pairIndex')" width="60" align="center" fixed="left">
           <template #default="{ $index }">{{ $index + 1 }}</template>
         </el-table-column>
-        <el-table-column prop="portA" :label="t('virtualPort.portA')" />
-        <el-table-column prop="portB" :label="t('virtualPort.portB')" />
 
+        <!-- 串口号 -->
+        <el-table-column :label="t('virtualPort.portNumber')" width="110">
+          <template #default="{ row }">
+            <el-input
+              v-model="row.Name"
+              size="small"
+              :placeholder="t('virtualPort.portNumberPlaceholder')"
+              maxlength="8"
+              @input="row.Name = row.Name.toUpperCase()"
+            />
+          </template>
+        </el-table-column>
+
+        <!-- 隐藏 -->
+        <el-table-column :label="t('virtualPort.hidden')" width="70" align="center">
+          <template #default="{ row }">
+            <el-switch v-model="row.HiddenMode" size="small" class="terminal-switch" />
+          </template>
+        </el-table-column>
+
+        <!-- 模拟波特率 -->
+        <el-table-column :label="t('virtualPort.emuBR')" width="90" align="center">
+          <template #default="{ row }">
+            <el-switch v-model="row.EmuBR" size="small" class="terminal-switch" />
+          </template>
+        </el-table-column>
+
+        <!-- 缓冲区溢出 -->
+        <el-table-column :label="t('virtualPort.emuOverrun')" width="90" align="center">
+          <template #default="{ row }">
+            <el-switch v-model="row.EmuOverrun" size="small" class="terminal-switch" />
+          </template>
+        </el-table-column>
+
+        <!-- 模拟真实插拔 -->
+        <el-table-column :label="t('virtualPort.plugInMode')" width="100" align="center">
+          <template #default="{ row }">
+            <el-switch v-model="row.PlugInMode" size="small" class="terminal-switch" />
+          </template>
+        </el-table-column>
+
+        <!-- 独占模式 -->
+        <el-table-column :label="t('virtualPort.exclusiveMode')" width="90" align="center">
+          <template #default="{ row }">
+            <el-switch v-model="row.ExclusiveMode" size="small" class="terminal-switch" />
+          </template>
+        </el-table-column>
+
+        <!-- 误码率 -->
+        <el-table-column :label="t('virtualPort.emuNoise')" width="110">
+          <template #default="{ row }">
+            <el-input
+              v-model="row.EmuNoise"
+              size="small"
+              :placeholder="'0'"
+              @input="row.EmuNoise = row.EmuNoise.replace(/[^\d.]/g, '')"
+            />
+          </template>
+        </el-table-column>
+
+        <!-- RTTO(ms) -->
+        <el-table-column :label="t('virtualPort.rtto')" width="100">
+          <template #default="{ row }">
+            <el-input
+              v-model="row.AddRTTO"
+              size="small"
+              :placeholder="'0'"
+              @input="row.AddRTTO = row.AddRTTO.replace(/\D/g, '')"
+            />
+          </template>
+        </el-table-column>
+
+        <!-- RITO(ms) -->
+        <el-table-column :label="t('virtualPort.rito')" width="100">
+          <template #default="{ row }">
+            <el-input
+              v-model="row.AddRITO"
+              size="small"
+              :placeholder="'0'"
+              @input="row.AddRITO = row.AddRITO.replace(/\D/g, '')"
+            />
+          </template>
+        </el-table-column>
       </el-table>
 
       <div v-else class="empty-pair-list">
@@ -125,8 +203,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CircleCheck, CircleClose, Delete } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { CircleCheck, CircleClose } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { isProperPortName } from '@renderer/utils/virtualPort'
 
 const { t } = useI18n()
@@ -139,15 +217,24 @@ const virtualPortInstalled = ref(false)
 const virtualPortPathSelected = ref(false)
 const virtualPortPath = ref('')
 
-// 虚拟串口列表
-interface VirtualPortPair {
-  index: number
-  portA: string
-  portB: string
-  active: boolean
+// 虚拟串口列表（每个端口一行，携带完整参数）
+interface VirtualPortRow {
+  ID: string
+  Name: string
+  EmuBR: boolean
+  EmuOverrun: boolean
+  EmuNoise: string
+  AddRTTO: string
+  AddRITO: string
+  PlugInMode: boolean
+  ExclusiveMode: boolean
+  HiddenMode: boolean
 }
 
-const pairList = reactive<VirtualPortPair[]>([])
+const portList = reactive<VirtualPortRow[]>([])
+
+// 保存/应用状态
+const saving = ref(false)
 
 // 新增串口对对话框
 const addPairDialogVisible = ref(false)
@@ -160,14 +247,20 @@ const addPairForm = reactive({
 // 刷新列表
 const refreshPorts = async () => {
   try {
-    const pairs = await window.virtualPortApi.listPorts()
-    pairList.length = 0
-    for (const p of pairs) {
-      pairList.push({
-        index: p.index,
-        portA: p.portA || '',
-        portB: p.portB || '',
-        active: p.portA !== '' && p.portB !== ''
+    const ports = await window.virtualPortApi.listPorts()
+    portList.length = 0
+    for (const p of ports) {
+      portList.push({
+        ID: p.ID,
+        Name: p.Name || '',
+        EmuBR: !!p.EmuBR,
+        EmuOverrun: !!p.EmuOverrun,
+        EmuNoise: String(p.EmuNoise ?? ''),
+        AddRTTO: String(p.AddRTTO ?? ''),
+        AddRITO: String(p.AddRITO ?? ''),
+        PlugInMode: !!p.PlugInMode,
+        ExclusiveMode: !!p.ExclusiveMode,
+        HiddenMode: !!p.HiddenMode
       })
     }
   } catch (error) {
@@ -178,9 +271,7 @@ const refreshPorts = async () => {
 // 检测两个虚拟串口条件
 const checkConditions = async () => {
   try {
-    console.log('[VirtualPortPage] calling checkConditions...')
     const result = await window.virtualPortApi.checkConditions()
-    console.log('[VirtualPortPage] checkConditions result:', JSON.stringify(result))
     virtualPortInstalled.value = result.installed
     virtualPortPathSelected.value = result.pathSelected
     virtualPortPath.value = result.path
@@ -218,13 +309,10 @@ const handleConfirmAddPair = async () => {
   const portA = 'COM' + addPairForm.portA.trim()
   const portB = 'COM' + addPairForm.portB.trim()
 
-  // 校验端口名
   if (!isProperPortName(portA) || !isProperPortName(portB)) {
     ElMessage.warning(t('virtualPort.addPairInvalidName'))
     return
   }
-
-  // 校验不能相同
   if (portA === portB) {
     ElMessage.warning(t('virtualPort.addPairSameName'))
     return
@@ -253,33 +341,39 @@ const handleRefresh = () => {
   refreshPorts()
 }
 
-// 删除串口对
-const handleRemovePair = async (row: VirtualPortPair) => {
+// 将 VirtualPortRow 转换为 IPC 需要的纯对象
+function toPlainPort(row: VirtualPortRow): Record<string, unknown> {
+  return {
+    ID: row.ID,
+    Name: row.Name,
+    EmuBR: row.EmuBR,
+    EmuOverrun: row.EmuOverrun,
+    EmuNoise: parseFloat(row.EmuNoise) || 0,
+    AddRTTO: parseInt(row.AddRTTO, 10) || 0,
+    AddRITO: parseInt(row.AddRITO, 10) || 0,
+    PlugInMode: row.PlugInMode,
+    ExclusiveMode: row.ExclusiveMode,
+    HiddenMode: row.HiddenMode
+  }
+}
+
+// 保存
+const handleSave = async () => {
+  saving.value = true
   try {
-    await ElMessageBox.confirm(
-      t('virtualPort.deletePairConfirm', { portA: row.portA, portB: row.portB }),
-      t('common.warning'),
-      {
-        confirmButtonText: t('common.confirm'),
-        cancelButtonText: t('common.cancel'),
-        type: 'warning',
-        center: true,
-        cancelButtonClass: 'el-button--danger'
-      }
-    )
-    const result = await window.virtualPortApi.deletePair(row.index)
+    const ports = portList.map(toPlainPort)
+    const result = await window.virtualPortApi.updatePorts(ports)
     if (result.success) {
-      ElMessage.success(t('virtualPort.deletePairSuccess'))
+      ElMessage.success(t('virtualPort.updateSuccess'))
       await refreshPorts()
     } else {
-      ElMessage.error(result.error || t('virtualPort.deletePairFailed'))
+      ElMessage.error(result.error || t('virtualPort.updateFailed'))
     }
   } catch (error) {
-    // 用户取消时 ElMessageBox 会抛出异常
-    if (error !== 'cancel' && error !== 'close') {
-      console.error('[VirtualPortPage] deletePair failed:', error)
-      ElMessage.error(t('virtualPort.deletePairFailed'))
-    }
+    console.error('[VirtualPortPage] updatePorts failed:', error)
+    ElMessage.error(t('virtualPort.updateFailed'))
+  } finally {
+    saving.value = false
   }
 }
 </script>
@@ -352,12 +446,13 @@ const handleRemovePair = async (row: VirtualPortPair) => {
 }
 
 /* 列表区域 */
-.pair-list-section {
+.port-list-section {
   flex: 1;
   min-height: 0;
+  overflow-x: auto;
 }
 
-.pair-list-section :deep(.el-table) {
+.port-list-section :deep(.el-table) {
   --el-table-bg-color: var(--panel-bg);
   --el-table-tr-bg-color: var(--panel-bg);
   --el-table-header-bg-color: var(--table-header-bg);
@@ -368,21 +463,26 @@ const handleRemovePair = async (row: VirtualPortPair) => {
   overflow: hidden;
 }
 
-.pair-list-section :deep(.el-table__body tr) {
+.port-list-section :deep(.el-table__body tr) {
   background: var(--panel-bg);
 }
 
-.pair-list-section :deep(.el-table__body tr:hover > td) {
+.port-list-section :deep(.el-table__body tr:hover > td) {
   background: var(--shortcuts-table-row-hover) !important;
 }
 
-.pair-list-section :deep(.el-table__body td) {
+.port-list-section :deep(.el-table__body td) {
   background: var(--panel-bg);
   border-bottom: 1px solid var(--shortcuts-table-row-border) !important;
 }
 
-.pair-list-section :deep(.el-table__body .el-table__row--striped td) {
+.port-list-section :deep(.el-table__body .el-table__row--striped td) {
   background: var(--shortcuts-table-stripe-bg) !important;
+}
+
+.port-list-section :deep(.el-input__wrapper) {
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .empty-pair-list {
@@ -392,26 +492,6 @@ const handleRemovePair = async (row: VirtualPortPair) => {
   height: 200px;
   background-color: var(--panel-bg);
   border-radius: 8px;
-}
-
-/* 删除图标 */
-.action-icon {
-  cursor: pointer;
-  transition: all 0.2s ease !important;
-  opacity: 0.8 !important;
-}
-
-.action-icon:hover {
-  transform: scale(1.1) !important;
-  opacity: 1 !important;
-}
-
-.delete-icon {
-  color: var(--preset-delete-icon-color);
-}
-
-.delete-icon:hover {
-  color: var(--preset-delete-icon-hover) !important;
 }
 
 /* 输入框 prepend COM 前缀适配深浅皮肤，无边框 */
