@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 // Mock child_process.execSync so registry queries don't affect test counts
 vi.mock('child_process', () => ({
@@ -307,6 +307,74 @@ describe('IpcSerialPort', () => {
     it('init should not throw', () => {
       const instance = IpcSerialPort.getInstance()
       expect(() => instance.init(null, {})).not.toThrow()
+    })
+  })
+
+  describe('hotplug watch', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      IpcSerialPort.getInstance().stopHotplugWatch()
+      // 显式重置基线列表（mockResolvedValue 的实现会跨测试残留）
+      const { SerialPort } = await import('serialport')
+      vi.mocked(SerialPort.list).mockResolvedValue([
+        { path: '/dev/ttyUSB0', manufacturer: 'Test Mfr', friendlyName: 'Test Serial Port' }
+      ])
+    })
+
+    afterEach(() => {
+      IpcSerialPort.getInstance().stopHotplugWatch()
+      vi.useRealTimers()
+    })
+
+    it('should notify renderer when ports change', async () => {
+      const { SerialPort } = await import('serialport')
+      const instance = IpcSerialPort.getInstance()
+      const send = vi.fn()
+      instance.windows = { mainWindow: { webContents: { send } } }
+
+      instance.startHotplugWatch()
+      // 让基线 Promise 落定
+      await vi.advanceTimersByTimeAsync(0)
+      expect(send).not.toHaveBeenCalled()
+
+      // 模拟插入新串口
+      vi.mocked(SerialPort.list).mockResolvedValue([
+        { path: '/dev/ttyUSB0', manufacturer: 'Test Mfr', friendlyName: 'Test Serial Port' },
+        { path: '/dev/ttyUSB1', manufacturer: 'Test Mfr', friendlyName: 'Test Serial Port 2' }
+      ])
+
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(send).toHaveBeenCalledTimes(1)
+      expect(send).toHaveBeenCalledWith(
+        'on-serial-ports-changed',
+        expect.arrayContaining([expect.objectContaining({ path: '/dev/ttyUSB1' })])
+      )
+    })
+
+    it('should not notify when ports are unchanged', async () => {
+      const instance = IpcSerialPort.getInstance()
+      const send = vi.fn()
+      instance.windows = { mainWindow: { webContents: { send } } }
+
+      instance.startHotplugWatch()
+      await vi.advanceTimersByTimeAsync(0)
+      await vi.advanceTimersByTimeAsync(6000)
+      expect(send).not.toHaveBeenCalled()
+    })
+
+    it('should not throw when window is unavailable', async () => {
+      const { SerialPort } = await import('serialport')
+      const instance = IpcSerialPort.getInstance()
+      instance.windows = {}
+
+      instance.startHotplugWatch()
+      await vi.advanceTimersByTimeAsync(0)
+
+      vi.mocked(SerialPort.list).mockResolvedValue([
+        { path: '/dev/ttyUSB9', manufacturer: 'Test Mfr', friendlyName: 'Late Port' }
+      ])
+      // 窗口不存在时不抛错
+      await expect(vi.advanceTimersByTimeAsync(2000)).resolves.not.toThrow()
     })
   })
 })

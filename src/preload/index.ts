@@ -93,6 +93,11 @@ contextBridge.exposeInMainWorld('connectApi', {
   copyLogFile: (sessionId: string, destPath: string) => ipcRenderer.invoke('copy-log-file', { sessionId, destPath }),
   rotateLogFile: (sessionId: string) => ipcRenderer.invoke('rotate-log-file', sessionId),
   listSerialPorts: () => ipcRenderer.invoke('list-serial-ports'),
+  onSerialPortsChanged: (callback: (ports: { path: string }[]) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, ports: { path: string }[]): void => callback(ports)
+    ipcRenderer.on('on-serial-ports-changed', listener)
+    return () => ipcRenderer.removeListener('on-serial-ports-changed', listener)
+  },
   writeToLog: (sessionId: string, content: string) => ipcRenderer.invoke('write-to-log', { sessionId, content })
 })
 

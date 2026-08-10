@@ -12,8 +12,8 @@
       <!-- 可滚动区域：连接分组列表 -->
       <div class="connection-list-scroll">
         <div class="connection-groups">
-          <!-- 串口分组 -->
-          <div class="connection-group" v-if="serialPorts.length > 0">
+          <!-- 串口分组（常驻显示：无串口时保留刷新入口和空态提示） -->
+          <div class="connection-group">
             <div class="section-header" @click="$emit('update:serialPortExpanded', !serialPortExpanded)">
               <span class="section-title">
                 <el-icon class="expand-icon" :class="{ collapsed: !serialPortExpanded }"><ArrowRight /></el-icon>

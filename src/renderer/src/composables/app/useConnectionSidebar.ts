@@ -98,6 +98,14 @@ export function useConnectionSidebar() {
     }
   }
 
+  // 串口热插拔：主进程轮询检测到列表变化时整体替换（变化频率低，直接全量替换即可）
+  const handleSerialPortsChanged = (ports: SerialPortInfo[]): void => {
+    ports.forEach((port) => {
+      port.type = parseSerialPortType(port)
+    })
+    serialPorts.value = ports
+  }
+
   // 侧边栏状态持久化
   const loadSidebarState = async () => {
     try {
@@ -169,6 +177,7 @@ export function useConnectionSidebar() {
     handleSearch,
     loadConnections,
     loadSerialPorts,
+    handleSerialPortsChanged,
     loadSidebarState,
     saveSidebarState,
     toggleConnectionList,
