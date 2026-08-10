@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { SerialPort } from 'serialport'
-import { execSync } from 'child_process'
+import { execFile } from 'child_process'
 import logger from './IpcAppLogger'
 
 /** 主进程窗口集合（仅需 mainWindow.webContents.send 能力） */
@@ -69,7 +69,7 @@ export default class IpcSerialPort {
       // HKLM\HARDWARE\DEVICEMAP\SERIALCOMM but have no SetupAPI device node,
       // so SerialPort.list() won't pick them up.
       if (platform === 'win32') {
-        const registryPorts = this.getWindowsRegistryPorts(logResult)
+        const registryPorts = await this.getWindowsRegistryPorts(logResult)
         const existingPaths = new Set(filtered.map((p) => (p.path || '').toUpperCase()))
         for (const regPort of registryPorts) {
           if (!existingPaths.has(regPort.path.toUpperCase())) {
@@ -104,26 +104,32 @@ export default class IpcSerialPort {
    * Windows: read COM port mappings from the registry.
    * Returns ports that serialport's SetupAPI enumeration might miss
    * (e.g. com0com virtual ports that only have a registry entry).
+   * 异步执行（execFile）：热插拔轮询每 2s 触发一次，同步 execSync 会阻塞主进程
    */
-  private getWindowsRegistryPorts(logResult: boolean = true): { path: string }[] {
-    try {
-      const regOutput = execSync(
-        'reg query "HKLM\\HARDWARE\\DEVICEMAP\\SERIALCOMM" 2>&1',
-        { encoding: 'utf-8', timeout: 3000 }
+  private getWindowsRegistryPorts(logResult: boolean = true): Promise<{ path: string }[]> {
+    return new Promise((resolve) => {
+      execFile(
+        'reg',
+        ['query', 'HKLM\\HARDWARE\\DEVICEMAP\\SERIALCOMM'],
+        { encoding: 'utf-8', timeout: 3000, windowsHide: true },
+        (error, stdout) => {
+          if (error) {
+            if (logResult) logger.info('registry supplement: failed to read SERIALCOMM')
+            resolve([])
+            return
+          }
+          const ports: { path: string }[] = []
+          // Each line looks like: "    \\Device\\com0com10    REG_SZ    COM55"
+          const re = /REG_SZ\s+(COM\d+)/gi
+          let match: RegExpExecArray | null
+          while ((match = re.exec(stdout)) !== null) {
+            ports.push({ path: match[1] })
+          }
+          if (logResult) logger.info(`registry supplement: found ${ports.length} ports from SERIALCOMM`)
+          resolve(ports)
+        }
       )
-      const ports: { path: string }[] = []
-      // Each line looks like: "    \\Device\\com0com10    REG_SZ    COM55"
-      const re = /REG_SZ\s+(COM\d+)/gi
-      let match: RegExpExecArray | null
-      while ((match = re.exec(regOutput)) !== null) {
-        ports.push({ path: match[1] })
-      }
-      if (logResult) logger.info(`registry supplement: found ${ports.length} ports from SERIALCOMM`)
-      return ports
-    } catch {
-      if (logResult) logger.info('registry supplement: failed to read SERIALCOMM')
-      return []
-    }
+    })
   }
 
   /**
