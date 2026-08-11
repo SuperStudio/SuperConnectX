@@ -21,34 +21,17 @@ jobs:
           - name: Windows
             os: windows-2022
             builder-target: --win nsis zip
-            artifact-name: windows-release
-            artifact-path: |
-              release/*.exe
-              release/*.zip
-              release/*.yml
-              release/*.blockmap
           - name: Linux
             os: ubuntu-22.04
             builder-target: --linux
-            artifact-name: linux-release
-            artifact-path: |
-              release/*.AppImage
-              release/*.snap
-              release/*.deb
-              release/*.yml
-              release/*.blockmap
           - name: macOS (Apple Silicon)
             os: macos-14
             builder-target: --mac --arm64
             mac-arch: arm64
-            artifact-name: macos-arm64
-            artifact-path: release/*arm64.dmg
           - name: macOS (Intel)
             os: macos-15-intel
             builder-target: --mac --x64
             mac-arch: x64
-            artifact-name: macos-x64
-            artifact-path: release/*x64.dmg
 
     steps:
       - name: Checkout
@@ -127,11 +110,63 @@ jobs:
             exit 1
           fi
 
-      - name: Upload artifacts
+      # 每个安装包一个独立 artifact，下载下来就是单独的包
+      - name: Upload Windows installer
+        if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact-name }}
-          path: ${{ matrix.artifact-path }}
+          name: windows-x64-setup
+          path: |
+            release/*-setup.exe
+            release/*-setup.exe.blockmap
+            release/latest.yml
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload Windows portable
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-portable
+          path: release/*-portable.zip
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload Linux AppImage
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-appimage
+          path: |
+            release/*.AppImage
+            release/latest-linux.yml
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload Linux deb
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-deb
+          path: release/*.deb
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload Linux snap
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-snap
+          path: release/*.snap
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload macOS dmg
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.mac-arch }}-dmg
+          path: release/*${{ matrix.mac-arch }}.dmg
           retention-days: 7
           if-no-files-found: error
 
@@ -191,12 +226,18 @@ jobs:
           for f in *.AppImage; do mv "$f" "${f%.AppImage}-ubuntu24.AppImage"; done
           for f in *.deb; do mv "$f" "${f%.deb}-ubuntu24.deb"; done
 
-      - name: Upload artifacts
+      - name: Upload Ubuntu 24 AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: linux-ubuntu24-release
-          path: |
-            release/*-ubuntu24.AppImage
-            release/*-ubuntu24.deb
+          name: linux-ubuntu24-x64-appimage
+          path: release/*-ubuntu24.AppImage
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload Ubuntu 24 deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-ubuntu24-x64-deb
+          path: release/*-ubuntu24.deb
           retention-days: 7
           if-no-files-found: error

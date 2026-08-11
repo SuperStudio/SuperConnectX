@@ -26,8 +26,10 @@ asarUnpack:
   - node_modules/@serialport/**
 win:
   executableName: SuperConnectX
+  # 平台级命名作用于 zip 便携包；nsis 安装包由下方 nsis.artifactName 覆盖
+  artifactName: ${name}-${version}-windows-x64-portable.${ext}
 nsis:
-  artifactName: ${name}.Setup.${version}.${ext}
+  artifactName: ${name}-${version}-windows-x64-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
@@ -44,7 +46,7 @@ mac:
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
 dmg:
-  artifactName: ${name}-mac-${arch}.${ext}
+  artifactName: ${name}-${version}-macos-${arch}.${ext}
 linux:
   target:
     - AppImage
@@ -53,7 +55,11 @@ linux:
   maintainer: SuperStudio
   category: Utility
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-linux-x64.${ext}
+deb:
+  artifactName: ${name}-${version}-linux-x64.${ext}
+snap:
+  artifactName: ${name}-${version}-linux-x64.${ext}
 afterPack: ./scripts/afterPack.js
 npmRebuild: true
 publish:
