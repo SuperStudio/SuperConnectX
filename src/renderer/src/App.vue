@@ -311,7 +311,7 @@ const {
   showConnectionList, sidebarWidth, serialPortExpanded, showPortType,
   connectionGroupExpanded, filteredSerialPorts, connectionGroups,
   handleSearch, loadConnections, loadSerialPorts, loadSidebarState,
-  toggleConnectionList
+  handleSerialPortsChanged, toggleConnectionList
 } = useConnectionSidebar()
 
 // ---- Tab Manager ----
@@ -1094,6 +1094,9 @@ onMounted(() => {
   window.connectApi.onLogSplit((data: { connId: string; oldFileName: string; newFileName: string }) => {
     handleLogSplit(data)
   })
+
+  // 串口热插拔：插入/拔出时自动刷新侧边栏串口列表
+  window.connectApi.onSerialPortsChanged(handleSerialPortsChanged)
 
   window.addEventListener('terminal-text-cleared', handleTerminalTextCleared)
   window.addEventListener('auto-scroll-toast', handleAutoScrollToast)

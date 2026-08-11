@@ -220,7 +220,7 @@
   "sidebar": {
     "newConnection": "New Connection",
     "searchPlaceholder": "Search...",
-    "noPorts": "No matching ports",
+    "noPorts": "No serial ports",
     "noConnections": "No matching connections",
     "address": "Address",
     "user": "User",

@@ -1,8 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
-// Mock child_process.execSync so registry queries don't affect test counts
+// Mock child_process.execFile so registry queries don't affect test counts
+// execFile 为回调式异步接口：cb(error, stdout)
 vi.mock('child_process', () => ({
-  execSync: vi.fn().mockReturnValue('')
+  execFile: vi.fn(
+    (_cmd: string, _args: string[], _opts: object, cb: (err: Error | null, stdout: string) => void) =>
+      cb(null, '')
+  )
 }))
 
 // Mock serialport
@@ -153,7 +157,7 @@ describe('IpcSerialPort', () => {
   })
 
   describe('getWindowsRegistryPorts (via listSerialPorts on win32)', () => {
-    it('should supplement ports from registry when execSync returns valid data', async () => {
+    it('should supplement ports from registry when execFile returns valid data', async () => {
       // Simulate Windows platform
       const platformStub = vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
 
@@ -163,10 +167,11 @@ describe('IpcSerialPort', () => {
         { path: 'COM1', manufacturer: 'USB', serialNumber: 'SN1' }
       ])
 
-      const { execSync } = await import('child_process')
+      const { execFile } = await import('child_process')
       // registry returns COM55 and COM56
-      ;(execSync as any).mockReturnValueOnce(
-        '    \\Device\\com0com10    REG_SZ    COM55\r\n    \\Device\\com0com20    REG_SZ    COM56\r\n'
+      ;(execFile as any).mockImplementationOnce(
+        (_cmd: string, _args: string[], _opts: object, cb: (err: Error | null, stdout: string) => void) =>
+          cb(null, '    \\Device\\com0com10    REG_SZ    COM55\r\n    \\Device\\com0com20    REG_SZ    COM56\r\n')
       )
 
       const instance = IpcSerialPort.getInstance()
@@ -188,10 +193,11 @@ describe('IpcSerialPort', () => {
         { path: 'COM55', manufacturer: 'Virtual' }
       ])
 
-      const { execSync } = await import('child_process')
+      const { execFile } = await import('child_process')
       // registry returns COM55 (duplicate) and COM56 (new)
-      ;(execSync as any).mockReturnValueOnce(
-        '    \\Device\\com0com10    REG_SZ    COM55\r\n    \\Device\\com0com20    REG_SZ    COM56\r\n'
+      ;(execFile as any).mockImplementationOnce(
+        (_cmd: string, _args: string[], _opts: object, cb: (err: Error | null, stdout: string) => void) =>
+          cb(null, '    \\Device\\com0com10    REG_SZ    COM55\r\n    \\Device\\com0com20    REG_SZ    COM56\r\n')
       )
 
       const instance = IpcSerialPort.getInstance()
@@ -212,8 +218,11 @@ describe('IpcSerialPort', () => {
         { path: 'COM1' }
       ])
 
-      const { execSync } = await import('child_process')
-      ;(execSync as any).mockReturnValueOnce('')
+      const { execFile } = await import('child_process')
+      ;(execFile as any).mockImplementationOnce(
+        (_cmd: string, _args: string[], _opts: object, cb: (err: Error | null, stdout: string) => void) =>
+          cb(null, '')
+      )
 
       const instance = IpcSerialPort.getInstance()
       const ports = await instance.listSerialPorts()
@@ -224,7 +233,7 @@ describe('IpcSerialPort', () => {
       platformStub.mockRestore()
     })
 
-    it('should handle execSync throwing error gracefully', async () => {
+    it('should handle execFile error gracefully', async () => {
       const platformStub = vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
 
       const { SerialPort } = await import('serialport')
@@ -232,10 +241,11 @@ describe('IpcSerialPort', () => {
         { path: 'COM1' }
       ])
 
-      const { execSync } = await import('child_process')
-      ;(execSync as any).mockImplementationOnce(() => {
-        throw new Error('registry access denied')
-      })
+      const { execFile } = await import('child_process')
+      ;(execFile as any).mockImplementationOnce(
+        (_cmd: string, _args: string[], _opts: object, cb: (err: Error | null, stdout: string) => void) =>
+          cb(new Error('registry access denied'), '')
+      )
 
       const instance = IpcSerialPort.getInstance()
       const ports = await instance.listSerialPorts()
@@ -253,12 +263,16 @@ describe('IpcSerialPort', () => {
       const { SerialPort } = await import('serialport')
       ;(SerialPort.list as any).mockResolvedValueOnce([])
 
-      const { execSync } = await import('child_process')
+      const { execFile } = await import('child_process')
       // Mix of different device names and COM port numbers
-      ;(execSync as any).mockReturnValueOnce(
-        '    \\Device\\VSerial_0    REG_SZ    COM20\r\n' +
-        '    \\Device\\BthModem0    REG_SZ    COM7\r\n' +
-        '    \\Device\\com0com11    REG_SZ    COM66\r\n'
+      ;(execFile as any).mockImplementationOnce(
+        (_cmd: string, _args: string[], _opts: object, cb: (err: Error | null, stdout: string) => void) =>
+          cb(
+            null,
+            '    \\Device\\VSerial_0    REG_SZ    COM20\r\n' +
+            '    \\Device\\BthModem0    REG_SZ    COM7\r\n' +
+            '    \\Device\\com0com11    REG_SZ    COM66\r\n'
+          )
       )
 
       const instance = IpcSerialPort.getInstance()
@@ -282,9 +296,9 @@ describe('IpcSerialPort', () => {
         { path: '/dev/ttyprintk' }
       ])
 
-      const { execSync } = await import('child_process')
-      // Even if execSync would return something, it should not be called on Linux
-      const execSyncSpy = vi.spyOn({ execSync }, 'execSync')
+      const { execFile } = await import('child_process')
+      const execFileSpy = vi.mocked(execFile)
+      execFileSpy.mockClear()
 
       const instance = IpcSerialPort.getInstance()
       const ports = await instance.listSerialPorts()
@@ -292,7 +306,7 @@ describe('IpcSerialPort', () => {
       // Only ttyUSB0 passes Linux filter
       expect(ports).toHaveLength(1)
       expect(ports[0].path).toBe('/dev/ttyUSB0')
-      expect(execSyncSpy).not.toHaveBeenCalled()
+      expect(execFileSpy).not.toHaveBeenCalled()
 
       platformStub.mockRestore()
     })
@@ -307,6 +321,74 @@ describe('IpcSerialPort', () => {
     it('init should not throw', () => {
       const instance = IpcSerialPort.getInstance()
       expect(() => instance.init(null, {})).not.toThrow()
+    })
+  })
+
+  describe('hotplug watch', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      IpcSerialPort.getInstance().stopHotplugWatch()
+      // 显式重置基线列表（mockResolvedValue 的实现会跨测试残留）
+      const { SerialPort } = await import('serialport')
+      vi.mocked(SerialPort.list).mockResolvedValue([
+        { path: '/dev/ttyUSB0', manufacturer: 'Test Mfr', friendlyName: 'Test Serial Port' }
+      ])
+    })
+
+    afterEach(() => {
+      IpcSerialPort.getInstance().stopHotplugWatch()
+      vi.useRealTimers()
+    })
+
+    it('should notify renderer when ports change', async () => {
+      const { SerialPort } = await import('serialport')
+      const instance = IpcSerialPort.getInstance()
+      const send = vi.fn()
+      instance.windows = { mainWindow: { webContents: { send } } }
+
+      instance.startHotplugWatch()
+      // 让基线 Promise 落定
+      await vi.advanceTimersByTimeAsync(0)
+      expect(send).not.toHaveBeenCalled()
+
+      // 模拟插入新串口
+      vi.mocked(SerialPort.list).mockResolvedValue([
+        { path: '/dev/ttyUSB0', manufacturer: 'Test Mfr', friendlyName: 'Test Serial Port' },
+        { path: '/dev/ttyUSB1', manufacturer: 'Test Mfr', friendlyName: 'Test Serial Port 2' }
+      ])
+
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(send).toHaveBeenCalledTimes(1)
+      expect(send).toHaveBeenCalledWith(
+        'on-serial-ports-changed',
+        expect.arrayContaining([expect.objectContaining({ path: '/dev/ttyUSB1' })])
+      )
+    })
+
+    it('should not notify when ports are unchanged', async () => {
+      const instance = IpcSerialPort.getInstance()
+      const send = vi.fn()
+      instance.windows = { mainWindow: { webContents: { send } } }
+
+      instance.startHotplugWatch()
+      await vi.advanceTimersByTimeAsync(0)
+      await vi.advanceTimersByTimeAsync(6000)
+      expect(send).not.toHaveBeenCalled()
+    })
+
+    it('should not throw when window is unavailable', async () => {
+      const { SerialPort } = await import('serialport')
+      const instance = IpcSerialPort.getInstance()
+      instance.windows = {}
+
+      instance.startHotplugWatch()
+      await vi.advanceTimersByTimeAsync(0)
+
+      vi.mocked(SerialPort.list).mockResolvedValue([
+        { path: '/dev/ttyUSB9', manufacturer: 'Test Mfr', friendlyName: 'Late Port' }
+      ])
+      // 窗口不存在时不抛错
+      await expect(vi.advanceTimersByTimeAsync(2000)).resolves.not.toThrow()
     })
   })
 })

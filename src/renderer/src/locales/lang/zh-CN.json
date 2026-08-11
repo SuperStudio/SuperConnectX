@@ -220,7 +220,7 @@
   "sidebar": {
     "newConnection": "新建连接",
     "searchPlaceholder": "搜索...",
-    "noPorts": "无匹配串口",
+    "noPorts": "暂无串口",
     "noConnections": "无匹配连接",
     "address": "地址",
     "user": "用户",

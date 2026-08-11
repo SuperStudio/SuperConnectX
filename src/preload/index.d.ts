@@ -91,6 +91,7 @@ declare global {
       copyLogFile: (sessionId: string, destPath: string) => Promise<{ success: boolean; message?: string }>
       rotateLogFile: (sessionId: string) => Promise<{ success: boolean; message?: string; oldFileName?: string; newFileName?: string }>
       listSerialPorts: () => Promise<SerialPortInfo[]>
+      onSerialPortsChanged: (callback: (ports: SerialPortInfo[]) => void) => () => void
       writeToLog: (sessionId: string, content: string) => Promise<any>
     }
     windowApi: {
