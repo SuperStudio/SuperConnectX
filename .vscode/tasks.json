@@ -44,6 +44,11 @@
             "command": "npm run test:coverage"
         },
         {
+            "label": "npm run test:e2e",
+            "type": "shell",
+            "command": "npm run test:e2e"
+        },
+        {
             "label": "re-create tag and push",
             "type": "shell",
             "command": "release.bat"

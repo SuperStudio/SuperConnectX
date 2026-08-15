@@ -101,7 +101,30 @@ export function getChromiumDataDir(): string {
  * **initAppPaths() 必须在 app.whenReady() 之前调用。**
  * **cleanupChromiumClutter() 在 app.whenReady() 之后调用。**
  */
+/**
+ * 允许通过环境变量覆盖 userData 目录。
+ *
+ * 主要用于自动化测试（E2E/集成）隔离数据：设置 SCX_USER_DATA_DIR 后，
+ * 所有业务数据（storage JSON、日志、备份等）与 Chromium 运行时数据
+ * 都会写入该目录，不会污染真实的用户数据。
+ *
+ * 必须在 app.whenReady() 之前调用（initAppPaths 中调用）。
+ */
+export function overrideUserDataDirIfSet(): void {
+  const envDir = process.env.SCX_USER_DATA_DIR
+  if (!envDir) return
+  try {
+    app.setPath('userData', envDir)
+    app.setPath('sessionData', envDir)
+  } catch {
+    // ignore
+  }
+}
+
 export function initAppPaths(): void {
+  // 允许测试通过环境变量覆盖 userData 目录（必须在读取前调用）
+  overrideUserDataDirIfSet()
+
   const userData = getChromiumDataDir()  // 多实例时指向 userData/_instance_N
   const instanceIdx = getInstanceIndex()
 
