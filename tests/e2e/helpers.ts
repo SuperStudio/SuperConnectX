@@ -70,14 +70,17 @@ export async function invokeStorage(
   method: string,
   ...args: unknown[]
 ): Promise<unknown> {
-  return app.evaluate(async ({ BrowserWindow }, { m, a }) => {
-    const win = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed())
-    if (!win) return null
-    const js = `(() => {
+  return app.evaluate(
+    async ({ BrowserWindow }, { m, a }) => {
+      const win = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed())
+      if (!win) return null
+      const js = `(() => {
       const api = window.storageApi || null
       if (!api || typeof api[${JSON.stringify(m)}] !== 'function') return null
       return api[${JSON.stringify(m)}](...${JSON.stringify(a)})
     })()`
-    return win.webContents.executeJavaScript(js)
-  }, { m: method, a: args })
+      return win.webContents.executeJavaScript(js)
+    },
+    { m: method, a: args }
+  )
 }

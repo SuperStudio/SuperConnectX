@@ -21,7 +21,10 @@ test.describe('新建连接流程', () => {
 
       // 3. 切换到 Telnet 协议 tab
       await dialog.getByRole('tab', { name: 'Telnet' }).click()
-      await expect(dialog.getByRole('tab', { name: 'Telnet' })).toHaveAttribute('aria-selected', 'true')
+      await expect(dialog.getByRole('tab', { name: 'Telnet' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
 
       // 4. 填写表单（用无障碍角色精确定位，避免索引歧义）
       await dialog.getByRole('textbox', { name: '连接名称' }).fill('E2E-Telnet-测试')
