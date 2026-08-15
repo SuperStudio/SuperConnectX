@@ -304,6 +304,25 @@ jobs:
             cat latest-mac.yml
           fi
 
+      # 生成 SHA256 校验和文件：让用户下载后能自证安装包完整性（开源项目无代码签名时的可信度补充）
+      - name: Generate SHA256 checksums
+        working-directory: release-assets
+        run: |
+          shopt -s nullglob
+          files=(*)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No assets to checksum"
+            exit 1
+          fi
+          : > SHA256SUMS
+          for f in *; do
+            [ -f "$f" ] || continue
+            [ "$f" = "SHA256SUMS" ] && continue
+            sha256sum "$f" >> SHA256SUMS
+          done
+          echo "Generated SHA256SUMS with $(wc -l < SHA256SUMS) entry(s)"
+          cat SHA256SUMS
+
       - name: Create Release and Upload Assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
