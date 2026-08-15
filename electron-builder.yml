@@ -38,6 +38,7 @@ nsis:
   deleteAppDataOnUninstall: false
 mac:
   target: dmg
+  icon: build/icon.icns
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
