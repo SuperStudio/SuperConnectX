@@ -101,6 +101,18 @@
               </div>
               <el-switch class="terminal-switch" v-model="settings.clearInputAfterSend" />
             </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('basicSettings.sendDisplayText') }}</span>
+                <span class="label-desc">{{ t('basicSettings.sendDisplayTextDesc') }}</span>
+              </div>
+              <el-input
+                v-model="settings.sendDisplayText"
+                size="small"
+                style="width: 200px"
+                :placeholder="defaultSettings.sendDisplayText || 'SEND>>>>>>>>>>>>>'"
+              />
+            </div>
           </div>
 
         </div>

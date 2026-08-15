@@ -172,6 +172,7 @@ import { ElMessage } from 'element-plus'
 import UnifiedTerminal from './UnifiedTerminal.vue'
 import { useTerminal } from '../composables/useTerminal'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
+import { sendDisplayText } from '../composables/app/useSettingsStore'
 
 const { t } = useI18n()
 
@@ -657,7 +658,7 @@ const handleSendCommand = async (command: string, originalInput?: string) => {
   // 显示发送内容
   const now = new Date()
   const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`
-  unifiedTerminalRef.value?.appendToTerminal(`\n[${timestamp}] SEND>>>>>>>>>>>>> ${displayCommand}\n`)
+  unifiedTerminalRef.value?.appendToTerminal(`\n[${timestamp}] ${sendDisplayText.value} ${displayCommand}\n`)
 
   try {
     await window.connectApi.sendData({

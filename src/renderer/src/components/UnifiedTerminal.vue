@@ -195,6 +195,7 @@ import { AnsiDecorationManager } from '../utils/AnsiDecorationManager'
 import { getMonacoTheme } from '../utils/MonacoTheme'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
 import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
+import { sendDisplayText } from '../composables/app/useSettingsStore'
 
 const maxClearSizeMB = ref(30)
 
@@ -1161,7 +1162,7 @@ const parseHexString = (hex: string): string | null => {
 const appendCommandToTerminal = (content: string, byteLength?: number) => {
   const now = new Date()
   const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`
-  appendToTerminal(`\n[${timestamp}] SEND>>>>>>>>>>>>> ${content}\n`)
+  appendToTerminal(`\n[${timestamp}] ${sendDisplayText.value} ${content}\n`)
   totalTxSize += byteLength !== undefined ? byteLength : content.length
   txBytes.value = formatBytes(totalTxSize)
 }

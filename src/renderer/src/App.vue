@@ -264,6 +264,7 @@ import { useSerialRemarks } from './composables/app/useSerialRemarks'
 import { useShortcuts } from './composables/app/useShortcuts'
 import { useTerminalDisplay } from './composables/app/useTerminalDisplay'
 import { useFontManager } from './composables/app/useFontManager'
+import { loadSendDisplayText, initSendDisplayTextListener } from './composables/app/useSettingsStore'
 import { useConnectionDialog } from './composables/app/useConnectionDialog'
 
 const { t } = useI18n()
@@ -1079,6 +1080,8 @@ onMounted(() => {
   loadShortcutActions()
   loadShortcuts()
   loadTerminalDisplaySettings()
+  loadSendDisplayText()
+  initSendDisplayTextListener()
 
   if (activeTabId.value) {
     updateCurrentFont(activeTabId.value)

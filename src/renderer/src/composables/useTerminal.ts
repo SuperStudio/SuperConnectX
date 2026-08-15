@@ -2,6 +2,7 @@ import { ref, watch, onUnmounted, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
+import { sendDisplayText as sendDisplayTextStore } from './app/useSettingsStore'
 
 export interface TerminalConnection {
   id: string | number
@@ -196,7 +197,9 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
 
     const now = new Date()
     const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`
-    unifiedTerminalRef.value?.appendToTerminal(`\n[${timestamp}] ${sendDisplaySuffix} ${command}\n`)
+    // 优先使用全局共享设置，未加载时回退到 useTerminal 传入的 suffix
+    const displaySuffix = sendDisplayTextStore.value || sendDisplaySuffix
+    unifiedTerminalRef.value?.appendToTerminal(`\n[${timestamp}] ${displaySuffix} ${command}\n`)
     totalTxSize += command.length
     unifiedTerminalRef.value?.updateTxBytes(command.length)
 

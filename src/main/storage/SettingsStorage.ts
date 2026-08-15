@@ -41,6 +41,7 @@ interface Settings {
   autoStart?: boolean
   preventSleep?: boolean
   maxDisplayText?: number
+  sendDisplayText?: string
   // 串口设置
   supportedBaudRates?: number[]
   showPortType?: boolean
@@ -81,6 +82,7 @@ const defaultSettings: Settings = {
   autoStart: false,
   preventSleep: false,
   maxDisplayText: 30,
+  sendDisplayText: 'SEND>>>>>>>>>>>>>',
   // 串口设置
   supportedBaudRates: [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600, 1500000],
   showPortType: true,
