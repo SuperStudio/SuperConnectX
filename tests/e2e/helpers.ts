@@ -27,6 +27,15 @@ export async function launchApp(
   })
 
   const page = await app.firstWindow()
+
+  // 强制使用中文 locale，保证测试断言（如“新建连接”“文件”）在任意系统语言下都稳定。
+  // addInitScript 在每次页面加载的脚本执行前运行，reload 后 Vue 初始化前就会写入 localStorage，
+  // 从而覆盖 getSavedLocale() 基于 navigator.language 的自动检测（CI 上通常是 en-US）。
+  await page.addInitScript(() => {
+    localStorage.setItem('locale', 'zh-CN')
+  })
+  await page.reload()
+
   // 等待渲染进程挂载完成（#app 下的主要内容出现）
   await page.waitForSelector('.app-container', { timeout: 30000 })
 
