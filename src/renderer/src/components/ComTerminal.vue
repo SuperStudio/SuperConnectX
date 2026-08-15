@@ -172,7 +172,7 @@ import { ElMessage } from 'element-plus'
 import UnifiedTerminal from './UnifiedTerminal.vue'
 import { useTerminal } from '../composables/useTerminal'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
-import { sendDisplayText } from '../composables/app/useSettingsStore'
+import { sendDisplayText, recvDisplayText } from '../composables/app/useSettingsStore'
 
 const { t } = useI18n()
 
@@ -596,7 +596,8 @@ const handleConnect = async () => {
         terminal.totalRxSize += data.data.length
         unifiedTerminalRef.value?.updateRxBytes(data.data.length)
         const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
-        const displayText = `${prefix}${data.data}\n`
+        const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
+        const displayText = `${prefix}${recvLabel}${data.data}\n`
         unifiedTerminalRef.value?.appendToTerminal(displayText)
       })
 

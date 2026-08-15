@@ -63,6 +63,8 @@
     "clearInputAfterSendDesc": "Automatically clear input field after sending command",
     "sendDisplayText": "Send Display Text",
     "sendDisplayTextDesc": "Text prefix shown in terminal when sending a command",
+    "recvDisplayText": "Receive Display Text",
+    "recvDisplayTextDesc": "Text prefix shown in terminal when receiving data",
     "maxDisplayText": "Max Display Text",
     "maxDisplayTextDesc": "Auto clear terminal when text size exceeds this limit (MB)",
     "backup": "Backup",

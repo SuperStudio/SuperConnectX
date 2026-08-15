@@ -113,6 +113,18 @@
                 :placeholder="defaultSettings.sendDisplayText || 'SEND>>>>>>>>>>>>>'"
               />
             </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('basicSettings.recvDisplayText') }}</span>
+                <span class="label-desc">{{ t('basicSettings.recvDisplayTextDesc') }}</span>
+              </div>
+              <el-input
+                v-model="settings.recvDisplayText"
+                size="small"
+                style="width: 200px"
+                :placeholder="defaultSettings.recvDisplayText || ''"
+              />
+            </div>
           </div>
 
         </div>

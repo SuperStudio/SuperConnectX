@@ -31,6 +31,7 @@ const { t } = useI18n()
 import UnifiedTerminal from './UnifiedTerminal.vue'
 import { fromRawConnection } from '../entity/protocol'
 import { useTerminal } from '../composables/useTerminal'
+import { recvDisplayText } from '../composables/app/useSettingsStore'
 
 const MAX_RETRY_COUNT = 1000
 const RETRY_INTERVAL_MS = 3000
@@ -259,7 +260,8 @@ const connect = async () => {
           terminal.totalRxSize += data.data.length
           unifiedTerminalRef.value?.updateRxBytes(data.data.length)
           const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
-          const displayText = `${prefix}${data.data}\n`
+          const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
+          const displayText = `${prefix}${recvLabel}${data.data}\n`
           unifiedTerminalRef.value?.appendToTerminal(displayText)
         })
 
