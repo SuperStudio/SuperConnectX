@@ -85,6 +85,9 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Run integration tests
+        run: npm run test:integration
+
       - name: Rebuild native modules
         run: npx electron-builder install-app-deps
 
@@ -235,6 +238,9 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Run integration tests
+        run: npm run test:integration
 
       - name: Rebuild native modules
         run: npx electron-builder install-app-deps

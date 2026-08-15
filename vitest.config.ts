@@ -10,12 +10,14 @@ const commonAlias = {
   // 用 mock 替代 logger (避免 import 链导致 fs 等问题)
   '../ipc/IpcAppLogger': resolve('tests/__mocks__/IpcAppLogger.ts'),
   // 用 mock 替代 serialport (避免原生模块依赖)
-  'serialport': resolve('tests/__mocks__/serialport.ts')
+  serialport: resolve('tests/__mocks__/serialport.ts')
 }
 
 const commonCoverage = {
   provider: 'v8' as const,
   reporter: ['text', 'html', 'json-summary'],
+  // all: false 仅统计被测文件（import 到且命中 include），避免 v8 全局扫描稀释覆盖率
+  all: false,
   include: [
     'src/main/utils/DataCheckEngine.ts',
     'src/main/utils/SafeStorageString.ts',
@@ -50,13 +52,7 @@ const commonCoverage = {
     'src/renderer/src/entity/protocol/TelnetInfo.ts',
     'src/main/utils/ProtocolLogger.ts'
   ],
-  exclude: [
-    'out/**',
-    'node_modules/**',
-    'tests/**',
-    '**/*.test.ts',
-    '**/__mocks__/**'
-  ]
+  exclude: ['out/**', 'node_modules/**', 'tests/**', '**/*.test.ts', '**/__mocks__/**']
 }
 
 export default defineConfig({
@@ -66,7 +62,13 @@ export default defineConfig({
     environment: 'node',
     coverage: {
       ...commonCoverage,
-      reportsDirectory: 'tests/coverage/unit'
+      reportsDirectory: 'tests/coverage/unit',
+      thresholds: {
+        lines: 85,
+        statements: 85,
+        functions: 90,
+        branches: 75
+      }
     },
     reporters: ['default', 'json', 'junit'],
     outputFile: {

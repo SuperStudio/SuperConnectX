@@ -203,13 +203,14 @@ describe('ComClient', () => {
       )
     })
 
-    it('should NOT call onClose when actively disconnecting', async () => {
+    it('should call onClose exactly once when actively disconnecting', async () => {
       const info = makeComInfo()
       await client.start(info, onData, onClose, onLog)
 
-      // 主动 disconnect 会 removeAllListeners('close')，防止 onClose 触发
+      // 主动 disconnect 会主动调用一次 onClose（触发 flushConnLog 写日志），
+      // 同时 removeAllListeners('close') 防止 port 关闭事件再次触发，故应为恰好 1 次
       await client.disconnect('test-session-1')
-      expect(onClose).not.toHaveBeenCalled()
+      expect(onClose).toHaveBeenCalledTimes(1)
     })
 
     it('should handle multi-byte utf8 characters', async () => {
@@ -235,20 +236,18 @@ describe('ComClient', () => {
       await client.start(info, onData, onClose, onLog)
 
       const conn = client.serialConnections.get('test-session-1')!
-      // 发送可打印字符以便验证：'AB' 在 hex 模式下 log 应该是 '41 42'
+      // 发送可打印字符以便验证：'AB' 在 hex 模式下 data 与 log 均为 '41 42'
       conn.port.simulateData(Buffer.from('AB\r\n'))
       await new Promise((r) => setTimeout(r, 30))
 
-      // data 始终是文本，receiveHex 只影响 log 格式
+      // receiveHex 模式下 BufferLineSplitter 将整段数据转成 hex 字符串（含换行符字节）
+      // 所以 onData 与 onLog 收到的都是 '41 42 0D 0A'
       expect(onData).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: 'AB'
+          data: '41 42 0D 0A'
         })
       )
-      expect(onLog).toHaveBeenCalledWith(
-        '41 42',
-        expect.any(String)
-      )
+      expect(onLog).toHaveBeenCalledWith('41 42 0D 0A', expect.any(String))
     })
 
     it('should merge multiple lines in single processBuffer tick', async () => {
@@ -315,13 +314,14 @@ describe('ComClient', () => {
       expect(result.success).toBe(true)
     })
 
-    it('should NOT trigger onClose callback when actively disconnecting', async () => {
+    it('should trigger onClose callback exactly once when actively disconnecting', async () => {
       const info = makeComInfo()
       await client.start(info, onData, onClose, onLog)
 
       await client.disconnect('test-session-1')
-      // removeAllListeners('close') 已在 disconnect 中执行，所以 onClose 不应被调用
-      expect(onClose).not.toHaveBeenCalled()
+      // disconnect 主动调用一次 onClose（flush 日志），并 removeAllListeners('close')
+      // 避免 port 关闭事件再次触发，因此应恰好调用 1 次
+      expect(onClose).toHaveBeenCalledTimes(1)
     })
   })
 
