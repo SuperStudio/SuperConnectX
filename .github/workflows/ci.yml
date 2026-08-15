@@ -101,16 +101,26 @@ jobs:
 
       # Electron 测试复用其自带二进制，无需下载 Chromium。
       # Linux 上用 install-deps 安装运行 Electron 所需的系统库（Chromium 依赖即覆盖 Electron 运行库）。
+      # 另装 xvfb：Electron 在 Linux 上即使 headless 也仍需一个显示服务器来初始化。
       - name: Install Playwright system deps (Linux)
         if: runner.os == 'Linux'
-        run: npx playwright install-deps
+        run: |
+          npx playwright install-deps
+          sudo apt-get install -y xvfb
 
       - name: Install Playwright (Windows/macOS)
         if: runner.os != 'Linux'
         run: npx playwright install
 
       - name: Run E2E tests
+        if: runner.os != 'Linux'
         run: npm run test:e2e
+        env:
+          E2E_HEADLESS: '1'
+
+      - name: Run E2E tests (Linux, via xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:e2e
         env:
           E2E_HEADLESS: '1'
 
@@ -239,12 +249,15 @@ jobs:
       - name: Install Electron binary
         run: node node_modules/electron/install.js
 
-      # Linux 上用 install-deps 补齐 Electron 运行所需的系统库
+      # Linux 上用 install-deps 补齐 Electron 运行所需的系统库；
+      # 另装 xvfb：Electron 在 Linux 上即使 headless 也仍需一个显示服务器来初始化。
       - name: Install Playwright system deps
-        run: npx playwright install-deps
+        run: |
+          npx playwright install-deps
+          sudo apt-get install -y xvfb
 
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Run E2E tests (Linux, via xvfb)
+        run: xvfb-run -a npm run test:e2e
         env:
           E2E_HEADLESS: '1'
 
