@@ -46,11 +46,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm libarchive-tools \
-            libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-            libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
-            libxrandr2 libgbm1 libasound2t64 libpango-1.0-0 \
-            libcairo2 libcups2t64
+          sudo apt-get install -y rpm libarchive-tools
 
       - name: Install Python setuptools
         if: runner.os != 'macOS'
@@ -103,13 +99,13 @@ jobs:
       - name: Install Electron binary
         run: node node_modules/electron/install.js
 
-      # Electron 测试复用其自带二进制，无需下载 Chromium；只需保证 Playwright driver 就绪。
-      # Linux 上额外补齐 Electron 运行所需的系统库（--with-deps 会调用 apt 安装）
-      - name: Install Playwright dependencies (Linux)
+      # Electron 测试复用其自带二进制，无需下载 Chromium。
+      # Linux 上用 install-deps 安装运行 Electron 所需的系统库（Chromium 依赖即覆盖 Electron 运行库）。
+      - name: Install Playwright system deps (Linux)
         if: runner.os == 'Linux'
-        run: npx playwright install --with-deps
+        run: npx playwright install-deps
 
-      - name: Install Playwright dependencies (Windows/macOS)
+      - name: Install Playwright (Windows/macOS)
         if: runner.os != 'Linux'
         run: npx playwright install
 
@@ -211,11 +207,7 @@ jobs:
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm libarchive-tools \
-            libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-            libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
-            libxrandr2 libgbm1 libasound2t64 libpango-1.0-0 \
-            libcairo2 libcups2t64
+          sudo apt-get install -y rpm libarchive-tools
 
       - name: Install Python setuptools
         run: python3 -m pip install setuptools
@@ -247,9 +239,9 @@ jobs:
       - name: Install Electron binary
         run: node node_modules/electron/install.js
 
-      # Linux 上用 --with-deps 补齐 Electron 运行所需的系统库
-      - name: Install Playwright dependencies
-        run: npx playwright install --with-deps
+      # Linux 上用 install-deps 补齐 Electron 运行所需的系统库
+      - name: Install Playwright system deps
+        run: npx playwright install-deps
 
       - name: Run E2E tests
         run: npm run test:e2e
