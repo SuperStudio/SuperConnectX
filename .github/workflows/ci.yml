@@ -98,6 +98,11 @@ jobs:
       - name: Build renderer and main
         run: npx electron-vite build
 
+      # CI 用 --ignore-scripts 安装，跳过了 electron 的 postinstall，导致二进制未下载。
+      # 这里显式触发 electron 安装脚本下载二进制（会读取 .npmrc 的 electron_mirror 镜像）。
+      - name: Install Electron binary
+        run: node node_modules/electron/install.js
+
       # Electron 测试复用其自带二进制，无需下载 Chromium；只需保证 Playwright driver 就绪。
       # Linux 上额外补齐 Electron 运行所需的系统库（--with-deps 会调用 apt 安装）
       - name: Install Playwright dependencies (Linux)
@@ -237,6 +242,10 @@ jobs:
 
       - name: Build renderer and main
         run: npx electron-vite build
+
+      # 确保 Electron 35 二进制已就绪（--ignore-scripts 可能跳过了下载）
+      - name: Install Electron binary
+        run: node node_modules/electron/install.js
 
       # Linux 上用 --with-deps 补齐 Electron 运行所需的系统库
       - name: Install Playwright dependencies
