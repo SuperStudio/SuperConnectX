@@ -42,6 +42,34 @@ jobs:
         with:
           node-version: '24'
 
+      # ---- CI 缓存优化：npm 依赖下载缓存（按平台 + lock 文件区分，避免失效污染）----
+      - name: Cache npm (Linux/macOS)
+        if: runner.os != 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+
+      - name: Cache npm (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\npm-cache
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+
+      # Electron 二进制缓存：install.js 下载的解压产物（Electron 体积大，命中可省大量时间）
+      - name: Cache Electron binary
+        uses: actions/cache@v4
+        with:
+          path: node_modules/electron/dist
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            electron-${{ runner.os }}-
+
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
         run: |
@@ -82,11 +110,22 @@ jobs:
           rm -rf node_modules/cpu-features
           rm -rf node_modules/ssh2/node_modules/cpu-features
 
-      - name: Run tests
+      # ---- 测试与覆盖率：Linux 上额外生成覆盖率报告（用于上传可视化）----
+      - name: Run unit tests
+        if: runner.os != 'Linux'
         run: npm test
 
+      - name: Run unit tests with coverage (Linux)
+        if: runner.os == 'Linux'
+        run: npm run test:coverage
+
       - name: Run integration tests
+        if: runner.os != 'Linux'
         run: npm run test:integration
+
+      - name: Run integration tests with coverage (Linux)
+        if: runner.os == 'Linux'
+        run: npm run test:integration:coverage
 
       - name: Rebuild native modules
         run: npx electron-builder install-app-deps
@@ -126,6 +165,33 @@ jobs:
         run: xvfb-run -a npm run test:e2e
         env:
           E2E_HEADLESS: '1'
+
+      # ---- 测试报告与覆盖率可视化（仅 Linux，避免矩阵 4 平台重复上传）----
+      - name: Print coverage summary (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          echo "== Unit coverage (tests/coverage/unit) =="
+          if [ -f tests/coverage/unit/coverage-summary.json ]; then
+            node -e "const c=require('./tests/coverage/unit/coverage-summary.json').total; \
+              console.log('lines:', c.lines.pct + '%  statements:', c.statements.pct + '%  functions:', c.functions.pct + '%  branches:', c.branches.pct + '%')"
+          fi
+          echo "== Integration coverage (tests/coverage/integration) =="
+          if [ -f tests/coverage/integration/coverage-summary.json ]; then
+            node -e "const c=require('./tests/coverage/integration/coverage-summary.json').total; \
+              console.log('lines:', c.lines.pct + '%  statements:', c.statements.pct + '%  functions:', c.functions.pct + '%  branches:', c.branches.pct + '%')"
+          fi
+
+      - name: Upload test reports and coverage (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-linux
+          path: |
+            tests/report/
+            tests/coverage/
+          retention-days: 14
+          if-no-files-found: warn
 
       - name: Build packages
         run: npx electron-builder ${{ matrix.builder-target }} --config electron-builder.yml --publish never
@@ -217,6 +283,15 @@ jobs:
         with:
           node-version: '24'
 
+      # ---- CI 缓存优化：npm 依赖下载缓存（build-ubuntu24 为纯 Linux，走 ~/.npm）----
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-ubuntu24-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-ubuntu24-
+
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
@@ -231,16 +306,36 @@ jobs:
       - name: Downgrade Electron to 35 for Ubuntu 24 compatibility
         run: npm install electron@35.7.5 --save-dev
 
+      # Electron 35 二进制缓存：与 build job 的 Electron 38 缓存 key 区分，避免互串
+      - name: Cache Electron binary (Electron 35)
+        uses: actions/cache@v4
+        with:
+          path: node_modules/electron/dist
+          key: electron-ubuntu24-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            electron-ubuntu24-
+
       - name: Remove problematic cpu-features
         run: |
           rm -rf node_modules/cpu-features
           rm -rf node_modules/ssh2/node_modules/cpu-features
 
-      - name: Run tests
+      # ---- 测试与覆盖率：Linux 上额外生成覆盖率报告（用于上传可视化）----
+      - name: Run unit tests
+        if: runner.os != 'Linux'
         run: npm test
 
+      - name: Run unit tests with coverage (Linux)
+        if: runner.os == 'Linux'
+        run: npm run test:coverage
+
       - name: Run integration tests
+        if: runner.os != 'Linux'
         run: npm run test:integration
+
+      - name: Run integration tests with coverage (Linux)
+        if: runner.os == 'Linux'
+        run: npm run test:integration:coverage
 
       - name: Rebuild native modules
         run: npx electron-builder install-app-deps
@@ -266,6 +361,31 @@ jobs:
         run: xvfb-run -a npm run test:e2e
         env:
           E2E_HEADLESS: '1'
+
+      # ---- 测试报告与覆盖率可视化 ----
+      - name: Print coverage summary
+        shell: bash
+        run: |
+          echo "== Unit coverage (tests/coverage/unit) =="
+          if [ -f tests/coverage/unit/coverage-summary.json ]; then
+            node -e "const c=require('./tests/coverage/unit/coverage-summary.json').total; \
+              console.log('lines:', c.lines.pct + '%  statements:', c.statements.pct + '%  functions:', c.functions.pct + '%  branches:', c.branches.pct + '%')"
+          fi
+          echo "== Integration coverage (tests/coverage/integration) =="
+          if [ -f tests/coverage/integration/coverage-summary.json ]; then
+            node -e "const c=require('./tests/coverage/integration/coverage-summary.json').total; \
+              console.log('lines:', c.lines.pct + '%  statements:', c.statements.pct + '%  functions:', c.functions.pct + '%  branches:', c.branches.pct + '%')"
+          fi
+
+      - name: Upload test reports and coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-ubuntu24
+          path: |
+            tests/report/
+            tests/coverage/
+          retention-days: 14
+          if-no-files-found: warn
 
       - name: Build package (Linux Ubuntu 24)
         run: npx electron-builder --linux AppImage deb --config electron-builder.yml --publish never
