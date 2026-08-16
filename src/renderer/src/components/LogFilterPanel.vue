@@ -23,16 +23,12 @@
     <div class="filter-count">
       <span>{{ t('terminal.logFilterMatch', { count: matchedLines.length, total: lines.length }) }}</span>
       <div class="filter-nav" v-if="matchedLines.length > 0">
-        <el-tooltip :content="t('terminal.prevMatch')" placement="bottom" effect="dark" :show-after="TOOLTIP_SHOW_AFTER" :enterable="false">
-          <el-button size="small" class="filter-icon-btn" @click="locatePrev">
-            <el-icon :size="13"><ArrowUp /></el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-tooltip :content="t('terminal.nextMatch')" placement="bottom" effect="dark" :show-after="TOOLTIP_SHOW_AFTER" :enterable="false">
-          <el-button size="small" class="filter-icon-btn" @click="locateNext">
-            <el-icon :size="13"><ArrowDown /></el-icon>
-          </el-button>
-        </el-tooltip>
+        <el-button size="small" class="filter-icon-btn" @click="locatePrev">
+          <el-icon :size="13"><ArrowUp /></el-icon>
+        </el-button>
+        <el-button size="small" class="filter-icon-btn" @click="locateNext">
+          <el-icon :size="13"><ArrowDown /></el-icon>
+        </el-button>
       </div>
     </div>
 
@@ -46,7 +42,12 @@
           @click="locateLine(line.lineNumber)"
         >
           <span class="filter-item-num">{{ line.lineNumber }}</span>
-          <span class="filter-item-text">{{ line.text }}</span>
+          <span class="filter-item-text">
+            <template v-for="(seg, i) in highlightSegments(line.text)" :key="i">
+              <mark v-if="seg.matched" class="filter-item-match">{{ seg.text }}</mark>
+              <template v-else>{{ seg.text }}</template>
+            </template>
+          </span>
         </div>
       </template>
       <div v-else-if="pattern.trim()" class="filter-empty">{{ t('terminal.logFilterNoMatch') }}</div>
@@ -59,7 +60,6 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Close, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
-import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
 
 const { t } = useI18n()
 
@@ -126,20 +126,25 @@ const filterInputRef = ref<{ focus: () => void } | null>(null)
 
 // 编译后的正则必须是响应式 ref，否则 computed(matchedLines) 不会在输入时重新计算
 const regex = ref<RegExp | null>(null)
+// 带 g 标志的正则，用于行内多段匹配高亮（需每次重建以重置 lastIndex）
+const regexGlobal = ref<RegExp | null>(null)
 
 const compileRegex = () => {
   const raw = pattern.value.trim()
   if (!raw) {
     regex.value = null
+    regexGlobal.value = null
     regexError.value = ''
     return
   }
   try {
     // 正则默认区分大小写；如需忽略大小写，用户可在正则中使用 (?i) 内联修饰符
     regex.value = new RegExp(raw)
+    regexGlobal.value = new RegExp(raw, 'g')
     regexError.value = ''
   } catch (e: any) {
     regex.value = null
+    regexGlobal.value = null
     regexError.value = e?.message || t('terminal.logFilterInvalidRegex')
   }
 }
@@ -162,6 +167,29 @@ const matchedLines = computed<LogFilterLine[]>(() => {
   }
   return result
 })
+
+// 将一行文本拆分为「普通文本」与「匹配文本」片段数组，匹配片段用于黄色背景高亮
+const highlightSegments = (text: string): { text: string; matched: boolean }[] => {
+  const r = regexGlobal.value
+  if (!r) return [{ text, matched: false }]
+  const segments: { text: string; matched: boolean }[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+  r.lastIndex = 0
+  while ((match = r.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ text: text.slice(lastIndex, match.index), matched: false })
+    }
+    segments.push({ text: match[0], matched: true })
+    lastIndex = match.index + match[0].length
+    // 避免空匹配导致无限循环
+    if (match[0].length === 0) r.lastIndex++
+  }
+  if (lastIndex < text.length) {
+    segments.push({ text: text.slice(lastIndex), matched: false })
+  }
+  return segments
+}
 
 // 结果变化时：若当前选中的行已不在结果中（如正则改变），则取消选中；否则保持选中态
 watch(matchedLines, (lines) => {
@@ -378,19 +406,22 @@ onMounted(loadPersisted)
 .filter-list {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: auto;
   padding: 4px;
 }
 
 .filter-item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-width: 100%;
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
   font-family: 'Fira Code', 'Consolas', 'Ubuntu Mono', 'Noto Sans Mono CJK SC', monospace;
   font-size: 12px;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .filter-item:hover {
@@ -407,15 +438,24 @@ onMounted(loadPersisted)
   min-width: 28px;
   text-align: right;
   user-select: none;
+  font-family: 'Fira Code', 'Consolas', 'Ubuntu Mono', 'Noto Sans Mono CJK SC', monospace;
 }
 
 .filter-item-text {
   flex: 1;
   min-width: 0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   color: var(--text-white);
+}
+
+/* 匹配到的文本用黄色背景高亮 */
+.filter-item-match {
+  background: #ffd54f;
+  color: #1f1f1f;
+  padding: 0 1px;
+  border-radius: 2px;
+  font-family: inherit;
+  white-space: nowrap;
 }
 
 .filter-empty {
@@ -427,6 +467,7 @@ onMounted(loadPersisted)
 
 .filter-list::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 .filter-list::-webkit-scrollbar-track {
@@ -436,5 +477,9 @@ onMounted(loadPersisted)
 .filter-list::-webkit-scrollbar-thumb {
   background: var(--terminal-output-scrollbar-thumb);
   border-radius: 3px;
+}
+
+.filter-list::-webkit-scrollbar-corner {
+  background: transparent;
 }
 </style>
