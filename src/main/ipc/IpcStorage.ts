@@ -8,6 +8,7 @@ import ComSettingsStorage from '../storage/ComSettingsStorage'
 import AppSettingsStorage from '../storage/AppSettingsStorage'
 import SettingsStorage from '../storage/SettingsStorage'
 import CommandHistoryStorage from '../storage/CommandHistoryStorage'
+import LogFilterStorage from '../storage/LogFilterStorage'
 import IpcConnector from './IpcConnector'
 import BackupManager from '../utils/BackupManager'
 import AdmZip from 'adm-zip'
@@ -85,6 +86,14 @@ export default class IpcStorage {
     ipcMain.handle('get-app-settings', () => appSettingsStorage.getSettings())
     ipcMain.handle('save-app-settings', (_, settings: any) => {
       appSettingsStorage.saveSettings(settings)
+      return true
+    })
+
+    /* 日志过滤面板持久化 */
+    const logFilterStorage = new LogFilterStorage()
+    ipcMain.handle('get-log-filter', () => logFilterStorage.getSettings())
+    ipcMain.handle('save-log-filter', (_, settings: any) => {
+      logFilterStorage.saveSettings(settings)
       return true
     })
 

@@ -59,6 +59,8 @@ declare global {
       saveBaudRates: (baudRates: number[]) => Promise<boolean>
       getAppSettings: () => Promise<any>
       saveAppSettings: (settings: any) => Promise<boolean>
+      getLogFilter: () => Promise<{ pattern?: string; panelWidth?: number }>
+      saveLogFilter: (settings: { pattern?: string; panelWidth?: number }) => Promise<boolean>
       getSettings: () => Promise<any>
       getDefaultSettings: () => Promise<any>
       saveSettings: (settings: any) => Promise<boolean>

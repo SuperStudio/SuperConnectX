@@ -59,6 +59,16 @@
           <el-icon :size="14"><Document /></el-icon>
         </el-button>
       </el-tooltip>
+      <el-tooltip :content="t('terminal.logFilter')" placement="bottom" effect="dark" :show-after="TOOLTIP_SHOW_AFTER" :enterable="false">
+        <el-button
+          size="small"
+          class="icon-action-btn"
+          :class="{ 'filter-active': isShowLogFilter }"
+          @click="emit('onToggleLogFilter')"
+        >
+          <el-icon :size="14"><Filter /></el-icon>
+        </el-button>
+      </el-tooltip>
       <el-switch
         v-model="showTimestamp"
         size="small"
@@ -105,7 +115,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { FolderOpened, Document, Edit } from '@element-plus/icons-vue'
+import { FolderOpened, Document, Edit, Filter } from '@element-plus/icons-vue'
 import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
 
 const { t } = useI18n()
@@ -121,6 +131,7 @@ const props = defineProps<{
   isAutoScroll: boolean
   isShowLog: boolean
   isShowTimestamp: boolean
+  isShowLogFilter?: boolean
   activeSyntaxGroupId?: number
 }>()
 
@@ -132,6 +143,7 @@ const emit = defineEmits<{
   onOpenLogFile: []
   onSaveLog: []
   onEditSyntaxRules: []
+  onToggleLogFilter: []
   'update:isAutoScroll': [value: boolean]
   'update:isShowLog': [value: boolean]
   'update:isShowTimestamp': [value: boolean]
@@ -378,6 +390,11 @@ onMounted(() => {
 
 .icon-action-btn:hover {
   background-color: var(--overlay-btn-hover) !important;
+  color: var(--text-white) !important;
+}
+
+.icon-action-btn.filter-active {
+  background-color: var(--terminal-control-auto-scroll-active) !important;
   color: var(--text-white) !important;
 }
 

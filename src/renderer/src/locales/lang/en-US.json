@@ -398,7 +398,15 @@
     "saveFailedWithError": "Save failed: {error}",
     "logRotateSuccess": "Log rotated: {oldName} → {newName}",
     "unknownError": "Unknown error",
-    "clearAll": "Clear All"
+    "clearAll": "Clear All",
+    "logFilter": "Log Filter",
+    "logFilterPlaceholder": "Enter regex to filter logs...",
+    "logFilterHint": "Enter a regex; matching log lines will be listed here",
+    "logFilterNoMatch": "No matches",
+    "logFilterMatch": "Matched {count} / {total}",
+    "logFilterInvalidRegex": "Invalid regular expression",
+    "prevMatch": "Previous match",
+    "nextMatch": "Next match"
   },
   "presetCommands": {
     "title": "Preset Commands",

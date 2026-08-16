@@ -1,18 +1,26 @@
 <template>
   <div :class="['unified-terminal']">
 
-    <!-- 终端输出区域 -->
-    <div ref="editorContainer" class="terminal-output" :class="{ 'show-scrollbar': showScrollbar }" :style="terminalOutputStyle">
-      <!-- 滚动按钮 -->
-      <div class="scroll-wrapper">
-        <el-button icon="ArrowUp" size="mini" circle @click="handleScrollToTop" class="scroll-btn up-btn" />
-        <el-button icon="ArrowDown" size="mini" circle @click="handleScrollToBottom" class="scroll-btn down-btn" />
+    <!-- 终端输出区域（+ 日志过滤面板） -->
+    <div class="output-area" :style="terminalOutputStyle">
+      <div ref="editorContainer" class="terminal-output" :class="{ 'show-scrollbar': showScrollbar }">
+        <!-- 滚动按钮 -->
+        <div class="scroll-wrapper">
+          <el-button icon="ArrowUp" size="mini" circle @click="handleScrollToTop" class="scroll-btn up-btn" />
+          <el-button icon="ArrowDown" size="mini" circle @click="handleScrollToBottom" class="scroll-btn down-btn" />
+        </div>
+        <!-- RX/TX 信息 -->
+        <div class="rx-tx-overlay">
+          <span class="rx">RX: {{ rxBytes }}</span>
+          <span class="tx">TX: {{ txBytes }}</span>
+        </div>
       </div>
-      <!-- RX/TX 信息 -->
-      <div class="rx-tx-overlay">
-        <span class="rx">RX: {{ rxBytes }}</span>
-        <span class="tx">TX: {{ txBytes }}</span>
-      </div>
+      <LogFilterPanel
+        v-show="showLogFilter"
+        v-model:visible="showLogFilter"
+        :lines="logLines"
+        @locate="locateLine"
+      />
     </div>
 
     <!-- 垂直分隔条 -->
@@ -34,6 +42,7 @@
       :is-auto-scroll="isAutoScroll"
       :is-show-log="isShowLog"
       :is-show-timestamp="showTimestamp"
+      :is-show-log-filter="showLogFilter"
       :active-syntax-group-id="activeSyntaxGroupId"
       @on-close="emit('onClose')"
       @on-reconnect="emit('onReconnect')"
@@ -42,6 +51,7 @@
       @on-open-log-file="emit('onOpenLogFile')"
       @on-save-log="emit('onSaveLog')"
       @on-edit-syntax-rules="emit('onEditSyntaxRules')"
+      @on-toggle-log-filter="showLogFilter = !showLogFilter"
       @update:is-auto-scroll="isAutoScroll = $event"
       @update:is-show-log="isShowLog = $event"
       @update:is-show-timestamp="showTimestamp = $event"
@@ -190,6 +200,7 @@ import { useI18n } from 'vue-i18n'
 import * as monaco from 'monaco-editor'
 import PresetCommands from './PresetCommands.vue'
 import TerminalControl from './TerminalControl.vue'
+import LogFilterPanel from './LogFilterPanel.vue'
 import { parseAnsiToSegments } from '../utils/AnsiParser'
 import { AnsiDecorationManager } from '../utils/AnsiDecorationManager'
 import { getMonacoTheme } from '../utils/MonacoTheme'
@@ -249,6 +260,31 @@ const isAutoScroll = ref(true)
 const isShowLog = ref(true)
 const showScrollbar = ref(false)
 const activeSyntaxGroupId = ref<number | undefined>(undefined)
+const showLogFilter = ref(false)
+// 缓存日志行（lineNumber → 内容），用于过滤面板
+// lineNumber 为 Monaco model 行号，可直接用于定位
+const logLines = ref<{ lineNumber: number; text: string }[]>([])
+
+// 日志过滤面板定位并选中指定行（Monaco model 行号）
+const locateLine = (lineNumber: number) => {
+  if (!editor || !editorModel) return
+  const maxCol = editorModel.getLineMaxColumn(lineNumber)
+  // 选中整行文本，便于复制/查看
+  const sel = new monaco.Selection(lineNumber, 1, lineNumber, maxCol)
+  editor.setSelection(sel)
+  editor.revealLineInCenter(lineNumber)
+  editor.focus()
+  // 高亮目标行（临时装饰）
+  filterHighlightDeco = editor.deltaDecorations(filterHighlightDeco, [
+    {
+      range: new monaco.Range(lineNumber, 1, lineNumber, maxCol),
+      options: { className: 'log-filter-highlight', isWholeLine: true }
+    }
+  ])
+  // 自动滚动到底部按钮场景：定位后取消自动滚动
+  isInternalChange = true
+  isAutoScroll.value = false
+}
 
 // 语法高亮调试日志辅助函数
 const syntaxLog = (message: string, ...args: unknown[]): void => {
@@ -438,6 +474,7 @@ let syntaxDecorationIds: string[] = []
 let enableSyntaxHighlight = true
 let syntaxRuleGroups: SyntaxRuleGroup[] = []
 let lastSyntaxTextLength = 0 // 上次语法高亮扫描时的文本长度，用于增量匹配
+let filterHighlightDeco: string[] = [] // 过滤定位行高亮装饰
 // ANSI 颜色装饰器管理器
 const ansiDecorationMgr = new AnsiDecorationManager()
 let totalRecvSize = 0
@@ -643,6 +680,49 @@ const initEditor = async () => {
   }
 }
 
+// 全量重建日志行缓存（供过滤面板打开时兜底，确保包含初始行等未增量同步内容）
+const rebuildLogLines = () => {
+  if (!editorModel) return
+  const count = editorModel.getLineCount()
+  const arr: { lineNumber: number; text: string }[] = []
+  for (let n = 1; n <= count; n++) {
+    arr.push({ lineNumber: n, text: editorModel.getLineContent(n) })
+  }
+  logLines.value = arr
+}
+
+// 增量同步日志行缓存（供过滤面板使用），从 prevLineCount 行开始重新读取
+const syncLogLines = (prevLineCount: number) => {
+  if (!editorModel) return
+  const newLineCount = editorModel.getLineCount()
+  const arr = [...logLines.value]
+  if (newLineCount === prevLineCount) {
+    // 仅在末行追加，更新末行内容
+    const idx = arr.findIndex((l) => l.lineNumber === prevLineCount)
+    const content = editorModel.getLineContent(prevLineCount)
+    if (idx >= 0) {
+      arr[idx] = { lineNumber: prevLineCount, text: content }
+    } else {
+      arr.push({ lineNumber: prevLineCount, text: content })
+    }
+  } else {
+    // 新增了 newLineCount - prevLineCount 行
+    const idx = arr.findIndex((l) => l.lineNumber === prevLineCount)
+    if (idx >= 0) arr.splice(idx, 1)
+    for (let n = prevLineCount; n <= newLineCount; n++) {
+      arr.push({ lineNumber: n, text: editorModel.getLineContent(n) })
+    }
+  }
+  logLines.value = arr
+}
+
+// 打开过滤面板时，若缓存行数与 model 不符则全量重建兜底
+watch(showLogFilter, (val) => {
+  if (val && editorModel && logLines.value.length !== editorModel.getLineCount()) {
+    rebuildLogLines()
+  }
+})
+
 const appendToTerminal = (content: string) => {
   if (!editorModel) return
 
@@ -652,7 +732,8 @@ const appendToTerminal = (content: string) => {
   // 解析 ANSI SGR 序列：得到纯文本 + 样式段信息
   const { cleanText, segments } = parseAnsiToSegments(content)
 
-  const lastLine = editorModel.getLineCount()
+  const prevLineCount = editorModel.getLineCount()
+  const lastLine = prevLineCount
   let lastCol = 1
   if (lastLine > 0) {
     const lineContent = editorModel.getLineContent(lastLine)
@@ -677,6 +758,9 @@ const appendToTerminal = (content: string) => {
     console.error('appendToTerminal error:', err)
     return
   }
+
+  // 增量同步日志行缓存（供过滤面板）
+  syncLogLines(prevLineCount)
 
   // 应用 ANSI 颜色装饰器（新增文本部分）
   ansiDecorationMgr.apply(segments, insertOffset, cleanText)
@@ -893,8 +977,11 @@ const clearTerminal = () => {
   totalRecvSize = 0
   rxBytes.value = '0 B'
   lastSyntaxTextLength = 0
+  logLines.value = []
   if (editor) {
     syntaxDecorationIds = editor.deltaDecorations(syntaxDecorationIds, [])
+    // 清理过滤定位高亮
+    filterHighlightDeco = editor.deltaDecorations(filterHighlightDeco, [])
   }
   // 清理 ANSI 装饰器和样式
   ansiDecorationMgr.reset()
@@ -1498,9 +1585,17 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   overflow: hidden;
 }
 
-.terminal-output {
-  flex: 0 0 auto;
+.output-area {
+  display: flex;
+  flex-direction: row;
   min-height: 60px;
+  min-width: 0;
+}
+
+.terminal-output {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
   overflow-y: auto;
   padding: 15px;
   white-space: pre-wrap;
@@ -1510,6 +1605,11 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
   border: 1px solid transparent;
   transition: border-color 0.2s;
   box-sizing: border-box;
+}
+
+/* 日志过滤面板中点击定位的行高亮 */
+:deep(.log-filter-highlight) {
+  background-color: rgba(64, 158, 255, 0.25) !important;
 }
 
 .rx-tx-overlay {

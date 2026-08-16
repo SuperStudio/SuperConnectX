@@ -398,7 +398,15 @@
     "saveFailedWithError": "保存失败：{error}",
     "logRotateSuccess": "日志已归档：{oldName} → {newName}",
     "unknownError": "未知错误",
-    "clearAll": "清空全部"
+    "clearAll": "清空全部",
+    "logFilter": "日志过滤",
+    "logFilterPlaceholder": "输入正则表达式过滤日志...",
+    "logFilterHint": "输入正则表达式，匹配的日志将显示在此列表",
+    "logFilterNoMatch": "无匹配结果",
+    "logFilterMatch": "匹配 {count} / {total}",
+    "logFilterInvalidRegex": "正则表达式无效",
+    "prevMatch": "上一个匹配",
+    "nextMatch": "下一个匹配"
   },
   "presetCommands": {
     "title": "预设命令",

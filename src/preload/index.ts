@@ -36,6 +36,10 @@ contextBridge.exposeInMainWorld('storageApi', {
   getAppSettings: () => ipcRenderer.invoke('get-app-settings'),
   saveAppSettings: (settings: any) => ipcRenderer.invoke('save-app-settings', settings),
 
+  /* 日志过滤面板 */
+  getLogFilter: () => ipcRenderer.invoke('get-log-filter'),
+  saveLogFilter: (settings: any) => ipcRenderer.invoke('save-log-filter', settings),
+
   /* 设置页面 */
   getSettings: () => ipcRenderer.invoke('get-settings'),
   getDefaultSettings: () => ipcRenderer.invoke('get-default-settings'),

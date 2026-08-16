@@ -106,6 +106,13 @@ vi.mock('../../src/main/storage/ShortcutsStorage', () => ({
   SHORTCUT_ACTIONS: [{ action: 'connect', description: '连接' }, { action: 'disconnect', description: '断开' }]
 }))
 
+vi.mock('../../src/main/storage/LogFilterStorage', () => ({
+  default: class {
+    getSettings() { return {} }
+    saveSettings(_s: any) {}
+  }
+}))
+
 vi.mock('archiver', () => ({
   default: function() {
     return { pipe: vi.fn(), append: vi.fn(), finalize: vi.fn(), on: vi.fn() }
