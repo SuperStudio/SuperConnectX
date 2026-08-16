@@ -292,6 +292,16 @@ export default class ProtocolLogger {
     if (!this.enableLogStorage) {
       return ''
     }
+    // 重连/自动重试时复用已创建的日志文件，避免每次重连都生成新的空日志文件（0KB 堆积）
+    const existingFileName = this.connLogFiles.get(connId)
+    if (existingFileName) {
+      // 仍解析并同步日志目录，保证日志设置变更后打开/写入仍指向正确位置
+      const resolvedDir = this.resolveDirName(connName, remark)
+      this.ensureDir(resolvedDir)
+      this.connLogDirs.set(connId, resolvedDir)
+      this.logDir = resolvedDir
+      return existingFileName
+    }
     // 解析目录模板，创建对应的目录
     const resolvedDir = this.resolveDirName(connName, remark)
     this.ensureDir(resolvedDir)

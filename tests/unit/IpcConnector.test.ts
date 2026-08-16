@@ -31,6 +31,7 @@ vi.mock('../../src/main/utils/ProtocolLogger', () => ({
     createConnLogFile() {}
     appendToConnLog() {}
     flushConnLog() {}
+    clearConnLogFile() {}
     setLogSplitSize() {}
     setEnableLogStorage() {}
     setLogDir() {}
@@ -84,6 +85,7 @@ import ConnectionStateManager from '../../src/main/ipc/connectors/ConnectionStat
 function makeLogger(): any {
   return {
     createConnLogFile: vi.fn(), appendToConnLog: vi.fn(), flushConnLog: vi.fn(),
+    clearConnLogFile: vi.fn(),
     setLogSplitSize: vi.fn(), setEnableLogStorage: vi.fn(), setLogDir: vi.fn(),
     setLogFileName: vi.fn(), setLogSplitCallback: vi.fn(),
     openConnLog: vi.fn(async () => ({ success: true })),
