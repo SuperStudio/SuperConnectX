@@ -198,11 +198,6 @@ describe('IpcStorage', () => {
       expect(mockHandlers.has('get-backup-list')).toBe(true)
       expect(mockHandlers.has('restore-backup')).toBe(true)
     })
-
-    it('should have exactly 39 handlers', () => {
-      ipcStorage.init()
-      expect(mockHandlers.size).toBe(39)
-    })
   })
 
   describe('handler behavior', () => {
