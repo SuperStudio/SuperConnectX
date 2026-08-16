@@ -59,6 +59,7 @@ contextBridge.exposeInMainWorld('storageApi', {
 
   /* 备份与恢复 */
   getBackupList: () => ipcRenderer.invoke('get-backup-list'),
+  performBackup: () => ipcRenderer.invoke('perform-backup'),
   restoreBackup: (dateStr: string) => ipcRenderer.invoke('restore-backup', dateStr),
   getNextBackupDate: (backupInterval: number) => ipcRenderer.invoke('get-next-backup-date', backupInterval)
 })

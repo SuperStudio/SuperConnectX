@@ -87,7 +87,13 @@
     "restoreSuccess": "Successfully restored from backup {date}, please restart the app to take effect",
     "restoreFailed": "Restore failed",
     "noBackups": "No backups available",
-    "backupSize": "Size"
+    "backupSize": "Size",
+    "manualBackup": "Backup Now",
+    "manualBackupDesc": "Back up all current user data immediately",
+    "manualBackupTitle": "Backup Now",
+    "manualBackupTip": "The following data types will be backed up:\n\nConnections\nPreset Commands\nCommand Groups\nSerial Settings\nGlobal Settings\nCommand History\nShortcuts",
+    "manualBackupSuccess": "Backup succeeded",
+    "manualBackupFailed": "Backup failed"
   },
   "serialSettings": {
     "title": "Serial COM Settings",

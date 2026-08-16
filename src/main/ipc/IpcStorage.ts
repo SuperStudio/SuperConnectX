@@ -162,6 +162,7 @@ export default class IpcStorage {
 
     /* 备份与恢复 */
     ipcMain.handle('get-backup-list', () => BackupManager.getInstance().getBackupList())
+    ipcMain.handle('perform-backup', () => BackupManager.getInstance().performBackupNow())
     ipcMain.handle('restore-backup', (_, dateStr: string) =>
       BackupManager.getInstance().restoreBackup(dateStr)
     )

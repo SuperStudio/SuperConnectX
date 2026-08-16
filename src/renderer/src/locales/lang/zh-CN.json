@@ -87,7 +87,13 @@
     "restoreSuccess": "已成功恢复到 {date} 的备份，请重启应用以生效",
     "restoreFailed": "恢复失败",
     "noBackups": "暂无可用备份",
-    "backupSize": "大小"
+    "backupSize": "大小",
+    "manualBackup": "立即备份",
+    "manualBackupDesc": "立即备份当前全部用户数据",
+    "manualBackupTitle": "立即备份",
+    "manualBackupTip": "将立即备份以下数据类型：\n\n连接配置\n预设命令\n命令组\n串口设置\n全局设置\n命令历史\n快捷键",
+    "manualBackupSuccess": "备份成功",
+    "manualBackupFailed": "备份失败"
   },
   "serialSettings": {
     "title": "串口COM设置",

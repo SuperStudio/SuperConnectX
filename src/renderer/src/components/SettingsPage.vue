@@ -282,6 +282,15 @@
             <div class="group-title">{{ t('basicSettings.backup') }}</div>
             <div class="setting-item">
               <div class="setting-label">
+                <span class="label-text">{{ t('basicSettings.manualBackup') }}</span>
+                <span class="label-desc">{{ t('basicSettings.manualBackupDesc') }}</span>
+              </div>
+              <el-button size="small" class="btn-primary" style="width: auto !important" @click="handleManualBackup">
+                {{ t('basicSettings.manualBackup') }}
+              </el-button>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.autoBackup') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoBackup" />
@@ -595,6 +604,34 @@ const handleRestoreBackup = async () => {
   } catch (error: any) {
     if (error !== 'cancel') {
       ElMessage.error(t('basicSettings.restoreFailed'))
+    }
+  }
+}
+
+// 立即备份：弹出备份数据类型提示，确认后执行备份
+const handleManualBackup = async () => {
+  try {
+    await ElMessageBox.confirm(
+      t('basicSettings.manualBackupTip'),
+      t('basicSettings.manualBackupTitle'),
+      {
+        confirmButtonText: t('basicSettings.manualBackup'),
+        cancelButtonText: t('settings.cancel'),
+        type: 'info',
+        center: true,
+        customClass: 'backup-manual-dialog'
+      }
+    )
+    const result = await window.storageApi.performBackup()
+    if (result.success) {
+      ElMessage.success(t('basicSettings.manualBackupSuccess'))
+      await refreshBackupList()
+    } else {
+      ElMessage.error(result.message || t('basicSettings.manualBackupFailed'))
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(t('basicSettings.manualBackupFailed'))
     }
   }
 }

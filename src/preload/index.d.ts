@@ -73,6 +73,7 @@ declare global {
       getSyntaxRuleGroups: () => Promise<SyntaxRuleGroup[]>
       saveSyntaxRuleGroups: (groups: SyntaxRuleGroup[]) => Promise<boolean>
       getBackupList: () => Promise<{ date: string; size: number }[]>
+      performBackup: () => Promise<{ success: boolean; message: string; date?: string }>
       restoreBackup: (dateStr: string) => Promise<{ success: boolean; message: string }>
       getNextBackupDate: (backupInterval: number) => Promise<string | null>
     }

@@ -166,6 +166,38 @@ export default class BackupManager {
   }
 
   /**
+   * 执行强制备份（手动备份）：跳过 shouldBackup 周期检查，立即将 userdata 目录拷贝到 backup/YYYY-MM-DD 目录
+   * @returns 备份结果，包含是否成功、提示信息和备份日期
+   */
+  performBackupNow(): { success: boolean; message: string; date?: string } {
+    const userDataPath = this.getUserDataPath()
+    if (!fs.existsSync(userDataPath)) {
+      logger.info('[BackupManager] userdata directory not found, skip backup')
+      return { success: false, message: 'userdata directory not found' }
+    }
+
+    try {
+      const backupDir = this.getBackupDir()
+      this.ensureDir(backupDir)
+
+      const todayStr = this.getTodayStr()
+      const destDir = path.join(backupDir, todayStr)
+
+      // 如果今天的备份已存在，先删除再重新备份
+      if (fs.existsSync(destDir)) {
+        fs.rmSync(destDir, { recursive: true, force: true })
+      }
+
+      this.copyDirSync(userDataPath, destDir)
+      logger.info(`[BackupManager] manual backup completed: ${destDir}`)
+      return { success: true, message: `backup completed: ${destDir}`, date: todayStr }
+    } catch (error) {
+      logger.error(`[BackupManager] manual backup failed:`, error)
+      return { success: false, message: `backup failed: ${error}` }
+    }
+  }
+
+  /**
    * 获取备份列表：返回 backup 目录下所有日期目录的信息
    * @returns 备份日期列表（降序），每个包含日期字符串和目录大小
    */
