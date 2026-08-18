@@ -16,7 +16,7 @@
         </div>
       </div>
       <LogFilterPanel
-        v-show="showLogFilter"
+        v-if="showLogFilter"
         v-model:visible="showLogFilter"
         :lines="logLines"
         @locate="locateLine"
@@ -693,6 +693,8 @@ const rebuildLogLines = () => {
 
 // 增量同步日志行缓存（供过滤面板使用），从 prevLineCount 行开始重新读取
 const syncLogLines = (prevLineCount: number) => {
+  // 面板关闭时不维护缓存，避免后台数据流触发每帧 O(n) 拷贝/查找/响应式更新
+  if (!showLogFilter.value) return
   if (!editorModel) return
   const newLineCount = editorModel.getLineCount()
   const arr = [...logLines.value]
