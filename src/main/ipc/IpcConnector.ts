@@ -18,6 +18,8 @@ import FtpConnector from './connectors/FtpConnector'
 import ConnectionStateManager from './connectors/ConnectionStateManager'
 import path from 'path'
 import { getAppDataDir } from '../utils/AppDir'
+import ConnectionService from '../services/ConnectionService'
+import RuntimeEventHub from '../services/RuntimeEventHub'
 
 export default class IpcConnector {
   private static sInstance: IpcConnector
@@ -29,6 +31,8 @@ export default class IpcConnector {
 
   private settingsStorage: SettingsStorage
   private connectionStorage: ConnectionStorage
+  private runtimeEventHub: RuntimeEventHub
+  private connectionService: ConnectionService
   private windows!: { mainWindow?: BrowserWindow | null }
   private _logger: ProtocolLogger | null = null
 
@@ -43,6 +47,20 @@ export default class IpcConnector {
     this.workerConnector = new WorkerConnector()
     this.directConnector = new DirectConnector(this.stateManager)
     this.ftpConnector = new FtpConnector(this.stateManager)
+    this.runtimeEventHub = new RuntimeEventHub()
+    this.stateManager.setEventHub(this.runtimeEventHub)
+    this.connectionService = new ConnectionService(
+      {
+        start: (conn) => Promise.resolve(this.routeStart(conn)),
+        send: (conn, command) => Promise.resolve(this.routeSend(conn, command)),
+        stop: (conn) => Promise.resolve(this.routeStop(conn)),
+        update: (conn, config) => Promise.resolve(this.routeUpdate(conn, config))
+      },
+      this.runtimeEventHub
+    )
+    this.stateManager.setSessionClosedListener((sessionId) =>
+      this.connectionService.markClosed(sessionId, 'system')
+    )
   }
 
   static getInstance(): IpcConnector {
@@ -107,7 +125,7 @@ export default class IpcConnector {
       logger.debug(JSON.stringify(debugConn))
       _logger.createConnLogFile(String(conn.sessionId), conn.name, conn.remark || '')
       this.initConnectionState(conn)
-      return this.routeStart(conn)
+      return this.connectionService.start(conn, 'gui')
     })
 
     // start-connect-by-id（从存储中解密密码）
@@ -129,12 +147,12 @@ export default class IpcConnector {
       logger.debug(`start-connect-by-id conn: ${JSON.stringify(debugConn)}`)
       _logger.createConnLogFile(normalizedSessionId, conn.name, conn.remark || '')
       this.initConnectionState(conn)
-      return this.routeStart(conn)
+      return this.connectionService.start(conn, 'gui')
     })
 
     // send-data
     ipcMain.handle('send-data', async (_, { conn, command }: { conn: any; command: string }) => {
-      return this.routeSend(conn, command)
+      return this.connectionService.send(String(conn.sessionId), command, 'gui', conn)
     })
 
     // upload-file
@@ -147,7 +165,7 @@ export default class IpcConnector {
 
     // stop-connect
     ipcMain.handle('stop-connect', async (_, conn: any) => {
-      return this.routeStop(conn)
+      return this.connectionService.stop(String(conn.sessionId), 'gui', conn)
     })
 
     // update-connect
@@ -158,7 +176,7 @@ export default class IpcConnector {
       if (config.receiveHex !== undefined) {
         const isHex = config.receiveHex === true || config.receiveHex === 'true'
         this.stateManager.setReceiveHex(conn.sessionId, isHex)
-        return this.routeUpdate(conn, { receiveHex: isHex })
+        return this.connectionService.update(String(conn.sessionId), { receiveHex: isHex }, 'gui', conn)
       }
 
       if (config.logTimestamp !== undefined) {
@@ -166,12 +184,17 @@ export default class IpcConnector {
         this.stateManager.setLogTimestamp(conn.sessionId, showTimestamp)
         logger.info(`update logTimestamp: ${showTimestamp} for sessionId: ${conn.sessionId}`)
         if (this.workerConnector.shouldUseWorker(conn, this.useWorkerMode)) {
-          return this.workerConnector.updateConnectionConfig(conn, { logTimestamp: showTimestamp })
+          const result = await this.workerConnector.updateConnectionConfig(conn, {
+            logTimestamp: showTimestamp
+          })
+          this.connectionService.recordConfig(String(conn.sessionId), { logTimestamp: showTimestamp }, 'gui')
+          return result
         }
+        this.connectionService.recordConfig(String(conn.sessionId), { logTimestamp: showTimestamp }, 'gui')
         return { success: true, message: 'Updated successfully' }
       }
 
-      return this.routeUpdate(conn, config)
+      return this.connectionService.update(String(conn.sessionId), config, 'gui', conn)
     })
 
     // 日志相关 IPC
@@ -312,6 +335,148 @@ export default class IpcConnector {
     if (settings.logFileName !== undefined && this._logger) {
       this._logger.setLogFileName(settings.logFileName)
     }
+  }
+
+  getConnectionService(): ConnectionService {
+    return this.connectionService
+  }
+
+  getRuntimeEventHub(): RuntimeEventHub {
+    return this.runtimeEventHub
+  }
+
+  /**
+   * AI bridge lifecycle entry point. It intentionally reuses the same
+   * stored-connection lookup, state initialization, logging, and
+  * Public ConnectionService path as the GUI connection list.
+   */
+  async startConnectionByIdForBridge(
+    id: number,
+    sessionId: string,
+    extraFields: Record<string, unknown> = {}
+  ): Promise<object> {
+    const storedConn = this.connectionStorage.getByIdWithPassword(id)
+    if (!storedConn) return { success: false, message: `Connection not found (id: ${id})` }
+    const normalizedSessionId = String(sessionId)
+    const conn = { ...extraFields, ...storedConn, sessionId: normalizedSessionId }
+
+    return this.startConnectionForBridge(conn, normalizedSessionId)
+  }
+
+  async startPortSessionForBridge(
+    portPath: string,
+    sessionId: string,
+    extraFields: Record<string, unknown> = {}
+  ): Promise<object> {
+    const normalizedSessionId = String(sessionId)
+    const conn: Record<string, unknown> = {
+      connectionType: 'com',
+      comName: portPath,
+      name: portPath,
+      sessionId: normalizedSessionId,
+      baudRate: 9600,
+      dataBits: 8,
+      stopBits: 1,
+      parity: 'none',
+      encoding: 'utf8',
+      readTimeout: 0,
+      writeTimeout: 0,
+      flowControl: 'none',
+      rts: false,
+      dtr: false,
+      receiveHex: false,
+      logTimestamp: true,
+      ...extraFields
+    }
+    conn.connectionType = 'com'
+    conn.comName = portPath
+    conn.sessionId = normalizedSessionId
+
+    return this.startConnectionForBridge(conn, normalizedSessionId)
+  }
+
+  private async startConnectionForBridge(conn: any, sessionId: string): Promise<object> {
+    const normalizedSessionId = String(sessionId)
+    const normalizedConn = { ...conn, sessionId: normalizedSessionId }
+
+    // COM is an exclusive OS resource. If the GUI or another AI session already
+    // owns this port, reuse the existing application session instead of opening
+    // a second native handle and surfacing Windows "Access denied" to the user.
+    if (
+      normalizedConn.connectionType === 'com' &&
+      typeof normalizedConn.comName === 'string' &&
+      normalizedConn.comName
+    ) {
+      const existingSession = this.connectionService.findSessionByComName(normalizedConn.comName)
+      if (existingSession) {
+        return {
+          success: true,
+          reused: true,
+          session: existingSession,
+          message: `Reused the existing ${normalizedConn.comName} session`
+        }
+      }
+    }
+
+    this._logger?.createConnLogFile(
+      normalizedSessionId,
+      normalizedConn.name || normalizedConn.comName || normalizedSessionId,
+      normalizedConn.remark || ''
+    )
+    this.initConnectionState(normalizedConn)
+    return this.connectionService.start(normalizedConn, 'ai')
+  }
+
+  async stopConnectionForBridge(sessionId: string): Promise<object> {
+    return this.connectionService.stop(String(sessionId), 'ai')
+  }
+
+  async applyRuntimeConfigForBridge(
+    sessionId: string,
+    config: Record<string, unknown>
+  ): Promise<object> {
+    const connection = this.connectionService.getConnection(String(sessionId))
+    if (!connection) return { success: false, message: 'Session does not exist' }
+
+    const remaining = { ...config }
+    if (remaining.receiveHex !== undefined) {
+      const isHex = remaining.receiveHex === true || remaining.receiveHex === 'true'
+      if (this.workerConnector.shouldUseWorker(connection, this.useWorkerMode)) {
+        const result = await this.workerConnector.updateConnectionConfig(connection, {
+          receiveHex: isHex
+        })
+        if ((result as { success?: boolean }).success === false) return result
+      }
+      this.stateManager.setReceiveHex(String(sessionId), isHex)
+      delete remaining.receiveHex
+      this.connectionService.recordConfig(String(sessionId), { receiveHex: isHex }, 'ai')
+    }
+
+    if (remaining.logTimestamp !== undefined) {
+      const showTimestamp = remaining.logTimestamp === true || remaining.logTimestamp === 'true'
+      this.stateManager.setLogTimestamp(String(sessionId), showTimestamp)
+      delete remaining.logTimestamp
+      if (this.workerConnector.shouldUseWorker(connection, this.useWorkerMode)) {
+        const result = await this.workerConnector.updateConnectionConfig(connection, {
+          logTimestamp: showTimestamp
+        })
+        this.connectionService.recordConfig(
+          String(sessionId),
+          { logTimestamp: showTimestamp },
+          'ai'
+        )
+        if ((result as { success?: boolean }).success === false) return result
+      } else {
+        this.connectionService.recordConfig(
+          String(sessionId),
+          { logTimestamp: showTimestamp },
+          'ai'
+        )
+      }
+    }
+
+    if (Object.keys(remaining).length === 0) return { success: true }
+    return this.connectionService.update(String(sessionId), remaining, 'ai')
   }
 
   /**

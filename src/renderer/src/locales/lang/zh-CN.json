@@ -35,6 +35,7 @@
   },
   "settingsNav": {
     "basic": "基本设置",
+    "aiBridge": "AI交互桥梁",
     "serial": "串口COM设置",
     "log": "日志",
     "syntax": "语法高亮",
@@ -94,6 +95,196 @@
     "manualBackupTip": "将立即备份以下数据类型：\n\n连接配置\n预设命令\n命令组\n串口设置\n全局设置\n命令历史\n快捷键",
     "manualBackupSuccess": "备份成功",
     "manualBackupFailed": "备份失败"
+  },
+  "aiBridgeSettings": {
+    "title": "AI交互桥梁",
+    "enabled": "启用桥梁",
+    "disabledStatus": "桥梁未开启",
+    "enabledReadOnlyStatus": "桥梁已启用（只读）",
+    "enabledFullControlStatus": "桥梁已启用（完全控制）",
+    "enabledDesc": "允许本机 AI 客户端访问当前实例；控制操作还受权限级别限制。",
+    "permission": "AI权限级别",
+    "permissionDesc": "可在启用前预设。只读仅查询状态与事件；完全控制还可连接会话、发送命令和修改配置。",
+    "readOnly": "只读",
+    "fullControl": "完全控制",
+    "takeoverTitle": "AI 接入",
+    "takeoverDesc": "复制接入提示词给本机 AI；完成握手并保持连接后，状态灯会亮起。",
+    "takeoverButton": "一键接管",
+    "clientDisconnected": "AI 未接入",
+    "clientConnected": "AI 已接入",
+    "clientConnectedCount": "{count} 个 AI 已接入",
+    "clientSuspended": "AI 已连接，桥梁未启用",
+    "takeoverDialogTitle": "让 AI 接入当前实例",
+    "takeoverDialogIntro": "复制下面的提示词并发送给具备本机文件和 Named Pipe 访问能力的 AI。纯网页聊天无法直接连接本机软件。",
+    "takeoverPromptTitle": "AI 接入提示词",
+    "takeoverPromptProtocol": "本机 JSON-RPC 2.0 / Windows Named Pipe",
+    "takeoverPermissionReadOnly": "当前预设权限：只读。AI 可以读取状态和日志，但不能发送命令或修改配置。",
+    "takeoverPermissionFullControl": "当前预设权限：完全控制。AI 可以在能力边界内连接串口、发送命令和修改配置。",
+    "takeoverPrompt": "请接入当前正在运行的 SuperConnectX 实例，不要启动第二个实例。\n\n1. 在 %APPDATA%\\superconnectx\\bridge\\ 中选择 instance.pid 仍在运行的 endpoint.json 或 endpoint-*.json，读取 pipeName 和 token；token 只用于 auth，不得输出。\n2. 使用与软件相同的本机用户权限，以 UTF-8（无 BOM）NDJSON 连接 Windows Named Pipe：先调用 auth，再立即调用 client_hello 并传入 clientName；保持连接打开，确认“AI 已接入”后再操作。\n3. 调用 get_info 和 get_capabilities，只使用当前实例公开且权限允许的方法，不绕过门控。\n4. 区分 list_serial_ports（当前系统端口）、list_connections（已保存档案）和 list_sessions（运行中会话）；端口标识以 list_serial_ports 返回的 path 为准。\n5. create_connection/update_connection 仅用于 GUI 当前开放的 Telnet、FTP 保存档案；AI 新建串口会话必须在 GUI 中可见。\n6. tx.accepted 只表示软件接受发送，继续读取 rx.display、提示符或软件日志确认设备响应。",
+    "takeoverPortSessionRule": "Windows 数字端口先规范化为 COM 前缀形式（例如 90 转为 COM90），再按 list_serial_ports 返回的 path 匹配：存在时调用 start_port_session，缺失时报告 PORT_NOT_FOUND；已有会话使用 attach_session。不要创建 COM 保存配置或直接打开串口。",
+    "copyPrompt": "复制提示词",
+    "enableAndCopyPrompt": "启用并复制",
+    "promptCopied": "接入提示词已复制，请发送给你的 AI。",
+    "promptCopyFailed": "复制失败，请手动选择并复制提示词。",
+    "feedbackTitle": "AI 操作反馈",
+    "feedbackDesc": "浮窗即时提示 AI 活动；完整记录保存在操作历史和本地日志中，关闭桥梁后仍可查看。",
+    "overlayClickable": "允许点击操作浮窗",
+    "overlayClickableDesc": "点击浮窗打开 AI 操作历史；关闭后浮窗仍显示，但不会响应点击。",
+    "overlayOpacity": "浮窗透明度",
+    "overlayPosition": "浮窗位置",
+    "overlayDuration": "浮窗停留时间",
+    "seconds": "秒",
+    "permanent": "永久",
+    "positionTopLeft": "左上",
+    "positionTopCenter": "中上",
+    "positionTopRight": "右上",
+    "positionMiddleLeft": "中左",
+    "positionCenter": "正中",
+    "positionMiddleRight": "中右",
+    "positionBottomLeft": "左下",
+    "positionBottomCenter": "中下",
+    "positionBottomRight": "右下",
+    "activityHistoryTitle": "AI 操作历史",
+    "activityHistoryDesc": "实时显示 AI 的查询与操作结果，并同步写入只读的本地活动日志。",
+    "activityHistoryLive": "实时跟随",
+    "activityHistoryPaused": "已暂停滚动",
+    "activityHistoryReturnLatest": "回到最新",
+    "activityHistoryEmpty": "暂无 AI 操作记录",
+    "activityHistoryCount": "共 {count} 条",
+    "activityHistoryReadOnly": "只读记录，不可编辑",
+    "activityHistoryRefresh": "刷新记录",
+    "activityHistoryOpenFolder": "打开记录文件夹",
+    "activityHistoryFile": "本地记录文件：{path}",
+    "activityHistoryOpenSuccess": "已打开 AI 操作记录文件夹。",
+    "activityHistoryOpenFailed": "打开记录文件夹失败：{message}",
+    "activityHistoryLoadFailed": "读取 AI 操作历史失败。",
+    "activityLogTitle": "AI 操作记录文件",
+    "activityLogDesc": "记录异步写入独立的 ai-activity 目录，并按大小轮转，避免文件无限增长或阻塞主进程。",
+    "activityLogPath": "记录保存根目录",
+    "activityLogPathDesc": "实际文件保存在所选目录下的 ai-activity 子目录；留空时使用软件运行日志目录。",
+    "activityLogPathPlaceholder": "留空使用默认路径（userData/app-logs/ai-activity）",
+    "activityLogSelectDir": "选择文件夹",
+    "activityLogMaxSize": "单个记录文件上限",
+    "activityLogMaxSizeDesc": "达到上限后轮转为带毫秒时间戳的归档文件。",
+    "activityLogMaxFiles": "保留文件数量",
+    "activityLogMaxFilesDesc": "包含当前文件；超出数量后删除最旧备份。",
+    "activityLogFilesValue": "{count} 个",
+    "capabilityTitle": "核心能力边界",
+    "capabilityDesc": "开放串口调试所需的会话、发送、连接档案、命令库和配置能力。皮肤、虚拟串口、更新等辅助功能不在控制范围内。",
+    "available": "可用",
+    "readOnlyAvailable": "只读可用",
+    "unavailable": "不可用",
+    "enableRequired": "此功能需要开启“AI交互桥梁-启用桥梁”才能使用。",
+    "fullControlRequired": "此功能需要开启“AI权限级别-完全控制”才能使用。",
+    "activity": {
+      "read": "AI 读取",
+      "control": "AI 操作",
+      "success": "成功",
+      "failed": "失败",
+      "methods": {
+        "get_info": "读取桥梁状态",
+        "get_capabilities": "读取能力清单",
+        "client_hello": "确认 AI 客户端接入",
+        "list_sessions": "读取当前运行会话（含连接状态）",
+        "start_session": "通过已保存连接配置启动运行会话",
+        "start_port_session": "从当前可用系统串口启动会话",
+        "stop_session": "停止连接会话",
+        "list_connections": "读取已保存连接配置（不建立连接）",
+        "create_connection": "新建 Telnet/FTP 连接配置",
+        "update_connection": "修改 Telnet/FTP 连接配置",
+        "delete_connection": "删除连接配置",
+        "list_command_groups": "读取命令组",
+        "create_command_group": "新建命令组",
+        "update_command_group": "修改命令组",
+        "delete_command_group": "删除命令组",
+        "list_preset_commands": "读取预设命令",
+        "create_preset_command": "新建预设命令",
+        "update_preset_command": "修改预设命令",
+        "delete_preset_command": "删除预设命令",
+        "attach_session": "绑定现有会话",
+        "detach_session": "解除会话绑定",
+        "send": "发送终端命令",
+        "list_serial_ports": "读取当前可用串口（不打开串口）",
+        "read_events": "读取运行时事件",
+        "read_buffer": "读取近期终端输出",
+        "read_log_tail": "读取日志末尾",
+        "search_log": "搜索连接日志",
+        "subscribe": "订阅运行时事件",
+        "unsubscribe": "取消事件订阅",
+        "describe_config": "读取配置说明",
+        "get_config": "读取软件配置",
+        "patch_config": "修改软件配置"
+      },
+      "details": {
+        "command": "命令：{command}",
+        "domain": "配置域：{domain}",
+        "fields": "字段：{fields}",
+        "session": "会话：{sessionId}",
+        "portPath": "串口：{portPath}",
+        "name": "名称：{name}",
+        "error": "原因：{code}"
+      },
+      "close": "关闭此条 AI 操作提示"
+    },
+    "capabilities": {
+      "bridgeAccess": {
+        "label": "桥梁状态与权限",
+        "description": "读取当前桥梁开关、权限级别和能力清单。"
+      },
+      "sessionsObserve": {
+        "label": "运行会话与终端输出",
+        "description": "查询当前运行会话、连接状态和目标，并按需读取或订阅近期收发事件。"
+      },
+      "sessionsAttach": {
+        "label": "绑定与解除绑定会话",
+        "description": "绑定当前窗口中的会话，复用其连接，不另开串口。"
+      },
+      "sessionsLifecycle": {
+        "label": "连接与断开会话",
+        "description": "通过已保存连接配置或当前系统枚举到的串口启动可见运行会话，或关闭现有会话。"
+      },
+      "serialCommand": {
+        "label": "发送终端命令",
+        "description": "按当前换行、HEX 和 CRC 设置发送文本，并在终端标记为 AI SEND。"
+      },
+      "serialPorts": {
+        "label": "可用串口",
+        "description": "枚举连接对话框使用的串口列表，不会打开端口。"
+      },
+      "logsRead": {
+        "label": "受控读取终端日志",
+        "description": "按字节和行数限制读取日志末尾或搜索指定范围，不会加载完整日志。"
+      },
+      "connectionsManage": {
+        "label": "已保存的连接配置",
+        "description": "查询已保存连接配置；仅维护 GUI 当前开放的 Telnet、FTP 类型，密码只返回掩码。系统串口请使用 start_port_session。"
+      },
+      "commandsManage": {
+        "label": "预设命令与命令组",
+        "description": "查询或维护命令组和预设命令，不切换用户当前选中的命令组。"
+      },
+      "configRead": {
+        "label": "读取软件配置",
+        "description": "按需查询已开放的软件设置、COM 设置及其 revision；连接档案和命令库使用专用查询接口。"
+      },
+      "configWrite": {
+        "label": "修改软件配置",
+        "description": "校验 revision 和字段类型后修改已开放的软件设置或 COM 设置，并通知界面刷新。"
+      }
+    },
+    "docsTitle": "使用说明",
+    "docsOverviewTitle": "功能概述",
+    "docsOverviewText": "启用后，本机 AI 客户端可查询当前 SuperConnectX 实例、复用窗口中的连接并发送命令。查询按需返回；收发数据和配置变化可通过事件持续推送。",
+    "docsTechnologyTitle": "核心技术原理",
+    "docsTechnologyText": "桥梁内置于 Electron/Node.js 主进程，通过 Windows Named Pipe 接收本机 JSON-RPC 2.0 请求。endpoint 文件只提供管道地址和随机令牌；实时状态来自请求响应与运行时事件。串口、配置和存储操作均调用软件内部公共服务。",
+    "docsPlatformTitle": "权限与平台边界",
+    "docsPlatformText": "桥梁沿用当前用户权限，不启动提权进程，也不使用识图、鼠标或键盘自动化。实现仅依赖 Node.js 内置的 net、fs 和 crypto，没有新增 AI 专用第三方库。当前传输适配 Windows Named Pipe；协议和业务服务可供其他本地 IPC 适配器复用。",
+    "docsPermissionTitle": "权限级别",
+    "docsPermissionText": "关闭桥梁时，令牌认证以外的请求均被拒绝。只读可查询会话、配置和近期终端事件；完全控制额外开放连接、发送和配置写入。每个请求仍需通过能力与字段校验。",
+    "docsOperationTitle": "可见操作路径",
+    "docsOperationText": "AI 连接会创建可见标签，发送记录以 AI SEND 写入对应终端，配置修改会通知界面刷新。命令使用当前换行、HEX 和 CRC 设置，但不会抢占活动标签、输入框或命令组。",
+    "docsSafetyTitle": "安全规则",
+    "docsSafetyText": "日常保持关闭，诊断时优先使用只读。需要发送或改配置时再启用完全控制，并通过终端中的 AI SEND、操作历史和本地活动日志核对结果。"
   },
   "serialSettings": {
     "title": "串口COM设置",
@@ -260,7 +451,6 @@
     "splitToNewPanel": "分屏显示",
     "dragToSplit": "拖拽到此处分屏"
   },
-
 
   "dialog": {
     "newConnection": "新建连接",

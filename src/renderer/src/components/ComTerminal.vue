@@ -175,6 +175,7 @@ import UnifiedTerminal from './UnifiedTerminal.vue'
 import { useTerminal } from '../composables/useTerminal'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
 import { sendDisplayText, recvDisplayText } from '../composables/app/useSettingsStore'
+import type { AiBridgeEvent } from '../../../shared/extensions/ai-control-bridge/AiBridgeEvents'
 
 const { t } = useI18n()
 
@@ -195,6 +196,8 @@ const props = withDefaults(defineProps<{
     password?: string
     sessionId: string | number
     remark?: string
+    aiManaged?: boolean
+    aiSessionState?: 'starting' | 'connected' | 'error' | 'closed' | 'unknown'
   }
   autoConnect?: boolean
   onClose?: () => void
@@ -232,9 +235,11 @@ const autoNewline = ref(true)
 const hexMode = ref(false)
 const crcEnabled = ref(true)
 const crcMethod = ref<string>('CRC-16/MODBUS')
+let isApplyingBridgeUpdate = false
 
 let removeMountedCloseListener: (() => void) | null = null
 let removeDataListener: (() => void) | null = null
+let removeBridgeEventListener: (() => void) | null = null
 
 // 串口参数
 const baudRates = ref<number[]>([]) // 从全局设置加载
@@ -246,6 +251,7 @@ const remark = ref(props.connection.remark || '')
 
 const isConnectedValue = computed(() => isConnected.value)
 const currentSessionId = ref<string>('')
+type ExternalSessionState = 'starting' | 'connected' | 'error' | 'closed' | 'unknown'
 
 // 使用通用 composable
 const terminal = useTerminal({
@@ -261,6 +267,7 @@ const { openLogFolder, openLogFile, saveLogFile, cleanup: terminalCleanup } = te
 
 // 监听波特率变化
 watch(baudRate, (newVal) => {
+  if (isApplyingBridgeUpdate) return
   if (newVal === '__add__' as any) {
     showAddBaudRateDialog.value = true
     nextTick(() => {
@@ -278,6 +285,7 @@ watch(baudRate, (newVal) => {
 
 // 监听串口设置变化，自动保存
 watch([dataBits, stopBits, parity, encoding, readTimeout, writeTimeout, flowControl, dtr, rts], () => {
+  if (isApplyingBridgeUpdate) return
   saveComSettings()
   if (isConnected.value) {
     applyComConfig()
@@ -286,11 +294,13 @@ watch([dataBits, stopBits, parity, encoding, readTimeout, writeTimeout, flowCont
 
 // 监听字体大小变化，仅保存设置（不重连串口）
 watch(terminal.fontSize, () => {
+  if (isApplyingBridgeUpdate) return
   saveComSettings()
 })
 
 // 监听 HEX 显示模式变化
 watch(hexDisplayMode, (newVal) => {
+  if (isApplyingBridgeUpdate) return
   saveComSettings()
   unifiedTerminalRef.value?.setHexDisplayMode?.(newVal)
   if (isConnected.value) {
@@ -300,24 +310,28 @@ watch(hexDisplayMode, (newVal) => {
 
 // 监听 CRLF 模式变化
 watch(autoNewline, (newVal) => {
+  if (isApplyingBridgeUpdate) return
   saveComSettings()
   unifiedTerminalRef.value?.setAutoNewline?.(newVal)
 })
 
 // 监听 HEX 发送模式变化
 watch(hexMode, (newVal) => {
+  if (isApplyingBridgeUpdate) return
   saveComSettings()
   unifiedTerminalRef.value?.setHexMode?.(newVal)
 })
 
 // 监听 CRC 启用状态变化
 watch(crcEnabled, (newVal) => {
+  if (isApplyingBridgeUpdate) return
   saveComSettings()
   unifiedTerminalRef.value?.setCrcEnabled?.(newVal)
 })
 
 // 监听 CRC 计算方式变化
 watch(crcMethod, (newVal) => {
+  if (isApplyingBridgeUpdate) return
   saveComSettings()
   unifiedTerminalRef.value?.setCrcMethod?.(newVal)
 })
@@ -512,6 +526,216 @@ const handleSettingsUpdated = (event: Event) => {
   }
 }
 
+const bindDataListener = (): void => {
+  currentSessionId.value = String(props.connection.sessionId)
+  if (removeDataListener) {
+    removeDataListener()
+    removeDataListener = null
+  }
+  removeDataListener = window.connectApi.onRecvData((data) => {
+    if (String(data.connId) !== String(currentSessionId.value)) return
+    terminal.totalRxSize += data.data.length
+    unifiedTerminalRef.value?.updateRxBytes(data.data.length)
+    const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
+    const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
+    const displayText = `${prefix}${recvLabel}${data.data}\n`
+    unifiedTerminalRef.value?.appendToTerminal(displayText)
+  })
+}
+
+const appendExternalSessionState = (state: ExternalSessionState, result?: unknown): void => {
+  const message =
+    result &&
+    typeof result === 'object' &&
+    typeof (result as { message?: unknown }).message === 'string'
+      ? `: ${(result as { message: string }).message}`
+      : ''
+  if (state === 'connected') {
+    unifiedTerminalRef.value?.appendToTerminal(`\n[AI] ${t('comTerminal.connectSuccess')}\n`)
+  } else if (state === 'starting') {
+    unifiedTerminalRef.value?.appendToTerminal(
+      `\n[AI] ${t('comTerminal.connecting', { port: props.connection.comName })}\n`
+    )
+  } else if (state === 'error') {
+    unifiedTerminalRef.value?.appendToTerminal(
+      `\n[AI] ${t('comTerminal.connectFailed')}${message}\n`
+    )
+  } else if (state === 'closed') {
+    unifiedTerminalRef.value?.appendToTerminal(`\n[AI] ${t('comTerminal.connectionClosed')}\n`)
+  }
+}
+
+const applyExternalSessionState = (
+  state: ExternalSessionState | undefined,
+  result?: unknown
+): void => {
+  if (!props.connection.aiManaged || !state) return
+  if (state === 'starting') {
+    isConnecting.value = true
+    isConnected.value = false
+    appendExternalSessionState(state, result)
+    return
+  }
+  if (state === 'connected') {
+    const wasConnected = isConnected.value
+    isConnecting.value = false
+    isConnected.value = true
+    bindDataListener()
+    if (!wasConnected) appendExternalSessionState(state, result)
+    emit('onConnect', props.connection.sessionId)
+    return
+  }
+
+  const wasConnected = isConnected.value
+  isConnecting.value = false
+  isConnected.value = false
+  if (removeDataListener) {
+    removeDataListener()
+    removeDataListener = null
+  }
+  if (state === 'error' || (state === 'closed' && wasConnected))
+    appendExternalSessionState(state, result)
+  if (wasConnected || state === 'error' || state === 'closed')
+    emit('onDisconnect', props.connection.sessionId)
+}
+
+watch(
+  () => props.connection.aiSessionState,
+  (state, previousState) => {
+    if (props.connection.aiManaged && state !== previousState) {
+      applyExternalSessionState(state)
+    }
+  }
+)
+
+const formatBridgeTimestamp = (timestamp?: string): string => {
+  const parsed = timestamp ? new Date(timestamp) : new Date()
+  const date = Number.isNaN(parsed.getTime()) ? new Date() : parsed
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}.${String(date.getMilliseconds()).padStart(3, '0')}`
+}
+
+const formatAiCommand = (command: string, displayCommand?: unknown): string => {
+  if (typeof displayCommand === 'string') return displayCommand
+  if (hexMode.value) {
+    return Array.from(command)
+      .map((char) => char.charCodeAt(0).toString(16).padStart(2, '0').toUpperCase())
+      .join(' ')
+  }
+  return command.replace(/(?:\r\n|\r|\n)+$/, '')
+}
+
+const appendAiTxEvent = (event: AiBridgeEvent): boolean => {
+  if (
+    (event?.eventType !== 'tx.accepted' && event?.eventType !== 'tx.failed') ||
+    event?.source !== 'ai' ||
+    String(event?.sessionId) !== String(props.connection.sessionId)
+  )
+    return false
+
+  const payload = event.payload || {}
+  const command = typeof payload.command === 'string' ? payload.command : ''
+  if (!command) return true
+
+  const displayCommand = formatAiCommand(command, payload.displayCommand)
+  const failed = event.eventType === 'tx.failed'
+  const result = payload.result as { message?: unknown } | undefined
+  const errorSuffix = failed && typeof result?.message === 'string' ? ` (${result.message})` : ''
+  const label = failed ? `AI ${sendDisplayText.value} FAILED` : `AI ${sendDisplayText.value}`
+  unifiedTerminalRef.value?.appendToTerminal(
+    `\n[${formatBridgeTimestamp(event.timestamp)}] ${label} ${displayCommand}${errorSuffix}\n`
+  )
+
+  if (!failed) {
+    const byteLength = typeof payload.byteLength === 'number' ? payload.byteLength : command.length
+    unifiedTerminalRef.value?.updateTxBytes(byteLength)
+  }
+  return true
+}
+
+// AI 或其他 GUI 通过主进程修改当前 COM 会话后，应用同一份运行时 patch。
+const appendExternalSessionEvent = (event: AiBridgeEvent): boolean => {
+  if (
+    !props.connection.aiManaged ||
+    (event?.eventType !== 'session.state' && event?.eventType !== 'session.closed') ||
+    (event?.source !== 'ai' && event?.source !== 'system') ||
+    String(event?.sessionId) !== String(props.connection.sessionId)
+  )
+    return false
+
+  const payload = event.payload || {}
+  const state =
+    event.eventType === 'session.closed' ? 'closed' : (payload.state as ExternalSessionState)
+  applyExternalSessionState(state, payload.result)
+  return true
+}
+
+const handleBridgeEvent = (event: AiBridgeEvent): void => {
+  if (appendExternalSessionEvent(event)) return
+  if (appendAiTxEvent(event)) return
+
+  const isSessionEvent =
+    event?.eventType === 'session.config.changed' &&
+    String(event.sessionId) === String(props.connection.sessionId)
+  const isConfigEvent =
+    event?.eventType === 'config.changed' &&
+    event.payload?.domain === 'com-settings' &&
+    String(event.payload?.targetId) === String(props.connection.comName)
+  if (!isSessionEvent && !isConfigEvent) return
+
+  const changed = event.payload?.changed
+  if (!changed || typeof changed !== 'object' || Array.isArray(changed)) return
+  const values = changed as Record<string, unknown>
+  isApplyingBridgeUpdate = true
+  if (typeof values.baudRate === 'number') baudRate.value = values.baudRate
+  if (typeof values.dataBits === 'number') dataBits.value = values.dataBits
+  if (typeof values.stopBits === 'number') stopBits.value = values.stopBits
+  if (typeof values.parity === 'string') parity.value = values.parity
+  if (typeof values.encoding === 'string') encoding.value = values.encoding
+  if (typeof values.readTimeout === 'number') readTimeout.value = values.readTimeout
+  if (typeof values.writeTimeout === 'number') writeTimeout.value = values.writeTimeout
+  if (
+    values.flowControl === 'none' ||
+    values.flowControl === 'hardware' ||
+    values.flowControl === 'software'
+  ) {
+    flowControl.value = values.flowControl
+  }
+  if (typeof values.dtr === 'boolean') dtr.value = values.dtr
+  if (typeof values.rts === 'boolean') rts.value = values.rts
+  if (typeof values.hexDisplayMode === 'boolean') {
+    hexDisplayMode.value = values.hexDisplayMode
+    unifiedTerminalRef.value?.setHexDisplayMode?.(hexDisplayMode.value)
+    if (isConnected.value) void updateReceiveHexMode(hexDisplayMode.value)
+  }
+  if (typeof values.showTimestamp === 'boolean') {
+    terminal.showTimestamp.value = values.showTimestamp
+    unifiedTerminalRef.value?.setShowTimestamp?.(terminal.showTimestamp.value)
+    if (isConnected.value) void notifyLogTimestampToBackend(terminal.showTimestamp.value)
+  }
+  if (typeof values.autoNewline === 'boolean') {
+    autoNewline.value = values.autoNewline
+    unifiedTerminalRef.value?.setAutoNewline?.(autoNewline.value)
+  }
+  if (typeof values.hexMode === 'boolean') {
+    hexMode.value = values.hexMode
+    unifiedTerminalRef.value?.setHexMode?.(hexMode.value)
+  }
+  if (typeof values.crcEnabled === 'boolean') {
+    crcEnabled.value = values.crcEnabled
+    unifiedTerminalRef.value?.setCrcEnabled?.(crcEnabled.value)
+  }
+  if (typeof values.crcMethod === 'string') {
+    crcMethod.value = values.crcMethod
+    unifiedTerminalRef.value?.setCrcMethod?.(crcMethod.value)
+  }
+  if (values.commandInput !== undefined) {
+    unifiedTerminalRef.value?.setCommandInput?.(String(values.commandInput ?? ''))
+  }
+  nextTick(() => {
+    isApplyingBridgeUpdate = false
+  })
+}
+
 // 新增波特率（更新全局设置）
 const addBaudRate = async () => {
   const rate = newBaudRate.value
@@ -589,19 +813,7 @@ const handleConnect = async () => {
       notifyLogTimestampToBackend(terminal.showTimestamp.value)
 
       // 清理旧的数据监听器，防止重复注册
-      if (removeDataListener) {
-        removeDataListener()
-        removeDataListener = null
-      }
-      removeDataListener = window.connectApi.onRecvData((data) => {
-        if (String(data.connId) !== String(currentSessionId.value)) return
-        terminal.totalRxSize += data.data.length
-        unifiedTerminalRef.value?.updateRxBytes(data.data.length)
-        const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
-        const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
-        const displayText = `${prefix}${recvLabel}${data.data}\n`
-        unifiedTerminalRef.value?.appendToTerminal(displayText)
-      })
+      bindDataListener()
 
       unifiedTerminalRef.value?.focusInput()
     } else {
@@ -776,8 +988,11 @@ onMounted(async () => {
 
   // 监听设置更新事件（波特率列表变化时刷新）
   window.addEventListener('settings-updated', handleSettingsUpdated)
+  removeBridgeEventListener = window.connectApi.onBridgeEvent(handleBridgeEvent)
 
-  if (props.autoConnect) {
+  if (props.connection.aiManaged) {
+    applyExternalSessionState(props.connection.aiSessionState)
+  } else if (props.autoConnect) {
     handleConnect()
   }
 })
@@ -785,6 +1000,8 @@ onMounted(async () => {
 onUnmounted(() => {
   terminalCleanup()
   window.removeEventListener('settings-updated', handleSettingsUpdated)
+  removeBridgeEventListener?.()
+  removeBridgeEventListener = null
   if (removeDataListener) {
     removeDataListener()
     removeDataListener = null

@@ -39,4 +39,23 @@ test.describe('应用启动冒烟测试', () => {
       await closeApp(app, userDataDir)
     }
   })
+
+  test('AI 交互桥梁显示活动日志轮转设置', async () => {
+    const { app, page, userDataDir } = await launchApp()
+    try {
+      const toolsButton = page.locator('.menu-btn').filter({ hasText: '工具' }).first()
+      await toolsButton.hover()
+      await page.locator('.menu-item').filter({ hasText: '设置' }).first().click()
+      await page.getByText('AI交互桥梁', { exact: true }).first().click()
+
+      await expect(page.getByText('AI 操作记录文件', { exact: true })).toBeVisible()
+      await expect(page.getByText('记录保存根目录', { exact: true })).toBeVisible()
+      await expect(page.getByText('单个记录文件上限', { exact: true })).toBeVisible()
+      await expect(page.getByText('保留文件数量', { exact: true })).toBeVisible()
+      await expect(page.getByText('10 MiB', { exact: true })).toBeVisible()
+      await expect(page.getByText('5 个', { exact: true })).toBeVisible()
+    } finally {
+      await closeApp(app, userDataDir)
+    }
+  })
 })

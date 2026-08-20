@@ -1,5 +1,9 @@
 // electron/preload.ts
 import { contextBridge, ipcRenderer } from 'electron'
+import type {
+  AiBridgeClientStatus,
+  AiBridgeEvent
+} from '../shared/extensions/ai-control-bridge/AiBridgeEvents'
 
 // 暴露 IPC 调用接口给渲染进程
 contextBridge.exposeInMainWorld('storageApi', {
@@ -104,6 +108,11 @@ contextBridge.exposeInMainWorld('connectApi', {
     ipcRenderer.on('on-serial-ports-changed', listener)
     return () => ipcRenderer.removeListener('on-serial-ports-changed', listener)
   },
+  onBridgeEvent: (callback: (event: AiBridgeEvent) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, event: AiBridgeEvent): void => callback(event)
+    ipcRenderer.on('on-bridge-event', listener)
+    return () => ipcRenderer.removeListener('on-bridge-event', listener)
+  },
   writeToLog: (sessionId: string, content: string) => ipcRenderer.invoke('write-to-log', { sessionId, content })
 })
 
@@ -147,6 +156,16 @@ contextBridge.exposeInMainWorld('logApi', {
   warn: (message: string, meta?: any) => ipcRenderer.invoke('logger:warn', message, meta),
   error: (message: string, meta?: any) => ipcRenderer.invoke('logger:error', message, meta),
   debug: (message: string, meta?: any) => ipcRenderer.invoke('logger:debug', message, meta)
+})
+
+contextBridge.exposeInMainWorld('aiActivityApi', {
+  getHistory: (limit = 500) => ipcRenderer.invoke('ai-activity:get-history', limit),
+  getLogInfo: () => ipcRenderer.invoke('ai-activity:get-log-info'),
+  openLogDirectory: () => ipcRenderer.invoke('ai-activity:open-log-directory')
+})
+
+contextBridge.exposeInMainWorld('aiBridgeApi', {
+  getClientStatus: (): Promise<AiBridgeClientStatus> => ipcRenderer.invoke('ai-bridge:get-client-status')
 })
 
 contextBridge.exposeInMainWorld('updateApi', {

@@ -35,6 +35,7 @@
   },
   "settingsNav": {
     "basic": "General",
+    "aiBridge": "AI Bridge",
     "serial": "Serial COM",
     "log": "Logs",
     "syntax": "Syntax Highlight",
@@ -94,6 +95,196 @@
     "manualBackupTip": "The following data types will be backed up:\n\nConnections\nPreset Commands\nCommand Groups\nSerial Settings\nGlobal Settings\nCommand History\nShortcuts",
     "manualBackupSuccess": "Backup succeeded",
     "manualBackupFailed": "Backup failed"
+  },
+  "aiBridgeSettings": {
+    "title": "AI Interaction Bridge",
+    "enabled": "Enable bridge",
+    "disabledStatus": "Bridge not enabled",
+    "enabledReadOnlyStatus": "Bridge enabled (Read-only)",
+    "enabledFullControlStatus": "Bridge enabled (Full control)",
+    "enabledDesc": "Allows a local AI client to access this instance; control also depends on the permission level.",
+    "permission": "AI permission level",
+    "permissionDesc": "Can be set before enabling. Read-only permits queries; Full control also permits sessions, commands, and configuration changes.",
+    "readOnly": "Read-only",
+    "fullControl": "Full control",
+    "takeoverTitle": "AI connection",
+    "takeoverDesc": "Copy the connection prompt to a local AI. The indicator lights after a successful handshake while the connection remains open.",
+    "takeoverButton": "Connect AI",
+    "clientDisconnected": "AI not connected",
+    "clientConnected": "AI connected",
+    "clientConnectedCount": "{count} AI clients connected",
+    "clientSuspended": "AI connected, bridge disabled",
+    "takeoverDialogTitle": "Connect an AI to this instance",
+    "takeoverDialogIntro": "Copy this prompt to an AI that can access local files and Windows Named Pipes. A browser-only chat cannot connect directly to local software.",
+    "takeoverPromptTitle": "AI connection prompt",
+    "takeoverPromptProtocol": "Local JSON-RPC 2.0 / Windows Named Pipe",
+    "takeoverPermissionReadOnly": "Current permission: Read-only. The AI can inspect state and logs but cannot send commands or change settings.",
+    "takeoverPermissionFullControl": "Current permission: Full control. The AI can connect serial ports, send commands, and change settings within the published capability boundary.",
+    "takeoverPrompt": "Connect to the currently running SuperConnectX instance. Do not start a second instance.\n\n1. Under %APPDATA%\\superconnectx\\bridge\\, choose endpoint.json or endpoint-*.json whose instance.pid is still running. Read pipeName and token; use the token only for auth and never print it.\n2. Under the same local user context as the app, connect to the Windows Named Pipe with UTF-8 (no BOM) NDJSON: call auth first, then immediately call client_hello with clientName. Keep the Pipe open and verify that SuperConnectX reports “AI connected” before operating.\n3. Call get_info and get_capabilities, then use only methods exposed by this instance and allowed by its permission gate.\n4. Distinguish list_serial_ports (live system ports), list_connections (saved profiles), and list_sessions (running sessions); use the path returned by list_serial_ports as the port identifier.\n5. create_connection/update_connection are limited to GUI-exposed Telnet and FTP profiles. Any new AI serial session must be visible in the GUI.\n6. tx.accepted means that the software accepted the send; continue reading rx.display, the prompt, or the software log to confirm the device response.",
+    "takeoverPortSessionRule": "Normalize a numeric Windows port to the COM-prefixed form (for example, 90 to COM90), then match the path returned by list_serial_ports: call start_port_session when present, or report PORT_NOT_FOUND when absent; use attach_session for an existing session. Never create a saved COM profile or open a port directly.",
+    "copyPrompt": "Copy prompt",
+    "enableAndCopyPrompt": "Enable and copy",
+    "promptCopied": "Connection prompt copied. Send it to your AI.",
+    "promptCopyFailed": "Copy failed. Select and copy the prompt manually.",
+    "feedbackTitle": "AI activity feedback",
+    "feedbackDesc": "The overlay shows immediate AI activity. Full records remain in the history and local log when the bridge is off.",
+    "overlayClickable": "Allow clicking the activity overlay",
+    "overlayClickableDesc": "Clicking an overlay item opens AI activity history; when off, the overlay remains visible but ignores clicks.",
+    "overlayOpacity": "Overlay opacity",
+    "overlayPosition": "Overlay position",
+    "overlayDuration": "Overlay duration",
+    "seconds": "s",
+    "permanent": "Permanent",
+    "positionTopLeft": "Top left",
+    "positionTopCenter": "Top center",
+    "positionTopRight": "Top right",
+    "positionMiddleLeft": "Middle left",
+    "positionCenter": "Center",
+    "positionMiddleRight": "Middle right",
+    "positionBottomLeft": "Bottom left",
+    "positionBottomCenter": "Bottom center",
+    "positionBottomRight": "Bottom right",
+    "activityHistoryTitle": "AI activity history",
+    "activityHistoryDesc": "Shows AI queries and operation results in real time and writes them to a read-only local activity log.",
+    "activityHistoryLive": "Following live",
+    "activityHistoryPaused": "Auto-scroll paused",
+    "activityHistoryReturnLatest": "Return to latest",
+    "activityHistoryEmpty": "No AI activity yet",
+    "activityHistoryCount": "{count} entries",
+    "activityHistoryReadOnly": "Read-only entries",
+    "activityHistoryRefresh": "Refresh",
+    "activityHistoryOpenFolder": "Open log folder",
+    "activityHistoryFile": "Local log file: {path}",
+    "activityHistoryOpenSuccess": "AI activity log folder opened.",
+    "activityHistoryOpenFailed": "Could not open the activity log folder: {message}",
+    "activityHistoryLoadFailed": "Could not load AI activity history.",
+    "activityLogTitle": "AI activity log files",
+    "activityLogDesc": "Records are written asynchronously to a dedicated ai-activity directory and rotated by size, preventing unbounded files and main-process blocking.",
+    "activityLogPath": "Log root directory",
+    "activityLogPathDesc": "Files are stored in an ai-activity subdirectory below the selected folder. Leave blank to use the application log directory.",
+    "activityLogPathPlaceholder": "Leave blank for the default (app-logs/ai-activity)",
+    "activityLogSelectDir": "Select folder",
+    "activityLogMaxSize": "Maximum file size",
+    "activityLogMaxSizeDesc": "The active log rotates to an archive named with a millisecond timestamp.",
+    "activityLogMaxFiles": "Retained file count",
+    "activityLogMaxFilesDesc": "Includes the active file; the oldest backup is removed when the limit is exceeded.",
+    "activityLogFilesValue": "{count} files",
+    "capabilityTitle": "Core capability boundary",
+    "capabilityDesc": "Exposes sessions, sending, connection profiles, command libraries, and settings needed for serial debugging. Auxiliary features such as themes, virtual ports, and updates are excluded.",
+    "available": "Available",
+    "readOnlyAvailable": "Read only",
+    "unavailable": "Unavailable",
+    "enableRequired": "This function requires “AI Interaction Bridge - Enable bridge” to be enabled.",
+    "fullControlRequired": "This function requires “AI permission level - Full control” to be enabled.",
+    "activity": {
+      "read": "AI read",
+      "control": "AI action",
+      "success": "Succeeded",
+      "failed": "Failed",
+      "methods": {
+        "get_info": "Read bridge status",
+        "get_capabilities": "Read capability list",
+        "client_hello": "Register AI client",
+        "list_sessions": "Read current runtime sessions and connection states",
+        "start_session": "Start a runtime session from a saved connection profile",
+        "start_port_session": "Start session from an available system serial port",
+        "stop_session": "Stop connection session",
+        "list_connections": "Read saved connection profiles (without opening a connection)",
+        "create_connection": "Create a Telnet/FTP connection profile",
+        "update_connection": "Update a Telnet/FTP connection profile",
+        "delete_connection": "Delete connection profile",
+        "list_command_groups": "Read command groups",
+        "create_command_group": "Create command group",
+        "update_command_group": "Update command group",
+        "delete_command_group": "Delete command group",
+        "list_preset_commands": "Read preset commands",
+        "create_preset_command": "Create preset command",
+        "update_preset_command": "Update preset command",
+        "delete_preset_command": "Delete preset command",
+        "attach_session": "Attach existing session",
+        "detach_session": "Detach session",
+        "send": "Send terminal command",
+        "list_serial_ports": "List available serial ports (without opening them)",
+        "read_events": "Read runtime events",
+        "read_buffer": "Read recent terminal output",
+        "read_log_tail": "Read log tail",
+        "search_log": "Search connection log",
+        "subscribe": "Subscribe to runtime events",
+        "unsubscribe": "Unsubscribe from runtime events",
+        "describe_config": "Read configuration schema",
+        "get_config": "Read software configuration",
+        "patch_config": "Change software configuration"
+      },
+      "details": {
+        "command": "Command: {command}",
+        "domain": "Config domain: {domain}",
+        "fields": "Fields: {fields}",
+        "session": "Session: {sessionId}",
+        "portPath": "Port: {portPath}",
+        "name": "Name: {name}",
+        "error": "Reason: {code}"
+      },
+      "close": "Close this AI activity notice"
+    },
+    "capabilities": {
+      "bridgeAccess": {
+        "label": "Bridge status and permissions",
+        "description": "Read the current bridge switch, permission level, and capability list."
+      },
+      "sessionsObserve": {
+        "label": "Runtime sessions and terminal output",
+        "description": "Query current runtime sessions, including connection state and target, then read or subscribe to recent RX and TX events."
+      },
+      "sessionsAttach": {
+        "label": "Attach and detach a session",
+        "description": "Attach to a session in this window and reuse its connection without opening another port."
+      },
+      "sessionsLifecycle": {
+        "label": "Connect and disconnect sessions",
+        "description": "Start a visible runtime session from a saved profile or a currently enumerated serial port, or stop an existing session."
+      },
+      "serialCommand": {
+        "label": "Send terminal commands",
+        "description": "Apply current newline, HEX, and CRC settings, then record the transmission as AI SEND."
+      },
+      "serialPorts": {
+        "label": "Available serial ports",
+        "description": "Enumerate the ports used by the connection dialog without opening them."
+      },
+      "logsRead": {
+        "label": "Bounded terminal log access",
+        "description": "Read a byte- and line-limited tail or search a bounded range without loading the full log."
+      },
+      "connectionsManage": {
+        "label": "Saved connection profiles",
+        "description": "Query saved profiles and maintain only GUI-exposed Telnet or FTP types; passwords are returned masked. Use start_port_session for live serial ports."
+      },
+      "commandsManage": {
+        "label": "Preset commands and groups",
+        "description": "Query or maintain groups and presets without changing the user's selected group."
+      },
+      "configRead": {
+        "label": "Read software configuration",
+        "description": "Query exposed software and COM settings with their revisions; use dedicated methods for saved profiles and command catalogs."
+      },
+      "configWrite": {
+        "label": "Change software configuration",
+        "description": "Validate revisions and field types, update exposed software or COM settings, and refresh the UI."
+      }
+    },
+    "docsTitle": "Usage",
+    "docsOverviewTitle": "Overview",
+    "docsOverviewText": "A local AI client can query this running SuperConnectX instance, reuse sessions in the window, and send commands. Queries return current values on demand; terminal and configuration changes can be streamed as events.",
+    "docsTechnologyTitle": "Core technology",
+    "docsTechnologyText": "The bridge runs in the Electron/Node.js main process and accepts local JSON-RPC 2.0 requests over a Windows Named Pipe. The endpoint file contains only the pipe address and a random token; live state comes from responses and runtime events. Serial, configuration, and storage actions use the application's internal shared services.",
+    "docsPlatformTitle": "Permission and platform boundary",
+    "docsPlatformText": "The bridge uses the current user account. It starts no elevated process and uses no screen, mouse, or keyboard automation. It relies on Node.js built-ins net, fs, and crypto, with no AI-specific third-party library. Windows Named Pipe is the current transport; protocol and business services can be reused by another local IPC adapter.",
+    "docsPermissionTitle": "Permission levels",
+    "docsPermissionText": "When disabled, every request except token authentication is rejected. Read-only permits session, configuration, and recent terminal-event queries. Full control also permits connection lifecycle, sending, and configuration writes. Every request still passes capability and field validation.",
+    "docsOperationTitle": "Visible operation path",
+    "docsOperationText": "AI connections create visible tabs, transmissions appear as AI SEND in the matching terminal, and configuration changes refresh the UI. Commands use the current newline, HEX, and CRC settings without taking over the active tab, input box, or command group.",
+    "docsSafetyTitle": "Safety rules",
+    "docsSafetyText": "Keep the bridge off for normal use and prefer Read-only for diagnosis. Enable Full control only for sending or configuration changes, then verify results in AI SEND records, activity history, and the local activity log."
   },
   "serialSettings": {
     "title": "Serial COM Settings",
@@ -260,7 +451,6 @@
     "splitToNewPanel": "Split to New Panel",
     "dragToSplit": "Drop here to split"
   },
-
 
   "dialog": {
     "newConnection": "New Connection",

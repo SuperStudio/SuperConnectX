@@ -1,3 +1,8 @@
+import type {
+  AiBridgeClientStatus,
+  AiBridgeEvent
+} from '../shared/extensions/ai-control-bridge/AiBridgeEvents'
+
 declare global {
   interface SerialPortInfo {
     path: string
@@ -96,6 +101,7 @@ declare global {
       listSerialPorts: () => Promise<SerialPortInfo[]>
       fixSerialPermissions: () => Promise<{ success: boolean; message?: string }>
       onSerialPortsChanged: (callback: (ports: SerialPortInfo[]) => void) => () => void
+      onBridgeEvent: (callback: (event: AiBridgeEvent) => void) => () => void
       writeToLog: (sessionId: string, content: string) => Promise<any>
     }
     windowApi: {
@@ -143,6 +149,14 @@ declare global {
       warn: (message: string, meta?: any) => Promise<void>
       error: (message: string, meta?: any) => Promise<void>
       debug: (message: string, meta?: any) => Promise<void>
+    }
+    aiActivityApi: {
+      getHistory: (limit?: number) => Promise<AiBridgeEvent[]>
+      getLogInfo: () => Promise<{ filePath: string; directory: string }>
+      openLogDirectory: () => Promise<{ success: boolean; message?: string }>
+    }
+    aiBridgeApi: {
+      getClientStatus: () => Promise<AiBridgeClientStatus>
     }
     virtualPortApi: {
       checkConditions: () => Promise<{ installed: boolean; pathSelected: boolean; path: string }>

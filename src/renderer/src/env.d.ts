@@ -75,6 +75,15 @@ interface ConnectApi {
   listSerialPorts: () => Promise<any[]>
   fixSerialPermissions: () => Promise<{ success: boolean; message?: string }>
   onSerialPortsChanged: (callback: (ports: any[]) => void) => () => void
+  onBridgeEvent: (
+    callback: (event: {
+      eventType?: string
+      source?: string
+      sessionId?: string
+      timestamp?: string
+      payload?: Record<string, unknown>
+    }) => void
+  ) => () => void
   writeToLog: (sessionId: string, content: string) => Promise<any>
 }
 

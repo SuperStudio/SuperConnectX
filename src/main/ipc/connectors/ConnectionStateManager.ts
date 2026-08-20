@@ -7,6 +7,7 @@
  */
 import { BrowserWindow } from 'electron'
 import ProtocolLogger from '../../utils/ProtocolLogger'
+import RuntimeEventHub from '../../services/RuntimeEventHub'
 
 export default class ConnectionStateManager {
   private receiveHexMap = new Map<string, boolean>()
@@ -17,6 +18,16 @@ export default class ConnectionStateManager {
   // 外部依赖（由 IpcConnector 注入）
   private windows: { mainWindow?: BrowserWindow | null } = { mainWindow: undefined }
   private logger: ProtocolLogger | null = null
+  private eventHub: RuntimeEventHub | null = null
+  private onSessionClosed: ((sessionId: string) => void) | null = null
+
+  setEventHub(eventHub: RuntimeEventHub): void {
+    this.eventHub = eventHub
+  }
+
+  setSessionClosedListener(listener: (sessionId: string) => void): void {
+    this.onSessionClosed = listener
+  }
 
   init(
     winRef: { mainWindow?: BrowserWindow | null },
@@ -81,6 +92,7 @@ export default class ConnectionStateManager {
     if (wc && !wc.isDestroyed()) {
       wc.send('on-connect-close', sessionId)
     }
+    this.onSessionClosed?.(sessionId)
   }
 
   /**
@@ -95,6 +107,15 @@ export default class ConnectionStateManager {
    * 发送数据到渲染进程
    */
   sendDataToRenderer(sessionId: string, data: string, timestamp: string, isHex: boolean): void {
+    if (this.eventHub?.shouldCaptureRx(sessionId)) {
+      this.eventHub.publish({
+        eventType: 'rx.display',
+        sessionId,
+        source: 'system',
+        timestamp: timestamp || undefined,
+        payload: { data, timestamp, isHex }
+      })
+    }
     const wc = this.windows.mainWindow?.webContents
     if (!wc || wc.isDestroyed()) return
     wc.send('on-recv-data', {
