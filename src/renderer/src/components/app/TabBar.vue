@@ -15,7 +15,7 @@
           }"
           :draggable="true"
           @mousedown="onTabMouseDown($event, tab)"
-          @click="$emit('switchTab', tab.id); $emit('hideTabMenu')"
+          @click="onTabClick(tab)"
           @contextmenu="$emit('tabContextMenu', $event, tab)"
           @dragstart="onDragStart($event, tab, index)"
           @dragover="onDragOver($event, tab, index)"
@@ -40,11 +40,14 @@
             :class="getConnectionStatus(tab)"
           ></span>
           <el-tooltip :content="tab.name || `${tab.host || tab.comName}:${tab.port || ''}`" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
-            <span class="tab-name">
-              {{ tab.name || `${tab.host || tab.comName}:${tab.port || ''}` }}
-              <el-tooltip v-if="tab.connectionType === 'com' && tab.comName && serialRemarks[tab.comName]" :content="serialRemarks[tab.comName]" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
-                <span class="tab-remark">{{ serialRemarks[tab.comName] }}</span>
-              </el-tooltip>
+            <span class="tab-label-wrap">
+              <span v-if="tab.aiManaged" class="tab-ai-badge">AI</span>
+              <span class="tab-name">
+                {{ tab.name || `${tab.host || tab.comName}:${tab.port || ''}` }}
+                <el-tooltip v-if="tab.connectionType === 'com' && tab.comName && serialRemarks[tab.comName]" :content="serialRemarks[tab.comName]" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
+                  <span class="tab-remark">{{ serialRemarks[tab.comName] }}</span>
+                </el-tooltip>
+              </span>
             </span>
           </el-tooltip>
           <el-tooltip :content="pinnedTabs.has(tab.id) ? $t('tabs.unpin') : $t('tabs.close')" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
@@ -151,6 +154,11 @@ const handleTabsWheel = (e: WheelEvent) => {
 const onTabMouseDown = (e: MouseEvent, tab: any) => {
   // 仅左键按下时切换选项卡，右键不切换
   if (e.button !== 0) return
+  emit('switchTab', tab.id)
+  emit('hideTabMenu')
+}
+
+const onTabClick = (tab: any): void => {
   emit('switchTab', tab.id)
   emit('hideTabMenu')
 }
@@ -316,6 +324,25 @@ const resetDragState = () => {
   flex: 1;
   line-height: 1;
   font-size: 14px;
+}
+
+.tab-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.tab-ai-badge {
+  flex: 0 0 auto;
+  padding: 1px 4px;
+  border: 1px solid rgba(227, 154, 98, 0.65);
+  border-radius: 3px;
+  color: #e39a62;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .tab-item .connection-dot {

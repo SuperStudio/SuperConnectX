@@ -213,6 +213,69 @@ describe('IpcConnector', () => {
     })
   })
 
+  describe('shared runtime service integration', () => {
+    it('tracks a GUI-started session for an external bridge client', async () => {
+      const conn = makeConn({
+        connectionType: 'com',
+        sessionId: 'bridge-visible-session',
+        comName: 'COM55'
+      })
+      const result = await mockHandlers.get('start-connect')!(null, conn)
+
+      expect(result.success).toBe(true)
+      expect(connector.getConnectionService().getSession('bridge-visible-session')).toMatchObject({
+        state: 'connected',
+        comName: 'COM55'
+      })
+      expect(
+        connector
+          .getRuntimeEventHub()
+          .readSince(0)
+          .events.some((event) => event.eventType === 'session.state')
+      ).toBe(true)
+
+      await mockHandlers.get('stop-connect')!(null, conn)
+      expect(connector.getConnectionService().getSession('bridge-visible-session')).toBeUndefined()
+    })
+
+    it('reuses an existing COM session for AI instead of opening a second handle', async () => {
+      const guiConn = makeConn({ connectionType: 'com', sessionId: 'gui-com80', comName: 'COM80' })
+      const guiResult = await mockHandlers.get('start-connect')!(null, guiConn)
+      expect(guiResult.success).toBe(true)
+
+      ;(connector as any).connectionStorage = {
+        getByIdWithPassword: vi.fn(() => ({ ...guiConn, id: 80 }))
+      }
+
+      const aiResult = await connector.startConnectionByIdForBridge(80, 'ai-com80')
+      expect(aiResult).toMatchObject({
+        success: true,
+        reused: true,
+        session: { sessionId: 'gui-com80', comName: 'COM80', state: 'connected' }
+      })
+      expect(connector.getConnectionService().listSessions()).toHaveLength(1)
+
+      await mockHandlers.get('stop-connect')!(null, guiConn)
+    })
+
+    it('starts a dynamic AI port session through the shared connection service', async () => {
+      const guiConn = makeConn({ connectionType: 'com', sessionId: 'gui-com-test', comName: 'COM_TEST' })
+      const guiResult = await mockHandlers.get('start-connect')!(null, guiConn)
+      expect(guiResult.success).toBe(true)
+
+      const aiResult = await connector.startPortSessionForBridge('COM_TEST', 'ai-port-test', {
+        baudRate: 115200
+      })
+      expect(aiResult).toMatchObject({
+        success: true,
+        reused: true,
+        session: { sessionId: 'gui-com-test', comName: 'COM_TEST', state: 'connected' }
+      })
+
+      await mockHandlers.get('stop-connect')!(null, guiConn)
+    })
+  })
+
   // ============ initConnectionState ============
 
   describe('initConnectionState', () => {

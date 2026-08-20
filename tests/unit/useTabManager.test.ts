@@ -98,6 +98,8 @@ describe('useTabManager', () => {
       expect(typeof manager.switchTabById).toBe('function')
       expect(typeof manager.connectToServer).toBe('function')
       expect(typeof manager.connectToSerialPort).toBe('function')
+      expect(typeof manager.ensureAiSessionTab).toBe('function')
+      expect(typeof manager.removeAiSessionTab).toBe('function')
     })
 
     it('should have empty tabs initially', () => {
@@ -220,6 +222,81 @@ describe('useTabManager', () => {
       const tab = makeTab({ id: 't-1' })
 
       expect(manager.getConnectionStatus(tab)).toBe('connected')
+    })
+
+    it('should use the AI session snapshot before the component ref mounts', () => {
+      const manager = useTabManager(refs.com, refs.telnet)
+      const tab = makeComTab({ aiManaged: true, aiSessionState: 'connected' })
+
+      expect(manager.getConnectionStatus(tab)).toBe('connected')
+    })
+  })
+
+  describe('ensureAiSessionTab', () => {
+    it('should create a visible AI tab without stealing an existing active tab', () => {
+      const manager = useTabManager(refs.com, refs.telnet)
+      manager.connectToServer({ id: 1, connectionType: 'telnet', host: '127.0.0.1', port: 23 })
+      const activeBefore = manager.activeTabId.value
+
+      const tab = manager.ensureAiSessionTab({
+        sessionId: 'ai-test-com',
+        state: 'connected',
+        connectionType: 'com',
+        comName: 'COM_TEST',
+        desiredConfig: { baudRate: 115200 }
+      })
+
+      expect(tab).toMatchObject({
+        aiManaged: true,
+        aiSessionState: 'connected',
+        comName: 'COM_TEST',
+        baudRate: 115200
+      })
+      expect(manager.activeTabId.value).toBe(activeBefore)
+    })
+
+    it('should update the same AI tab when a later session state arrives', () => {
+      const manager = useTabManager(refs.com, refs.telnet)
+      const first = manager.ensureAiSessionTab({
+        sessionId: 'ai-test-com',
+        state: 'starting',
+        connectionType: 'com',
+        comName: 'COM_TEST'
+      })
+      const second = manager.ensureAiSessionTab({
+        sessionId: 'ai-test-com',
+        state: 'connected',
+        connectionType: 'com',
+        comName: 'COM_TEST'
+      })
+
+      expect(second).toMatchObject({ id: first.id })
+      expect(manager.connectionTabs.value).toHaveLength(1)
+      expect(first.aiSessionState).toBe('connected')
+    })
+
+    it('should remove a closed AI tab without calling the GUI stop API', () => {
+      const manager = useTabManager(refs.com, refs.telnet)
+      const remainingTab = makeTab({ id: 'remaining-tab' })
+      manager.connectionTabs.value = [remainingTab]
+      manager.activeTabId.value = remainingTab.id
+
+      const aiTab = manager.ensureAiSessionTab({
+        sessionId: 'ai-closed-com',
+        state: 'connected',
+        connectionType: 'com',
+        comName: 'COM_TEST'
+      })
+      manager.activeTabId.value = aiTab.id
+      manager.pinnedTabs.add(aiTab.id)
+
+      const removedTabId = manager.removeAiSessionTab('ai-closed-com')
+
+      expect(removedTabId).toBe(aiTab.id)
+      expect(manager.connectionTabs.value.map((tab) => tab.id)).toEqual(['remaining-tab'])
+      expect(manager.activeTabId.value).toBe('remaining-tab')
+      expect(manager.pinnedTabs.has(aiTab.id)).toBe(false)
+      expect(mockStopConnect).not.toHaveBeenCalled()
     })
   })
 

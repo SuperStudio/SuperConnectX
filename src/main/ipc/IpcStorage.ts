@@ -13,10 +13,15 @@ import IpcConnector from './IpcConnector'
 import BackupManager from '../utils/BackupManager'
 import AdmZip from 'adm-zip'
 import fs from 'fs'
+import ConfigService, { ConfigDomainAdapter, ConfigServiceError } from '../services/ConfigService'
+import RuntimeEventHub from '../services/RuntimeEventHub'
+import { CoreCatalog } from '../services/types/CoreCatalog'
 const archiver = require('archiver')
 
 export default class IpcStorage {
   private static sInstance: IpcStorage
+  private configService: ConfigService | null = null
+  private coreCatalog: CoreCatalog | null = null
 
   constructor() {}
 
@@ -28,29 +33,90 @@ export default class IpcStorage {
     return IpcStorage.sInstance
   }
 
-  init(): void {
+  init(eventHub?: RuntimeEventHub): void {
+    const configService = new ConfigService(eventHub || new RuntimeEventHub())
+    this.configService = configService
     /* 连接持久化处理 */
     const connectionStorage = new ConnectionStorage()
     ipcMain.handle('get-connections', () => connectionStorage.getAll())
-    ipcMain.handle('add-connection', (_, conn: any) => connectionStorage.add(conn))
-    ipcMain.handle('update-connection', (_, conn: any) => connectionStorage.update(conn))
-    ipcMain.handle('delete-connection', (_, id: number) => connectionStorage.delete(id))
+    ipcMain.handle('add-connection', (_, conn: any) => {
+      const result = connectionStorage.add(conn)
+      configService.recordExternalChange('connections', null, { operation: 'created' }, 'gui')
+      return result
+    })
+    ipcMain.handle('update-connection', (_, conn: any) => {
+      const result = connectionStorage.update(conn)
+      if (result) {
+        configService.recordExternalChange('connections', null, { operation: 'updated' }, 'gui')
+      }
+      return result
+    })
+    ipcMain.handle('delete-connection', (_, id: number) => {
+      const before = connectionStorage.getAll().length
+      const result = connectionStorage.delete(id)
+      if (Array.isArray(result) && result.length < before) {
+        configService.recordExternalChange('connections', null, { operation: 'deleted' }, 'gui')
+      }
+      return result
+    })
 
     /* 发送命令持久化 */
     const preSetCommandStorage = new PreSetCommandStorage()
     ipcMain.handle('get-preset-commands', () => preSetCommandStorage.getAll())
-    ipcMain.handle('add-preset-command', (_, cmd: any) => preSetCommandStorage.add(cmd))
-    ipcMain.handle('update-preset-command', (_, cmd: any) => preSetCommandStorage.update(cmd))
-    ipcMain.handle('delete-preset-command', (_, id: number) => preSetCommandStorage.delete(id))
+    ipcMain.handle('add-preset-command', (_, cmd: any) => {
+      const result = preSetCommandStorage.add(cmd)
+      if (result) {
+        configService.recordExternalChange('preset-commands', null, { operation: 'created' }, 'gui')
+      }
+      return result
+    })
+    ipcMain.handle('update-preset-command', (_, cmd: any) => {
+      const result = preSetCommandStorage.update(cmd)
+      if (result) {
+        configService.recordExternalChange('preset-commands', null, { operation: 'updated' }, 'gui')
+      }
+      return result
+    })
+    ipcMain.handle('delete-preset-command', (_, id: number) => {
+      const before = preSetCommandStorage.getAll().length
+      const result = preSetCommandStorage.delete(id)
+      if (Array.isArray(result) && result.length < before) {
+        configService.recordExternalChange('preset-commands', null, { operation: 'deleted' }, 'gui')
+      }
+      return result
+    })
 
     /* 组持久化 */
     const groupStorage = new CommandGroupStorage()
     ipcMain.handle('get-command-groups', () => groupStorage.getAll())
-    ipcMain.handle('add-command-group', (_, group) => groupStorage.add(group))
-    ipcMain.handle('update-command-group', (_, group) => groupStorage.update(group))
+    ipcMain.handle('add-command-group', (_, group) => {
+      const result = groupStorage.add(group)
+      if (result) {
+        configService.recordExternalChange('command-groups', null, { operation: 'created' }, 'gui')
+      }
+      return result
+    })
+    ipcMain.handle('update-command-group', (_, group) => {
+      const result = groupStorage.update(group)
+      if (result) {
+        configService.recordExternalChange('command-groups', null, { operation: 'updated' }, 'gui')
+      }
+      return result
+    })
     ipcMain.handle('delete-command-group', (_, id) => {
+      const before = groupStorage.getAll().length
       preSetCommandStorage.deleteByGroupId(id)
-      return groupStorage.delete(id)
+      const result = groupStorage.delete(id)
+      if (Array.isArray(result) && result.length < before) {
+        configService.recordExternalChange('command-groups', null, { operation: 'deleted' }, 'gui')
+        configService.recordExternalChange(
+          'preset-commands',
+          null,
+          { operation: 'deleted-by-group' },
+          'gui'
+        )
+      }
+      return result
     })
 
     /* 命令导入导出 */
@@ -58,75 +124,98 @@ export default class IpcStorage {
       preSetCommandStorage.exportCommands(groupStorage, filePath)
     )
 
-    ipcMain.handle('import-commands', (_, filePath: string) =>
-      preSetCommandStorage.importCommands(groupStorage, filePath)
-    )
+    ipcMain.handle('import-commands', (_, filePath: string) => {
+      const result = preSetCommandStorage.importCommands(groupStorage, filePath)
+      if (result.success) {
+        configService.recordExternalChange('command-groups', null, { operation: 'imported' }, 'gui')
+        configService.recordExternalChange(
+          'preset-commands',
+          null,
+          { operation: 'imported' },
+          'gui'
+        )
+      }
+      return result
+    })
 
     /* COM 串口设置持久化 */
     const comSettingsStorage = new ComSettingsStorage()
     ipcMain.handle('get-com-settings', (_, comName: string) => {
-      return comSettingsStorage.getSettings(comName)
+      return configService.get('com-settings', comName).value
     })
-    ipcMain.handle('save-com-settings', (_, comName: string, settings: any) => {
-      comSettingsStorage.saveSettings(comName, settings)
+    ipcMain.handle('save-com-settings', async (_, comName: string, settings: Record<string, unknown>) => {
+      await configService.patch({
+        domain: 'com-settings',
+        targetId: comName,
+        patch: settings,
+        source: 'gui'
+      })
       return true
     })
 
     /* 全局波特率列表持久化 */
     ipcMain.handle('get-baud-rates', () => {
-      return comSettingsStorage.getBaudRates()
+      const value = configService.get('baud-rates').value
+      return Array.isArray(value?.baudRates) ? value.baudRates : []
     })
-    ipcMain.handle('save-baud-rates', (_, baudRates: number[]) => {
-      comSettingsStorage.saveBaudRates(baudRates)
+    ipcMain.handle('save-baud-rates', async (_, baudRates: number[]) => {
+      await configService.patch({ domain: 'baud-rates', patch: { baudRates }, source: 'gui' })
       return true
     })
 
     /* 应用全局设置持久化 */
     const appSettingsStorage = new AppSettingsStorage()
     ipcMain.handle('get-app-settings', () => appSettingsStorage.getSettings())
-    ipcMain.handle('save-app-settings', (_, settings: any) => {
-      appSettingsStorage.saveSettings(settings)
+    ipcMain.handle('save-app-settings', async (_, settings: Record<string, unknown>) => {
+      await configService.patch({ domain: 'app-settings', patch: settings, source: 'gui' })
       return true
     })
 
     /* 日志过滤面板持久化 */
     const logFilterStorage = new LogFilterStorage()
     ipcMain.handle('get-log-filter', () => logFilterStorage.getSettings())
-    ipcMain.handle('save-log-filter', (_, settings: any) => {
-      logFilterStorage.saveSettings(settings)
+    ipcMain.handle('save-log-filter', async (_, settings: Record<string, unknown>) => {
+      await configService.patch({ domain: 'log-filter', patch: settings, source: 'gui' })
       return true
     })
 
     /* 设置页面持久化 */
     const settingsStorage = new SettingsStorage()
 
+    this.coreCatalog = {
+      listConnections: () => connectionStorage.getAll(),
+      createConnection: (connection) => connectionStorage.add(connection),
+      updateConnection: (connection) => connectionStorage.update(connection),
+      deleteConnection: (id) => connectionStorage.delete(id),
+      listCommandGroups: () => groupStorage.getAll(),
+      createCommandGroup: (group) =>
+        groupStorage.add({
+          name: String(group.name || ''),
+          connectionType: String(group.connectionType || 'com')
+        }),
+      updateCommandGroup: (group) =>
+        groupStorage.update({
+          groupId: Number(group.groupId),
+          name: String(group.name || ''),
+          connectionType: String(group.connectionType || 'com')
+        }),
+      deleteCommandGroup: (id) => {
+        preSetCommandStorage.deleteByGroupId(id)
+        return groupStorage.delete(id)
+      },
+      listPresetCommands: () => preSetCommandStorage.getAll(),
+      createPresetCommand: (command) => preSetCommandStorage.add(command),
+      updatePresetCommand: (command) => preSetCommandStorage.update(command),
+      deletePresetCommand: (id) => preSetCommandStorage.delete(id)
+    }
+
     /* 命令历史持久化（需要在 settings 之后初始化，因为依赖 settingsStorage） */
     const commandHistoryStorage = new CommandHistoryStorage(settingsStorage)
 
-    ipcMain.handle('get-settings', () => settingsStorage.getSettings())
+    ipcMain.handle('get-settings', () => configService.get('settings').value)
     ipcMain.handle('get-default-settings', () => settingsStorage.getDefaults())
-    ipcMain.handle('save-settings', (_, settings: any) => {
-      settingsStorage.saveSettings(settings)
-      // 日志分片大小需实时生效，无需重启
-      if (settings.logSplitSize) {
-        IpcConnector.getInstance().applySettings({ logSplitSize: settings.logSplitSize })
-      }
-      // 启用日志存储开关需实时生效
-      if (settings.enableLogStorage !== undefined) {
-        IpcConnector.getInstance().applySettings({ enableLogStorage: settings.enableLogStorage })
-      }
-      // 日志保存路径需实时生效
-      if (settings.logPath !== undefined) {
-        IpcConnector.getInstance().applySettings({ logPath: settings.logPath })
-      }
-      // 日志文件名模板需实时生效
-      if (settings.logFileName !== undefined) {
-        IpcConnector.getInstance().applySettings({ logFileName: settings.logFileName })
-      }
-      // 命令历史最大数量变更时裁剪历史记录
-      if (settings.commandHistoryMaxCount) {
-        commandHistoryStorage.applyMaxCount(settings.commandHistoryMaxCount)
-      }
+    ipcMain.handle('save-settings', async (_, settings: Record<string, unknown>) => {
+      await configService.patch({ domain: 'settings', patch: settings, source: 'gui' })
       return true
     })
 
@@ -168,6 +257,33 @@ export default class IpcStorage {
       return true
     })
     ipcMain.handle('get-shortcut-actions', () => SHORTCUT_ACTIONS)
+
+    this.registerCoreConfigDomains(
+      configService,
+      connectionStorage,
+      preSetCommandStorage,
+      groupStorage,
+      comSettingsStorage,
+      appSettingsStorage,
+      settingsStorage,
+      shortcutsStorage,
+      logFilterStorage
+    )
+    configService.addApplyHandler(async ({ domain, patch }) => {
+      if (domain !== 'settings') return
+      if (patch.logSplitSize)
+        IpcConnector.getInstance().applySettings({ logSplitSize: patch.logSplitSize as number })
+      if (patch.enableLogStorage !== undefined)
+        IpcConnector.getInstance().applySettings({
+          enableLogStorage: patch.enableLogStorage as boolean
+        })
+      if (patch.logPath !== undefined)
+        IpcConnector.getInstance().applySettings({ logPath: patch.logPath as string })
+      if (patch.logFileName !== undefined)
+        IpcConnector.getInstance().applySettings({ logFileName: patch.logFileName as string })
+      if (patch.commandHistoryMaxCount)
+        commandHistoryStorage.applyMaxCount(patch.commandHistoryMaxCount as number)
+    })
 
     /* 备份与恢复 */
     ipcMain.handle('get-backup-list', () => BackupManager.getInstance().getBackupList())
@@ -212,6 +328,378 @@ export default class IpcStorage {
     })
 
     logger.info(`init IpcStorage done`)
+  }
+
+  getConfigService(): ConfigService {
+    if (!this.configService) throw new Error('IpcStorage has not been initialized')
+    return this.configService
+  }
+
+  getCoreCatalog(): CoreCatalog {
+    if (!this.coreCatalog) throw new Error('IpcStorage has not been initialized')
+    return this.coreCatalog
+  }
+
+  private registerCoreConfigDomains(
+    configService: ConfigService,
+    connectionStorage: ConnectionStorage,
+    preSetCommandStorage: PreSetCommandStorage,
+    groupStorage: CommandGroupStorage,
+    comSettingsStorage: ComSettingsStorage,
+    appSettingsStorage: AppSettingsStorage,
+    settingsStorage: SettingsStorage,
+    shortcutsStorage: ShortcutsStorage,
+    logFilterStorage: LogFilterStorage
+  ): void {
+    type SettingsRecord = ReturnType<SettingsStorage['getSettings']>
+    type ComSettingsRecord = NonNullable<ReturnType<ComSettingsStorage['getSettings']>>
+    type AppSettingsRecord = ReturnType<AppSettingsStorage['getSettings']>
+    type LogFilterRecord = ReturnType<LogFilterStorage['getSettings']>
+
+    const field = (
+      path: string,
+      type: ConfigDomainAdapter['schema']['fields'][number]['type'],
+      applyMode: 'immediate' | 'reconnect' | 'restart' | 'task' = 'immediate',
+      constraints: Pick<
+        ConfigDomainAdapter['schema']['fields'][number],
+        'enum' | 'min' | 'max'
+      > = {}
+    ): ConfigDomainAdapter['schema']['fields'][number] => ({
+      path,
+      type,
+      readable: true,
+      writable: true,
+      secret: false,
+      applyMode,
+      ...constraints
+    })
+    const settingsFields = [
+      'aiBridgeEnabled',
+      'aiBridgePermission',
+      'aiActivityOverlayClickable',
+      'aiActivityOverlayOpacity',
+      'aiActivityOverlayPosition',
+      'aiActivityOverlayDuration',
+      'aiActivityLogPath',
+      'aiActivityLogMaxSizeMb',
+      'aiActivityLogMaxFiles',
+      'minimizeToTray',
+      'logSplit',
+      'logSplitSize',
+      'autoScroll',
+      'autoScrollToast',
+      'autoScrollOnFocus',
+      'autoScrollAfterSend',
+      'autoScrollOnWheel',
+      'language',
+      'autoBackup',
+      'backupInterval',
+      'autoStart',
+      'preventSleep',
+      'maxDisplayText',
+      'sendDisplayText',
+      'recvDisplayText',
+      'supportedBaudRates',
+      'showPortType',
+      'enableLogStorage',
+      'logPath',
+      'logFileName',
+      'maxLogSize',
+      'logTimestamp',
+      'logHex',
+      'enableSyntaxHighlight',
+      'syntaxRuleGroups',
+      'searchCaseSensitive',
+      'searchRegex',
+      'searchWholeWord',
+      'commandHistoryMaxCount',
+      'showCommandHistory',
+      'clearInputAfterSend'
+    ]
+    const settingTypes: Record<string, ConfigDomainAdapter['schema']['fields'][number]['type']> = {
+      aiBridgeEnabled: 'boolean',
+      aiBridgePermission: 'enum',
+      aiActivityOverlayClickable: 'boolean',
+      aiActivityOverlayOpacity: 'number',
+      aiActivityOverlayPosition: 'enum',
+      aiActivityOverlayDuration: 'number',
+      aiActivityLogPath: 'string',
+      aiActivityLogMaxSizeMb: 'number',
+      aiActivityLogMaxFiles: 'number',
+      minimizeToTray: 'boolean',
+      logSplit: 'boolean',
+      logSplitSize: 'number',
+      autoScroll: 'boolean',
+      autoScrollToast: 'boolean',
+      autoScrollOnFocus: 'boolean',
+      autoScrollAfterSend: 'boolean',
+      autoScrollOnWheel: 'boolean',
+      language: 'string',
+      autoBackup: 'boolean',
+      backupInterval: 'number',
+      autoStart: 'boolean',
+      preventSleep: 'boolean',
+      maxDisplayText: 'number',
+      sendDisplayText: 'string',
+      recvDisplayText: 'string',
+      supportedBaudRates: 'array',
+      showPortType: 'boolean',
+      enableLogStorage: 'boolean',
+      logPath: 'string',
+      logFileName: 'string',
+      maxLogSize: 'number',
+      logTimestamp: 'boolean',
+      logHex: 'boolean',
+      enableSyntaxHighlight: 'boolean',
+      syntaxRuleGroups: 'array',
+      searchCaseSensitive: 'boolean',
+      searchRegex: 'boolean',
+      searchWholeWord: 'boolean',
+      commandHistoryMaxCount: 'number',
+      showCommandHistory: 'boolean',
+      clearInputAfterSend: 'boolean'
+    }
+    configService.register({
+      domain: 'settings',
+      schema: {
+        domain: 'settings',
+        targetRequired: false,
+        fields: settingsFields.map((key) => {
+          const item = field(key, settingTypes[key] || 'object')
+          if (key === 'aiBridgePermission') item.enum = ['read-only', 'full-control']
+          if (key === 'logSplitSize' || key === 'maxDisplayText') {
+            item.min = 1
+            item.max = 100
+          }
+          if (key === 'commandHistoryMaxCount') {
+            item.min = 1
+            item.max = 100
+          }
+          if (key === 'aiActivityLogMaxSizeMb') {
+            item.min = 1
+            item.max = 100
+          }
+          if (key === 'aiActivityLogMaxFiles') {
+            item.min = 1
+            item.max = 10
+          }
+          if (key === 'aiActivityOverlayPosition') {
+            item.enum = [
+              'top-left',
+              'top-center',
+              'top-right',
+              'middle-left',
+              'center',
+              'middle-right',
+              'bottom-left',
+              'bottom-center',
+              'bottom-right'
+            ]
+          }
+          return item
+        })
+      },
+      get: () => settingsStorage.getSettings() as unknown as Record<string, unknown>,
+      patch: (_targetId, patch) => {
+        if ('supportedBaudRates' in patch) {
+          if (
+            !Array.isArray(patch.supportedBaudRates) ||
+            patch.supportedBaudRates.length === 0 ||
+            patch.supportedBaudRates.some(
+              (value) => typeof value !== 'number' || !Number.isFinite(value) || value <= 0
+            )
+          ) {
+            throw new ConfigServiceError(
+              'CONFIG_INVALID_PATCH',
+              'supportedBaudRates must contain positive finite numbers'
+            )
+          }
+        }
+        settingsStorage.saveSettings(patch as SettingsRecord)
+        return settingsStorage.getSettings() as unknown as Record<string, unknown>
+      }
+    })
+
+    configService.register({
+      domain: 'com-settings',
+      schema: {
+        domain: 'com-settings',
+        targetRequired: true,
+        fields: [
+          field('baudRate', 'number', 'reconnect', { min: 1 }),
+          field('dataBits', 'enum', 'reconnect', { enum: [5, 6, 7, 8] }),
+          field('stopBits', 'enum', 'reconnect', { enum: [1, 1.5, 2] }),
+          field('parity', 'enum', 'reconnect', {
+            enum: ['none', 'even', 'odd', 'mark', 'space']
+          }),
+          field('encoding', 'string', 'reconnect'),
+          field('readTimeout', 'number', 'reconnect', { min: 0 }),
+          field('writeTimeout', 'number', 'reconnect', { min: 0 }),
+          field('flowControl', 'enum', 'reconnect', {
+            enum: ['none', 'hardware', 'software']
+          }),
+          field('rts', 'boolean', 'reconnect'),
+          field('dtr', 'boolean', 'reconnect'),
+          field('remark', 'string'),
+          field('fontSize', 'number'),
+          field('fontFamily', 'string'),
+          field('hexDisplayMode', 'boolean'),
+          field('showTimestamp', 'boolean'),
+          field('autoNewline', 'boolean'),
+          field('hexMode', 'boolean'),
+          field('crcEnabled', 'boolean'),
+          field('crcMethod', 'string'),
+          field('commandInput', 'string')
+        ]
+      },
+      get: (targetId) =>
+        targetId
+          ? (comSettingsStorage.getSettings(targetId) as unknown as Record<string, unknown> | null)
+          : null,
+      patch: (targetId, patch) => {
+        if (!targetId) throw new Error('com-settings requires targetId')
+        const current = (comSettingsStorage.getSettings(targetId) || {}) as Record<string, unknown>
+        const merged = { ...current, ...patch }
+        comSettingsStorage.saveSettings(targetId, merged as unknown as ComSettingsRecord)
+        return merged
+      }
+    })
+
+    configService.register({
+      domain: 'baud-rates',
+      schema: {
+        domain: 'baud-rates',
+        targetRequired: false,
+        fields: [field('baudRates', 'array')]
+      },
+      get: () => ({ baudRates: comSettingsStorage.getBaudRates() }),
+      patch: (_targetId, patch) => {
+        if (
+          !Array.isArray(patch.baudRates) ||
+          patch.baudRates.some(
+            (value) => typeof value !== 'number' || !Number.isFinite(value) || value <= 0
+          )
+        ) {
+          throw new ConfigServiceError(
+            'CONFIG_INVALID_PATCH',
+            'baudRates must contain only positive finite numbers'
+          )
+        }
+        comSettingsStorage.saveBaudRates(patch.baudRates as number[])
+        return { baudRates: comSettingsStorage.getBaudRates() }
+      }
+    })
+
+    // AppSettings 同时包含对象、数字、字符串和布尔值，必须按真实类型校验。
+    // 统一标成 object 会导致 GUI 保存当前设置分类或终端开关时被错误拒绝。
+    configService.register({
+      domain: 'app-settings',
+      schema: {
+        domain: 'app-settings',
+        targetRequired: false,
+        fields: [
+          field('sidebar', 'object'),
+          field('terminalFontSize', 'number'),
+          field('settingsActiveCategory', 'string'),
+          field('commandEditorSelectedGroupId', 'object'),
+          field('commandEditorCurrentCommandId', 'object'),
+          field('terminalWordWrap', 'boolean'),
+          field('terminalLineNumbers', 'boolean'),
+          field('terminalLogEditable', 'boolean'),
+          field('terminalSyntaxGroupId', 'object')
+        ]
+      },
+      get: () => appSettingsStorage.getSettings() as unknown as Record<string, unknown>,
+      patch: (_targetId, patch) => {
+        appSettingsStorage.saveSettings(patch as AppSettingsRecord)
+        return appSettingsStorage.getSettings() as unknown as Record<string, unknown>
+      }
+    })
+
+    configService.register({
+      domain: 'log-filter',
+      schema: {
+        domain: 'log-filter',
+        targetRequired: false,
+        fields: [field('pattern', 'string'), field('panelWidth', 'number')]
+      },
+      get: () => logFilterStorage.getSettings() as unknown as Record<string, unknown>,
+      patch: (_targetId, patch) => {
+        logFilterStorage.saveSettings(patch as LogFilterRecord)
+        return logFilterStorage.getSettings() as unknown as Record<string, unknown>
+      }
+    })
+
+    configService.register({
+      domain: 'connections',
+      schema: {
+        domain: 'connections',
+        targetRequired: false,
+        fields: [
+          field('name', 'string'),
+          field('host', 'string'),
+          field('port', 'number'),
+          field('connectionType', 'enum'),
+          field('username', 'string'),
+          field('password', 'string')
+        ]
+      },
+      get: (targetId) => {
+        const items = connectionStorage.getAll()
+        if (!targetId) return { items }
+        return {
+          items: items.filter(
+            (item: Record<string, unknown>) => String(item.id) === String(targetId)
+          )
+        }
+      },
+      patch: (targetId, patch) => {
+        if (!targetId) throw new Error('connections requires targetId')
+        connectionStorage.update({ id: Number(targetId), ...patch })
+        return { items: connectionStorage.getAll() }
+      }
+    })
+
+    configService.register({
+      domain: 'shortcuts',
+      schema: { domain: 'shortcuts', targetRequired: false, fields: [field('items', 'array')] },
+      get: () => ({ items: shortcutsStorage.getAll() }),
+      patch: (_targetId, patch) => {
+        if (!Array.isArray(patch.items)) throw new Error('shortcuts.items must be an array')
+        shortcutsStorage.saveAll(patch.items as Parameters<ShortcutsStorage['saveAll']>[0])
+        return { items: shortcutsStorage.getAll() }
+      }
+    })
+
+    configService.register({
+      domain: 'preset-commands',
+      schema: {
+        domain: 'preset-commands',
+        targetRequired: false,
+        fields: [field('items', 'array')]
+      },
+      get: () => ({ items: preSetCommandStorage.getAll() }),
+      patch: (_targetId, patch) => {
+        if (!Array.isArray(patch.items)) throw new Error('preset-commands.items must be an array')
+        preSetCommandStorage.saveAll(patch.items as Parameters<PreSetCommandStorage['saveAll']>[0])
+        return { items: preSetCommandStorage.getAll() }
+      }
+    })
+
+    configService.register({
+      domain: 'command-groups',
+      schema: {
+        domain: 'command-groups',
+        targetRequired: false,
+        fields: [field('items', 'array')]
+      },
+      get: () => ({ items: groupStorage.getAll() }),
+      patch: (_targetId, patch) => {
+        if (!Array.isArray(patch.items)) throw new Error('command-groups.items must be an array')
+        groupStorage.saveAll(patch.items as Parameters<CommandGroupStorage['saveAll']>[0])
+        return { items: groupStorage.getAll() }
+      }
+    })
   }
 }
 

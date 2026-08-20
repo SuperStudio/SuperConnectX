@@ -70,4 +70,22 @@ describe('locales/index', () => {
       expect(i18n.global.fallbackLocale.value).toBe('en-US')
     })
   })
+
+  describe('AI bridge connection prompt', () => {
+    it('should compile to visible text in both languages', async () => {
+      const { i18n, setLocale } = await import('../../src/renderer/src/locales/index')
+
+      setLocale('zh-CN')
+      expect(i18n.global.t('aiBridgeSettings.takeoverPrompt')).toContain('client_hello')
+      expect(i18n.global.t('aiBridgeSettings.takeoverPortSessionRule')).toContain(
+        'start_port_session'
+      )
+
+      setLocale('en-US')
+      expect(i18n.global.t('aiBridgeSettings.takeoverPrompt')).toContain('client_hello')
+      expect(i18n.global.t('aiBridgeSettings.takeoverPortSessionRule')).toContain(
+        'start_port_session'
+      )
+    })
+  })
 })

@@ -124,6 +124,7 @@ vi.mock('adm-zip', () => ({
 }))
 
 import IpcStorage from '../../src/main/ipc/IpcStorage'
+import RuntimeEventHub from '../../src/main/services/RuntimeEventHub'
 
 describe('IpcStorage', () => {
   let ipcStorage: IpcStorage
@@ -214,9 +215,45 @@ describe('IpcStorage', () => {
       expect(Array.isArray(result)).toBe(true)
     })
 
+    it('should publish a revisioned event after GUI catalog changes', async () => {
+      const events = new RuntimeEventHub()
+      ipcStorage.init(events)
+
+      await mockHandlers.get('add-connection')!({}, { name: 'COM test' })
+
+      expect(ipcStorage.getConfigService().get('connections').revision).toBe(1)
+      expect(events.readSince(0).events.at(-1)).toMatchObject({
+        eventType: 'config.changed',
+        source: 'gui',
+        payload: { domain: 'connections', revision: 1, changed: { operation: 'created' } }
+      })
+    })
+
     it('should save settings without error', async () => {
       ipcStorage.init()
       const result = await mockHandlers.get('save-settings')!({}, { test: 'value' })
+      expect(result).toBe(true)
+    })
+
+    it('should accept the primitive values used by app settings', async () => {
+      ipcStorage.init()
+      const result = await mockHandlers.get('save-app-settings')!(
+        {},
+        {
+          settingsActiveCategory: 'ai-bridge',
+          terminalFontSize: 14,
+          terminalWordWrap: true
+        }
+      )
+      expect(result).toBe(true)
+    })
+
+    it('should accept string and number values used by the log filter', async () => {
+      ipcStorage.init()
+      const result = await mockHandlers.get('save-log-filter')!(
+        {},
+        { pattern: 'ERROR|WARN', panelWidth: 320 }
+      )
       expect(result).toBe(true)
     })
 
@@ -231,6 +268,93 @@ describe('IpcStorage', () => {
       const result = await mockHandlers.get('get-shortcut-actions')!()
       expect(Array.isArray(result)).toBe(true)
       expect(result.length).toBeGreaterThan(0)
+    })
+
+    it('should expose revisioned bridge config domains', async () => {
+      ipcStorage.init()
+      const configService = ipcStorage.getConfigService()
+      expect(configService.describe().map((schema) => schema.domain)).toEqual(
+        expect.arrayContaining(['settings', 'com-settings', 'app-settings', 'connections'])
+      )
+
+      const result = await configService.patch({
+        domain: 'settings',
+        patch: { autoScroll: false },
+        expectedRevision: 0,
+        source: 'ai'
+      })
+      expect(result.snapshot.revision).toBe(1)
+      expect(result.changed).toEqual({ autoScroll: false })
+    })
+
+    it('should constrain AI activity log rotation settings', () => {
+      ipcStorage.init()
+      const settingsSchema = ipcStorage
+        .getConfigService()
+        .describe('settings')
+        .find((schema) => schema.domain === 'settings')
+      const maxSize = settingsSchema?.fields.find(
+        (field) => field.path === 'aiActivityLogMaxSizeMb'
+      )
+      const maxFiles = settingsSchema?.fields.find(
+        (field) => field.path === 'aiActivityLogMaxFiles'
+      )
+      const logPath = settingsSchema?.fields.find((field) => field.path === 'aiActivityLogPath')
+
+      expect(logPath).toMatchObject({ type: 'string' })
+      expect(maxSize).toMatchObject({ type: 'number', min: 1, max: 100 })
+      expect(maxFiles).toMatchObject({ type: 'number', min: 1, max: 10 })
+    })
+
+    it('should reject COM settings outside the GUI option range', async () => {
+      ipcStorage.init()
+      const configService = ipcStorage.getConfigService()
+
+      await expect(
+        configService.patch({
+          domain: 'com-settings',
+          targetId: 'COM_TEST',
+          patch: { dataBits: 9, parity: 'invalid', readTimeout: -1 },
+          source: 'ai'
+        })
+      ).rejects.toMatchObject({ code: 'CONFIG_INVALID_PATCH' })
+
+      await expect(
+        configService.patch({
+          domain: 'com-settings',
+          targetId: 'COM_TEST',
+          patch: {
+            baudRate: 115200,
+            dataBits: 8,
+            stopBits: 1,
+            parity: 'none',
+            readTimeout: 0,
+            writeTimeout: 0,
+            flowControl: 'none'
+          },
+          source: 'ai'
+        })
+      ).resolves.toMatchObject({ success: true })
+    })
+
+    it('should reject settings outside the GUI range', async () => {
+      ipcStorage.init()
+      const configService = ipcStorage.getConfigService()
+
+      await expect(
+        configService.patch({
+          domain: 'settings',
+          patch: { maxDisplayText: 0 },
+          source: 'ai'
+        })
+      ).rejects.toMatchObject({ code: 'CONFIG_INVALID_PATCH' })
+      await expect(
+        configService.patch({
+          domain: 'settings',
+          patch: { supportedBaudRates: [9600, '115200'] },
+          source: 'ai'
+        })
+      ).rejects.toMatchObject({ code: 'CONFIG_INVALID_PATCH' })
     })
   })
 })

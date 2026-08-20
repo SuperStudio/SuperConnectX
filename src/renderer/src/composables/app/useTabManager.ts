@@ -12,6 +12,8 @@ export interface TabItem {
   id: string
   connectionType: string
   sessionId: string | number
+  aiManaged?: boolean
+  aiSessionState?: 'starting' | 'connected' | 'error' | 'closed' | 'unknown'
   name?: string
   host?: string
   comName?: string
@@ -71,7 +73,7 @@ export function useTabManager(
   // ---- 连接状态 ----
   const getConnectionStatus = (tab: TabItem) => {
     if (tab.connectionType === 'com') {
-      return comTerminalRefs[tab.id]?.isConnected ? 'connected' : 'disconnected'
+      return comTerminalRefs[tab.id]?.isConnected || (tab.aiManaged && tab.aiSessionState === 'connected') ? 'connected' : 'disconnected'
     }
     return telnetTerminalRefs[tab.id]?.isConnected ? 'connected' : 'disconnected'
   }
@@ -147,6 +149,27 @@ export function useTabManager(
     if (activeTabId.value === tabId && connectionTabs.value.length > 0) {
       activeTabId.value = connectionTabs.value[connectionTabs.value.length - 1].id.toString()
     }
+  }
+
+  /** 移除已经由 AI Bridge 关闭的会话标签，不再次触发 GUI 断开流程。 */
+  const removeAiSessionTab = (sessionId: string): string | undefined => {
+    const tab = connectionTabs.value.find(
+      (item) => item.aiManaged && String(item.sessionId) === String(sessionId)
+    )
+    if (!tab) return undefined
+
+    const tabId = String(tab.id)
+    pinnedTabs.delete(tabId)
+    delete comTerminalRefs[tabId]
+    delete telnetTerminalRefs[tabId]
+    connectionTabs.value = connectionTabs.value.filter((item) => item.id !== tabId)
+
+    if (activeTabId.value === tabId) {
+      activeTabId.value = connectionTabs.value.length > 0
+        ? connectionTabs.value[connectionTabs.value.length - 1].id.toString()
+        : ''
+    }
+    return tabId
   }
 
   const closeTab = async (tabId: string, force = false) => {
@@ -382,9 +405,11 @@ export function useTabManager(
     const existingTab = connectionTabs.value.find((t) => t.comName === port.path && t.connectionType === 'com')
     if (existingTab) {
       activeTabId.value = existingTab.id
-      setTimeout(() => {
-        comTerminalRefs[existingTab.id]?.reconnect?.()
-      }, 100)
+      if (!comTerminalRefs[existingTab.id]?.isConnected && !existingTab.aiManaged) {
+        setTimeout(() => {
+          comTerminalRefs[existingTab.id]?.reconnect?.()
+        }, 100)
+      }
       return
     }
     const sessionId = port.path
@@ -403,6 +428,50 @@ export function useTabManager(
     }
     connectionTabs.value.push(newTab)
     activeTabId.value = newTabId
+  }
+
+  const ensureAiSessionTab = (session: {
+    sessionId: string
+    state: 'starting' | 'connected' | 'error' | 'closed' | 'unknown'
+    connectionType?: string
+    name?: string
+    comName?: string
+    host?: string
+    port?: number
+    desiredConfig?: Record<string, unknown>
+  }): TabItem => {
+    const sessionId = String(session.sessionId)
+    const existingTab = connectionTabs.value.find((tab) => String(tab.sessionId) === sessionId)
+    const connectionType = session.connectionType || 'com'
+    const desiredConfig =
+      session.desiredConfig && typeof session.desiredConfig === 'object'
+        ? session.desiredConfig
+        : {}
+    const connectionFields: Partial<TabItem> = {
+      connectionType,
+      sessionId,
+      aiManaged: true,
+      aiSessionState: session.state,
+      name: session.name || session.comName || session.host,
+      comName: session.comName,
+      host: session.host,
+      port: session.port,
+      ...desiredConfig
+    }
+
+    if (existingTab) {
+      Object.assign(existingTab, connectionFields)
+      return existingTab
+    }
+
+    const newTab: TabItem = {
+      id: `ai-session-${sessionId}`,
+      ...connectionFields
+    } as TabItem
+    const shouldActivate = connectionTabs.value.length === 0 || !activeTabId.value
+    connectionTabs.value.push(newTab)
+    if (shouldActivate) activeTabId.value = newTab.id
+    return newTab
   }
 
   const openCommandEditorTab = (connectionType: string = 'telnet') => {
@@ -465,6 +534,7 @@ export function useTabManager(
     connectAllTabs,
     disconnectAllTabs,
     closeTabOnly,
+    removeAiSessionTab,
     closeTab,
     closeSingleTab,
     closeOtherTabs,
@@ -478,6 +548,7 @@ export function useTabManager(
     togglePinTab,
     connectToServer,
     connectToSerialPort,
+    ensureAiSessionTab,
     openCommandEditorTab,
     openShortcutsTab,
     openSettingsTab,

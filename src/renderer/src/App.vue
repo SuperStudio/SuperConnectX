@@ -23,6 +23,7 @@
       :log-editable="terminalLogEditable"
     />
     <NotifyContainer ref="notifyContainerRef" />
+    <AiActivityOverlay ref="aiActivityOverlayRef" @open-history="openAiActivityHistory" />
 
     <main class="app-main">
       <!-- 侧边栏 -->
@@ -161,11 +162,11 @@
                 v-show="isTabActiveInItsPanel(tab.id.toString())"
                 :connection="tab"
                 :ref="(el: any) => { if (el) comTerminalRefs[tab.id] = el }"
-                :auto-connect="true"
+                :auto-connect="!tab.aiManaged"
                 @onClose="handleTerminalClose(tab.id)"
                 @commandSent="handleCommandSent"
-                @onConnect="() => { if (tab.comName) connectedSerialPorts[tab.comName] = true }"
-                @onDisconnect="() => { if (tab.comName) delete connectedSerialPorts[tab.comName] }"
+                @onConnect="() => { tab.aiSessionState = 'connected'; if (tab.comName) connectedSerialPorts[tab.comName] = true }"
+                @onDisconnect="() => { if (tab.aiManaged) tab.aiSessionState = 'closed'; if (tab.comName) delete connectedSerialPorts[tab.comName] }"
                 @openCommandEditor="openCommandEditorTab"
                 @openSyntaxHighlight="openSettingsAndSwitchToSyntax"
                 @remarkUpdated="(data: any) => { if (data.comName) serialRemarks[data.comName] = data.remark }"
@@ -239,6 +240,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import CustomTitleBar from './components/CustomTitleBar.vue'
 import NotifyContainer from './components/NotifyContainer.vue'
+import AiActivityOverlay from './extensions/ai-control-bridge/components/AiActivityOverlay.vue'
 import ResourceMonitor from './components/ResourceMonitor.vue'
 import AboutDialog from './components/AboutDialog.vue'
 import UpdateDialog from './components/UpdateDialog.vue'
@@ -271,6 +273,7 @@ const { t } = useI18n()
 
 // ---- Refs ----
 const notifyContainerRef = ref<InstanceType<typeof NotifyContainer> | null>(null)
+const aiActivityOverlayRef = ref<InstanceType<typeof AiActivityOverlay> | null>(null)
 const isAboutDialogOpen = ref(false)
 const isUpdateDialogOpen = ref(false)
 const updateDialogRef = ref<InstanceType<typeof UpdateDialog> | null>(null)
@@ -322,10 +325,10 @@ const {
   switchTabById, handleTabContextMenu, handleTabsNavContextMenu, hideTabMenu,
   getConnectionStatus, hasAnyConnected,
   connectAllTabs, disconnectAllTabs,
-  closeTab, closeTabOnly, closeSingleTab,
+  closeTab, closeTabOnly, closeSingleTab, removeAiSessionTab,
   reorderTabs, moveTabToFirst, moveTabToLast,
   togglePinTabByButton, togglePinTab,
-  connectToServer, connectToSerialPort,
+  connectToServer, connectToSerialPort, ensureAiSessionTab,
   openCommandEditorTab, openShortcutsTab, openSettingsTab, openVirtualPortTab
 } = useTabManager(comTerminalRefs, telnetTerminalRefs)
 
@@ -1005,6 +1008,17 @@ const openSettingsAndSwitchToSyntax = () => {
 }
 
 // ---- 侧边栏菜单 ----
+const openAiActivityHistory = () => {
+  const existingTab = connectionTabs.value.find((tab) => tab.connectionType === 'settings')
+  openSettingsTab()
+  const dispatch = () => window.dispatchEvent(new CustomEvent('open-ai-activity-history'))
+  if (existingTab) {
+    dispatch()
+  } else {
+    nextTick(() => setTimeout(dispatch, 100))
+  }
+}
+
 const handleSidebarMenuCommand = async (command: string) => {
   // 处理分组展开事件（ConnectionSidebar 内部用）
   if (command.startsWith('__toggleGroup__')) {
@@ -1068,6 +1082,47 @@ const handleSettingsUpdated = (event: Event) => {
   }
 }
 
+let removeBridgeEventListener: (() => void) | null = null
+const handleAiSessionEvent = (event: any): void => {
+  if (event?.eventType !== 'session.state' && event?.eventType !== 'session.closed') return
+
+  const session = event.payload?.session
+  const sessionId = String(event.sessionId || session?.sessionId || '')
+  if (!sessionId) return
+  const existingTab = connectionTabs.value.find((tab) => String(tab.sessionId) === sessionId)
+  if (event.source !== 'ai' && !existingTab?.aiManaged) return
+
+  if (event.eventType === 'session.closed') {
+    if (existingTab?.aiManaged) {
+      if (existingTab.comName) delete connectedSerialPorts[existingTab.comName]
+      const removedTabId = removeAiSessionTab(sessionId)
+      if (removedTabId) onTabClosed(removedTabId)
+    }
+    return
+  }
+
+  if (session && typeof session === 'object') {
+    ensureAiSessionTab({
+      ...session,
+      sessionId,
+      state: session.state
+    })
+  } else if (existingTab?.aiManaged && event.payload?.state) {
+    existingTab.aiSessionState =
+      event.eventType === 'session.closed' ? 'closed' : event.payload.state
+  }
+}
+
+const handleCoreBridgeEvent = (event: any) => {
+  handleAiSessionEvent(event)
+  if (event?.eventType === 'ai.activity') {
+    aiActivityOverlayRef.value?.show(event)
+    return
+  }
+  if (event?.eventType !== 'config.changed' || event.payload?.domain !== 'connections') return
+  void loadConnections()
+}
+
 // ---- Lifecycle ----
 onMounted(() => {
   // 初始化主题
@@ -1100,6 +1155,7 @@ onMounted(() => {
 
   // 串口热插拔：插入/拔出时自动刷新侧边栏串口列表
   window.connectApi.onSerialPortsChanged(handleSerialPortsChanged)
+  removeBridgeEventListener = window.connectApi.onBridgeEvent(handleCoreBridgeEvent)
 
   window.addEventListener('terminal-text-cleared', handleTerminalTextCleared)
   window.addEventListener('auto-scroll-toast', handleAutoScrollToast)
@@ -1126,6 +1182,8 @@ onUnmounted(() => {
   window.removeEventListener('settings-updated', handleSettingsUpdated)
   window.removeEventListener('terminal-text-cleared', handleTerminalTextCleared)
   window.removeEventListener('auto-scroll-toast', handleAutoScrollToast)
+  removeBridgeEventListener?.()
+  removeBridgeEventListener = null
 })
 </script>
 

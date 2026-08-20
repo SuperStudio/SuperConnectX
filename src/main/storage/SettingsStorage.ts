@@ -26,6 +26,25 @@ interface SyntaxRuleGroup {
 }
 
 interface Settings {
+  // AI 交互桥梁：默认关闭，反馈选项只影响本地界面
+  aiBridgeEnabled?: boolean
+  aiBridgePermission?: 'read-only' | 'full-control'
+  aiActivityOverlayClickable?: boolean
+  aiActivityOverlayOpacity?: number
+  aiActivityOverlayPosition?:
+    | 'top-left'
+    | 'top-center'
+    | 'top-right'
+    | 'middle-left'
+    | 'center'
+    | 'middle-right'
+    | 'bottom-left'
+    | 'bottom-center'
+    | 'bottom-right'
+  aiActivityOverlayDuration?: number
+  aiActivityLogPath?: string
+  aiActivityLogMaxSizeMb?: number
+  aiActivityLogMaxFiles?: number
   // 基本设置
   minimizeToTray?: boolean
   logSplit?: boolean
@@ -68,6 +87,15 @@ interface Settings {
 }
 
 const defaultSettings: Settings = {
+  aiBridgeEnabled: false,
+  aiBridgePermission: 'read-only',
+  aiActivityOverlayClickable: true,
+  aiActivityOverlayOpacity: 92,
+  aiActivityOverlayPosition: 'bottom-left',
+  aiActivityOverlayDuration: 4,
+  aiActivityLogPath: '',
+  aiActivityLogMaxSizeMb: 10,
+  aiActivityLogMaxFiles: 5,
   // 基本设置
   minimizeToTray: false,
   logSplit: true,
