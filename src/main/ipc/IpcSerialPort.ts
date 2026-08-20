@@ -1,6 +1,8 @@
-import { ipcMain } from 'electron'
+import { app, ipcMain } from 'electron'
 import { SerialPort } from 'serialport'
 import { execFile } from 'child_process'
+import fs from 'fs'
+import path from 'path'
 import logger from './IpcAppLogger'
 
 /** 主进程窗口集合（仅需 mainWindow.webContents.send 能力） */
@@ -133,6 +135,50 @@ export default class IpcSerialPort {
   }
 
   /**
+   * Linux 运行时串口权限修复，面向 AppImage 等无安装钩子的包格式。
+   * 通过 pkexec 弹系统授权框，以 root 执行 linux-fix-serial-permissions.sh 写入 udev 规则。
+   * pkexec 返回值约定：126 = 用户取消授权对话框，127 = 未授权/pkexec 自身错误。
+   */
+  private fixSerialPermissions(): Promise<{ success: boolean; message?: string }> {
+    if (process.platform !== 'linux') {
+      return Promise.resolve({ success: false, message: '仅 Linux 支持修复串口权限' })
+    }
+
+    const scriptName = path.join('installer', 'linux-fix-serial-permissions.sh')
+    const candidates = [
+      process.resourcesPath ? path.join(process.resourcesPath, scriptName) : '',
+      // 开发环境回退到源码目录
+      path.join(app.getAppPath(), 'build', scriptName)
+    ].filter(Boolean)
+    const scriptPath = candidates.find((p) => fs.existsSync(p))
+    if (!scriptPath) {
+      logger.error('fix-serial-permissions: script not found')
+      return Promise.resolve({ success: false, message: '修复脚本不存在，请手动将用户加入 dialout 用户组后注销重登' })
+    }
+
+    logger.info(`fix-serial-permissions: launching pkexec for ${scriptPath}`)
+    return new Promise((resolve) => {
+      execFile('pkexec', ['/bin/sh', scriptPath], { timeout: 60000 }, (error) => {
+        if (!error) {
+          logger.info('fix-serial-permissions: udev rules installed')
+          resolve({ success: true })
+          return
+        }
+        // spawn ENOENT 时 code 为字符串；子进程非零退出时 code 为退出码数字
+        const exitCode = (error as { code?: string | number }).code
+        logger.error(`fix-serial-permissions: pkexec failed: ${error.message} (code=${exitCode})`)
+        if (exitCode === 'ENOENT') {
+          resolve({ success: false, message: '系统缺少 pkexec，请手动执行 sudo usermod -aG dialout $USER 后注销重登' })
+        } else if (exitCode === 126 || exitCode === 127) {
+          resolve({ success: false, message: '授权被取消' })
+        } else {
+          resolve({ success: false, message: `权限修复失败：${error.message}` })
+        }
+      })
+    })
+  }
+
+  /**
    * 启动串口热插拔监听：轮询串口列表，仅在列表变化时通知渲染进程刷新。
    * 采用轮询而非原生事件（WM_DEVICECHANGE / udev / IOKit），无需额外原生依赖，跨平台行为一致。
    */
@@ -183,6 +229,10 @@ export default class IpcSerialPort {
 
     ipcMain.handle('list-serial-ports', async () => {
       return await this.listSerialPorts()
+    })
+
+    ipcMain.handle('fix-serial-permissions', async () => {
+      return await this.fixSerialPermissions()
     })
 
     this.startHotplugWatch()

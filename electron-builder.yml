@@ -55,12 +55,23 @@ linux:
     - deb
   maintainer: SuperStudio
   category: Utility
+  # AppImage 无安装钩子，串口权限通过运行时 pkexec 执行该脚本修复（见 IpcSerialPort）
+  extraResources:
+    - from: build/installer/linux-fix-serial-permissions.sh
+      to: installer/linux-fix-serial-permissions.sh
 appImage:
   artifactName: ${name}-${version}-linux-x64.${ext}
 deb:
   artifactName: ${name}-${version}-linux-x64.${ext}
+  afterInstall: build/installer/linux-after-install.sh
+  afterRemove: build/installer/linux-after-remove.sh
 snap:
   artifactName: ${name}-${version}-linux-x64.${ext}
+  # "default" 展开为 electron-builder 内置 plugs（desktop/network/browser-support 等），
+  # serial-port 用于访问 USB 串口；该 interface 非自动连接，用户需 snap connect。
+  plugs:
+    - default
+    - serial-port
 afterPack: ./scripts/afterPack.js
 npmRebuild: true
 publish:

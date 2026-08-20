@@ -188,13 +188,13 @@ export default class ComClient extends BaseClient {
 
         port.once('error', (err: Error) => {
           this.logger.error(`serial port open failed: ${err.message}`)
-          reject(new Error(err.message || '打开串口失败'))
+          reject(this.wrapOpenError(err, comName))
         })
 
         port.open((err: Error | null) => {
           if (err) {
             this.logger.error(`serial port open error: ${err.message}`)
-            reject(new Error(err.message || '打开串口失败'))
+            reject(this.wrapOpenError(err, comName))
           }
         })
       })
@@ -202,9 +202,20 @@ export default class ComClient extends BaseClient {
       this.logger.error('serial connect failed', { comName, baudRate, sessionId, error })
       return {
         success: false,
-        message: error instanceof Error ? error.message : '连接失败'
+        message: error instanceof Error ? error.message : '连接失败',
+        // 错误码透传给渲染进程（如 Linux EACCES），用于展示「修复权限」入口
+        code: error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined
       }
     }
+  }
+
+  private wrapOpenError(error: Error, comName: string): Error {
+    if (process.platform === 'linux' && /EACCES|permission denied|权限不够/i.test(error.message)) {
+      const wrapped = new Error(`没有访问 ${comName} 的权限。请重新插拔设备；若问题仍存在，请注销并重新登录后重试。`)
+      ;(wrapped as NodeJS.ErrnoException).code = 'EACCES'
+      return wrapped
+    }
+    return error.message ? error : new Error('打开串口失败')
   }
 
   /**

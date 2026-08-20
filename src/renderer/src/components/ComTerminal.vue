@@ -170,7 +170,7 @@
 <script setup lang="ts">
 import { ref, onUnmounted, onMounted, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import UnifiedTerminal from './UnifiedTerminal.vue'
 import { useTerminal } from '../composables/useTerminal'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
@@ -605,12 +605,40 @@ const handleConnect = async () => {
 
       unifiedTerminalRef.value?.focusInput()
     } else {
-      throw new Error(result.message || t('comTerminal.connectFailed'))
+      const err = new Error(result.message || t('comTerminal.connectFailed')) as Error & { code?: string }
+      err.code = result.code
+      throw err
     }
   } catch (error) {
     isConnecting.value = false
-    unifiedTerminalRef.value?.appendToTerminal(`\n${t('comTerminal.connectFailed')}: ${(error as Error).message}\n`)
+    const err = error as Error & { code?: string }
+    unifiedTerminalRef.value?.appendToTerminal(`\n${t('comTerminal.connectFailed')}: ${err.message}\n`)
     ElMessage.error(t('comTerminal.connectFailed'))
+    // Linux 串口权限不足：提供一键修复入口（pkexec 写入 udev 规则）
+    if (err.code === 'EACCES') {
+      offerSerialPermissionFix()
+    }
+  }
+}
+
+// Linux 串口权限不足时，提供一键修复（AppImage 等无安装钩子的包格式依赖此路径）
+const offerSerialPermissionFix = async () => {
+  try {
+    await ElMessageBox.confirm(t('comTerminal.fixPermissionConfirm'), t('comTerminal.fixPermissionTitle'), {
+      confirmButtonText: t('comTerminal.fixPermissionBtn'),
+      cancelButtonText: t('common.cancel'),
+      type: 'warning',
+      center: true
+    })
+  } catch {
+    return // 用户取消
+  }
+  const result = await window.connectApi.fixSerialPermissions()
+  if (result.success) {
+    ElMessage.success(t('comTerminal.fixPermissionSuccess'))
+    unifiedTerminalRef.value?.appendToTerminal(`\n${t('comTerminal.fixPermissionSuccess')}\n`)
+  } else {
+    ElMessage.error(result.message || t('comTerminal.fixPermissionFailed'))
   }
 }
 
