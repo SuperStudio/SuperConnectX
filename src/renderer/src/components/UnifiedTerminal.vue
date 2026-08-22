@@ -466,6 +466,7 @@ const commandHistory = ref<string[]>([])
 const showHistoryPopup = ref(false)
 const historySelectedIndex = ref(-1)
 let historyFilterInput = '' // 导航时的过滤基准，避免选中改变输入后过滤结果变化
+let historyDraft = '' // 上下键导航历史时保存的原始输入草稿，ArrowDown 回到最新时恢复
 let showCommandHistory = true // 是否显示历史命令弹窗
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 let editorModel: monaco.editor.ITextModel | null = null
@@ -1104,6 +1105,7 @@ const addToHistory = async (command: string) => {
 const onInputChange = () => {
   historySelectedIndex.value = -1
   historyFilterInput = '' // 用户手动输入时清除导航过滤基准
+  historyDraft = '' // 手动输入时清除导航草稿
   if (!showCommandHistory) return
   // 有输入内容时自动弹出历史
   if (currentCommand.value.trim() && filteredHistory.value.length > 0) {
@@ -1133,12 +1135,28 @@ const closeHistoryPopup = () => {
   showHistoryPopup.value = false
   historySelectedIndex.value = -1
   historyFilterInput = ''
+  historyDraft = ''
 }
 
 const selectHistoryItem = (item: string) => {
   currentCommand.value = item
   closeHistoryPopup()
   commandInput.value?.focus()
+}
+
+// 历史导航切换输入框内容后，将光标移到末尾并同步弹窗选中项
+const syncHistoryCursor = () => {
+  nextTick(() => {
+    const ta = commandInput.value
+    if (ta) {
+      ta.focus()
+      const len = ta.value.length
+      ta.selectionStart = ta.selectionEnd = len
+    }
+  })
+  if (showHistoryPopup.value) {
+    historyFilterInput = currentCommand.value.trim().toLowerCase()
+  }
 }
 
 const deleteHistoryItem = async (item: string) => {
@@ -1184,38 +1202,49 @@ const handleInputKeydown = (e: KeyboardEvent) => {
     return
   }
 
-  // 上下键导航历史
+  // 上下键导航历史（直接切换输入框内容，类似 shell 的 history 行为）
   if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
     if (!showCommandHistory) return
-    const list = filteredHistory.value
+    const list = commandHistory.value
     if (list.length === 0) return
-
-    if (!showHistoryPopup.value) {
-      showHistoryPopup.value = true
-    }
 
     e.preventDefault()
 
     if (e.key === 'ArrowUp') {
-      if (historySelectedIndex.value <= 0) {
-        if (historySelectedIndex.value === -1) {
-          historyFilterInput = currentCommand.value.trim().toLowerCase()
-        }
-        historySelectedIndex.value = list.length - 1
-      } else {
-        historySelectedIndex.value--
-      }
-    } else {
+      // 首次按上键：保存当前草稿，并从最新一条历史开始
       if (historySelectedIndex.value === -1) {
-        historyFilterInput = currentCommand.value.trim().toLowerCase()
+        historyDraft = currentCommand.value
         historySelectedIndex.value = 0
-      } else if (historySelectedIndex.value >= list.length - 1) {
-        historySelectedIndex.value = 0
-      } else {
+      } else if (historySelectedIndex.value < list.length - 1) {
+        // 继续向上（更早的命令）
         historySelectedIndex.value++
+      } else {
+        // 已到最旧的命令，停留在原地
+        return
       }
+      currentCommand.value = list[historySelectedIndex.value]
+      syncHistoryCursor()
+    } else {
+      // 下键：回到较新的命令
+      if (historySelectedIndex.value === -1) {
+        // 未在导航中，按向下键无操作
+        return
+      } else if (historySelectedIndex.value > 0) {
+        historySelectedIndex.value--
+        currentCommand.value = list[historySelectedIndex.value]
+      } else {
+        // 已回到最新一条，恢复原始草稿并退出导航
+        currentCommand.value = historyDraft
+        historySelectedIndex.value = -1
+        historyDraft = ''
+      }
+      syncHistoryCursor()
     }
 
+    // 同步弹窗选中项（若弹窗打开）
+    if (showHistoryPopup.value && historySelectedIndex.value >= 0) {
+      historyFilterInput = currentCommand.value.trim().toLowerCase()
+    }
     return
   }
 
