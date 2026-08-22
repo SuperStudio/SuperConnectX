@@ -37,7 +37,7 @@ const MAX_RETRY_COUNT = 1000
 const RETRY_INTERVAL_MS = 3000
 
 const emit = defineEmits(['onClose', 'commandSent', 'openCommandEditor', 'fontLoaded', 'openSyntaxHighlight'])
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   connection: {
     id: string | number
     connectionType: string
@@ -48,7 +48,10 @@ const props = defineProps<{
     ftpMode?: string
   }
   onClose?: () => void
-}>()
+  autoConnect?: boolean
+}>(), {
+  autoConnect: true
+})
 
 const isConnected = ref(false)
 const isConnecting = ref(false)
@@ -402,7 +405,9 @@ onBeforeUnmount(() => {
 })
 
 onMounted(() => {
-  connect()
+  if (props.autoConnect) {
+    connect()
+  }
 })
 </script>
 

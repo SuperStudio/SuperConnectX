@@ -161,7 +161,7 @@
                 v-show="isTabActiveInItsPanel(tab.id.toString())"
                 :connection="tab"
                 :ref="(el: any) => { if (el) comTerminalRefs[tab.id] = el }"
-                :auto-connect="true"
+                :auto-connect="tab.wasConnected !== false"
                 @onClose="handleTerminalClose(tab.id)"
                 @commandSent="handleCommandSent"
                 @onConnect="() => { if (tab.comName) connectedSerialPorts[tab.comName] = true }"
@@ -176,6 +176,7 @@
                 v-if="tab.connectionType === 'telnet' || tab.connectionType === 'ftp'"
                 v-show="isTabActiveInItsPanel(tab.id.toString())"
                 :connection="tab"
+                :auto-connect="tab.wasConnected !== false"
                 :ref="(el: any) => { if (el) telnetTerminalRefs[tab.id] = el }"
                 @onClose="handleTerminalClose(tab.id)"
                 @commandSent="handleCommandSent"
@@ -266,6 +267,7 @@ import { useTerminalDisplay } from './composables/app/useTerminalDisplay'
 import { useFontManager } from './composables/app/useFontManager'
 import { loadSendDisplayText, initSendDisplayTextListener } from './composables/app/useSettingsStore'
 import { useConnectionDialog } from './composables/app/useConnectionDialog'
+import { useSessionRestore } from './composables/app/useSessionRestore'
 
 const { t } = useI18n()
 
@@ -341,6 +343,64 @@ const {
 
 // 记录右键菜单所在的面板 ID
 const rightClickedPanelId = ref('panel-0')
+
+// ---- Session Restore（会话恢复） ----
+const isConnectedForSession = (tab: any): boolean => {
+  if (tab.connectionType === 'com') {
+    return !!comTerminalRefs[tab.id]?.isConnected
+  }
+  if (tab.connectionType === 'telnet' || tab.connectionType === 'ftp') {
+    return !!telnetTerminalRefs[tab.id]?.isConnected
+  }
+  return false
+}
+
+const sessionRestore = useSessionRestore({
+  connectionTabs,
+  activeTabId,
+  pinnedTabs,
+  splitState,
+  isConnected: isConnectedForSession,
+  connectionStateDependency: connectionChangeCounter
+})
+
+// 从保存的会话中重建选项卡
+const applySessionRestore = async () => {
+  const { savedTabs, savedPinnedTabIds, savedActiveTabId, savedSplitPanels, savedSplitDirection, savedSplitRatio } = sessionRestore
+
+  if (!savedTabs.value || savedTabs.value.length === 0) return
+
+  // 重建选项卡（保持原有顺序）
+  const restored = savedTabs.value.map((tab) => ({
+    ...JSON.parse(JSON.stringify(tab)),
+    wasConnected: !!tab.wasConnected
+  }))
+  connectionTabs.value = restored
+
+  // 恢复固定状态
+  for (const id of savedPinnedTabIds.value) {
+    pinnedTabs.add(id)
+  }
+
+  // 恢复活动选项卡
+  if (savedActiveTabId.value) {
+    activeTabId.value = savedActiveTabId.value
+  }
+
+  // 恢复分屏布局（先清空默认面板，再按保存的面板重建）
+  if (savedSplitPanels.value && savedSplitPanels.value.length > 0) {
+    const mappedPanels: Panel[] = savedSplitPanels.value.map((p, index) => ({
+      id: index === 0 ? 'panel-0' : p.id,
+      activeTabId: p.activeTabId,
+      tabIds: [...p.tabIds]
+    }))
+    splitState.panels.splice(0, splitState.panels.length, ...mappedPanels)
+    splitState.direction = savedSplitDirection.value || 'horizontal'
+    splitState.splitRatio = savedSplitRatio.value ?? 0.5
+  }
+
+  await nextTick()
+}
 
 // 判断右键菜单是否应该在指定面板显示
 // 两个面板共享 showTabMenu ref，但只有右键所在面板才应显示菜单
@@ -1069,7 +1129,7 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 // ---- Lifecycle ----
-onMounted(() => {
+onMounted(async () => {
   // 初始化主题
   const savedTheme = localStorage.getItem('app-theme') || 'dark'
   document.documentElement.setAttribute('data-theme', savedTheme)
@@ -1082,6 +1142,10 @@ onMounted(() => {
   loadTerminalDisplaySettings()
   loadSendDisplayText()
   initSendDisplayTextListener()
+
+  // 会话恢复：重建上次退出时打开的选项卡，并恢复连接状态
+  await sessionRestore.restore()
+  await applySessionRestore()
 
   if (activeTabId.value) {
     updateCurrentFont(activeTabId.value)

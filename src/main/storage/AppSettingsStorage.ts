@@ -11,6 +11,37 @@ interface SidebarState {
   connectionGroupExpanded: Record<string, boolean>
 }
 
+// 会话恢复：记录用户重启前打开过的选项卡及连接状态
+export interface SessionTab {
+  id: string
+  connectionType: string
+  sessionId: string | number
+  name?: string
+  host?: string
+  comName?: string
+  port?: number
+  connectionId?: number
+  editorConnectionType?: string
+  wasConnected?: boolean
+  // 协议相关字段
+  [key: string]: any
+}
+
+export interface SessionPanel {
+  id: string
+  activeTabId: string
+  tabIds: string[]
+}
+
+export interface SessionState {
+  tabs: SessionTab[]
+  activeTabId: string
+  pinnedTabIds: string[]
+  panels: SessionPanel[]
+  direction?: 'horizontal' | 'vertical'
+  splitRatio?: number
+}
+
 interface AppSettings {
   sidebar?: SidebarState
   terminalFontSize?: number // 全局终端字体大小（用于 Telnet 等）
@@ -25,6 +56,8 @@ interface AppSettings {
   terminalLogEditable?: boolean // 日志可编辑
   // 每个连接的语法高亮组选择，key为连接标识，value为语法组ID
   terminalSyntaxGroupId?: Record<string, number | undefined>
+  // 会话恢复：上次退出时打开的选项卡
+  session?: SessionState
   // 可扩展其他全局设置
 }
 
