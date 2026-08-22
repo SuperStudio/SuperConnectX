@@ -235,10 +235,11 @@ export default class IpcConnector {
   }
 
   private routeStop(conn: any): Promise<object> | object {
-    // 手动断开时清理该连接的日志文件记录，保证下次重连会创建新的日志文件；
+    // 手动断开时标记该连接下次重连会创建新的日志文件，同时保留旧日志记录，
+    // 保证断开后仍可通过"打开日志所在文件夹/打开日志文件"访问日志。
     // 自动重连（连接失败自动重试）不经过 stop-connect，不会触发此处，因此日志文件会被复用，避免 0KB 空文件堆积
     if (conn?.sessionId != null) {
-      this._logger?.clearConnLogFile(String(conn.sessionId))
+      this._logger?.markConnLogRotate(String(conn.sessionId))
     }
     if (this.workerConnector.shouldUseWorker(conn, this.useWorkerMode)) {
       return this.workerConnector.stopConnection(conn)

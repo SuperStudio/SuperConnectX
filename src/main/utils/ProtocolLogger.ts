@@ -19,6 +19,8 @@ export default class ProtocolLogger {
   private connLogRemarks = new Map<string, string>() // 保存备注名
   private logCache = new Map<string, string[]>()
   private currentFileSizes = new Map<string, number>()
+  // 标记该连接下次连接时需创建新的日志文件（手动断开后保留旧日志可打开，但重连时另起新文件）
+  private connLogNeedsNew = new Map<string, boolean>()
   private logSplitCallback: LogSplitCallback | null = null
   private writeTimer: NodeJS.Timeout | null = null
   private readonly BATCH_WRITE_INTERVAL_MS = 10 * 1000
@@ -292,9 +294,11 @@ export default class ProtocolLogger {
     if (!this.enableLogStorage) {
       return ''
     }
-    // 重连/自动重试时复用已创建的日志文件，避免每次重连都生成新的空日志文件（0KB 堆积）
+    // 手动断开后再次连接时，需要另起新的日志文件（旧日志保留可打开）
+    // 自动重连/自动重试（未经过 stop-connect）时复用已创建的日志文件，避免生成 0KB 空文件堆积
     const existingFileName = this.connLogFiles.get(connId)
-    if (existingFileName) {
+    const needsNew = this.connLogNeedsNew.get(connId) === true
+    if (existingFileName && !needsNew) {
       // 仍解析并同步日志目录，保证日志设置变更后打开/写入仍指向正确位置
       const resolvedDir = this.resolveDirName(connName, remark)
       this.ensureDir(resolvedDir)
@@ -302,6 +306,8 @@ export default class ProtocolLogger {
       this.logDir = resolvedDir
       return existingFileName
     }
+    // 需要新文件时，清理旧映射并清除标记（后续自动重连则复用新文件）
+    this.connLogNeedsNew.delete(connId)
     // 解析目录模板，创建对应的目录
     const resolvedDir = this.resolveDirName(connName, remark)
     this.ensureDir(resolvedDir)
@@ -387,6 +393,21 @@ export default class ProtocolLogger {
     this.connLogNames.delete(connId)
     this.connLogRemarks.delete(connId)
     this.currentFileSizes.delete(connId)
+    this.connLogNeedsNew.delete(connId)
+  }
+
+  /**
+   * 手动断开时标记该连接下次连接需新建日志文件。
+   * 与 clearConnLogFile 的区别：此方法保留日志文件映射，
+   * 使得断开后仍可通过"打开日志所在文件夹/打开日志文件"访问旧日志；
+   * 但下次手动重连时（createConnLogFile）会创建新的日志文件。
+   */
+  markConnLogRotate(connId: string): void {
+    this.flushConnLog(connId)
+    // 仅当该连接确实存在日志文件时才标记轮换，否则下次连接走正常新建逻辑
+    if (this.connLogFiles.has(connId)) {
+      this.connLogNeedsNew.set(connId, true)
+    }
   }
 
   async openConnLog(connId: string, mode: 'folder' | 'file' = 'folder'): Promise<{ success: boolean; message: string } | null> {
