@@ -1,10 +1,8 @@
-import winston from 'winston'
-import DailyRotateFile from 'winston-daily-rotate-file'
 import { ipcMain } from 'electron'
-import path from 'path'
 import fs from 'fs'
 import { join } from 'path'
 import { getAppDataDir } from '../utils/AppDir'
+import { createLoggerService } from '../../core/logging/LoggerService'
 
 // 使用智能路径：exe 同目录（非系统盘有权限）或 userData（回退）
 const LOG_DIR = join(getAppDataDir(), 'app-logs')
@@ -17,52 +15,11 @@ if (!fs.existsSync(LOG_DIR)) {
 // 日志级别（优先级：error > warn > info > debug > silly）
 const LOG_LEVEL = process.env.NODE_ENV === 'development' ? 'debug' : 'info'
 
-// 日志格式
-const logFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), // 时间戳
-  winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    // 拼接日志内容：时间 + 级别 + 消息 + 元数据
-    return `${timestamp} [${level.toUpperCase()}]: ${message} ${
-      Object.keys(meta).length ? JSON.stringify(meta) : ''
-    }`
-  })
-)
-
-// 定义日志传输方式（控制台 + 文件）
-const transports = [
-  // 控制台输出（仅在 TTY 环境中启用颜色）
-  new winston.transports.Console({
-    format: winston.format.combine(
-      ...(process.stdout.isTTY
-        ? [winston.format.colorize()]
-        : []),
-      logFormat
-    )
-  }),
-  // 按日期分割的文件输出（所有环境）
-  new DailyRotateFile({
-    filename: path.join(LOG_DIR, 'app-%DATE%.log'), // 日志文件名格式
-    datePattern: 'YYYY-MM-DD', // 按天分割
-    maxSize: '20m', // 单个文件最大 20MB
-    maxFiles: '14d', // 保留 14 天的日志
-    level: LOG_LEVEL,
-    format: logFormat
-  }),
-  // 单独的错误日志文件（可选）
-  new DailyRotateFile({
-    filename: path.join(LOG_DIR, 'error-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    maxSize: '20m',
-    maxFiles: '30d', // 错误日志保留更久
-    level: 'error', // 只记录 error 级别
-    format: logFormat
-  })
-]
-
-// 创建日志实例
-const logger = winston.createLogger({
+// 核心服务保持 Electron/IPC 无关；本文件只保留现有应用的兼容 API 与 IPC 注册。
+const { logger, logDir } = createLoggerService({
+  logDir: LOG_DIR,
   level: LOG_LEVEL,
-  transports
+  isTTY: process.stdout.isTTY
 })
 
 // 封装日志方法（简化调用）
@@ -72,7 +29,7 @@ export const log = {
   warn: (message: string, meta?: any) => logger.warn(message, meta),
   error: (message: string, meta?: any) => logger.error(message, meta),
   // 暴露日志目录（供渲染进程使用）
-  logDir: LOG_DIR
+  logDir
 }
 
 // 主进程未捕获异常处理
