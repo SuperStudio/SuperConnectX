@@ -1,5 +1,5 @@
 <template>
-  <div class="app-shell">
+  <div class="app-container app-shell">
     <header class="app-shell-titlebar">
       <slot name="titlebar" />
     </header>

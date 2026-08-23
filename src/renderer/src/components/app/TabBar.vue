@@ -1,101 +1,78 @@
 <template>
-  <div v-if="connectionTabs.length > 0" class="custom-tabs">
-    <div class="tabs-header" ref="tabsHeaderRef" @wheel="handleTabsWheel">
-      <div class="tabs-nav" @contextmenu="$emit('tabsNavContextMenu', $event)">
-        <div
-          v-for="tab in connectionTabs"
-          :key="tab.id"
-          class="tab-item"
-          :class="{
-            active: activeTabId === tab.id.toString(),
-            pinned: pinnedTabs.has(tab.id),
-            dragging: dragState.draggingId === tab.id.toString(),
-            'drag-over': dragState.overId === tab.id.toString(),
-            'drag-over-before': dragState.overId === tab.id.toString() && dragState.dropPosition === 'before'
-          }"
-          :draggable="true"
-          @mousedown="onTabMouseDown($event, tab)"
-          @click="$emit('switchTab', tab.id); $emit('hideTabMenu')"
-          @contextmenu="$emit('tabContextMenu', $event, tab)"
-          @dragstart="onDragStart($event, tab.id.toString())"
-          @dragover="onDragOver($event, tab.id.toString())"
-          @dragenter.prevent="onDragEnter($event, tab.id.toString())"
-          @dragleave="onDragLeave($event, tab.id.toString())"
-          @drop="onDrop($event, tab.id.toString())"
-          @dragend="resetDragState"
-          :data-tab-id="tab.id"
-        >
-          <span class="tab-icon">
-            <el-icon v-if="tab.connectionType === 'telnet'" :size="14"><Monitor /></el-icon>
-            <el-icon v-else-if="tab.connectionType === 'ssh'" :size="14"><Lock /></el-icon>
-            <el-icon v-else-if="tab.connectionType === 'ftp'" :size="14"><FolderOpened /></el-icon>
-            <el-icon v-else-if="tab.connectionType === 'com'" :size="14"><Cpu /></el-icon>
-            <el-icon v-else-if="tab.connectionType === 'commandEditor'" :size="14"><EditPen /></el-icon>
-            <el-icon v-else-if="tab.connectionType === 'shortcuts'" :size="14"><Operation /></el-icon>
-            <el-icon v-else-if="tab.connectionType === 'settings'" :size="14"><Setting /></el-icon>
+  <WorkbenchTabBar
+    :tabs="workbenchTabs"
+    :active-tab-id="activeTabId"
+    :panel-id="panelId"
+    @select-tab="id => { $emit('switchTab', id); $emit('hideTabMenu') }"
+    @hide-tab-menu="$emit('hideTabMenu')"
+    @tabs-nav-context-menu="$emit('tabsNavContextMenu', $event)"
+    @tab-context-menu="(event, id) => $emit('tabContextMenu', event, getConnectionTab(id))"
+    @toggle-pin="id => $emit('togglePinByButton', id)"
+    @reorder-tabs="(fromId, targetId, position, toPinned) => $emit('reorderTabsWithPin', fromId, targetId, position, toPinned)"
+  >
+    <template #icon="{ tab: workbenchTab }">
+      <template v-if="getConnectionTab(workbenchTab.id)">
+        <el-icon v-if="getConnectionTab(workbenchTab.id).connectionType === 'telnet'" :size="14"><Monitor /></el-icon>
+        <el-icon v-else-if="getConnectionTab(workbenchTab.id).connectionType === 'ssh'" :size="14"><Lock /></el-icon>
+        <el-icon v-else-if="getConnectionTab(workbenchTab.id).connectionType === 'ftp'" :size="14"><FolderOpened /></el-icon>
+        <el-icon v-else-if="getConnectionTab(workbenchTab.id).connectionType === 'com'" :size="14"><Cpu /></el-icon>
+        <el-icon v-else-if="getConnectionTab(workbenchTab.id).connectionType === 'commandEditor'" :size="14"><EditPen /></el-icon>
+        <el-icon v-else-if="getConnectionTab(workbenchTab.id).connectionType === 'shortcuts'" :size="14"><Operation /></el-icon>
+        <el-icon v-else-if="getConnectionTab(workbenchTab.id).connectionType === 'settings'" :size="14"><Setting /></el-icon>
+      </template>
+    </template>
+    <template #status="{ tab: workbenchTab }">
+      <span v-if="getConnectionTab(workbenchTab.id)" v-show="!['commandEditor', 'shortcuts', 'settings', 'virtualPort'].includes(getConnectionTab(workbenchTab.id).connectionType)" class="connection-dot" :class="getConnectionStatus(getConnectionTab(workbenchTab.id))" />
+    </template>
+    <template #title="{ tab: workbenchTab }">
+      <template v-if="getConnectionTab(workbenchTab.id)">
+        <el-tooltip :content="getTitle(getConnectionTab(workbenchTab.id))" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
+          <span class="tab-title-content">
+            {{ getTitle(getConnectionTab(workbenchTab.id)) }}
+            <el-tooltip v-if="getConnectionTab(workbenchTab.id).connectionType === 'com' && getConnectionTab(workbenchTab.id).comName && serialRemarks[getConnectionTab(workbenchTab.id).comName]" :content="serialRemarks[getConnectionTab(workbenchTab.id).comName]" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
+              <span class="tab-remark">{{ serialRemarks[getConnectionTab(workbenchTab.id).comName] }}</span>
+            </el-tooltip>
           </span>
-          <span
-            v-if="tab.connectionType !== 'commandEditor' && tab.connectionType !== 'shortcuts' && tab.connectionType !== 'settings' && tab.connectionType !== 'virtualPort'"
-            class="connection-dot"
-            :class="getConnectionStatus(tab)"
-          ></span>
-          <el-tooltip :content="tab.name || `${tab.host || tab.comName}:${tab.port || ''}`" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
-            <span class="tab-name">
-              {{ tab.name || `${tab.host || tab.comName}:${tab.port || ''}` }}
-              <el-tooltip v-if="tab.connectionType === 'com' && tab.comName && serialRemarks[tab.comName]" :content="serialRemarks[tab.comName]" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
-                <span class="tab-remark">{{ serialRemarks[tab.comName] }}</span>
-              </el-tooltip>
-            </span>
-          </el-tooltip>
-          <el-tooltip :content="pinnedTabs.has(tab.id) ? $t('tabs.unpin') : $t('tabs.close')" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
-            <span
-              class="tab-action-btn"
-              :class="{ pinned: pinnedTabs.has(tab.id) }"
-              @click.stop="$emit('togglePinByButton', tab.id)"
-            ></span>
-          </el-tooltip>
-        </div>
-      </div>
-    </div>
+        </el-tooltip>
+      </template>
+    </template>
+    <template #action="{ tab: workbenchTab }">
+      <el-tooltip :content="workbenchTab.pinned ? $t('tabs.unpin') : $t('tabs.close')" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
+        <span class="tab-action-btn" :class="{ pinned: workbenchTab.pinned }" @click.stop="$emit('togglePinByButton', workbenchTab.id)" />
+      </el-tooltip>
+    </template>
+  </WorkbenchTabBar>
 
-    <!-- 右键菜单 -->
-    <Teleport to="body">
-      <div
-        v-if="showTabMenu"
-        class="context-menu"
-        :style="{ left: tabMenuPosition.x + 'px', top: tabMenuPosition.y + 'px' }"
-        @click.stop
-      >
-        <div v-if="hasAnyConnected" class="menu-item" @click="$emit('disconnectAll')">{{ $t('tabs.disconnectAll') }}</div>
-        <div v-else class="menu-item" @click="$emit('connectAll')">{{ $t('tabs.connectAll') }}</div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" @click="$emit('closeSingle', rightClickedTab)">{{ $t('tabs.close') }}</div>
-        <div class="menu-item" @click="$emit('closeOther')">{{ $t('tabs.closeOther') }}</div>
-        <div class="menu-item" @click="$emit('closeLeft')">{{ $t('tabs.closeLeft') }}</div>
-        <div class="menu-item" @click="$emit('closeRight')">{{ $t('tabs.closeRight') }}</div>
-        <div class="menu-item danger" @click="$emit('closeAll')">{{ $t('tabs.closeAll') }}</div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" @click="$emit('moveToFirst')">{{ $t('tabs.moveToFirst') }}</div>
-        <div class="menu-item" @click="$emit('moveToLast')">{{ $t('tabs.moveToLast') }}</div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" @click="$emit('splitToNewPanel')">{{ $t('tabs.splitToNewPanel') }}</div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" @click="$emit('togglePin')">
-          {{ pinnedTabs.has(rightClickedTab?.id) ? $t('tabs.unpin') : $t('tabs.pin') }}
-        </div>
-        <template v-if="rightClickedTab?.connectionType === 'com'">
-          <div class="menu-divider"></div>
-          <div class="menu-item" @click="$emit('openRemarkDialog')">{{ $t('tabs.editRemark') }}</div>
-        </template>
-      </div>
-    </Teleport>
-  </div>
+  <Teleport to="body">
+    <div v-if="showTabMenu" class="context-menu" :style="{ left: tabMenuPosition.x + 'px', top: tabMenuPosition.y + 'px' }" @click.stop>
+      <div v-if="hasAnyConnected" class="menu-item" @click="$emit('disconnectAll')">{{ $t('tabs.disconnectAll') }}</div>
+      <div v-else class="menu-item" @click="$emit('connectAll')">{{ $t('tabs.connectAll') }}</div>
+      <div class="menu-divider" />
+      <div class="menu-item" @click="$emit('closeSingle', rightClickedTab)">{{ $t('tabs.close') }}</div>
+      <div class="menu-item" @click="$emit('closeOther')">{{ $t('tabs.closeOther') }}</div>
+      <div class="menu-item" @click="$emit('closeLeft')">{{ $t('tabs.closeLeft') }}</div>
+      <div class="menu-item" @click="$emit('closeRight')">{{ $t('tabs.closeRight') }}</div>
+      <div class="menu-item danger" @click="$emit('closeAll')">{{ $t('tabs.closeAll') }}</div>
+      <div class="menu-divider" />
+      <div class="menu-item" @click="$emit('moveToFirst')">{{ $t('tabs.moveToFirst') }}</div>
+      <div class="menu-item" @click="$emit('moveToLast')">{{ $t('tabs.moveToLast') }}</div>
+      <div class="menu-divider" />
+      <div class="menu-item" @click="$emit('splitToNewPanel')">{{ $t('tabs.splitToNewPanel') }}</div>
+      <div class="menu-divider" />
+      <div class="menu-item" @click="$emit('togglePin')">{{ pinnedTabs.has(rightClickedTab?.id) ? $t('tabs.unpin') : $t('tabs.pin') }}</div>
+      <template v-if="rightClickedTab?.connectionType === 'com'">
+        <div class="menu-divider" />
+        <div class="menu-item" @click="$emit('openRemarkDialog')">{{ $t('tabs.editRemark') }}</div>
+      </template>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
+import type { WorkbenchTab } from '../../../../shared/workbench/types'
 import { TOOLTIP_SHOW_AFTER } from '../../utils/constants'
-import { useWorkbenchTabDrag } from '../../foundation/workbench/useWorkbenchTabDrag'
+import WorkbenchTabBar from '../../foundation/workbench/WorkbenchTabBar.vue'
 
 const props = defineProps<{
   connectionTabs: any[]
@@ -110,11 +87,11 @@ const props = defineProps<{
   panelId: string
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   switchTab: [tabId: string | number]
   hideTabMenu: []
-  tabsNavContextMenu: [e: MouseEvent]
-  tabContextMenu: [e: MouseEvent, tab: any]
+  tabsNavContextMenu: [event: MouseEvent]
+  tabContextMenu: [event: MouseEvent, tab: any]
   togglePinByButton: [tabId: string | number]
   disconnectAll: []
   connectAll: []
@@ -131,254 +108,31 @@ const emit = defineEmits<{
   reorderTabsWithPin: [fromId: string, targetId: string, dropPosition: string, toPin: boolean]
 }>()
 
-const tabsHeaderRef = ref<HTMLElement | null>(null)
-
-const { dragState, onDragStart, onDragOver, onDragEnter, onDragLeave, onDrop, resetDragState } = useWorkbenchTabDrag({
-  panelId: props.panelId || 'panel-0',
-  isPinned: tabId => props.pinnedTabs.has(tabId),
-  onReorder: (fromId, targetId, position, toPinned) => emit('reorderTabsWithPin', fromId, targetId, position, toPinned)
-})
-
-const handleTabsWheel = (e: WheelEvent) => {
-  if (tabsHeaderRef.value) {
-    e.preventDefault()
-    tabsHeaderRef.value.scrollLeft += e.deltaY
-  }
-}
-
-// ---- 鼠标事件 ----
-const onTabMouseDown = (e: MouseEvent, tab: any) => {
-  // 仅左键按下时切换选项卡，右键不切换
-  if (e.button !== 0) return
-  emit('switchTab', tab.id)
-  emit('hideTabMenu')
-}
-
+const getConnectionTab = (id: string): any => props.connectionTabs.find(tab => tab.id.toString() === id)
+const getTitle = (tab: any): string => tab.name || `${tab.host || tab.comName}:${tab.port || ''}`
+const workbenchTabs = computed<WorkbenchTab[]>(() => props.connectionTabs.map(tab => ({
+  id: tab.id.toString(),
+  title: getTitle(tab),
+  pinned: props.pinnedTabs.has(tab.id)
+})))
 </script>
 
 <style scoped>
-/* 自定义选项卡样式 */
-.custom-tabs {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-primary);
-  flex-shrink: 0;
-}
-
-.tabs-header {
-  height: 32px;
-  background: var(--bg-secondary);
-  flex-shrink: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-gutter: stable;
-}
-
-.tabs-header::-webkit-scrollbar {
-  height: 4px;
-}
-
-.tabs-header::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.tabs-header::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb-dark);
-  border-radius: 2px;
-}
-
-.tabs-header::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-dark-hover);
-}
-
-.tabs-nav {
-  display: flex;
-  align-items: stretch;
-  height: 100%;
-  white-space: nowrap;
-}
-
-.tab-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 36px 0 10px;
-  min-width: 100px;
-  max-width: 200px;
-  height: 100%;
-  background-color: var(--tab-bg);
-  color: var(--tab-text);
-  cursor: pointer;
-  user-select: none;
-  position: relative;
-  border-right: 1px solid var(--tab-border);
-}
-
-.tab-item:hover {
-  background-color: var(--tab-hover-bg);
-}
-
-.tab-item.active {
-  background-color: var(--bg-primary);
-  color: var(--tab-active-icon);
-}
-
-.tab-item .tab-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
-  margin-right: 4px;
-  color: var(--tab-icon);
-}
-
-.tab-item .tab-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  line-height: 1;
-  font-size: 14px;
-}
-
-.tab-item .connection-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.tab-item .connection-dot.connected {
-  background-color: var(--connect-dot-connected);
-}
-
-.tab-item .connection-dot.disconnected {
-  background-color: var(--connect-dot-disconnected);
-}
-
-.tab-remark {
-  color: var(--tab-remark);
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-left: 4px;
-  font-size: 12px;
-}
-
-.tab-action-btn {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
-  opacity: 0;
-  transition: opacity 0.15s;
-  cursor: pointer;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-}
-
-.tab-action-btn::before {
-  content: '×';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 14px;
-  line-height: 1;
-  color: var(--tab-close);
-}
-
-.tab-action-btn.pinned {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024' fill='%23888'%3E%3Cpath d='M963.925333 326.997333L697.002667 60.074667a25.6 25.6 0 0 0-43.52 21.845333l14.506666 99.498667-273.066666 151.381333c-91.477333-45.738667-170.666667-36.693333-234.496 27.306667a25.941333 25.941333 0 0 0 0 36.352L327.68 563.2 57.685333 930.645333a25.6 25.6 0 0 0 35.84 35.669334l366.250667-270.677334 167.765333 167.936a25.941333 25.941333 0 0 0 36.352 0c79.530667-79.701333 58.538667-165.546667 26.965334-233.813333l152.064-273.066667 99.157333 14.165334a25.6 25.6 0 0 0 26.624-13.824 25.941333 25.941333 0 0 0-4.778667-30.037334z'/%3E%3C/svg%3E");
-  background-size: 12px;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-.tab-action-btn.pinned::before,
-.tab-action-btn.pinned::after {
-  display: none;
-}
-
-.tab-item:hover .tab-action-btn {
-  opacity: 1;
-}
-
-.tab-item.active .tab-action-btn,
-.tab-item.pinned .tab-action-btn {
-  opacity: 1;
-}
-
-.tab-action-btn:hover {
-  background-color: var(--tab-close-hover-bg);
-}
-
-.tab-action-btn:hover::before {
-  color: var(--tab-active-icon);
-}
-
-/* 拖拽排序样式 */
-.tab-item.dragging {
-  opacity: 0.4;
-}
-
-.tab-item.drag-over {
-  position: relative;
-}
-
-.tab-item.drag-over-before::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background-color: var(--tab-drag-indicator);
-  z-index: 10;
-}
-
-.tab-item.drag-over:not(.drag-over-before)::after {
-  content: '';
-  position: absolute;
-  right: -1px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background-color: var(--tab-drag-indicator);
-  z-index: 10;
-}
-
-/* 右键菜单样式 */
-.context-menu {
-  position: fixed;
-  z-index: 9999;
-}
-
-.context-menu .menu-item {
-  font-size: 13px;
-  color: var(--menu-item-color);
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.context-menu .menu-item:hover {
-  background-color: var(--menu-item-hover-bg);
-  color: var(--menu-item-hover-color);
-}
-
-.context-menu .menu-item.danger {
-  color: var(--menu-danger-color);
-}
-
-.context-menu .menu-item.danger:hover {
-  background-color: var(--menu-danger-hover-bg);
-  color: var(--menu-item-hover-color);
-}
+.connection-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.connection-dot.connected { background-color: var(--connect-dot-connected); }
+.connection-dot.disconnected { background-color: var(--connect-dot-disconnected); }
+.tab-title-content { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab-remark { color: var(--tab-remark); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 4px; font-size: 12px; }
+.tab-action-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; border-radius: 3px; opacity: 0; transition: opacity 0.15s; cursor: pointer; background-size: contain; background-repeat: no-repeat; background-position: center; }
+.tab-action-btn::before { content: '×'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 14px; line-height: 1; color: var(--tab-close); }
+.tab-action-btn.pinned { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024' fill='%23888'%3E%3Cpath d='M963.925333 326.997333L697.002667 60.074667a25.6 25.6 0 0 0-43.52 21.845333l14.506666 99.498667-273.066666 151.381333c-91.477333-45.738667-170.666667-36.693333-234.496 27.306667a25.941333 25.941333 0 0 0 0 36.352L327.68 563.2 57.685333 930.645333a25.6 25.6 0 0 0 35.84 35.669334l366.250667-270.677334 167.765333 167.936a25.941333 25.941333 0 0 0 36.352 0c79.530667-79.701333 58.538667-165.546667 26.965334-233.813333l152.064-273.066667 99.157333 14.165334a25.6 25.6 0 0 0 26.624-13.824 25.941333 25.941333 0 0 0-4.778667-30.037334z'/%3E%3C/svg%3E"); background-size: 12px; background-position: center; background-repeat: no-repeat; }
+.tab-action-btn.pinned::before { display: none; }
+.tab-action-btn:hover { background-color: var(--tab-close-hover-bg); }
+.tab-action-btn:hover::before { color: var(--tab-active-icon); }
+:deep(.tab-item:hover .tab-action-btn), :deep(.tab-item.active .tab-action-btn), :deep(.tab-item.pinned .tab-action-btn) { opacity: 1; }
+.context-menu { position: fixed; z-index: 9999; }
+.context-menu .menu-item { font-size: 13px; color: var(--menu-item-color); transition: background-color 0.15s ease, color 0.15s ease; }
+.context-menu .menu-item:hover { background-color: var(--menu-item-hover-bg); color: var(--menu-item-hover-color); }
+.context-menu .menu-item.danger { color: var(--menu-danger-color); }
+.context-menu .menu-item.danger:hover { background-color: var(--menu-danger-hover-bg); color: var(--menu-item-hover-color); }
 </style>
