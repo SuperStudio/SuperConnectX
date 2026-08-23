@@ -1,5 +1,12 @@
 <template>
-  <div class="custom-titlebar">
+  <WindowTitleBar
+    class="custom-titlebar"
+    :is-maximized="isMaximized"
+    @minimize="minimizeWindow"
+    @toggle-maximize="maximizeWindow"
+    @close="closeWindow"
+  >
+    <template #left>
     <div class="titlebar-left">
       <button
         class="titlebar-btn toggle-connection-btn"
@@ -135,7 +142,9 @@
       </div>
     </div>
 
-    <div class="titlebar-right">
+    </template>
+
+    <template #right>
       <!-- 皮肤切换按钮 -->
       <div class="theme-switcher-wrapper" ref="themeSwitcherRef">
         <button class="titlebar-btn theme-btn" @click="toggleThemePanel" title="切换皮肤">
@@ -188,14 +197,8 @@
           </div>
         </Transition>
       </div>
-      <WindowControlButtons
-        :is-maximized="isMaximized"
-        @minimize="minimizeWindow"
-        @toggle-maximize="maximizeWindow"
-        @close="closeWindow"
-      />
-    </div>
-  </div>
+    </template>
+  </WindowTitleBar>
   <ExportDialog ref="exportDialogRef" @notifyExport="(payload) => emit('notifyImport', payload)" />
 </template>
 
@@ -206,7 +209,7 @@ import { useI18n } from 'vue-i18n'
 import { getSystemFonts, formatFontName, getDefaultTerminalFont } from '../utils/FontDetector'
 import ExportDialog from './ExportDialog.vue'
 import { useTheme } from '../foundation/theme/useTheme'
-import WindowControlButtons from '../foundation/shell/WindowControlButtons.vue'
+import WindowTitleBar from '../foundation/shell/WindowTitleBar.vue'
 
 const { t } = useI18n()
 
