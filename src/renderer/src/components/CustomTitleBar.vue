@@ -259,6 +259,7 @@ import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { getSystemFonts, formatFontName, getDefaultTerminalFont } from '../utils/FontDetector'
 import ExportDialog from './ExportDialog.vue'
+import { useTheme } from '../foundation/theme/useTheme'
 
 const { t } = useI18n()
 
@@ -275,19 +276,13 @@ const currentFontFamily = ref(getDefaultTerminalFont()) // 当前活动的字体
 
 // ---- 皮肤切换 ----
 const showThemePanel = ref(false)
-const currentTheme = ref(localStorage.getItem('app-theme') || 'dark')
-
-const applyTheme = (theme: string) => {
-  currentTheme.value = theme
-  localStorage.setItem('app-theme', theme)
-  document.documentElement.setAttribute('data-theme', theme)
-}
+const { theme: currentTheme, applyTheme } = useTheme()
 
 const toggleThemePanel = () => {
   showThemePanel.value = !showThemePanel.value
 }
 
-const switchTheme = (theme: string) => {
+const switchTheme = (theme: 'dark' | 'light') => {
   applyTheme(theme)
   showThemePanel.value = false
 }
@@ -615,10 +610,6 @@ watch(() => props.currentFont, (newFont) => {
 }, { immediate: true })
 
 onMounted(async () => {
-  // 初始化主题
-  const savedTheme = localStorage.getItem('app-theme') || 'dark'
-  applyTheme(savedTheme)
-
   window.windowApi.getWindowState().then((state) => (isMaximized.value = state))
   window.addEventListener('window-maximized', handleWindowMaximized)
   window.addEventListener('window-unmaximized', handleWindowUnmaximized)

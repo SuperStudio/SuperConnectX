@@ -14,6 +14,7 @@ import BackupManager from '../utils/BackupManager'
 import AdmZip from 'adm-zip'
 import fs from 'fs'
 const archiver = require('archiver')
+import { STORAGE_IPC_CHANNELS } from '../../shared/ipc/storage'
 
 export default class IpcStorage {
   private static sInstance: IpcStorage
@@ -83,8 +84,8 @@ export default class IpcStorage {
 
     /* 应用全局设置持久化 */
     const appSettingsStorage = new AppSettingsStorage()
-    ipcMain.handle('get-app-settings', () => appSettingsStorage.getSettings())
-    ipcMain.handle('save-app-settings', (_, settings: any) => {
+    ipcMain.handle(STORAGE_IPC_CHANNELS.getAppPreferences, () => appSettingsStorage.getSettings())
+    ipcMain.handle(STORAGE_IPC_CHANNELS.saveAppPreferences, (_, settings: any) => {
       appSettingsStorage.saveSettings(settings)
       return true
     })
@@ -103,9 +104,9 @@ export default class IpcStorage {
     /* 命令历史持久化（需要在 settings 之后初始化，因为依赖 settingsStorage） */
     const commandHistoryStorage = new CommandHistoryStorage(settingsStorage)
 
-    ipcMain.handle('get-settings', () => settingsStorage.getSettings())
-    ipcMain.handle('get-default-settings', () => settingsStorage.getDefaults())
-    ipcMain.handle('save-settings', (_, settings: any) => {
+    ipcMain.handle(STORAGE_IPC_CHANNELS.getSettings, () => settingsStorage.getSettings())
+    ipcMain.handle(STORAGE_IPC_CHANNELS.getDefaultSettings, () => settingsStorage.getDefaults())
+    ipcMain.handle(STORAGE_IPC_CHANNELS.saveSettings, (_, settings: any) => {
       settingsStorage.saveSettings(settings)
       // 日志分片大小需实时生效，无需重启
       if (settings.logSplitSize) {
@@ -170,12 +171,12 @@ export default class IpcStorage {
     ipcMain.handle('get-shortcut-actions', () => SHORTCUT_ACTIONS)
 
     /* 备份与恢复 */
-    ipcMain.handle('get-backup-list', () => BackupManager.getInstance().getBackupList())
-    ipcMain.handle('perform-backup', () => BackupManager.getInstance().performBackupNow())
-    ipcMain.handle('restore-backup', (_, dateStr: string) =>
+    ipcMain.handle(STORAGE_IPC_CHANNELS.getBackupList, () => BackupManager.getInstance().getBackupList())
+    ipcMain.handle(STORAGE_IPC_CHANNELS.performBackup, () => BackupManager.getInstance().performBackupNow())
+    ipcMain.handle(STORAGE_IPC_CHANNELS.restoreBackup, (_, dateStr: string) =>
       BackupManager.getInstance().restoreBackup(dateStr)
     )
-    ipcMain.handle('get-next-backup-date', (_, backupInterval: number) =>
+    ipcMain.handle(STORAGE_IPC_CHANNELS.getNextBackupDate, (_, backupInterval: number) =>
       BackupManager.getInstance().getNextBackupDate(backupInterval)
     )
 

@@ -1,7 +1,7 @@
-import Store from 'electron-store'
 import fs from 'fs'
 import path from 'path'
 import { getAppDataDir } from '../utils/AppDir'
+import PreferenceStore from '../../core/storage/PreferenceStore'
 
 const SAVE_DIR_NAME = 'userdata'
 
@@ -42,7 +42,7 @@ export interface SessionState {
   splitRatio?: number
 }
 
-interface AppSettings {
+interface AppSettings extends Record<string, any> {
   sidebar?: SidebarState
   terminalFontSize?: number // 全局终端字体大小（用于 Telnet 等）
   settingsActiveCategory?: string // 设置页面左侧选中的分类
@@ -61,35 +61,28 @@ interface AppSettings {
   // 可扩展其他全局设置
 }
 
-export default class AppSettingsStorage {
-  private storageData: Store<any>
-  private readonly STORAGE_NAME = 'app-settings'
-
+export default class AppSettingsStorage extends PreferenceStore<AppSettings> {
   constructor() {
-    this.storageData = new Store<any>({
-      name: this.STORAGE_NAME,
-      cwd: this.getAppUserDataPath(),
+    super({
+      name: 'app-settings',
+      cwd: getAppUserDataPath(),
       defaults: {}
     })
   }
 
-  private getAppUserDataPath(): string {
-    const userDataPath = path.join(getAppDataDir(), SAVE_DIR_NAME)
-    if (!fs.existsSync(userDataPath)) {
-      fs.mkdirSync(userDataPath, { recursive: true })
-    }
-
-    return userDataPath
-  }
-
   getSettings(): AppSettings {
-    return this.storageData.store || {}
+    return this.getPreferences()
   }
 
   saveSettings(settings: AppSettings): void {
-    // 使用 set 方法确保数据被正确保存
-    Object.keys(settings).forEach((key) => {
-      this.storageData.set(key, (settings as any)[key])
-    })
+    this.savePreferences(settings)
   }
+}
+
+function getAppUserDataPath(): string {
+  const userDataPath = path.join(getAppDataDir(), SAVE_DIR_NAME)
+  if (!fs.existsSync(userDataPath)) {
+    fs.mkdirSync(userDataPath, { recursive: true })
+  }
+  return userDataPath
 }

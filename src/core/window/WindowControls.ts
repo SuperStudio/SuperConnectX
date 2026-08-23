@@ -1,3 +1,5 @@
+import { WINDOW_IPC_CHANNELS } from '../../shared/ipc/window'
+
 export interface WindowControlTarget {
   minimize(): void
   close(): void
@@ -27,20 +29,20 @@ export interface WindowControlOptions {
 export function registerWindowControls(options: WindowControlOptions): void {
   const getWindow = options.getWindow
 
-  options.ipc.handle('minimize-window', () => getWindow()?.minimize())
-  options.ipc.handle('close-window', () => {
+  options.ipc.handle(WINDOW_IPC_CHANNELS.minimize, () => getWindow()?.minimize())
+  options.ipc.handle(WINDOW_IPC_CHANNELS.close, () => {
     const window = getWindow()
     if (window) options.onClose(window)
   })
-  options.ipc.handle('get-window-state', () => getWindow()?.isMaximized())
-  options.ipc.handle('maximize-window', () => {
+  options.ipc.handle(WINDOW_IPC_CHANNELS.getMaximized, () => getWindow()?.isMaximized())
+  options.ipc.handle(WINDOW_IPC_CHANNELS.toggleMaximize, () => {
     const window = getWindow()
     if (!window) return
     if (window.isMaximized()) window.unmaximize()
     else window.maximize()
   })
-  options.ipc.handle('get-app-version', () => options.getAppVersion())
-  options.ipc.handle('toggle-fullscreen-window', () => {
+  options.ipc.handle(WINDOW_IPC_CHANNELS.getAppVersion, () => options.getAppVersion())
+  options.ipc.handle(WINDOW_IPC_CHANNELS.toggleFullscreen, () => {
     const window = getWindow()
     if (window) window.setFullScreen(!window.isFullScreen())
   })

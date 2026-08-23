@@ -1,5 +1,7 @@
 // electron/preload.ts
 import { contextBridge, ipcRenderer } from 'electron'
+import { WINDOW_IPC_CHANNELS } from '../shared/ipc/window'
+import { STORAGE_IPC_CHANNELS } from '../shared/ipc/storage'
 
 // 暴露 IPC 调用接口给渲染进程
 contextBridge.exposeInMainWorld('storageApi', {
@@ -33,17 +35,17 @@ contextBridge.exposeInMainWorld('storageApi', {
   saveBaudRates: (baudRates: number[]) => ipcRenderer.invoke('save-baud-rates', baudRates),
 
   /* 应用全局设置 */
-  getAppSettings: () => ipcRenderer.invoke('get-app-settings'),
-  saveAppSettings: (settings: any) => ipcRenderer.invoke('save-app-settings', settings),
+  getAppSettings: () => ipcRenderer.invoke(STORAGE_IPC_CHANNELS.getAppPreferences),
+  saveAppSettings: (settings: any) => ipcRenderer.invoke(STORAGE_IPC_CHANNELS.saveAppPreferences, settings),
 
   /* 日志过滤面板 */
   getLogFilter: () => ipcRenderer.invoke('get-log-filter'),
   saveLogFilter: (settings: any) => ipcRenderer.invoke('save-log-filter', settings),
 
   /* 设置页面 */
-  getSettings: () => ipcRenderer.invoke('get-settings'),
-  getDefaultSettings: () => ipcRenderer.invoke('get-default-settings'),
-  saveSettings: (settings: any) => ipcRenderer.invoke('save-settings', settings),
+  getSettings: () => ipcRenderer.invoke(STORAGE_IPC_CHANNELS.getSettings),
+  getDefaultSettings: () => ipcRenderer.invoke(STORAGE_IPC_CHANNELS.getDefaultSettings),
+  saveSettings: (settings: any) => ipcRenderer.invoke(STORAGE_IPC_CHANNELS.saveSettings, settings),
 
   /* 快捷键设置 */
   getShortcuts: () => ipcRenderer.invoke('get-shortcuts'),
@@ -62,10 +64,10 @@ contextBridge.exposeInMainWorld('storageApi', {
   saveSyntaxRuleGroups: (groups: any[]) => ipcRenderer.invoke('save-syntax-rule-groups', groups),
 
   /* 备份与恢复 */
-  getBackupList: () => ipcRenderer.invoke('get-backup-list'),
-  performBackup: () => ipcRenderer.invoke('perform-backup'),
-  restoreBackup: (dateStr: string) => ipcRenderer.invoke('restore-backup', dateStr),
-  getNextBackupDate: (backupInterval: number) => ipcRenderer.invoke('get-next-backup-date', backupInterval)
+  getBackupList: () => ipcRenderer.invoke(STORAGE_IPC_CHANNELS.getBackupList),
+  performBackup: () => ipcRenderer.invoke(STORAGE_IPC_CHANNELS.performBackup),
+  restoreBackup: (dateStr: string) => ipcRenderer.invoke(STORAGE_IPC_CHANNELS.restoreBackup, dateStr),
+  getNextBackupDate: (backupInterval: number) => ipcRenderer.invoke(STORAGE_IPC_CHANNELS.getNextBackupDate, backupInterval)
 })
 
 contextBridge.exposeInMainWorld('connectApi', {
@@ -114,12 +116,12 @@ contextBridge.exposeInMainWorld('dialogApi', {
 })
 
 contextBridge.exposeInMainWorld('windowApi', {
-  minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
-  maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
-  closeWindow: () => ipcRenderer.invoke('close-window'),
-  getWindowState: () => ipcRenderer.invoke('get-window-state'),
-  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
-  toggleFullscreenWindow: () => ipcRenderer.invoke('toggle-fullscreen-window')
+  minimizeWindow: () => ipcRenderer.invoke(WINDOW_IPC_CHANNELS.minimize),
+  maximizeWindow: () => ipcRenderer.invoke(WINDOW_IPC_CHANNELS.toggleMaximize),
+  closeWindow: () => ipcRenderer.invoke(WINDOW_IPC_CHANNELS.close),
+  getWindowState: () => ipcRenderer.invoke(WINDOW_IPC_CHANNELS.getMaximized),
+  getAppVersion: () => ipcRenderer.invoke(WINDOW_IPC_CHANNELS.getAppVersion),
+  toggleFullscreenWindow: () => ipcRenderer.invoke(WINDOW_IPC_CHANNELS.toggleFullscreen)
 })
 
 contextBridge.exposeInMainWorld('toolApi', {
