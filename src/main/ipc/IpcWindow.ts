@@ -2,6 +2,7 @@ import { ipcMain, app } from 'electron'
 import logger from './IpcAppLogger'
 import SettingsStorage from '../storage/SettingsStorage'
 import IpcTray from './IpcTray'
+import { registerWindowControls } from '../../core/window/WindowControls'
 
 export default class IpcWindow {
   private static sInstance: IpcWindow
@@ -20,29 +21,18 @@ export default class IpcWindow {
   }
 
   init(windows): void {
-    // 窗口控制IPC
-    ipcMain.handle('minimize-window', () => windows.mainWindow?.minimize())
-    ipcMain.handle('close-window', () => {
-      const settings = this.settingsStorage.getSettings()
-      if (settings.minimizeToTray) {
-        // 隐藏到托盘而不是关闭
-        if (windows.mainWindow) {
-          IpcTray.getInstance().hideToTray(windows.mainWindow)
+    registerWindowControls({
+      ipc: ipcMain,
+      getWindow: () => windows.mainWindow,
+      getAppVersion: () => app.getVersion(),
+      onClose: (mainWindow) => {
+        const settings = this.settingsStorage.getSettings()
+        if (settings.minimizeToTray) {
+          // 隐藏到托盘而不是关闭
+          IpcTray.getInstance().hideToTray(mainWindow as any)
+        } else {
+          mainWindow.close()
         }
-      } else {
-        windows.mainWindow?.close()
-      }
-    })
-    ipcMain.handle('get-window-state', () => windows.mainWindow?.isMaximized())
-    ipcMain.handle('maximize-window', () =>
-      windows.mainWindow?.isMaximized()
-        ? windows.mainWindow?.unmaximize()
-        : windows.mainWindow?.maximize()
-    )
-    ipcMain.handle('get-app-version', () => app.getVersion())
-    ipcMain.handle('toggle-fullscreen-window', () => {
-      if (windows.mainWindow) {
-        windows.mainWindow.setFullScreen(!windows.mainWindow.isFullScreen())
       }
     })
 

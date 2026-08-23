@@ -1,6 +1,7 @@
 import { Tray, Menu, nativeImage, app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import logger from './IpcAppLogger'
+import { hideWindow, showAndFocusWindow } from '../../core/tray/WindowVisibility'
 
 export default class IpcTray {
   private static sInstance: IpcTray
@@ -287,13 +288,7 @@ export default class IpcTray {
   }
 
   private showWindow(mainWindow: BrowserWindow): void {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore()
-      }
-      mainWindow.show()
-      mainWindow.focus()
-    }
+    showAndFocusWindow(mainWindow)
   }
 
   hideToTray(mainWindow: BrowserWindow): void {
@@ -302,7 +297,7 @@ export default class IpcTray {
       this.createTray(mainWindow)
     }
     // 隐藏窗口
-    mainWindow.hide()
+    hideWindow(mainWindow)
     logger.info('Window hidden to tray')
   }
 
