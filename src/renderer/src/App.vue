@@ -1,6 +1,7 @@
 <template>
-  <div class="app-container">
-    <CustomTitleBar
+  <AppShell>
+    <template #titlebar>
+      <CustomTitleBar
       @toggle-connection-list="toggleConnectionList"
       @refreshCommands="refreshHandler"
       @refreshConnections="loadConnections"
@@ -21,10 +22,11 @@
       :word-wrap="terminalWordWrap"
       :line-numbers="terminalLineNumbers"
       :log-editable="terminalLogEditable"
-    />
+      />
+    </template>
     <NotifyContainer ref="notifyContainerRef" />
 
-    <main class="app-main">
+    <div class="app-main">
       <!-- 侧边栏 -->
       <ConnectionSidebar
         :show-connection-list="showConnectionList"
@@ -51,7 +53,7 @@
       />
 
       <!-- 侧边栏分隔条 -->
-      <div v-if="showConnectionList" class="sidebar-resizer" @mousedown="startResize" :class="{ resizing: isResizing }"></div>
+      <SidebarResizeHandle v-if="showConnectionList" :resizing="isResizing" @resizeStart="startResize" />
 
       <!-- 终端区域 -->
       <div class="terminal-wrapper" :class="{ expanded: !showConnectionList }">
@@ -210,13 +212,15 @@
           </template>
         </div>
       </div>
-    </main>
+    </div>
 
     <!-- 状态栏 -->
-    <div class="status-bar">
-      <div class="resource-monitor"><ResourceMonitor /></div>
-      <div class="command-status" v-if="lastSentCommand">{{ t('notification.commandSent', { command: lastSentCommand }) }}</div>
-    </div>
+    <template #statusbar>
+      <StatusBar>
+        <template #left><div class="resource-monitor"><ResourceMonitor /></div></template>
+        <template #right><div v-if="lastSentCommand" class="command-status">{{ t('notification.commandSent', { command: lastSentCommand }) }}</div></template>
+      </StatusBar>
+    </template>
 
     <!-- 弹窗 -->
     <ConnectionDialog ref="connectionDialogRef" @submit="handleConnectionSubmit" />
@@ -231,7 +235,7 @@
       @opened="onRemarkDialogOpened"
       @save="saveSerialRemarkHandler"
     />
-  </div>
+  </AppShell>
 </template>
 
 <script setup lang="ts">
@@ -254,6 +258,10 @@ import CommandEditor from './components/CommandEditor.vue'
 import ShortcutsPage from './components/ShortcutsPage.vue'
 import SettingsPage from './components/SettingsPage.vue'
 import VirtualPortPage from './components/VirtualPortPage.vue'
+import AppShell from './foundation/shell/AppShell.vue'
+import StatusBar from './foundation/shell/StatusBar.vue'
+import SidebarResizeHandle from './foundation/shell/SidebarResizeHandle.vue'
+import { useSidebarResize } from './foundation/shell/useSidebarResize'
 import logoImage from './assets/icon.png'
 
 // Composables
@@ -877,41 +885,10 @@ const {
 } = useFontManager(activeTabId, comTerminalRefs, telnetTerminalRefs)
 
 // ---- Sidebar Resize ----
-const isResizing = ref(false)
-const resizeStartX = ref(0)
-const resizeStartWidth = ref(0)
-const MIN_SIDEBAR_WIDTH = 200
-
-const startResize = (e: MouseEvent) => {
-  isResizing.value = true
-  resizeStartX.value = e.clientX
-  resizeStartWidth.value = sidebarWidth.value
-  document.addEventListener('mousemove', onResize)
-  document.addEventListener('mouseup', stopResize)
-}
-
-const onResize = (e: MouseEvent) => {
-  if (!isResizing.value) return
-  const delta = e.clientX - resizeStartX.value
-  const newWidth = resizeStartWidth.value + delta
-  if (newWidth <= 500) {
-    const hideThreshold = MIN_SIDEBAR_WIDTH * 2 / 3
-    if (newWidth < hideThreshold) {
-      showConnectionList.value = false
-      sidebarWidth.value = MIN_SIDEBAR_WIDTH
-    } else {
-      sidebarWidth.value = newWidth
-    }
-  }
-}
-
-const stopResize = () => {
-  if (isResizing.value) {
-    isResizing.value = false
-    document.removeEventListener('mousemove', onResize)
-    document.removeEventListener('mouseup', stopResize)
-  }
-}
+const { isResizing, startResize, stopResize } = useSidebarResize({
+  width: sidebarWidth,
+  visible: showConnectionList
+})
 
 // ---- 重写 switchTabById，同步到分屏面板 ----
 const originalSwitchTabById = switchTabById
@@ -1186,6 +1163,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearInterval(_pollTimer)
+  stopResize()
   window.removeEventListener('shortcuts-updated', handleShortcutsUpdated)
   window.removeEventListener('settings-updated', handleSettingsUpdated)
   window.removeEventListener('terminal-text-cleared', handleTerminalTextCleared)
@@ -1194,16 +1172,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.app-container {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-primary);
-  color: var(--text-white);
-  overflow: hidden;
-}
-
 .app-main {
   display: flex;
   flex: 1;
@@ -1228,29 +1196,6 @@ onUnmounted(() => {
   height: 0;
   overflow: hidden;
   visibility: hidden;
-}
-
-/* 侧边栏分隔条 */
-.sidebar-resizer {
-  width: 4px;
-  height: 100%;
-  background: transparent;
-  cursor: col-resize;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 10;
-  transition: background-color 0.2s;
-}
-
-.sidebar-resizer:hover,
-.sidebar-resizer.resizing {
-  background-color: var(--sidebar-resizer-hover);
-}
-
-.status-bar {
-  height: 25px;
-  background-color: var(--statusbar-bg-hover);
-  display: flex;
 }
 
 .resource-monitor {
