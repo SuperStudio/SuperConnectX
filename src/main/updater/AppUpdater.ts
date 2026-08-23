@@ -2,66 +2,13 @@ import { autoUpdater } from 'electron-updater'
 import { BrowserWindow, app } from 'electron'
 import { CancellationToken } from 'builder-util-runtime'
 import logger from '../ipc/IpcAppLogger'
+import {
+  mapUpdateErrorToFriendlyMessage,
+  type UpdateInfo,
+  type UpdateStatus
+} from '../../core/updater/UpdateSupport'
 
-export type UpdateStatus =
-  | 'checking'
-  | 'update-available'
-  | 'update-not-available'
-  | 'download-progress'
-  | 'update-downloaded'
-  | 'error'
-  | 'check-error'
-
-export interface UpdateInfo {
-  version: string
-  releaseDate: string
-  releaseNotes?: string
-  files?: Array<{ url: string; size: number }>
-}
-
-export interface ProgressInfo {
-  percent: number
-  transferred: number
-  total: number
-  bytesPerSecond: number
-}
-
-/** 将原始异常映射为简短友好的错误提示 key */
-function mapErrorToFriendly(error: Error | string): string {
-  const msg = typeof error === 'string' ? error : error.message || ''
-  const lower = msg.toLowerCase()
-
-  // 网络相关
-  if (lower.includes('enotfound') || lower.includes('econnrefused') || lower.includes('econnreset'))
-    return 'Network connection failed, please check your network'
-  if (lower.includes('etimedout') || lower.includes('timeout'))
-    return 'Connection timed out, please try again later'
-  if (lower.includes('404') || lower.includes('not found'))
-    return 'Update server not found (404)'
-  if (lower.includes('403'))
-    return 'Access denied, please check your permissions'
-  if (lower.includes('500') || lower.includes('502') || lower.includes('503'))
-    return 'Update server error, please try again later'
-
-  // 校验相关
-  if (lower.includes('sha512') || lower.includes('sha256') || lower.includes('checksum'))
-    return 'File verification failed, will re-download'
-
-  // 证书相关
-  if (lower.includes('certificate') || lower.includes('ssl') || lower.includes('tls'))
-    return 'SSL certificate error, please check system time or network proxy'
-
-  // YAML/解析相关
-  if (lower.includes('yaml') || lower.includes('parse'))
-    return 'Failed to parse update information'
-
-  // 磁盘相关
-  if (lower.includes('enospc') || lower.includes('disk'))
-    return 'Insufficient disk space'
-
-  // 默认兜底
-  return 'Update failed, please try again later'
-}
+export type { ProgressInfo, UpdateInfo, UpdateStatus } from '../../core/updater/UpdateSupport'
 
 export default class AppUpdater {
   private static sInstance: AppUpdater
@@ -159,11 +106,11 @@ export default class AppUpdater {
       }
       // 断点续传相关错误不视为致命错误
       if (error.message?.includes('sha512') || error.message?.includes('sha512') || error.message?.includes('checksum')) {
-        this.sendStatus('error', { message: mapErrorToFriendly(error) })
+        this.sendStatus('error', { message: mapUpdateErrorToFriendlyMessage(error) })
         // 清除缓存重新下载
         autoUpdater.downloadUpdate().catch(() => {})
       } else {
-        this.sendStatus('error', { message: mapErrorToFriendly(error) })
+        this.sendStatus('error', { message: mapUpdateErrorToFriendlyMessage(error) })
       }
     })
 
@@ -177,7 +124,7 @@ export default class AppUpdater {
       await autoUpdater.checkForUpdates()
     } catch (err: any) {
       logger.error(`[Updater] Update check failed: ${err.message}`)
-      this.sendStatus('check-error', { message: mapErrorToFriendly(err) })
+      this.sendStatus('check-error', { message: mapUpdateErrorToFriendlyMessage(err) })
     }
   }
 
@@ -202,7 +149,7 @@ export default class AppUpdater {
         this.sendStatus('update-available', this._cachedUpdateInfo)
       } else {
         logger.error(`[Updater] Download failed: ${err.message}`)
-        this.sendStatus('error', { message: mapErrorToFriendly(err) })
+        this.sendStatus('error', { message: mapUpdateErrorToFriendlyMessage(err) })
       }
     } finally {
       this.downloadCancellation = null
