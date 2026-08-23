@@ -65,6 +65,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import {
+  WORKBENCH_TAB_DRAG_MIME,
+  WORKBENCH_TAB_SOURCE_PANEL_MIME
+} from '../../../../shared/workbench/types'
+import { getActiveWorkbenchDragSourcePanelId } from '../../foundation/workbench/useWorkbenchTabDrag'
 
 const { t } = useI18n()
 
@@ -165,8 +170,8 @@ const dropZoneOverlayStyle = computed(() => {
  * 在父容器上统一处理 dragover，通过鼠标坐标判断所在区域
  */
 const onContainerDragOver = (e: DragEvent) => {
-  // 只接受带有 tabId 的拖拽（来自 TabBar 的拖拽）
-  if (!e.dataTransfer?.types.includes('application/x-scx-tab')) return
+  // 只接受来自工作台选项卡的拖拽。
+  if (!e.dataTransfer?.types.includes(WORKBENCH_TAB_DRAG_MIME)) return
   e.preventDefault()
   if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
 
@@ -188,8 +193,8 @@ const onContainerDragOver = (e: DragEvent) => {
     const resizerWidth = 3
     const splitX = containerRect.left + containerRect.width * props.splitRatio
 
-    // 读取源面板 ID（dragover 中无法读取自定义 MIME 类型，通过 window 临时变量桥接）
-    const sourcePanelId = (window as any).__scxDragSourcePanelId || 'panel-0'
+    // dragover 阶段无法读取自定义 MIME 数据；活动 drag state 提供源面板。
+    const sourcePanelId = getActiveWorkbenchDragSourcePanelId() || 'panel-0'
     const targetZone = mouseX < splitX - resizerWidth / 2 ? 'left'
       : mouseX > splitX + resizerWidth / 2 ? 'right'
       : null
@@ -215,12 +220,12 @@ const onContainerDragLeave = (e: DragEvent) => {
 }
 
 const onContainerDrop = (e: DragEvent) => {
-  if (!e.dataTransfer?.types.includes('application/x-scx-tab')) return
+  if (!e.dataTransfer?.types.includes(WORKBENCH_TAB_DRAG_MIME)) return
   e.preventDefault()
   e.stopPropagation()
 
-  const tabId = e.dataTransfer?.getData('application/x-scx-tab')
-  const sourcePanelId = e.dataTransfer?.getData('application/x-scx-source-panel') || 'panel-0'
+  const tabId = e.dataTransfer?.getData(WORKBENCH_TAB_DRAG_MIME)
+  const sourcePanelId = e.dataTransfer?.getData(WORKBENCH_TAB_SOURCE_PANEL_MIME) || 'panel-0'
 
   const zone = dropZoneActive.value
   dropZoneActive.value = null

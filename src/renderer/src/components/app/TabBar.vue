@@ -3,26 +3,26 @@
     <div class="tabs-header" ref="tabsHeaderRef" @wheel="handleTabsWheel">
       <div class="tabs-nav" @contextmenu="$emit('tabsNavContextMenu', $event)">
         <div
-          v-for="(tab, index) in connectionTabs"
+          v-for="tab in connectionTabs"
           :key="tab.id"
           class="tab-item"
           :class="{
             active: activeTabId === tab.id.toString(),
             pinned: pinnedTabs.has(tab.id),
-            dragging: dragState.draggingId === tab.id,
-            'drag-over': dragState.overId === tab.id,
-            'drag-over-before': dragState.overId === tab.id && dragState.dropPosition === 'before'
+            dragging: dragState.draggingId === tab.id.toString(),
+            'drag-over': dragState.overId === tab.id.toString(),
+            'drag-over-before': dragState.overId === tab.id.toString() && dragState.dropPosition === 'before'
           }"
           :draggable="true"
           @mousedown="onTabMouseDown($event, tab)"
           @click="$emit('switchTab', tab.id); $emit('hideTabMenu')"
           @contextmenu="$emit('tabContextMenu', $event, tab)"
-          @dragstart="onDragStart($event, tab, index)"
-          @dragover="onDragOver($event, tab, index)"
-          @dragenter.prevent="onDragEnter($event, tab)"
-          @dragleave="onDragLeave($event, tab)"
-          @drop="onDrop($event, tab)"
-          @dragend="onDragEnd"
+          @dragstart="onDragStart($event, tab.id.toString())"
+          @dragover="onDragOver($event, tab.id.toString())"
+          @dragenter.prevent="onDragEnter($event, tab.id.toString())"
+          @dragleave="onDragLeave($event, tab.id.toString())"
+          @drop="onDrop($event, tab.id.toString())"
+          @dragend="resetDragState"
           :data-tab-id="tab.id"
         >
           <span class="tab-icon">
@@ -93,8 +93,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import { TOOLTIP_SHOW_AFTER } from '../../utils/constants'
+import { useWorkbenchTabDrag } from '../../foundation/workbench/useWorkbenchTabDrag'
 
 const props = defineProps<{
   connectionTabs: any[]
@@ -132,12 +133,10 @@ const emit = defineEmits<{
 
 const tabsHeaderRef = ref<HTMLElement | null>(null)
 
-// ---- 拖拽状态 ----
-const dragState = reactive({
-  draggingId: '' as string,
-  draggingIndex: -1,
-  overId: '' as string,
-  dropPosition: '' as 'before' | 'after' | ''
+const { dragState, onDragStart, onDragOver, onDragEnter, onDragLeave, onDrop, resetDragState } = useWorkbenchTabDrag({
+  panelId: props.panelId || 'panel-0',
+  isPinned: tabId => props.pinnedTabs.has(tabId),
+  onReorder: (fromId, targetId, position, toPinned) => emit('reorderTabsWithPin', fromId, targetId, position, toPinned)
 })
 
 const handleTabsWheel = (e: WheelEvent) => {
@@ -155,79 +154,6 @@ const onTabMouseDown = (e: MouseEvent, tab: any) => {
   emit('hideTabMenu')
 }
 
-// ---- 拖拽事件处理 ----
-const onDragStart = (e: DragEvent, tab: any, index: number) => {
-  dragState.draggingId = tab.id
-  dragState.draggingIndex = index
-  if (e.dataTransfer) {
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', tab.id)
-    // 自定义 MIME 类型，用于跨组件识别 tab 拖拽（仅 drop 时可读）
-    e.dataTransfer.setData('application/x-scx-tab', tab.id)
-    e.dataTransfer.setData('application/x-scx-source-panel', props.panelId || 'panel-0')
-    // window 临时变量：dragover 中无法读取自定义 MIME 类型，通过此变量桥接
-    ;(window as any).__scxDragSourcePanelId = props.panelId || 'panel-0'
-    // 设置拖拽图像为半透明
-    const el = e.target as HTMLElement
-    if (el) {
-      e.dataTransfer.setDragImage(el, el.offsetWidth / 2, el.offsetHeight / 2)
-    }
-  }
-}
-
-const onDragOver = (e: DragEvent, tab: any, _index: number) => {
-  e.preventDefault()
-  if (!dragState.draggingId || dragState.draggingId === tab.id) return
-  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
-
-  // 判断插入位置（鼠标在元素左半边还是右半边）
-  const el = (e.currentTarget as HTMLElement)
-  const rect = el.getBoundingClientRect()
-  const midX = rect.left + rect.width / 2
-  dragState.dropPosition = e.clientX < midX ? 'before' : 'after'
-}
-
-const onDragEnter = (e: DragEvent, tab: any) => {
-  e.preventDefault()
-  if (!dragState.draggingId || dragState.draggingId === tab.id) return
-  dragState.overId = tab.id
-}
-
-const onDragLeave = (e: DragEvent, tab: any) => {
-  // 只在真正离开元素时清除
-  const relatedTarget = e.relatedTarget as HTMLElement
-  const currentTarget = e.currentTarget as HTMLElement
-  if (!currentTarget.contains(relatedTarget)) {
-    if (dragState.overId === tab.id) {
-      dragState.overId = ''
-      dragState.dropPosition = ''
-    }
-  }
-}
-
-const onDrop = (e: DragEvent, tab: any) => {
-  e.preventDefault()
-  e.stopPropagation()
-  if (!dragState.draggingId || dragState.draggingId === tab.id) {
-    resetDragState()
-    return
-  }
-  // 根据目标 tab 是否固定来决定拖拽 tab 是否固定
-  const toPin = props.pinnedTabs.has(tab.id)
-  emit('reorderTabsWithPin', dragState.draggingId, tab.id, dragState.dropPosition, toPin)
-  resetDragState()
-}
-
-const onDragEnd = () => {
-  resetDragState()
-}
-
-const resetDragState = () => {
-  dragState.draggingId = ''
-  dragState.draggingIndex = -1
-  dragState.overId = ''
-  dragState.dropPosition = ''
-}
 </script>
 
 <style scoped>
