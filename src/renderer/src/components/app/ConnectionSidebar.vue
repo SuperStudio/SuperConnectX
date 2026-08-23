@@ -1,5 +1,9 @@
 <template>
-  <div class="connection-list-wrapper" :class="{ collapsed: !showConnectionList }" :style="showConnectionList ? { width: sidebarWidth + 'px' } : {}">
+  <SidebarLayout
+    class="connection-list-wrapper"
+    :visible="showConnectionList"
+    :width="sidebarWidth"
+  >
     <div class="connection-list">
       <!-- 固定区域：新建连接 + 搜索 -->
       <div class="connection-list-fixed">
@@ -133,8 +137,9 @@
       </div>
     </div>
 
-    <!-- 侧边栏底部工具栏 -->
-    <div class="sidebar-footer">
+    <template #footer>
+      <!-- 侧边栏底部工具栏 -->
+      <div class="sidebar-footer">
       <span class="sidebar-brand">SuperStudio</span>
       <div class="sidebar-menu-wrapper">
         <div class="sidebar-menu-btn" @click.stop="showSidebarMenu = !showSidebarMenu" :class="{ active: showSidebarMenu }">
@@ -152,8 +157,9 @@
           <div class="menu-item" @click="handleMenuClick('about')">{{ t('titlebar.about') }}</div>
         </div>
       </div>
-    </div>
-  </div>
+      </div>
+    </template>
+  </SidebarLayout>
 </template>
 
 <script setup lang="ts">
@@ -161,6 +167,7 @@ import { ref, onMounted, onUnmounted, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SearchInput from '../SearchInput.vue'
 import { TOOLTIP_SHOW_AFTER } from '../../utils/constants'
+import SidebarLayout from '../../foundation/shell/SidebarLayout.vue'
 
 const { t } = useI18n()
 
@@ -219,25 +226,6 @@ const handleMenuClick = (command: string) => {
 </script>
 
 <style scoped>
-.connection-list-wrapper {
-  width: 320px;
-  min-width: 200px;
-  max-width: 500px;
-  height: 100%;
-  overflow: hidden;
-  flex-shrink: 0;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-}
-
-.connection-list-wrapper.collapsed {
-  width: 0 !important;
-  min-width: 0 !important;
-  max-width: 0 !important;
-  border-right: none;
-}
-
 .connection-list {
   width: 100%;
   flex: 1;
