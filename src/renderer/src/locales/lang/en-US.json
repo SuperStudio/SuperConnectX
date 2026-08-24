@@ -241,7 +241,10 @@
     "virtual": "Virtual Port",
     "usb": "USB",
     "bluetooth": "Bluetooth",
-    "noType": "Unknown"
+    "noType": "Unknown",
+    "friendlyName": "Friendly Name",
+    "manufacturer": "Manufacturer",
+    "serialNumber": "Serial Number"
   },
   "tabs": {
     "disconnectAll": "Disconnect All",

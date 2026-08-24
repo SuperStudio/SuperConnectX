@@ -241,7 +241,10 @@
     "virtual": "虚拟串口",
     "usb": "USB",
     "bluetooth": "蓝牙",
-    "noType": "无类型"
+    "noType": "无类型",
+    "friendlyName": "设备名称",
+    "manufacturer": "制造商",
+    "serialNumber": "序列号"
   },
   "tabs": {
     "disconnectAll": "断开全部",

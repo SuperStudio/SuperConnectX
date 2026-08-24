@@ -57,7 +57,12 @@ export function useConnectionSidebar() {
   const filteredSerialPorts = computed(() => {
     if (!searchKeyword.value) return serialPorts.value
     const keyword = searchKeyword.value.toLowerCase()
-    return serialPorts.value.filter((port) => port.path.toLowerCase().includes(keyword))
+    return serialPorts.value.filter(
+      (port) =>
+        port.path.toLowerCase().includes(keyword) ||
+        (port.friendlyName && port.friendlyName.toLowerCase().includes(keyword)) ||
+        (port.manufacturer && port.manufacturer.toLowerCase().includes(keyword))
+    )
   })
 
   const connectionGroups = computed(() => {
