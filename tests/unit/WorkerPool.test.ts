@@ -100,6 +100,32 @@ describe('WorkerPool', () => {
       }
       pool.setCallbacks(callbacks.data, callbacks.log, callbacks.close)
     })
+
+    it('should ignore a stale Worker close message after sessionId reuse', () => {
+      const close = vi.fn()
+      pool.setCallbacks(vi.fn(), vi.fn(), close)
+      const oldEntry = {
+        worker: {},
+        sessionId: 'worker-reuse',
+        lifecycle: { sessionId: 'worker-reuse', generation: 1 },
+        alive: true,
+        closeNotified: false,
+        pendingRequests: new Map()
+      }
+      const currentEntry = {
+        ...oldEntry,
+        lifecycle: { sessionId: 'worker-reuse', generation: 2 }
+      }
+      ;(pool as any).workerMap.set('worker-reuse', currentEntry)
+
+      ;(pool as any).handleWorkerMessage(oldEntry, {
+        type: 'close',
+        sessionId: 'worker-reuse'
+      })
+
+      expect((pool as any).workerMap.get('worker-reuse')).toBe(currentEntry)
+      expect(close).not.toHaveBeenCalled()
+    })
   })
 
   describe('shutdown', () => {
@@ -119,7 +145,7 @@ describe('WorkerPool', () => {
         host: 'localhost',
         port: 23,
         username: '',
-        password: '',
+        password: ''
         // missing sessionId
       }
 
@@ -149,7 +175,9 @@ describe('WorkerPool', () => {
 
   describe('updateConnectionConfig - error handling', () => {
     it('should return error for non-existent session', async () => {
-      const result = await pool.updateConnectionConfig('nonexistent', 'telnet', { receiveHex: true })
+      const result = await pool.updateConnectionConfig('nonexistent', 'telnet', {
+        receiveHex: true
+      })
       expect(result.success).toBe(false)
       expect(result.message).toBeDefined()
     })
@@ -184,7 +212,17 @@ describe('WorkerPool', () => {
     })
 
     it('should support all message types for WorkerToMainMessage', () => {
-      const types = ['ready', 'data', 'log', 'close', 'start-result', 'send-result', 'stop-result', 'update-config-result', 'error']
+      const types = [
+        'ready',
+        'data',
+        'log',
+        'close',
+        'start-result',
+        'send-result',
+        'stop-result',
+        'update-config-result',
+        'error'
+      ]
 
       for (const type of types) {
         const msg = { type, sessionId: 's1' }

@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 
@@ -31,7 +31,10 @@ const { t } = useI18n()
 import UnifiedTerminal from './UnifiedTerminal.vue'
 import { fromRawConnection } from '../entity/protocol'
 import { useTerminal } from '../composables/useTerminal'
-import { recvDisplayText } from '../composables/app/useSettingsStore'
+import { recvDisplayText, sendDisplayText } from '../composables/app/useSettingsStore'
+import type { RuntimeUiEvent } from '../../../shared/extensions/ai-control/AiServiceTypes'
+
+type ExternalSessionState = 'starting' | 'connected' | 'error' | 'closed' | 'unknown'
 
 const MAX_RETRY_COUNT = 1000
 const RETRY_INTERVAL_MS = 3000
@@ -46,6 +49,8 @@ const props = withDefaults(defineProps<{
     name?: string
     sessionId: string | number
     ftpMode?: string
+    aiManaged?: boolean
+    aiSessionState?: ExternalSessionState
   }
   onClose?: () => void
   autoConnect?: boolean
@@ -63,6 +68,7 @@ const stopRetry = ref(false)
 let preventAutoReconnect = false
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
+let removeRuntimeEventListener: (() => void) | null = null
 
 // 获取原始 connection id
 const getOriginalConnectionId = (): number | undefined => {
@@ -161,6 +167,115 @@ const cleanup = () => {
     removeCloseListener = null
   }
   isConnected.value = false
+}
+
+const bindAiDataListener = (): void => {
+  if (removeDataListener) {
+    removeDataListener()
+    removeDataListener = null
+  }
+  removeDataListener = window.connectApi.onRecvData((data) => {
+    if (String(data.connId) !== String(props.connection.sessionId)) return
+    terminal.totalRxSize += data.data.length
+    unifiedTerminalRef.value?.updateRxBytes(data.data.length)
+    const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
+    const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
+    unifiedTerminalRef.value?.appendToTerminal(`${prefix}${recvLabel}${data.data}\n`)
+  })
+}
+
+const appendExternalSessionState = (state: ExternalSessionState, result?: unknown): void => {
+  const detail =
+    result &&
+    typeof result === 'object' &&
+    typeof (result as { message?: unknown }).message === 'string'
+      ? `: ${(result as { message: string }).message}`
+      : ''
+  const type = props.connection.connectionType.toUpperCase()
+  if (state === 'starting') {
+    unifiedTerminalRef.value?.appendToTerminal(`\n[AI] ${t('terminal.aiConnectionStarting', { type })}\n`)
+  } else if (state === 'connected') {
+    unifiedTerminalRef.value?.appendToTerminal(`\n[AI] ${t('terminal.aiConnectionConnected', { type })}\n`)
+  } else if (state === 'error') {
+    unifiedTerminalRef.value?.appendToTerminal(`\n[AI] ${t('terminal.aiConnectionFailed', { type })}${detail}\n`)
+  } else if (state === 'closed') {
+    unifiedTerminalRef.value?.appendToTerminal(`\n[AI] ${t('terminal.aiConnectionClosed', { type })}\n`)
+  }
+}
+
+const applyExternalSessionState = (
+  state: ExternalSessionState | undefined,
+  result?: unknown
+): void => {
+  if (!props.connection.aiManaged || !state) return
+  if (state === 'starting') {
+    isConnecting.value = true
+    isConnected.value = false
+    appendExternalSessionState(state, result)
+    return
+  }
+  if (state === 'connected') {
+    const wasConnected = isConnected.value
+    isConnecting.value = false
+    isConnected.value = true
+    bindAiDataListener()
+    if (!wasConnected) appendExternalSessionState(state, result)
+    return
+  }
+
+  const wasConnected = isConnected.value
+  isConnecting.value = false
+  isConnected.value = false
+  if (removeDataListener) {
+    removeDataListener()
+    removeDataListener = null
+  }
+  if (state === 'error' || (state === 'closed' && wasConnected)) {
+    appendExternalSessionState(state, result)
+  }
+}
+
+watch(
+  () => props.connection.aiSessionState,
+  (state, previousState) => {
+    if (props.connection.aiManaged && state !== previousState) applyExternalSessionState(state)
+  }
+)
+
+const formatRuntimeTimestamp = (timestamp?: string): string => {
+  const parsed = timestamp ? new Date(timestamp) : new Date()
+  const date = Number.isNaN(parsed.getTime()) ? new Date() : parsed
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}.${String(date.getMilliseconds()).padStart(3, '0')}`
+}
+
+const handleRuntimeEvent = (event: RuntimeUiEvent): void => {
+  if (
+    !props.connection.aiManaged ||
+    event?.source !== 'ai' ||
+    (event?.eventType !== 'tx.accepted' && event?.eventType !== 'tx.failed') ||
+    String(event?.sessionId) !== String(props.connection.sessionId)
+  )
+    return
+
+  const payload = event.payload || {}
+  const command = typeof payload.command === 'string' ? payload.command : ''
+  if (!command) return
+  const displayCommand =
+    typeof payload.displayCommand === 'string'
+      ? payload.displayCommand
+      : command.replace(/(?:\r\n|\r|\n)+$/, '')
+  const failed = event.eventType === 'tx.failed'
+  const result = payload.result as { message?: unknown } | undefined
+  const errorSuffix = failed && typeof result?.message === 'string' ? ` (${result.message})` : ''
+  const label = failed ? `AI ${sendDisplayText.value} FAILED` : `AI ${sendDisplayText.value}`
+  unifiedTerminalRef.value?.appendToTerminal(
+    `\n[${formatRuntimeTimestamp(event.timestamp)}] ${label} ${displayCommand}${errorSuffix}\n`
+  )
+  if (!failed) {
+    const byteLength = typeof payload.byteLength === 'number' ? payload.byteLength : command.length
+    terminal.totalTxSize += byteLength
+    unifiedTerminalRef.value?.updateTxBytes(byteLength)
+  }
 }
 
 const handleReconnect = () => {
@@ -401,11 +516,16 @@ onBeforeUnmount(() => {
     clearTimeout(retryTimer)
     retryTimer = null
   }
+  removeRuntimeEventListener?.()
+  removeRuntimeEventListener = null
   cleanup()
 })
 
 onMounted(() => {
-  if (props.autoConnect) {
+  if (props.connection.aiManaged) {
+    removeRuntimeEventListener = window.connectApi.onRuntimeEvent(handleRuntimeEvent)
+    applyExternalSessionState(props.connection.aiSessionState)
+  } else if (props.autoConnect) {
     connect()
   }
 })

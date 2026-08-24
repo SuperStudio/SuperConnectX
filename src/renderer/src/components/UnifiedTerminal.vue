@@ -207,6 +207,7 @@ import { getMonacoTheme } from '../utils/MonacoTheme'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
 import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
 import { sendDisplayText } from '../composables/app/useSettingsStore'
+import { prepareCommand } from '../../../shared/serial/CommandPreparation'
 
 const maxClearSizeMB = ref(30)
 
@@ -449,17 +450,6 @@ async function updateCrc(): Promise<void> {
 watch([crcInputData, crcMethod, crcEnabled], () => {
   updateCrc()
 })
-
-// 获取 CRC 的原始二进制字节（用于附加到发送数据，大端序）
-const getCrcBytesBinary = (): string | null => {
-  const bytes = crcResultBytes.value
-  if (!bytes || bytes.length === 0) return null
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  return binary
-}
 
 // 命令历史相关
 const commandHistory = ref<string[]>([])
@@ -1011,45 +1001,36 @@ const handleFtpFileUpload = async () => {
   }
 }
 
-const handleSendCommand = () => {
+const handleSendCommand = async () => {
   const cmd = currentCommand.value
   if (!cmd.trim()) return
 
-  let sendData: string = cmd
   const originalInput = cmd // 保存原始输入
-
-  // 处理HEX模式
-  if (hexMode.value) {
-    const parsed = parseHexString(cmd)
-    if (parsed === null) {
-      return // 无效的HEX格式
+  let prepared
+  try {
+    prepared = await prepareCommand(
+      cmd,
+      {
+        autoNewline: autoNewline.value,
+        hexMode: hexMode.value,
+        crcEnabled: crcEnabled.value,
+        crcMethod: crcMethod.value
+      },
+      async (hexData, method) => {
+        const result = await window.dataCheckApi.checkData(method, hexData)
+        return result.hexResult
     }
-    sendData = parsed
-
-    // 先附加回车换行（CRLF属于原始数据的一部分）
-    if (autoNewline.value) {
-      sendData = sendData + '\r\n'
-    }
-
-    // 附加CRC（如果启用，CRC计算的数据已包含CRLF）
-    if (crcEnabled.value && crcInputData.value) {
-      const crcBytes = getCrcBytesBinary()
-      if (crcBytes) {
-        sendData = sendData + crcBytes
-      }
-    }
-  } else {
-    // 处理回车换行
-    if (autoNewline.value) {
-      sendData = sendData + '\r\n'
-    }
+    )
+  } catch (error) {
+    console.error('Command preparation failed:', error)
+    return
   }
 
   // 保存命令到历史记录
   addToHistory(originalInput)
 
   // 传递原始输入用于显示（在HEX模式下需要显示原始HEX字符串）
-  emit('onSend', sendData, originalInput)
+  emit('onSend', prepared.data, originalInput)
   closeHistoryPopup()
 
   // 发送后清空输入栏
@@ -1252,28 +1233,6 @@ const handleInputKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Escape') {
     closeHistoryPopup()
     return
-  }
-}
-
-// 解析HEX字符串为二进制
-const parseHexString = (hex: string): string | null => {
-  try {
-    // 移除空格和换行
-    const cleaned = hex.replace(/[\s\n\r]+/g, '')
-    // 验证是否为有效的HEX字符串
-    if (!/^[0-9A-Fa-f]*$/.test(cleaned) || cleaned.length % 2 !== 0) {
-      console.error('Invalid HEX format')
-      return null
-    }
-    // 转换为二进制字符串
-    let result = ''
-    for (let i = 0; i < cleaned.length; i += 2) {
-      result += String.fromCharCode(parseInt(cleaned.substr(i, 2), 16))
-    }
-    return result
-  } catch (error) {
-    console.error('HEX parse error:', error)
-    return null
   }
 }
 

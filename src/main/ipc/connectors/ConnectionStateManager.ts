@@ -7,6 +7,8 @@
  */
 import { BrowserWindow } from 'electron'
 import ProtocolLogger from '../../utils/ProtocolLogger'
+import RuntimeEventHub from '../../services/RuntimeEventHub'
+import type { SessionLifecycleRef } from '../../services/types/RuntimeTypes'
 
 export default class ConnectionStateManager {
   private receiveHexMap = new Map<string, boolean>()
@@ -17,11 +19,18 @@ export default class ConnectionStateManager {
   // 外部依赖（由 IpcConnector 注入）
   private windows: { mainWindow?: BrowserWindow | null } = { mainWindow: undefined }
   private logger: ProtocolLogger | null = null
+  private eventHub: RuntimeEventHub | null = null
+  private onBackendClosed: ((lifecycle: SessionLifecycleRef) => void) | null = null
 
-  init(
-    winRef: { mainWindow?: BrowserWindow | null },
-    _logger: ProtocolLogger
-  ): void {
+  setEventHub(eventHub: RuntimeEventHub): void {
+    this.eventHub = eventHub
+  }
+
+  setBackendClosedListener(listener: (lifecycle: SessionLifecycleRef) => void): void {
+    this.onBackendClosed = listener
+  }
+
+  init(winRef: { mainWindow?: BrowserWindow | null }, _logger: ProtocolLogger): void {
     this.windows = winRef
     this.logger = _logger
   }
@@ -69,7 +78,12 @@ export default class ConnectionStateManager {
   /**
    * 连接关闭时的统一清理逻辑（4 处重复代码的合并）
    */
-  cleanupOnClose(sessionId: string): void {
+  notifyBackendClosed(lifecycle: SessionLifecycleRef): void {
+    this.onBackendClosed?.(lifecycle)
+  }
+
+  cleanupFinalized(lifecycle: SessionLifecycleRef): void {
+    const sessionId = lifecycle.sessionId
     this.logger?.flushConnLog(sessionId)
     this.receiveHexMap.delete(sessionId)
     this.logTimestampMap.delete(sessionId)
@@ -95,6 +109,15 @@ export default class ConnectionStateManager {
    * 发送数据到渲染进程
    */
   sendDataToRenderer(sessionId: string, data: string, timestamp: string, isHex: boolean): void {
+    if (this.eventHub?.shouldCaptureRx(sessionId)) {
+      this.eventHub.publishRx({
+        eventType: 'rx.display',
+        sessionId,
+        source: 'system',
+        timestamp: timestamp || undefined,
+        payload: { data, timestamp, isHex }
+      })
+    }
     const wc = this.windows.mainWindow?.webContents
     if (!wc || wc.isDestroyed()) return
     wc.send('on-recv-data', {
@@ -104,5 +127,4 @@ export default class ConnectionStateManager {
       isHex
     })
   }
-
 }

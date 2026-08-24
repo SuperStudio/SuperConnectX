@@ -118,6 +118,7 @@
           <div class="menu-item" @click="handleShortcuts">{{ t('sidebar.shortcuts') }}</div>
           <div class="menu-separator"></div>
           <div class="menu-item" @click="handleVirtualPort">{{ t('virtualPort.title') }}</div>
+          <div class="menu-item" @click="handleAiService">{{ t('aiService.title') }}</div>
           <div class="menu-item" @click="handleCheckUpdate">{{ t('sidebar.checkUpdate') }}</div>
           <div class="menu-item" @click="handlePlugins">{{ t('sidebar.plugins') }}</div>
         </div>
@@ -249,6 +250,7 @@ const emit = defineEmits([
   'open-virtualPort',
   'check-update',
   'open-plugins',
+  'open-ai-service',
   'toggle-word-wrap',
   'toggle-line-numbers',
   'toggle-log-editable'
@@ -454,6 +456,11 @@ const handleShortcuts = () => {
 const handleVirtualPort = () => {
   showToolsMenu.value = false
   emit('open-virtualPort')
+}
+
+const handleAiService = () => {
+  showToolsMenu.value = false
+  emit('open-ai-service')
 }
 
 const handleCheckUpdate = () => {

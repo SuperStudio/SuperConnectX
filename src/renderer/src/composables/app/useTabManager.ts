@@ -12,12 +12,15 @@ export interface TabItem {
   id: string
   connectionType: string
   sessionId: string | number
+  aiManaged?: boolean
+  aiSessionState?: 'starting' | 'connected' | 'error' | 'closed' | 'unknown'
   name?: string
   host?: string
   comName?: string
   port?: number
   connectionId?: number
   editorConnectionType?: string
+  aiView?: 'overview' | 'history'
   [key: string]: any
 }
 
@@ -70,6 +73,9 @@ export function useTabManager(
 
   // ---- 连接状态 ----
   const getConnectionStatus = (tab: TabItem) => {
+    if (tab.aiManaged) {
+      return tab.aiSessionState === 'connected' ? 'connected' : 'disconnected'
+    }
     if (tab.connectionType === 'com') {
       return comTerminalRefs[tab.id]?.isConnected ? 'connected' : 'disconnected'
     }
@@ -118,9 +124,12 @@ export function useTabManager(
   }
 
   // ---- 关闭 Tab ----
+  const isConnectionTab = (tab: TabItem): boolean =>
+    tab.connectionType === 'com' || tab.connectionType === 'telnet' || tab.connectionType === 'ftp'
+
   const closeTabOnly = async (tabId: string) => {
     if (pinnedTabs.has(tabId)) return
-    const tab = connectionTabs.value.find((t) => t.id === tabId)
+    const tab = connectionTabs.value.find((t) => String(t.id) === String(tabId))
     if (!tab) return
 
     // 禁止自动重连 + 断开连接（需要 await 确保 onDisconnect 事件链完成）
@@ -133,20 +142,43 @@ export function useTabManager(
     }
 
     // 断开连接（IPC）
-    const stopPayload = JSON.parse(JSON.stringify({
-      ...fromRawConnection(tab),
-      sessionId: tab.sessionId
-    }))
-    await window.connectApi.stopConnect(stopPayload).catch(() => {})
+    if (isConnectionTab(tab)) {
+      const stopPayload = JSON.parse(JSON.stringify({
+        ...fromRawConnection(tab),
+        sessionId: tab.sessionId
+      }))
+      await window.connectApi.stopConnect(stopPayload).catch(() => {})
+    }
 
     pinnedTabs.delete(tabId)
 
     // 从列表中移除
-    connectionTabs.value = connectionTabs.value.filter((t) => t.id !== tabId)
+    connectionTabs.value = connectionTabs.value.filter((t) => String(t.id) !== String(tabId))
 
     if (activeTabId.value === tabId && connectionTabs.value.length > 0) {
       activeTabId.value = connectionTabs.value[connectionTabs.value.length - 1].id.toString()
     }
+  }
+
+/** 移除已经由 AI 服务关闭的会话标签，不再次触发 GUI 断开流程。 */
+  const removeAiSessionTab = (sessionId: string): string | undefined => {
+    const tab = connectionTabs.value.find(
+      (item) => item.aiManaged && String(item.sessionId) === String(sessionId)
+    )
+    if (!tab) return undefined
+
+    const tabId = String(tab.id)
+    pinnedTabs.delete(tabId)
+    delete comTerminalRefs[tabId]
+    delete telnetTerminalRefs[tabId]
+    connectionTabs.value = connectionTabs.value.filter((item) => item.id !== tabId)
+
+    if (activeTabId.value === tabId) {
+      activeTabId.value = connectionTabs.value.length > 0
+        ? connectionTabs.value[connectionTabs.value.length - 1].id.toString()
+        : ''
+    }
+    return tabId
   }
 
   const closeTab = async (tabId: string, force = false) => {
@@ -163,11 +195,13 @@ export function useTabManager(
         await comTerminalRefs[tabId]?.disconnect?.()
       }
 
-      const stopPayload = JSON.parse(JSON.stringify({
-        ...fromRawConnection(tab),
-        sessionId: tab.sessionId
-      }))
-      await window.connectApi.stopConnect(stopPayload)
+      if (isConnectionTab(tab)) {
+        const stopPayload = JSON.parse(JSON.stringify({
+          ...fromRawConnection(tab),
+          sessionId: tab.sessionId
+        }))
+        await window.connectApi.stopConnect(stopPayload)
+      }
 
       pinnedTabs.delete(tabId)
     }
@@ -382,9 +416,11 @@ export function useTabManager(
     const existingTab = connectionTabs.value.find((t) => t.comName === port.path && t.connectionType === 'com')
     if (existingTab) {
       activeTabId.value = existingTab.id
-      setTimeout(() => {
-        comTerminalRefs[existingTab.id]?.reconnect?.()
-      }, 100)
+      if (!comTerminalRefs[existingTab.id]?.isConnected && !existingTab.aiManaged) {
+        setTimeout(() => {
+          comTerminalRefs[existingTab.id]?.reconnect?.()
+        }, 100)
+      }
       return
     }
     const sessionId = port.path
@@ -403,6 +439,62 @@ export function useTabManager(
     }
     connectionTabs.value.push(newTab)
     activeTabId.value = newTabId
+  }
+
+  const ensureAiSessionTab = (session: {
+    sessionId: string
+    state: 'starting' | 'connected' | 'error' | 'closed' | 'unknown'
+    connectionType?: string
+    name?: string
+    comName?: string
+    host?: string
+    port?: number
+    desiredConfig?: Record<string, unknown>
+  }): TabItem => {
+    const sessionId = String(session.sessionId)
+    const existingTab = connectionTabs.value.find((tab) => String(tab.sessionId) === sessionId)
+    const connectionType = session.connectionType || 'com'
+    const desiredConfig =
+      session.desiredConfig && typeof session.desiredConfig === 'object'
+        ? session.desiredConfig
+        : {}
+    const reservedFields = new Set([
+      'id',
+      'sessionId',
+      'connectionId',
+      'connectionType',
+      'aiManaged',
+      'aiSessionState',
+      'wasConnected'
+    ])
+    const safeDesiredConfig = Object.fromEntries(
+      Object.entries(desiredConfig).filter(([key]) => !reservedFields.has(key))
+    )
+    const connectionFields: Partial<TabItem> = {
+      ...safeDesiredConfig,
+      connectionType,
+      sessionId,
+      aiManaged: true,
+      aiSessionState: session.state,
+      name: session.name || session.comName || session.host,
+      comName: session.comName,
+      host: session.host,
+      port: session.port
+    }
+
+    if (existingTab) {
+      Object.assign(existingTab, connectionFields)
+      return existingTab
+    }
+
+    const newTab: TabItem = {
+      id: `ai-session-${sessionId}`,
+      ...connectionFields
+    } as TabItem
+    const shouldActivate = connectionTabs.value.length === 0 || !activeTabId.value
+    connectionTabs.value.push(newTab)
+    if (shouldActivate) activeTabId.value = newTab.id
+    return newTab
   }
 
   const openCommandEditorTab = (connectionType: string = 'telnet') => {
@@ -449,6 +541,24 @@ export function useTabManager(
     activeTabId.value = newTabId
   }
 
+  const openAiServiceTab = (view: 'overview' | 'history' = 'overview') => {
+    const existingTab = connectionTabs.value.find((tab) => tab.id === 'ai-service')
+    if (existingTab) {
+      existingTab.name = t('aiService.title')
+      existingTab.aiView = view
+      activeTabId.value = existingTab.id
+      return
+    }
+    connectionTabs.value.push({
+      id: 'ai-service',
+      sessionId: 'ai-service',
+      connectionType: 'aiService',
+      name: t('aiService.title'),
+      aiView: view
+    })
+    activeTabId.value = 'ai-service'
+  }
+
   return {
     connectionTabs,
     activeTabId,
@@ -465,6 +575,7 @@ export function useTabManager(
     connectAllTabs,
     disconnectAllTabs,
     closeTabOnly,
+    removeAiSessionTab,
     closeTab,
     closeSingleTab,
     closeOtherTabs,
@@ -478,9 +589,11 @@ export function useTabManager(
     togglePinTab,
     connectToServer,
     connectToSerialPort,
+    ensureAiSessionTab,
     openCommandEditorTab,
     openShortcutsTab,
     openSettingsTab,
-    openVirtualPortTab
+    openVirtualPortTab,
+    openAiServiceTab
   }
 }

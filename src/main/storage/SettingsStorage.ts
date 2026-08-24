@@ -259,6 +259,22 @@ export default class SettingsStorage extends PreferenceStore<Settings> {
     this.savePreferences(settings)
   }
 
+  removeLegacyAiSettings(): void {
+    for (const key of [
+      'aiBridgeEnabled',
+      'aiBridgePermission',
+      'aiActivityOverlayClickable',
+      'aiActivityOverlayOpacity',
+      'aiActivityOverlayPosition',
+      'aiActivityOverlayDuration',
+      'aiActivityLogPath',
+      'aiActivityLogMaxSizeMb',
+      'aiActivityLogMaxFiles'
+    ]) {
+      this.storageData.delete(key)
+    }
+  }
+
   getDefaults(): Settings {
     return { ...defaultSettings }
   }

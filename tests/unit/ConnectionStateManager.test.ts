@@ -30,10 +30,7 @@ function createStateManager(
   opts: { mainWindow?: { webContents: { send: Function; isDestroyed: Function } } | null } = {}
 ): ConnectionStateManager {
   const sm = new ConnectionStateManager()
-  sm.init(
-    opts.mainWindow !== undefined ? opts : { mainWindow: null },
-    new ProtocolLogger() as any
-  )
+  sm.init(opts.mainWindow !== undefined ? opts : { mainWindow: null }, new ProtocolLogger() as any)
   return sm
 }
 
@@ -112,9 +109,9 @@ describe('ConnectionStateManager', () => {
     })
   })
 
-  // ============ cleanupOnClose ============
+  // ============ cleanupFinalized ============
 
-  describe('cleanupOnClose', () => {
+  describe('cleanupFinalized', () => {
     it('should clear all maps for the session', () => {
       const sm = createStateManager()
       sm.setReceiveHex('s1', true)
@@ -122,10 +119,10 @@ describe('ConnectionStateManager', () => {
       sm.setConnectionType('s1', 'telnet')
       sm.setFtpMode('s1', 'client')
 
-      sm.cleanupOnClose('s1')
+      sm.cleanupFinalized({ sessionId: 's1', generation: 1 })
 
-      expect(sm.getReceiveHex('s1')).toBe(false)    // default
-      expect(sm.getLogTimestamp('s1')).toBe(true)    // default
+      expect(sm.getReceiveHex('s1')).toBe(false) // default
+      expect(sm.getLogTimestamp('s1')).toBe(true) // default
       expect(sm.getConnectionType('s1')).toBeUndefined()
       expect(sm.getFtpMode('s1')).toBeUndefined()
     })
@@ -135,7 +132,7 @@ describe('ConnectionStateManager', () => {
       sm.setConnectionType('s1', 'telnet')
       sm.setConnectionType('s2', 'com')
 
-      sm.cleanupOnClose('s1')
+      sm.cleanupFinalized({ sessionId: 's1', generation: 1 })
 
       expect(sm.getConnectionType('s1')).toBeUndefined()
       expect(sm.getConnectionType('s2')).toBe('com')
@@ -147,14 +144,14 @@ describe('ConnectionStateManager', () => {
         mainWindow: { webContents: { send, isDestroyed: () => false } }
       })
 
-      sm.cleanupOnClose('s1')
+      sm.cleanupFinalized({ sessionId: 's1', generation: 1 })
       expect(send).toHaveBeenCalledWith('on-connect-close', 's1')
     })
 
     it('should NOT send when window is null', () => {
       const sm = createStateManager({ mainWindow: null })
       // should not throw
-      expect(() => sm.cleanupOnClose('s1')).not.toThrow()
+      expect(() => sm.cleanupFinalized({ sessionId: 's1', generation: 1 })).not.toThrow()
     })
 
     it('should NOT send when webContents is destroyed', () => {
@@ -163,7 +160,7 @@ describe('ConnectionStateManager', () => {
         mainWindow: { webContents: { send, isDestroyed: () => true } }
       })
 
-      sm.cleanupOnClose('s1')
+      sm.cleanupFinalized({ sessionId: 's1', generation: 1 })
       expect(send).not.toHaveBeenCalled()
     })
 
@@ -173,7 +170,7 @@ describe('ConnectionStateManager', () => {
       const sm = new ConnectionStateManager()
       sm.init({ mainWindow: null }, mockLogger)
 
-      sm.cleanupOnClose('s1')
+      sm.cleanupFinalized({ sessionId: 's1', generation: 1 })
       expect(flushConnLog).toHaveBeenCalledWith('s1')
     })
   })

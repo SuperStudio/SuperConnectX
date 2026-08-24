@@ -223,6 +223,7 @@ import { Plus, Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
 import FormUtils from '../utils/FormUtils'
 import eventBus from '../utils/EventBus'
 import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
+import type { RuntimeUiEvent } from '../../../shared/extensions/ai-control/AiServiceTypes'
 
 // 组相关状态
 const groups = ref<any[]>([])
@@ -254,6 +255,7 @@ const loopStatus = ref<Record<number, boolean>>({})
 const isRunningAll = ref(false)
 const runAllInterval = ref<NodeJS.Timeout | null>(null)
 const runAllCommandIndex = ref(0)
+let removeRuntimeEventListener: (() => void) | null = null
 const presetRules = FormUtils.buildPresetCmd()
 const presetFormRef = ref<InstanceType<typeof ElForm> | null>(null)
 const nameInputRef = ref<InstanceType<typeof ElInput> | null>(null)
@@ -961,6 +963,7 @@ onMounted(() => {
   eventBus.on('commandGroupsChanged', handleCommandGroupsChanged)
   // 监听预设命令变化事件
   eventBus.on('presetCommandsChanged', handlePresetCommandsChanged)
+  removeRuntimeEventListener = window.connectApi.onRuntimeEvent(handleRuntimeEvent)
 })
 
 onBeforeUnmount(() => {
@@ -972,6 +975,8 @@ onBeforeUnmount(() => {
   eventBus.off('commandGroupsChanged', handleCommandGroupsChanged)
   // 移除预设命令变化事件监听
   eventBus.off('presetCommandsChanged', handlePresetCommandsChanged)
+  removeRuntimeEventListener?.()
+  removeRuntimeEventListener = null
 
   Object.values(loopIntervals.value).forEach((interval) => {
     clearInterval(interval)
@@ -1006,6 +1011,17 @@ const handlePresetCommandsChanged = (connectionType: string) => {
   if (props.connection?.connectionType === connectionType) {
     loadPresetCommands()
   }
+}
+
+// AI 通过公共 ConfigService 修改命令或命令组后，重新读取软件自己的存储。
+const handleRuntimeEvent = (event: RuntimeUiEvent): void => {
+  if (
+    event?.eventType !== 'config.changed' ||
+    (event.payload?.domain !== 'preset-commands' && event.payload?.domain !== 'command-groups')
+  )
+    return
+
+  void Promise.all([loadGroups(), loadPresetCommands()])
 }
 </script>
 

@@ -22,6 +22,13 @@ const formatBytes = (bytes: number, decimals = 2): string => {
  * @param mainWindow 主窗口实例（可选，用于打印窗口信息）
  */
 export const printAppInfo = (mainWindow?: BrowserWindow) => {
+  let username = 'unknown'
+  try {
+    username = os.userInfo().username
+  } catch (error) {
+    logger.warn(`Unable to read OS user information: ${String(error)}`)
+  }
+
   // ========== 1. 应用基础信息 ==========
   const appBasicInfo = {
     appName: app.getName(),
@@ -45,7 +52,7 @@ export const printAppInfo = (mainWindow?: BrowserWindow) => {
     cpuCores: os.cpus().length, // CPU 核心数
     totalMemory: formatBytes(os.totalmem()), // 总内存
     freeMemory: formatBytes(os.freemem()), // 可用内存
-    username: os.userInfo().username, // 当前系统用户
+    username, // 当前系统用户
     userDir: os.homedir(), // 用户主目录
     appDataDir: getAppDataDir(), // 应用数据目录（智能路径）
     logDir: path.join(getAppDataDir(), 'logs'), // 终端日志目录

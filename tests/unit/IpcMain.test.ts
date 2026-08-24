@@ -4,8 +4,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockDialogHandlers } = vi.hoisted(() => ({
-  mockDialogHandlers: new Map<string, Function>()
+const { mockDialogHandlers, mockBrowserWindowCreated } = vi.hoisted(() => ({
+  mockDialogHandlers: new Map<string, Function>(),
+  mockBrowserWindowCreated: vi.fn()
 }))
 
 vi.mock('electron', () => ({
@@ -29,6 +30,7 @@ vi.mock('electron', () => ({
     static getFocusedWindow() { return null }
     static getAllWindows() { return [] }
     constructor() {
+      mockBrowserWindowCreated()
       // mock instance methods
       Object.assign(this, {
         loadFile: vi.fn(),
@@ -52,7 +54,8 @@ vi.mock('electron', () => ({
   },
   dialog: {
     showOpenDialog: vi.fn(async () => ({ filePaths: [] })),
-    showSaveDialog: vi.fn(async () => ({ filePath: null }))
+    showSaveDialog: vi.fn(async () => ({ filePath: null })),
+    showErrorBox: vi.fn()
   },
   powerSaveBlocker: {
     start: vi.fn(() => 1),
@@ -111,12 +114,15 @@ vi.mock('fs', () => ({
   }
 }))
 
+import { app, dialog } from 'electron'
 import IpcMain from '../../src/main/ipc/IpcMain'
 
 describe('IpcMain', () => {
   let ipcMainInst: IpcMain
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    vi.clearAllMocks()
     ;(IpcMain as any).sInstance = null
     ipcMainInst = IpcMain.getInstance()
     mockDialogHandlers.clear()
@@ -179,6 +185,35 @@ describe('IpcMain', () => {
     it('should call checkForUpdates without error', async () => {
       ipcMainInst.init({ flush: vi.fn() }, {})
       await expect(mockDialogHandlers.get('check-for-updates')!()).resolves.toBeUndefined()
+    })
+  })
+
+  describe('init() - renderer prerequisites', () => {
+    it('should create the renderer only after prerequisites are ready', async () => {
+      let markReady!: () => void
+      const rendererReady = new Promise<void>((resolve) => {
+        markReady = resolve
+      })
+
+      ipcMainInst.init({ flush: vi.fn() }, {}, rendererReady)
+      await Promise.resolve()
+      await Promise.resolve()
+      expect(mockBrowserWindowCreated).not.toHaveBeenCalled()
+
+      markReady()
+      await vi.waitFor(() => expect(mockBrowserWindowCreated).toHaveBeenCalledTimes(1))
+    })
+
+    it('should report the error and quit instead of opening an unsafe renderer', async () => {
+      ipcMainInst.init(
+        { flush: vi.fn() },
+        {},
+        Promise.reject(new Error('AI service initialization failed'))
+      )
+
+      await vi.waitFor(() => expect(dialog.showErrorBox).toHaveBeenCalledTimes(1))
+      expect(mockBrowserWindowCreated).not.toHaveBeenCalled()
+      expect(app.quit).toHaveBeenCalledTimes(1)
     })
   })
 })

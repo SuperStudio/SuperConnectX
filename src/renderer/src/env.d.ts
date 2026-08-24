@@ -62,6 +62,11 @@ interface ConnectApi {
   startConnect: (conn: any) => Promise<any>
   startConnectById: (id: number, sessionId: string, extraFields?: any) => Promise<any>
   sendData: (data: { conn: any; command: string }) => Promise<any>
+  updateSessionCommandSettings: (payload: {
+    sessionId: string
+    settings: { autoNewline: boolean; hexMode: boolean; crcEnabled: boolean; crcMethod: string }
+    revision: number
+  }) => Promise<{ updated: boolean; revision: number }>
   uploadFile: (data: { conn: any; localFilePath: string; remoteFileName: string }) => Promise<any>
   stopConnect: (conn: any) => Promise<any>
   updateConnect: (conn: any, config: any) => Promise<any>
@@ -75,6 +80,15 @@ interface ConnectApi {
   listSerialPorts: () => Promise<any[]>
   fixSerialPermissions: () => Promise<{ success: boolean; message?: string }>
   onSerialPortsChanged: (callback: (ports: any[]) => void) => () => void
+  onRuntimeEvent: (
+    callback: (event: {
+      eventType?: string
+      source?: string
+      sessionId?: string
+      timestamp?: string
+      payload?: Record<string, unknown>
+    }) => void
+  ) => () => void
   writeToLog: (sessionId: string, content: string) => Promise<any>
 }
 

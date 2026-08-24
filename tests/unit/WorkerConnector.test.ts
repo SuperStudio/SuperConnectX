@@ -4,7 +4,15 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockSetCallbacks, mockStartConnection, mockSendData, mockStopConnection, mockUpdateConfig, mockShutdown, mockGetStatus } = vi.hoisted(() => {
+const {
+  mockSetCallbacks,
+  mockStartConnection,
+  mockSendData,
+  mockStopConnection,
+  mockUpdateConfig,
+  mockShutdown,
+  mockGetStatus
+} = vi.hoisted(() => {
   return {
     mockSetCallbacks: vi.fn(),
     mockStartConnection: vi.fn(async () => ({ success: true })),
@@ -34,7 +42,18 @@ vi.mock('../../src/main/pool/WorkerPool', () => ({
 
 import WorkerConnector from '../../src/main/ipc/connectors/WorkerConnector'
 
-function makeConn(overrides: Partial<{ connectionType: string; host: string; port: number; sessionId: string; comName: string; baudRate: number; encoding: string; ftpMode: string }> = {}): any {
+function makeConn(
+  overrides: Partial<{
+    connectionType: string
+    host: string
+    port: number
+    sessionId: string
+    comName: string
+    baudRate: number
+    encoding: string
+    ftpMode: string
+  }> = {}
+): any {
   return {
     connectionType: 'telnet',
     host: '127.0.0.1',

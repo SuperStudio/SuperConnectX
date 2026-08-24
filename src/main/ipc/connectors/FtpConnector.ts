@@ -9,6 +9,12 @@
 import ConnectionInfo from '../../protocol/ConnectionInfo'
 import ProtocolLogger from '../../utils/ProtocolLogger'
 import ConnectionStateManager from './ConnectionStateManager'
+import type { SessionLifecycleRef } from '../../services/types/RuntimeTypes'
+
+interface FtpClientEntry {
+  client: any
+  lifecycle: SessionLifecycleRef
+}
 
 export default class FtpConnector {
   private stateManager: ConnectionStateManager
@@ -16,10 +22,11 @@ export default class FtpConnector {
 
   // FTP 服务端实例（单例，不实现 DirectClient 接口）
   private ftpServer: any = null
+  private ftpServerLifecycle: SessionLifecycleRef | null = null
   private ftpServerStopping: Promise<void> | null = null
 
   // FTP 客户端实例（每个 session 独立）
-  private ftpClients: Map<string, any> = new Map()
+  private ftpClients: Map<string, FtpClientEntry> = new Map()
 
   constructor(stateManager: ConnectionStateManager) {
     this.stateManager = stateManager
@@ -34,46 +41,72 @@ export default class FtpConnector {
 
   // ============ 回调工厂 ============
 
-  private createOnData(sessionId: string) {
+  private isCurrentClient(entry: FtpClientEntry): boolean {
+    return this.ftpClients.get(entry.lifecycle.sessionId) === entry
+  }
+
+  private isCurrentServer(server: any, lifecycle: SessionLifecycleRef): boolean {
+    return this.ftpServer === server && this.ftpServerLifecycle === lifecycle
+  }
+
+  private createOnData(lifecycle: SessionLifecycleRef, isCurrent: () => boolean) {
     return (dataObj: { data: string; timestamp: string }) => {
-      this.stateManager.sendDataToRenderer(sessionId, dataObj.data, dataObj.timestamp, false)
+      if (!isCurrent()) return
+      this.stateManager.sendDataToRenderer(
+        lifecycle.sessionId,
+        dataObj.data,
+        dataObj.timestamp,
+        false
+      )
     }
   }
 
-  private createFtpServerOnClose(sessionId: string): () => void {
+  private createFtpServerOnClose(server: any, lifecycle: SessionLifecycleRef): () => void {
     return () => {
-      this.stateManager.cleanupOnClose(sessionId)
+      if (!this.isCurrentServer(server, lifecycle)) return
+      this.ftpServer = null
+      this.ftpServerLifecycle = null
+      this.stateManager.notifyBackendClosed(lifecycle)
     }
   }
 
-  private createFtpClientOnClose(sessionId: string): () => void {
+  private createFtpClientOnClose(entry: FtpClientEntry): () => void {
     return () => {
-      this.stateManager.cleanupOnClose(sessionId)
-      this.ftpClients.delete(sessionId)
+      if (!this.isCurrentClient(entry)) return
+      this.ftpClients.delete(entry.lifecycle.sessionId)
+      this.stateManager.notifyBackendClosed(entry.lifecycle)
     }
   }
 
-  private createOnLog(sessionId: string) {
+  private createOnLog(lifecycle: SessionLifecycleRef, isCurrent: () => boolean) {
     return (logStr: string, timestamp: string) => {
-      if (!this.logger) return
-      const finalLog = this.stateManager.buildLogContent(sessionId, logStr, timestamp)
-      this.logger.appendToConnLog(finalLog, sessionId)
+      if (!this.logger || !isCurrent()) return
+      const finalLog = this.stateManager.buildLogContent(lifecycle.sessionId, logStr, timestamp)
+      this.logger.appendToConnLog(finalLog, lifecycle.sessionId)
     }
   }
 
   // ============ 连接管理 ============
 
-  async startConnection(conn: any, connInfo: ConnectionInfo): Promise<object> {
-    const sessionId = conn.sessionId
+  async startConnection(
+    conn: any,
+    connInfo: ConnectionInfo,
+    lifecycle: SessionLifecycleRef = { sessionId: String(conn.sessionId), generation: 0 }
+  ): Promise<object> {
+    const sessionId = lifecycle.sessionId
 
     if (this.stateManager.isFtpServerMode(sessionId)) {
-      return this.startFtpServer(conn, connInfo, sessionId)
+      return this.startFtpServer(conn, connInfo, lifecycle)
     } else {
-      return this.startFtpClient(conn, connInfo, sessionId)
+      return this.startFtpClient(conn, connInfo, lifecycle)
     }
   }
 
-  private async startFtpServer(_conn: any, connInfo: ConnectionInfo, sessionId: string): Promise<object> {
+  private async startFtpServer(
+    _conn: any,
+    connInfo: ConnectionInfo,
+    lifecycle: SessionLifecycleRef
+  ): Promise<object> {
     // 等待上一个 stop 完成（避免端口占用等竞争问题）
     if (this.ftpServerStopping) {
       await this.ftpServerStopping
@@ -84,26 +117,54 @@ export default class FtpConnector {
     if (!this.ftpServer) {
       this.ftpServer = new FtpServer()
     }
-
-    return await this.ftpServer.start(
-      connInfo,
-      this.createOnData(sessionId),
-      this.createFtpServerOnClose(sessionId),
-      this.createOnLog(sessionId)
-    )
+    const server = this.ftpServer
+    this.ftpServerLifecycle = lifecycle
+    const isCurrent = (): boolean => this.isCurrentServer(server, lifecycle)
+    try {
+      const result = await server.start(
+        connInfo,
+        this.createOnData(lifecycle, isCurrent),
+        this.createFtpServerOnClose(server, lifecycle),
+        this.createOnLog(lifecycle, isCurrent)
+      )
+      if ((result as { success?: boolean }).success === false && isCurrent()) {
+        this.ftpServer = null
+        this.ftpServerLifecycle = null
+      }
+      return result
+    } catch (error) {
+      if (isCurrent()) {
+        this.ftpServer = null
+        this.ftpServerLifecycle = null
+      }
+      throw error
+    }
   }
 
-  private async startFtpClient(_conn: any, connInfo: ConnectionInfo, sessionId: string): Promise<object> {
+  private async startFtpClient(
+    _conn: any,
+    connInfo: ConnectionInfo,
+    lifecycle: SessionLifecycleRef
+  ): Promise<object> {
     const FtpClient = (await import('../../protocol/FtpClient')).default
     const client = new FtpClient()
-    this.ftpClients.set(sessionId, client)
-
-    return await client.start(
-      connInfo,
-      this.createOnData(sessionId),
-      this.createFtpClientOnClose(sessionId),
-      this.createOnLog(sessionId)
-    )
+    const entry = { client, lifecycle }
+    this.ftpClients.set(lifecycle.sessionId, entry)
+    try {
+      const result = await client.start(
+        connInfo,
+        this.createOnData(lifecycle, () => this.isCurrentClient(entry)),
+        this.createFtpClientOnClose(entry),
+        this.createOnLog(lifecycle, () => this.isCurrentClient(entry))
+      )
+      if ((result as { success?: boolean }).success === false && this.isCurrentClient(entry)) {
+        this.ftpClients.delete(lifecycle.sessionId)
+      }
+      return result
+    } catch (error) {
+      if (this.isCurrentClient(entry)) this.ftpClients.delete(lifecycle.sessionId)
+      throw error
+    }
   }
 
   // ============ 数据操作 ============
@@ -116,10 +177,11 @@ export default class FtpConnector {
       return { success: false, message: 'FTP server not running' }
     }
 
-    const client = this.ftpClients.get(conn.sessionId)
-    if (client) {
-      return await client.send(conn.sessionId, command,
-        (dataStr: string) => this.logger?.appendToConnLog(dataStr, conn.sessionId))
+    const entry = this.ftpClients.get(conn.sessionId)
+    if (entry) {
+      return await entry.client.send(conn.sessionId, command, (dataStr: string) =>
+        this.logger?.appendToConnLog(dataStr, conn.sessionId)
+      )
     }
     return { success: false, message: 'FTP client not connected' }
   }
@@ -131,13 +193,18 @@ export default class FtpConnector {
     return this.stopFtpClient(conn.sessionId)
   }
 
-  private async stopFtpServer(sessionId: string): Promise<object> {
+  private async stopFtpServer(_sessionId: string): Promise<object> {
     if (this.ftpServer) {
+      const server = this.ftpServer
+      const lifecycle = this.ftpServerLifecycle
       const stopPromise = (async () => {
         try {
-          await this.ftpServer!.stop()
+          await server.stop()
         } finally {
-          this.ftpServer = null
+          if (lifecycle && this.isCurrentServer(server, lifecycle)) {
+            this.ftpServer = null
+            this.ftpServerLifecycle = null
+          }
         }
       })()
       this.ftpServerStopping = stopPromise
@@ -145,20 +212,18 @@ export default class FtpConnector {
         await stopPromise
       } finally {
         this.ftpServerStopping = null
-        this.stateManager.cleanupOnClose(sessionId)
       }
       return { success: true, message: 'FTP server stopped' }
     }
-    // _ftpServer 为 null 但 ftpModeMap 仍有记录，清理残留
-    this.stateManager.cleanupOnClose(sessionId)
+    // ConnectionService 负责统一完成 Session 和 Renderer 状态清理。
     return { success: true }
   }
 
   private async stopFtpClient(sessionId: string): Promise<object> {
-    const client = this.ftpClients.get(sessionId)
-    if (client) {
-      const result = await client.disconnect(sessionId)
-      this.ftpClients.delete(sessionId)
+    const entry = this.ftpClients.get(sessionId)
+    if (entry) {
+      const result = await entry.client.disconnect(sessionId)
+      if (this.isCurrentClient(entry)) this.ftpClients.delete(sessionId)
       return result
     }
     return { success: true }
@@ -168,28 +233,32 @@ export default class FtpConnector {
     if (this.stateManager.isFtpServerMode(conn.sessionId)) {
       return { success: true, message: 'Config updated' }
     }
-    const client = this.ftpClients.get(conn.sessionId)
-    return client?.updateConfig(conn.sessionId, config)
-      || { success: true, message: 'Config updated' }
+    const entry = this.ftpClients.get(conn.sessionId)
+    return (
+      entry?.client.updateConfig(conn.sessionId, config) || {
+        success: true,
+        message: 'Config updated'
+      }
+    )
   }
 
   // ============ FTP 专属：文件上传 ============
 
   async uploadFile(conn: any, localFilePath: string, remoteFileName: string): Promise<object> {
     const sessionId = conn.sessionId
-    const client = this.ftpClients.get(sessionId)
-    if (!client) {
+    const entry = this.ftpClients.get(sessionId)
+    if (!entry) {
       return { success: false, message: 'FTP client not connected' }
     }
-    if (typeof client.uploadFile !== 'function') {
+    if (typeof entry.client.uploadFile !== 'function') {
       return { success: false, message: 'FTP client does not support file upload' }
     }
-    return await client.uploadFile(
+    return await entry.client.uploadFile(
       sessionId,
       localFilePath,
       remoteFileName,
-      this.createOnData(sessionId),
-      this.createOnLog(sessionId)
+      this.createOnData(entry.lifecycle, () => this.isCurrentClient(entry)),
+      this.createOnLog(entry.lifecycle, () => this.isCurrentClient(entry))
     )
   }
 
@@ -200,11 +269,20 @@ export default class FtpConnector {
    */
   async cleanup(): Promise<void> {
     if (this.ftpServer) {
-      try { await this.ftpServer.stop() } catch { /* ignore */ }
+      try {
+        await this.ftpServer.stop()
+      } catch {
+        /* ignore */
+      }
       this.ftpServer = null
+      this.ftpServerLifecycle = null
     }
-    for (const [sessionId, client] of this.ftpClients) {
-      try { await client.disconnect(sessionId) } catch { /* ignore */ }
+    for (const [sessionId, entry] of this.ftpClients) {
+      try {
+        await entry.client.disconnect(sessionId)
+      } catch {
+        /* ignore */
+      }
     }
     this.ftpClients.clear()
   }

@@ -4,8 +4,10 @@ import { join } from 'path'
 import { getAppDataDir } from '../utils/AppDir'
 import { createLoggerService } from '../../core/logging/LoggerService'
 
-// 使用智能路径：exe 同目录（非系统盘有权限）或 userData（回退）
-const LOG_DIR = join(getAppDataDir(), 'app-logs')
+// IpcAppLogger 会在主进程入口的静态 import 阶段初始化，此时 initAppPaths() 尚未执行。
+// 测试或受控启动显式指定 SCX_USER_DATA_DIR 时，日志必须直接使用同一目录，
+// 避免在路径重定向生效前误写真实用户目录。
+const LOG_DIR = join(process.env.SCX_USER_DATA_DIR || getAppDataDir(), 'app-logs')
 
 // 确保日志目录存在
 if (!fs.existsSync(LOG_DIR)) {

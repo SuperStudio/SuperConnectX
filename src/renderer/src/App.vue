@@ -14,6 +14,7 @@
       @open-virtualPort="openVirtualPortTab"
       @check-update="updateDialogRef?.open()"
       @open-plugins="handlePlugins"
+      @open-ai-service="openAiServiceTab('overview')"
       @toggle-word-wrap="handleToggleWordWrap"
       @toggle-line-numbers="handleToggleLineNumbers"
       @toggle-log-editable="handleToggleLogEditable"
@@ -25,6 +26,7 @@
       />
     </template>
     <NotifyContainer ref="notifyContainerRef" />
+    <AiActivityOverlay ref="aiActivityOverlayRef" @open-history="openAiActivityHistory" />
 
     <div class="app-main">
       <!-- 侧边栏 -->
@@ -163,11 +165,11 @@
                 v-show="isTabActiveInItsPanel(tab.id.toString())"
                 :connection="tab"
                 :ref="(el: any) => { if (el) comTerminalRefs[tab.id] = el }"
-                :auto-connect="tab.wasConnected !== false"
+                :auto-connect="!tab.aiManaged && tab.wasConnected !== false"
                 @onClose="handleTerminalClose(tab.id)"
                 @commandSent="handleCommandSent"
-                @onConnect="() => { if (tab.comName) connectedSerialPorts[tab.comName] = true }"
-                @onDisconnect="() => { if (tab.comName) delete connectedSerialPorts[tab.comName] }"
+                @onConnect="() => { if (tab.aiManaged) tab.aiSessionState = 'connected'; if (tab.comName) connectedSerialPorts[tab.comName] = true }"
+                @onDisconnect="() => { if (tab.aiManaged) tab.aiSessionState = 'closed'; if (tab.comName) delete connectedSerialPorts[tab.comName] }"
                 @openCommandEditor="openCommandEditorTab"
                 @openSyntaxHighlight="openSettingsAndSwitchToSyntax"
                 @remarkUpdated="(data: any) => { if (data.comName) serialRemarks[data.comName] = data.remark }"
@@ -178,7 +180,7 @@
                 v-if="tab.connectionType === 'telnet' || tab.connectionType === 'ftp'"
                 v-show="isTabActiveInItsPanel(tab.id.toString())"
                 :connection="tab"
-                :auto-connect="tab.wasConnected !== false"
+                :auto-connect="!tab.aiManaged && tab.wasConnected !== false"
                 :ref="(el: any) => { if (el) telnetTerminalRefs[tab.id] = el }"
                 @onClose="handleTerminalClose(tab.id)"
                 @commandSent="handleCommandSent"
@@ -206,6 +208,12 @@
               <VirtualPortPage
                 v-if="tab.connectionType === 'virtualPort'"
                 v-show="isTabActiveInItsPanel(tab.id.toString())"
+                class="terminal-component"
+              />
+              <AiServicePage
+                v-if="tab.connectionType === 'aiService'"
+                v-show="isTabActiveInItsPanel(tab.id.toString())"
+                :view="tab.aiView || 'overview'"
                 class="terminal-component"
               />
             </Teleport>
@@ -244,6 +252,8 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import CustomTitleBar from './components/CustomTitleBar.vue'
 import NotifyContainer from './components/NotifyContainer.vue'
+import AiActivityOverlay from './extensions/ai-control/components/AiActivityOverlay.vue'
+import AiServicePage from './extensions/ai-control/components/AiServicePage.vue'
 import ResourceMonitor from './components/ResourceMonitor.vue'
 import AboutDialog from './components/AboutDialog.vue'
 import UpdateDialog from './components/UpdateDialog.vue'
@@ -276,11 +286,13 @@ import { useFontManager } from './composables/app/useFontManager'
 import { loadSendDisplayText, initSendDisplayTextListener } from './composables/app/useSettingsStore'
 import { useConnectionDialog } from './composables/app/useConnectionDialog'
 import { useSessionRestore } from './composables/app/useSessionRestore'
+import type { AiServiceStatus } from '../../shared/extensions/ai-control/AiServiceTypes'
 
 const { t } = useI18n()
 
 // ---- Refs ----
 const notifyContainerRef = ref<InstanceType<typeof NotifyContainer> | null>(null)
+const aiActivityOverlayRef = ref<InstanceType<typeof AiActivityOverlay> | null>(null)
 const isAboutDialogOpen = ref(false)
 const isUpdateDialogOpen = ref(false)
 const updateDialogRef = ref<InstanceType<typeof UpdateDialog> | null>(null)
@@ -291,6 +303,7 @@ const comTerminalRefs = reactive<Record<string, any>>({})
 const telnetTerminalRefs = reactive<Record<string, any>>({})
 // 连接状态变化计数器：当任何终端的连接状态变化时 +1，用于驱动 computed 重新计算
 const connectionChangeCounter = ref(0)
+const aiClientConnected = ref(false)
 
 // 监听 comTerminalRefs 和 telnetTerminalRefs 中任何终端实例的 isConnected 变化
 // 由于组件实例上的属性不是响应式的，通过轮询方式检测变化并更新 counter
@@ -330,14 +343,19 @@ const {
   connectionTabs, activeTabId, pinnedTabs,
   showTabMenu, tabMenuPosition, rightClickedTab,
   switchTabById, handleTabContextMenu, handleTabsNavContextMenu, hideTabMenu,
-  getConnectionStatus, hasAnyConnected,
+  getConnectionStatus: getTerminalConnectionStatus, hasAnyConnected,
   connectAllTabs, disconnectAllTabs,
-  closeTab, closeTabOnly, closeSingleTab,
+  closeTab, closeTabOnly, closeSingleTab, removeAiSessionTab,
   reorderTabs, moveTabToFirst, moveTabToLast,
   togglePinTabByButton, togglePinTab,
-  connectToServer, connectToSerialPort,
-  openCommandEditorTab, openShortcutsTab, openSettingsTab, openVirtualPortTab
+  connectToServer, connectToSerialPort, ensureAiSessionTab,
+  openCommandEditorTab, openShortcutsTab, openSettingsTab, openVirtualPortTab, openAiServiceTab
 } = useTabManager(comTerminalRefs, telnetTerminalRefs)
+
+const getConnectionStatus = (tab: any): 'connected' | 'disconnected' =>
+  tab.connectionType === 'aiService'
+    ? aiClientConnected.value ? 'connected' : 'disconnected'
+    : getTerminalConnectionStatus(tab)
 
 // ---- Split Panel ----
 const {
@@ -369,6 +387,8 @@ const sessionRestore = useSessionRestore({
   pinnedTabs,
   splitState,
   isConnected: isConnectedForSession,
+  // AI 管理的串口页由主进程真实运行状态重建，不能作为普通用户页跨进程恢复。
+  shouldPersistTab: (tab) => !tab.aiManaged,
   connectionStateDependency: connectionChangeCounter
 })
 
@@ -1042,6 +1062,10 @@ const openSettingsAndSwitchToSyntax = () => {
 }
 
 // ---- 侧边栏菜单 ----
+const openAiActivityHistory = () => {
+  openAiServiceTab('history')
+}
+
 const handleSidebarMenuCommand = async (command: string) => {
   // 处理分组展开事件（ConnectionSidebar 内部用）
   if (command.startsWith('__toggleGroup__')) {
@@ -1105,8 +1129,61 @@ const handleSettingsUpdated = (event: Event) => {
   }
 }
 
+let removeRuntimeEventListener: (() => void) | null = null
+let removeAiStateListener: (() => void) | null = null
+let aiStateGeneration = 0
+const applyAiConnectionState = (status: AiServiceStatus): void => {
+  aiStateGeneration += 1
+  aiClientConnected.value = status.clientCount > 0
+}
+const handleAiSessionEvent = (event: any): void => {
+  if (event?.eventType !== 'session.state' && event?.eventType !== 'session.closed') return
+
+  const session = event.payload?.session
+  const sessionId = String(event.sessionId || session?.sessionId || '')
+  if (!sessionId) return
+  const existingTab = connectionTabs.value.find((tab) => String(tab.sessionId) === sessionId)
+  if (event.source !== 'ai' && !existingTab?.aiManaged) return
+
+  if (event.eventType === 'session.closed') {
+    if (existingTab?.aiManaged) {
+      if (existingTab.comName) delete connectedSerialPorts[existingTab.comName]
+      const removedTabId = removeAiSessionTab(sessionId)
+      if (removedTabId) onTabClosed(removedTabId)
+    }
+    return
+  }
+
+  if (session && typeof session === 'object') {
+    ensureAiSessionTab({
+      ...session,
+      sessionId,
+      state: session.state
+    })
+  } else if (existingTab?.aiManaged && event.payload?.state) {
+    existingTab.aiSessionState =
+      event.eventType === 'session.closed' ? 'closed' : event.payload.state
+  }
+}
+
+const handleCoreRuntimeEvent = (event: any) => {
+  handleAiSessionEvent(event)
+  if (event?.eventType === 'ai.activity') {
+    aiActivityOverlayRef.value?.show(event)
+    return
+  }
+  if (event?.eventType !== 'config.changed' || event.payload?.domain !== 'connections') return
+  void loadConnections()
+}
+
 // ---- Lifecycle ----
 onMounted(async () => {
+  removeAiStateListener = window.aiServiceApi.onStateChanged(applyAiConnectionState)
+  const initialStateGeneration = aiStateGeneration
+  void window.aiServiceApi.getState().then((status) => {
+    if (aiStateGeneration === initialStateGeneration) applyAiConnectionState(status)
+  })
+
   // 初始化主题
   const savedTheme = localStorage.getItem('app-theme') || 'dark'
   document.documentElement.setAttribute('data-theme', savedTheme)
@@ -1141,6 +1218,7 @@ onMounted(async () => {
 
   // 串口热插拔：插入/拔出时自动刷新侧边栏串口列表
   window.connectApi.onSerialPortsChanged(handleSerialPortsChanged)
+  removeRuntimeEventListener = window.connectApi.onRuntimeEvent(handleCoreRuntimeEvent)
 
   window.addEventListener('terminal-text-cleared', handleTerminalTextCleared)
   window.addEventListener('auto-scroll-toast', handleAutoScrollToast)
@@ -1168,6 +1246,10 @@ onUnmounted(() => {
   window.removeEventListener('settings-updated', handleSettingsUpdated)
   window.removeEventListener('terminal-text-cleared', handleTerminalTextCleared)
   window.removeEventListener('auto-scroll-toast', handleAutoScrollToast)
+  removeRuntimeEventListener?.()
+  removeRuntimeEventListener = null
+  removeAiStateListener?.()
+  removeAiStateListener = null
 })
 </script>
 

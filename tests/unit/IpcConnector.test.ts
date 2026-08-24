@@ -38,23 +38,35 @@ vi.mock('../../src/main/utils/ProtocolLogger', () => ({
     setLogDir() {}
     setLogFileName() {}
     setLogSplitCallback() {}
-    openConnLog() { return { success: true } }
-    getLogFilePath() { return { success: true, path: '/mock' } }
-    copyLogFile() { return { success: true } }
-    openLogDir() { return { success: true } }
+    openConnLog() {
+      return { success: true }
+    }
+    getLogFilePath() {
+      return { success: true, path: '/mock' }
+    }
+    copyLogFile() {
+      return { success: true }
+    }
+    openLogDir() {
+      return { success: true }
+    }
   }
 }))
 
 vi.mock('../../src/main/storage/SettingsStorage', () => ({
   default: class {
-    getSettings() { return { enableLogStorage: true, logSplitSize: 10 } }
+    getSettings() {
+      return { enableLogStorage: true, logSplitSize: 10 }
+    }
     saveSettings() {}
   }
 }))
 
 vi.mock('../../src/main/storage/ConnectionStorage', () => ({
   default: class {
-    getByIdWithPassword() { return null }
+    getByIdWithPassword() {
+      return null
+    }
   }
 }))
 
@@ -85,10 +97,16 @@ import ConnectionStateManager from '../../src/main/ipc/connectors/ConnectionStat
 
 function makeLogger(): any {
   return {
-    createConnLogFile: vi.fn(), appendToConnLog: vi.fn(), flushConnLog: vi.fn(),
-    clearConnLogFile: vi.fn(), markConnLogRotate: vi.fn(),
-    setLogSplitSize: vi.fn(), setEnableLogStorage: vi.fn(), setLogDir: vi.fn(),
-    setLogFileName: vi.fn(), setLogSplitCallback: vi.fn(),
+    createConnLogFile: vi.fn(),
+    appendToConnLog: vi.fn(),
+    flushConnLog: vi.fn(),
+    clearConnLogFile: vi.fn(),
+    markConnLogRotate: vi.fn(),
+    setLogSplitSize: vi.fn(),
+    setEnableLogStorage: vi.fn(),
+    setLogDir: vi.fn(),
+    setLogFileName: vi.fn(),
+    setLogSplitCallback: vi.fn(),
     openConnLog: vi.fn(async () => ({ success: true })),
     getLogFilePath: vi.fn(async () => ({ success: true, path: '/mock' })),
     copyLogFile: vi.fn(async () => ({ success: true })),
@@ -149,10 +167,11 @@ describe('IpcConnector', () => {
   // ============ init() 注册 IPC handler ============
 
   describe('init()', () => {
-    it('should register all 12 connection IPC handlers', () => {
+    it('should register all connection IPC handlers', () => {
       expect(mockHandlers.has('start-connect')).toBe(true)
       expect(mockHandlers.has('start-connect-by-id')).toBe(true)
       expect(mockHandlers.has('send-data')).toBe(true)
+      expect(mockHandlers.has('update-session-command-settings')).toBe(true)
       expect(mockHandlers.has('upload-file')).toBe(true)
       expect(mockHandlers.has('stop-connect')).toBe(true)
       expect(mockHandlers.has('update-connect')).toBe(true)
@@ -162,6 +181,28 @@ describe('IpcConnector', () => {
       expect(mockHandlers.has('write-to-log')).toBe(true)
       expect(mockHandlers.has('get-worker-pool-status')).toBe(true)
       expect(mockHandlers.has('set-worker-mode')).toBe(true)
+    })
+
+    it('should apply GUI command settings to the active main-process session', async () => {
+      const sessionId = 'settings-session'
+      await connector.getConnectionService().start(makeConn({ sessionId }), 'gui')
+      const update = mockHandlers.get('update-session-command-settings')!
+      await update(null, {
+        sessionId,
+        revision: 1,
+        settings: {
+          autoNewline: false,
+          hexMode: true,
+          crcEnabled: false,
+          crcMethod: 'CRC-16/MODBUS'
+        }
+      })
+      expect(connector.getConnectionService().getCommandSettings(sessionId)).toEqual({
+        autoNewline: false,
+        hexMode: true,
+        crcEnabled: false,
+        crcMethod: 'CRC-16/MODBUS'
+      })
     })
   })
 
@@ -211,6 +252,73 @@ describe('IpcConnector', () => {
       // FTP routing will try to dynamically import FtpClient — that will fail without mock
       // But we can test send-data for non-FTP to verify FTP is excluded
       expect(handler).toBeDefined()
+    })
+  })
+
+  describe('shared runtime service integration', () => {
+    it('tracks a GUI-started session for an external AI client', async () => {
+      const conn = makeConn({
+        connectionType: 'com',
+        sessionId: 'ai-visible-session',
+        comName: 'COM55'
+      })
+      const result = await mockHandlers.get('start-connect')!(null, conn)
+
+      expect(result.success).toBe(true)
+      expect(connector.getConnectionService().getSession('ai-visible-session')).toMatchObject({
+        state: 'connected',
+        comName: 'COM55'
+      })
+      expect(
+        connector
+          .getRuntimeEventHub()
+          .readSince(0)
+          .events.some((event) => event.eventType === 'session.state')
+      ).toBe(true)
+
+      await mockHandlers.get('stop-connect')!(null, conn)
+      expect(connector.getConnectionService().getSession('ai-visible-session')).toBeUndefined()
+    })
+
+    it('reuses an existing COM session for AI instead of opening a second handle', async () => {
+      const guiConn = makeConn({ connectionType: 'com', sessionId: 'gui-com80', comName: 'COM80' })
+      const guiResult = await mockHandlers.get('start-connect')!(null, guiConn)
+      expect(guiResult.success).toBe(true)
+
+      ;(connector as any).connectionStorage = {
+        getByIdWithPassword: vi.fn(() => ({ ...guiConn, id: 80 }))
+      }
+
+      const aiResult = await connector.startConnectionByIdForAi(80, 'ai-com80')
+      expect(aiResult).toMatchObject({
+        success: true,
+        reused: true,
+        session: { sessionId: 'gui-com80', comName: 'COM80', state: 'connected' }
+      })
+      expect(connector.getConnectionService().listSessions()).toHaveLength(1)
+
+      await mockHandlers.get('stop-connect')!(null, guiConn)
+    })
+
+    it('starts a dynamic AI port session through the shared connection service', async () => {
+      const guiConn = makeConn({
+        connectionType: 'com',
+        sessionId: 'gui-com-test',
+        comName: 'COM_TEST'
+      })
+      const guiResult = await mockHandlers.get('start-connect')!(null, guiConn)
+      expect(guiResult.success).toBe(true)
+
+      const aiResult = await connector.startPortSessionForAi('COM_TEST', 'ai-port-test', {
+        baudRate: 115200
+      })
+      expect(aiResult).toMatchObject({
+        success: true,
+        reused: true,
+        session: { sessionId: 'gui-com-test', comName: 'COM_TEST', state: 'connected' }
+      })
+
+      await mockHandlers.get('stop-connect')!(null, guiConn)
     })
   })
 
@@ -305,7 +413,10 @@ describe('IpcConnector', () => {
       const handler = mockHandlers.get('upload-file')!
       const conn = makeConn({ connectionType: 'telnet', sessionId: 's-upload' })
       const result = await handler(null, { conn, localFilePath: '/a.txt', remoteFileName: 'b.txt' })
-      expect(result).toEqual({ success: false, message: 'File upload only supported for FTP connections' })
+      expect(result).toEqual({
+        success: false,
+        message: 'File upload only supported for FTP connections'
+      })
     })
   })
 

@@ -5,6 +5,7 @@
  */
 import WorkerPool from '../../pool/WorkerPool'
 import ConnectionInfo from '../../protocol/ConnectionInfo'
+import type { SessionLifecycleRef } from '../../services/types/RuntimeTypes'
 
 export default class WorkerConnector {
   private workerPool: WorkerPool
@@ -16,7 +17,7 @@ export default class WorkerConnector {
   setCallbacks(
     onData: (sessionId: string, displayData: string, timestamp: string, isHex: boolean) => void,
     onLog: (sessionId: string, logStr: string, timestamp: string) => void,
-    onClose: (sessionId: string) => void
+    onClose: (lifecycle: SessionLifecycleRef) => void
   ): void {
     this.workerPool.setCallbacks(onData, onLog, onClose)
   }
@@ -59,9 +60,11 @@ export default class WorkerConnector {
     }
   }
 
-  async startConnection(conn: any): Promise<object> {
+  async startConnection(conn: any, lifecycle?: SessionLifecycleRef): Promise<object> {
     const connInfo = this.buildConnectInfo(conn)
-    return await this.workerPool.startConnection(connInfo, conn.connectionType)
+    return lifecycle
+      ? await this.workerPool.startConnection(connInfo, conn.connectionType, lifecycle)
+      : await this.workerPool.startConnection(connInfo, conn.connectionType)
   }
 
   async sendData(conn: any, command: string): Promise<object> {

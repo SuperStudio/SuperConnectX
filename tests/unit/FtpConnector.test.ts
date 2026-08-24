@@ -5,8 +5,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const {
-  mockFtpServerStart, mockFtpServerStop, mockFtpServerSend,
-  mockFtpClientStart, mockFtpClientDisconnect, mockFtpClientSend, mockFtpClientUploadFile, mockFtpClientUpdateConfig
+  mockFtpServerStart,
+  mockFtpServerStop,
+  mockFtpServerSend,
+  mockFtpClientStart,
+  mockFtpClientDisconnect,
+  mockFtpClientSend,
+  mockFtpClientUploadFile,
+  mockFtpClientUpdateConfig
 } = vi.hoisted(() => {
   return {
     mockFtpServerStart: vi.fn(async () => ({ success: true, message: 'FTP server started' })),
@@ -49,7 +55,17 @@ import FtpConnector from '../../src/main/ipc/connectors/FtpConnector'
 import ConnectionStateManager from '../../src/main/ipc/connectors/ConnectionStateManager'
 import ProtocolLogger from '../../src/main/utils/ProtocolLogger'
 
-function makeConn(overrides: Partial<{ connectionType: string; sessionId: string; ftpMode: string; host: string; port: number; username: string; password: string }> = {}): any {
+function makeConn(
+  overrides: Partial<{
+    connectionType: string
+    sessionId: string
+    ftpMode: string
+    host: string
+    port: number
+    username: string
+    password: string
+  }> = {}
+): any {
   return {
     connectionType: 'ftp',
     sessionId: 's1',
@@ -91,15 +107,19 @@ describe('FtpConnector', () => {
       const conn = makeConn({ ftpMode: 'client' })
 
       const result = await fc.startConnection(conn, {
-        host: '127.0.0.1', port: 21, username: 'admin', password: 'secret', sessionId: 's1'
+        host: '127.0.0.1',
+        port: 21,
+        username: 'admin',
+        password: 'secret',
+        sessionId: 's1'
       })
 
       expect(result).toEqual({ success: true, message: 'FTP client connected' })
       expect(mockFtpClientStart).toHaveBeenCalledWith(
         expect.any(Object),
-        expect.any(Function),  // onData
-        expect.any(Function),  // onClose
-        expect.any(Function)   // onLog
+        expect.any(Function), // onData
+        expect.any(Function), // onClose
+        expect.any(Function) // onLog
       )
     })
 
@@ -109,7 +129,11 @@ describe('FtpConnector', () => {
       const conn = makeConn({ ftpMode: 'server' })
 
       const result = await fc.startConnection(conn, {
-        host: '0.0.0.0', port: 21, username: '', password: '', sessionId: 's1'
+        host: '0.0.0.0',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's1'
       })
 
       expect(result).toEqual({ success: true, message: 'FTP server started' })
@@ -121,13 +145,25 @@ describe('FtpConnector', () => {
       sm.setFtpMode('s1', 'server')
       const conn = makeConn({ ftpMode: 'server', sessionId: 's1' })
 
-      await fc.startConnection(conn, { host: '0.0.0.0', port: 21, username: '', password: '', sessionId: 's1' })
+      await fc.startConnection(conn, {
+        host: '0.0.0.0',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
       expect(mockFtpServerStart).toHaveBeenCalledTimes(1)
 
       // Second start should reuse instance (no new FtpServer created)
       const conn2 = makeConn({ ftpMode: 'server', sessionId: 's2' })
       sm.setFtpMode('s2', 'server')
-      await fc.startConnection(conn2, { host: '0.0.0.0', port: 21, username: '', password: '', sessionId: 's2' })
+      await fc.startConnection(conn2, {
+        host: '0.0.0.0',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's2'
+      })
       expect(mockFtpServerStart).toHaveBeenCalledTimes(2)
     })
   })
@@ -140,7 +176,13 @@ describe('FtpConnector', () => {
       sm.setFtpMode('s1', 'client')
       const conn = makeConn({ ftpMode: 'client', sessionId: 's1' })
 
-      await fc.startConnection(conn, { host: '127.0.0.1', port: 21, username: '', password: '', sessionId: 's1' })
+      await fc.startConnection(conn, {
+        host: '127.0.0.1',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
       const result = await fc.sendData(conn, 'LIST')
 
       expect(result).toEqual({ success: true })
@@ -152,7 +194,13 @@ describe('FtpConnector', () => {
       sm.setFtpMode('s1', 'server')
       const conn = makeConn({ ftpMode: 'server', sessionId: 's1' })
 
-      await fc.startConnection(conn, { host: '0.0.0.0', port: 21, username: '', password: '', sessionId: 's1' })
+      await fc.startConnection(conn, {
+        host: '0.0.0.0',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
       const result = await fc.sendData(conn, 'MESSAGE')
 
       expect(result).toEqual({ success: true })
@@ -186,7 +234,13 @@ describe('FtpConnector', () => {
       sm.setFtpMode('s1', 'client')
       const conn = makeConn({ ftpMode: 'client', sessionId: 's1' })
 
-      await fc.startConnection(conn, { host: '127.0.0.1', port: 21, username: '', password: '', sessionId: 's1' })
+      await fc.startConnection(conn, {
+        host: '127.0.0.1',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
       const result = await fc.stopConnection(conn)
 
       expect(result).toEqual({ success: true })
@@ -207,26 +261,64 @@ describe('FtpConnector', () => {
       sm.setFtpMode('s1', 'server')
       const conn = makeConn({ ftpMode: 'server', sessionId: 's1' })
 
-      await fc.startConnection(conn, { host: '0.0.0.0', port: 21, username: '', password: '', sessionId: 's1' })
+      await fc.startConnection(conn, {
+        host: '0.0.0.0',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
       const result = await fc.stopConnection(conn)
 
       expect(result.success).toBe(true)
       expect(mockFtpServerStop).toHaveBeenCalled()
     })
 
-    it('should call cleanupOnClose on stop', async () => {
+    it('should report the captured lifecycle from the backend close callback', async () => {
       const { fc, sm } = createFtpConnector()
-      const cleanupSpy = vi.spyOn(sm, 'cleanupOnClose')
+      const closeSpy = vi.spyOn(sm, 'notifyBackendClosed')
       sm.setFtpMode('s1', 'client')
       const conn = makeConn({ ftpMode: 'client', sessionId: 's1' })
 
-      await fc.startConnection(conn, { host: '127.0.0.1', port: 21, username: '', password: '', sessionId: 's1' })
+      await fc.startConnection(conn, {
+        host: '127.0.0.1',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
       // onClose callback is called by client.stop, but in tests it's triggered manually
       // via the callback passed to client.start
       const onClose = mockFtpClientStart.mock.calls[0][2]
       onClose()
 
-      expect(cleanupSpy).toHaveBeenCalledWith('s1')
+      expect(closeSpy).toHaveBeenCalledWith({ sessionId: 's1', generation: 0 })
+    })
+
+    it('should ignore an old FTP client close callback after sessionId reuse', async () => {
+      const { fc, sm } = createFtpConnector()
+      const closeSpy = vi.spyOn(sm, 'notifyBackendClosed')
+      sm.setFtpMode('ftp-reuse', 'client')
+      const conn = makeConn({ ftpMode: 'client', sessionId: 'ftp-reuse' })
+      const info = {
+        host: '127.0.0.1',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 'ftp-reuse'
+      }
+
+      await fc.startConnection(conn, info, { sessionId: 'ftp-reuse', generation: 1 })
+      const oldClose = mockFtpClientStart.mock.calls[0][2]
+      await fc.startConnection(conn, info, { sessionId: 'ftp-reuse', generation: 2 })
+      const currentClose = mockFtpClientStart.mock.calls[1][2]
+
+      oldClose()
+      expect(closeSpy).not.toHaveBeenCalled()
+      await expect(fc.sendData(conn, 'NOOP')).resolves.toMatchObject({ success: true })
+
+      currentClose()
+      expect(closeSpy).toHaveBeenCalledWith({ sessionId: 'ftp-reuse', generation: 2 })
     })
   })
 
@@ -247,7 +339,13 @@ describe('FtpConnector', () => {
       sm.setFtpMode('s1', 'client')
       const conn = makeConn({ ftpMode: 'client', sessionId: 's1' })
 
-      await fc.startConnection(conn, { host: '127.0.0.1', port: 21, username: '', password: '', sessionId: 's1' })
+      await fc.startConnection(conn, {
+        host: '127.0.0.1',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
       const result = await fc.updateConnectionConfig(conn, { receiveHex: true })
 
       expect(result).toEqual({ success: true })
@@ -272,12 +370,20 @@ describe('FtpConnector', () => {
       sm.setFtpMode('s1', 'client')
       const conn = makeConn({ ftpMode: 'client', sessionId: 's1' })
 
-      await fc.startConnection(conn, { host: '127.0.0.1', port: 21, username: '', password: '', sessionId: 's1' })
+      await fc.startConnection(conn, {
+        host: '127.0.0.1',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
       const result = await fc.uploadFile(conn, '/local/test.txt', 'remote.txt')
 
       expect(result).toEqual({ success: true })
       expect(mockFtpClientUploadFile).toHaveBeenCalledWith(
-        's1', '/local/test.txt', 'remote.txt',
+        's1',
+        '/local/test.txt',
+        'remote.txt',
         expect.any(Function),
         expect.any(Function)
       )
@@ -298,7 +404,13 @@ describe('FtpConnector', () => {
       const conn = makeConn({ ftpMode: 'client', sessionId: 's1' })
 
       // Start connection with a client that lacks uploadFile
-      await fc.startConnection(conn, { host: '127.0.0.1', port: 21, username: '', password: '', sessionId: 's1' })
+      await fc.startConnection(conn, {
+        host: '127.0.0.1',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
       // Remove the method temporarily
       const client = mockFtpClientUploadFile
       // We can't remove it on the mock, but we can test the path by using a separate instance
@@ -316,16 +428,34 @@ describe('FtpConnector', () => {
       // Start FTP server
       sm.setFtpMode('s1', 'server')
       const serverConn = makeConn({ ftpMode: 'server', sessionId: 's1' })
-      await fc.startConnection(serverConn, { host: '0.0.0.0', port: 21, username: '', password: '', sessionId: 's1' })
+      await fc.startConnection(serverConn, {
+        host: '0.0.0.0',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
 
       // Start two FTP clients
       sm.setFtpMode('s2', 'client')
       const client1Conn = makeConn({ ftpMode: 'client', sessionId: 's2' })
-      await fc.startConnection(client1Conn, { host: '127.0.0.1', port: 21, username: '', password: '', sessionId: 's2' })
+      await fc.startConnection(client1Conn, {
+        host: '127.0.0.1',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's2'
+      })
 
       sm.setFtpMode('s3', 'client')
       const client2Conn = makeConn({ ftpMode: 'client', sessionId: 's3' })
-      await fc.startConnection(client2Conn, { host: '127.0.0.1', port: 21, username: '', password: '', sessionId: 's3' })
+      await fc.startConnection(client2Conn, {
+        host: '127.0.0.1',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's3'
+      })
 
       await fc.cleanup()
 
@@ -345,7 +475,13 @@ describe('FtpConnector', () => {
       const { fc, sm } = createFtpConnector()
       sm.setFtpMode('s1', 'client')
       const conn = makeConn({ ftpMode: 'client', sessionId: 's1' })
-      await fc.startConnection(conn, { host: '127.0.0.1', port: 21, username: '', password: '', sessionId: 's1' })
+      await fc.startConnection(conn, {
+        host: '127.0.0.1',
+        port: 21,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
 
       await expect(fc.cleanup()).resolves.toBeUndefined()
     })

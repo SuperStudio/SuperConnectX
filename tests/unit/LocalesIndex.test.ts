@@ -70,4 +70,22 @@ describe('locales/index', () => {
       expect(i18n.global.fallbackLocale.value).toBe('en-US')
     })
   })
+
+  describe('AI service page copy', () => {
+    it('should expose MCP setup instructions in both languages', async () => {
+      const { i18n, setLocale } = await import('../../src/renderer/src/locales/index')
+
+      setLocale('zh-CN')
+      expect(i18n.global.t('aiService.usageText')).toContain('MCP')
+      expect(i18n.global.t('aiService.startupPermissionNote')).toContain('只读')
+      expect(i18n.global.t('aiService.permissionDesc')).toContain('不写入本地配置文件')
+      expect(i18n.global.t('aiService.copyMcpConfig')).not.toBe('aiService.copyMcpConfig')
+
+      setLocale('en-US')
+      expect(i18n.global.t('aiService.usageText')).toContain('MCP')
+      expect(i18n.global.t('aiService.startupPermissionNote')).toContain('Read only')
+      expect(i18n.global.t('aiService.permissionDesc')).toContain('not stored')
+      expect(i18n.global.t('aiService.copyMcpConfig')).not.toBe('aiService.copyMcpConfig')
+    })
+  })
 })

@@ -1,3 +1,7 @@
+import type { AiServiceStatus, AiSelfTestResult, RuntimeUiEvent } from '../shared/extensions/ai-control/AiServiceTypes'
+import type { AiConfigDocument, AiConfigPatch } from '../shared/extensions/ai-control/AiConfigTypes'
+import type { AiActivityEntry } from '../shared/extensions/ai-control/AiActivityTypes'
+
 declare global {
   interface SerialPortInfo {
     path: string
@@ -83,6 +87,11 @@ declare global {
       startConnect: (conn: any) => Promise<any>
       startConnectById: (id: number, sessionId: string, extraFields?: any) => Promise<any>
       sendData: (data: { conn: any; command: string }) => Promise<any>
+      updateSessionCommandSettings: (payload: {
+        sessionId: string
+        settings: { autoNewline: boolean; hexMode: boolean; crcEnabled: boolean; crcMethod: string }
+        revision: number
+      }) => Promise<{ updated: boolean; revision: number }>
       uploadFile: (data: { conn: any; localFilePath: string; remoteFileName: string }) => Promise<any>
       stopConnect: (conn: any) => Promise<any>
       updateConnect: (conn: any, config: any) => Promise<{ success: boolean; message?: string }>
@@ -96,6 +105,7 @@ declare global {
       listSerialPorts: () => Promise<SerialPortInfo[]>
       fixSerialPermissions: () => Promise<{ success: boolean; message?: string }>
       onSerialPortsChanged: (callback: (ports: SerialPortInfo[]) => void) => () => void
+      onRuntimeEvent: (callback: (event: RuntimeUiEvent) => void) => () => void
       writeToLog: (sessionId: string, content: string) => Promise<any>
     }
     windowApi: {
@@ -143,6 +153,21 @@ declare global {
       warn: (message: string, meta?: any) => Promise<void>
       error: (message: string, meta?: any) => Promise<void>
       debug: (message: string, meta?: any) => Promise<void>
+    }
+    aiServiceApi: {
+      getState: () => Promise<AiServiceStatus>
+      setPermission: (permission: 'read-only' | 'full-control') => Promise<AiServiceStatus>
+      getConfig: () => Promise<AiConfigDocument>
+      saveConfig: (patch: AiConfigPatch) => Promise<AiConfigDocument>
+      runSelfTest: () => Promise<AiSelfTestResult>
+      rotateToken: () => Promise<{ config: AiConfigDocument; codexConfig: string }>
+      getCodexConfig: () => Promise<string>
+      readActivity: (limit?: number) => Promise<AiActivityEntry[]>
+      clearActivity: () => Promise<void>
+      chooseLogDirectory: () => Promise<{ canceled: boolean; directory?: string; config?: AiConfigDocument }>
+      openLogDirectory: () => Promise<{ success: boolean; message?: string }>
+      onStateChanged: (callback: (status: AiServiceStatus) => void) => () => void
+      onConfigChanged: (callback: (config: AiConfigDocument) => void) => () => void
     }
     virtualPortApi: {
       checkConditions: () => Promise<{ installed: boolean; pathSelected: boolean; path: string }>

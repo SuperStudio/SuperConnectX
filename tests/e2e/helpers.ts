@@ -14,14 +14,20 @@ export async function launchApp(
 ): Promise<{ app: ElectronApplication; page: Page; userDataDir: string }> {
   // 为每个用例创建独立的临时 userData 目录
   const userDataDir = mkdtempSync(join(tmpdir(), 'scx-e2e-'))
+  const environment = { ...process.env }
+  delete environment.ELECTRON_RUN_AS_NODE
 
+  const packagedExecutable = process.env.SCX_E2E_EXECUTABLE
   const app = await electron.launch({
-    args: ['.', ...(opts.args ?? [])],
-    cwd: process.cwd(),
+    ...(packagedExecutable
+      ? { executablePath: packagedExecutable, args: ['--disable-gpu', ...(opts.args ?? [])] }
+      : { args: ['.', '--disable-gpu', ...(opts.args ?? [])], cwd: process.cwd() }),
     // CI/headless 环境下无需显示服务器即可运行 Electron
     headless: process.env.E2E_HEADLESS === '1',
     env: {
-      ...process.env,
+      ...environment,
+      APPDATA: userDataDir,
+      LOCALAPPDATA: userDataDir,
       SCX_USER_DATA_DIR: userDataDir
     }
   })

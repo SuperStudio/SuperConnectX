@@ -2,6 +2,9 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { WINDOW_IPC_CHANNELS } from '../shared/ipc/window'
 import { STORAGE_IPC_CHANNELS } from '../shared/ipc/storage'
+import type { AiServiceStatus, AiSelfTestResult, RuntimeUiEvent } from '../shared/extensions/ai-control/AiServiceTypes'
+import type { AiConfigDocument, AiConfigPatch } from '../shared/extensions/ai-control/AiConfigTypes'
+import type { AiActivityEntry } from '../shared/extensions/ai-control/AiActivityTypes'
 
 // 暴露 IPC 调用接口给渲染进程
 contextBridge.exposeInMainWorld('storageApi', {
@@ -74,6 +77,11 @@ contextBridge.exposeInMainWorld('connectApi', {
   startConnect: (conn: any) => ipcRenderer.invoke('start-connect', conn),
   startConnectById: (id: number, sessionId: string, extraFields?: any) => ipcRenderer.invoke('start-connect-by-id', { id, sessionId, extraFields }),
   sendData: (data: { conn: any; command: string }) => ipcRenderer.invoke('send-data', data),
+  updateSessionCommandSettings: (payload: {
+    sessionId: string
+    settings: { autoNewline: boolean; hexMode: boolean; crcEnabled: boolean; crcMethod: string }
+    revision: number
+  }) => ipcRenderer.invoke('update-session-command-settings', payload),
   uploadFile: (data: { conn: any; localFilePath: string; remoteFileName: string }) => ipcRenderer.invoke('upload-file', data),
   stopConnect: (conn: any) => ipcRenderer.invoke('stop-connect', conn),
   updateConnect: (conn: any, config: any) => ipcRenderer.invoke('update-connect', { conn, config }),
@@ -105,6 +113,11 @@ contextBridge.exposeInMainWorld('connectApi', {
     const listener = (_event: Electron.IpcRendererEvent, ports: { path: string }[]): void => callback(ports)
     ipcRenderer.on('on-serial-ports-changed', listener)
     return () => ipcRenderer.removeListener('on-serial-ports-changed', listener)
+  },
+  onRuntimeEvent: (callback: (event: RuntimeUiEvent) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, event: RuntimeUiEvent): void => callback(event)
+    ipcRenderer.on('on-runtime-event', listener)
+    return () => ipcRenderer.removeListener('on-runtime-event', listener)
   },
   writeToLog: (sessionId: string, content: string) => ipcRenderer.invoke('write-to-log', { sessionId, content })
 })
@@ -149,6 +162,30 @@ contextBridge.exposeInMainWorld('logApi', {
   warn: (message: string, meta?: any) => ipcRenderer.invoke('logger:warn', message, meta),
   error: (message: string, meta?: any) => ipcRenderer.invoke('logger:error', message, meta),
   debug: (message: string, meta?: any) => ipcRenderer.invoke('logger:debug', message, meta)
+})
+
+contextBridge.exposeInMainWorld('aiServiceApi', {
+  getState: (): Promise<AiServiceStatus> => ipcRenderer.invoke('ai-service:get-state'),
+  setPermission: (permission: 'read-only' | 'full-control'): Promise<AiServiceStatus> => ipcRenderer.invoke('ai-service:set-permission', permission),
+  getConfig: (): Promise<AiConfigDocument> => ipcRenderer.invoke('ai-service:get-config'),
+  saveConfig: (patch: AiConfigPatch): Promise<AiConfigDocument> => ipcRenderer.invoke('ai-service:save-config', patch),
+  runSelfTest: (): Promise<AiSelfTestResult> => ipcRenderer.invoke('ai-service:run-self-test'),
+  rotateToken: () => ipcRenderer.invoke('ai-service:rotate-token'),
+  getCodexConfig: (): Promise<string> => ipcRenderer.invoke('ai-service:get-codex-config'),
+  readActivity: (limit = 500): Promise<AiActivityEntry[]> => ipcRenderer.invoke('ai-service:read-activity', limit),
+  clearActivity: (): Promise<void> => ipcRenderer.invoke('ai-service:clear-activity'),
+  chooseLogDirectory: () => ipcRenderer.invoke('ai-service:choose-log-directory'),
+  openLogDirectory: () => ipcRenderer.invoke('ai-service:open-log-directory'),
+  onStateChanged: (callback: (status: AiServiceStatus) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, status: AiServiceStatus): void => callback(status)
+    ipcRenderer.on('ai-service:state-changed', listener)
+    return () => ipcRenderer.removeListener('ai-service:state-changed', listener)
+  },
+  onConfigChanged: (callback: (config: AiConfigDocument) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, config: AiConfigDocument): void => callback(config)
+    ipcRenderer.on('ai-service:config-changed', listener)
+    return () => ipcRenderer.removeListener('ai-service:config-changed', listener)
+  }
 })
 
 contextBridge.exposeInMainWorld('updateApi', {

@@ -33,7 +33,7 @@ export default class IpcMain {
     return IpcMain.sInstance
   }
 
-  init(_logger, windows): void {
+  init(_logger, windows, rendererReady: Promise<void> = Promise.resolve()): void {
     function createWindow(): void {
       // 创建浏览器窗口
       const mainWindow = new BrowserWindow({
@@ -108,22 +108,37 @@ export default class IpcMain {
     }
 
     // 应用生命周期管理
-    app.whenReady().then(() => {
-      electronApp.setAppUserModelId('superconnectx.superstudio') // 应用唯一 ID（打包用）
-      app.on('browser-window-created', (_, window) => {
-        optimizer.watchWindowShortcuts(window)
+    app
+      .whenReady()
+      .then(async () => {
+        // Renderer 启动后会立即调用各功能 IPC。必须先等待扩展服务完成 handler 注册，
+        // 否则首次打开页面可能出现 "No handler registered"。
+        await rendererReady
+        electronApp.setAppUserModelId('superconnectx.superstudio') // 应用唯一 ID（打包用）
+        app.on('browser-window-created', (_, window) => {
+          optimizer.watchWindowShortcuts(window)
+        })
+        createWindow()
+        app.on('activate', () => {
+          if (BrowserWindow.getAllWindows().length === 0) createWindow()
+        })
+        // 初始化防止休眠功能
+        this.initPreventSleep()
+        // 监听设置变化
+        ipcMain.on('settings-updated', (_, settings) => {
+          this.setPreventSleep(settings.preventSleep === true)
+        })
       })
-      createWindow()
-      app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) createWindow()
+      .catch((error) => {
+        logger.error(
+          `[IpcMain] renderer prerequisites failed: ${error instanceof Error ? error.message : String(error)}`
+        )
+        dialog.showErrorBox(
+          'SuperConnectX 启动失败',
+          `后台服务初始化失败，界面无法安全启动。\n${error instanceof Error ? error.message : String(error)}`
+        )
+        app.quit()
       })
-      // 初始化防止休眠功能
-      this.initPreventSleep()
-      // 监听设置变化
-      ipcMain.on('settings-updated', (_, settings) => {
-        this.setPreventSleep(settings.preventSleep === true)
-      })
-    })
 
     app.on('window-all-closed', () => {
       if (process.platform !== 'darwin') {

@@ -22,13 +22,14 @@
       </template>
     </template>
     <template #status="{ tab: workbenchTab }">
-      <span v-if="getConnectionTab(workbenchTab.id)" v-show="!['commandEditor', 'shortcuts', 'settings', 'virtualPort'].includes(getConnectionTab(workbenchTab.id).connectionType)" class="connection-dot" :class="getConnectionStatus(getConnectionTab(workbenchTab.id))" />
+      <span v-if="getConnectionTab(workbenchTab.id) && !['commandEditor', 'shortcuts', 'settings', 'virtualPort'].includes(getConnectionTab(workbenchTab.id).connectionType)" class="connection-dot" :class="getConnectionStatus(getConnectionTab(workbenchTab.id))" />
     </template>
     <template #title="{ tab: workbenchTab }">
       <template v-if="getConnectionTab(workbenchTab.id)">
         <el-tooltip :content="getTitle(getConnectionTab(workbenchTab.id))" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
           <span class="tab-title-content">
-            {{ getTitle(getConnectionTab(workbenchTab.id)) }}
+            <span v-if="getConnectionTab(workbenchTab.id).aiManaged" class="tab-ai-badge">AI</span>
+            <span class="tab-title-text">{{ getTitle(getConnectionTab(workbenchTab.id)) }}</span>
             <el-tooltip v-if="getConnectionTab(workbenchTab.id).connectionType === 'com' && getConnectionTab(workbenchTab.id).comName && serialRemarks[getConnectionTab(workbenchTab.id).comName]" :content="serialRemarks[getConnectionTab(workbenchTab.id).comName]" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
               <span class="tab-remark">{{ serialRemarks[getConnectionTab(workbenchTab.id).comName] }}</span>
             </el-tooltip>
@@ -70,6 +71,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { WorkbenchTab } from '../../../../shared/workbench/types'
 import { TOOLTIP_SHOW_AFTER } from '../../utils/constants'
 import WorkbenchTabBar from '../../foundation/workbench/WorkbenchTabBar.vue'
@@ -86,6 +88,8 @@ const props = defineProps<{
   getConnectionStatus: (tab: any) => string
   panelId: string
 }>()
+
+const { t } = useI18n()
 
 defineEmits<{
   switchTab: [tabId: string | number]
@@ -109,7 +113,9 @@ defineEmits<{
 }>()
 
 const getConnectionTab = (id: string): any => props.connectionTabs.find(tab => tab.id.toString() === id)
-const getTitle = (tab: any): string => tab.name || `${tab.host || tab.comName}:${tab.port || ''}`
+const getTitle = (tab: any): string => tab.connectionType === 'aiService'
+  ? t('aiService.title')
+  : tab.name || `${tab.host || tab.comName}:${tab.port || ''}`
 const workbenchTabs = computed<WorkbenchTab[]>(() => props.connectionTabs.map(tab => ({
   id: tab.id.toString(),
   title: getTitle(tab),
@@ -121,7 +127,9 @@ const workbenchTabs = computed<WorkbenchTab[]>(() => props.connectionTabs.map(ta
 .connection-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .connection-dot.connected { background-color: var(--connect-dot-connected); }
 .connection-dot.disconnected { background-color: var(--connect-dot-disconnected); }
-.tab-title-content { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab-title-content { display: inline-flex; align-items: center; min-width: 0; gap: 4px; overflow: hidden; white-space: nowrap; }
+.tab-title-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab-ai-badge { flex: 0 0 auto; padding: 1px 4px; border: 1px solid rgba(227, 154, 98, 0.65); border-radius: 3px; color: #e39a62; font-size: 9px; font-weight: 700; line-height: 1.2; }
 .tab-remark { color: var(--tab-remark); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 4px; font-size: 12px; }
 .tab-action-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; border-radius: 3px; opacity: 0; transition: opacity 0.15s; cursor: pointer; background-size: contain; background-repeat: no-repeat; background-position: center; }
 .tab-action-btn::before { content: '×'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 14px; line-height: 1; color: var(--tab-close); }

@@ -32,17 +32,19 @@
           />
           <div class="param-item">
             <span class="param-label">{{ t('comTerminal.baudRate') }}</span>
-            <el-select v-model="baudRate" size="small" class="param-select-baud" :popper-append-to-body="false">
+            <el-select
+              v-model="baudRate"
+              size="small"
+              class="param-select-baud"
+              :popper-append-to-body="false"
+            >
               <el-option :label="t('serialSettings.addNew') + '...'" value="__add__" />
-              <el-option
-                v-for="br in baudRates"
-                :key="br"
-                :label="br"
-                :value="br"
-              >
+              <el-option v-for="br in baudRates" :key="br" :label="br" :value="br">
                 <div class="baud-option">
                   <span>{{ br }}</span>
-                  <el-icon class="delete-icon" @click.prevent.stop="deleteBaudRate(br)"><Close /></el-icon>
+                  <el-icon class="delete-icon" @click.prevent.stop="deleteBaudRate(br)"
+                    ><Close
+                  /></el-icon>
                 </div>
               </el-option>
             </el-select>
@@ -50,7 +52,12 @@
 
           <div class="param-item">
             <span class="param-label">{{ t('comTerminal.encoding') }}</span>
-            <el-select v-model="encoding" size="small" class="param-select-encoding" :popper-append-to-body="false">
+            <el-select
+              v-model="encoding"
+              size="small"
+              class="param-select-encoding"
+              :popper-append-to-body="false"
+            >
               <el-option label="UTF-8" value="utf8" />
               <el-option label="GB2312" value="gb2312" />
               <el-option label="GBK" value="gbk" />
@@ -98,24 +105,49 @@
               <el-option label="1.5" :value="1.5" />
               <el-option label="2" :value="2" />
             </el-select>
-            <el-button icon="More" size="small" class="btn-primary more-btn" @click="showMoreDialog = true">
+            <el-button
+              icon="More"
+              size="small"
+              class="btn-primary more-btn"
+              @click="showMoreDialog = true"
+            >
               {{ t('comTerminal.more') }}
             </el-button>
           </div>
         </div>
 
         <!-- 更多设置对话框 -->
-        <el-dialog v-model="showMoreDialog" :title="t('comTerminal.advancedSettings')" width="400px">
+        <el-dialog
+          v-model="showMoreDialog"
+          :title="t('comTerminal.advancedSettings')"
+          width="400px"
+        >
           <el-form label-width="100px" @submit.prevent>
             <el-form-item :label="t('comTerminal.openTimeout')">
               <div class="input-with-unit">
-                <el-input-number v-model="readTimeout" :min="0" :step="100" size="small" class="full-width" :controls="false" placeholder="ms" />
+                <el-input-number
+                  v-model="readTimeout"
+                  :min="0"
+                  :step="100"
+                  size="small"
+                  class="full-width"
+                  :controls="false"
+                  placeholder="ms"
+                />
                 <span class="unit-label">ms</span>
               </div>
             </el-form-item>
             <el-form-item :label="t('comTerminal.writeTimeout')">
               <div class="input-with-unit">
-                <el-input-number v-model="writeTimeout" :min="0" :step="100" size="small" class="full-width" :controls="false" placeholder="ms" />
+                <el-input-number
+                  v-model="writeTimeout"
+                  :min="0"
+                  :step="100"
+                  size="small"
+                  class="full-width"
+                  :controls="false"
+                  placeholder="ms"
+                />
                 <span class="unit-label">ms</span>
               </div>
             </el-form-item>
@@ -134,12 +166,19 @@
             </el-form-item>
           </el-form>
           <template #footer>
-            <el-button class="btn-cancel" size="small" @click="showMoreDialog = false">{{ t('common.close') }}</el-button>
+            <el-button class="btn-cancel" size="small" @click="showMoreDialog = false">{{
+              t('common.close')
+            }}</el-button>
           </template>
         </el-dialog>
 
         <!-- 新增波特率对话框 -->
-        <el-dialog v-model="showAddBaudRateDialog" :title="t('comTerminal.addBaudRateTitle')" width="300px" @opened="onBaudRateDialogOpened">
+        <el-dialog
+          v-model="showAddBaudRateDialog"
+          :title="t('comTerminal.addBaudRateTitle')"
+          width="300px"
+          @opened="onBaudRateDialogOpened"
+        >
           <el-form label-width="80px" @submit.prevent>
             <el-form-item :label="t('comTerminal.baudRateLabel')">
               <el-input-number
@@ -158,8 +197,20 @@
             </el-form-item>
           </el-form>
           <template #footer>
-            <el-button class="btn-cancel" style="width: auto !important" size="small" @click="showAddBaudRateDialog = false">{{ t('common.cancel') }}</el-button>
-            <el-button size="small" class="btn-primary" style="width: auto !important" @click="addBaudRate">{{ t('common.confirm') }}</el-button>
+            <el-button
+              class="btn-cancel"
+              style="width: auto !important"
+              size="small"
+              @click="showAddBaudRateDialog = false"
+              >{{ t('common.cancel') }}</el-button
+            >
+            <el-button
+              size="small"
+              class="btn-primary"
+              style="width: auto !important"
+              @click="addBaudRate"
+              >{{ t('common.confirm') }}</el-button
+            >
           </template>
         </el-dialog>
       </template>
@@ -175,32 +226,47 @@ import UnifiedTerminal from './UnifiedTerminal.vue'
 import { useTerminal } from '../composables/useTerminal'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
 import { sendDisplayText, recvDisplayText } from '../composables/app/useSettingsStore'
+import type { RuntimeUiEvent } from '../../../shared/extensions/ai-control/AiServiceTypes'
 
 const { t } = useI18n()
 
-const emit = defineEmits(['onClose', 'commandSent', 'onConnect', 'onDisconnect', 'openCommandEditor', 'remarkUpdated', 'fontLoaded', 'openSyntaxHighlight'])
-const props = withDefaults(defineProps<{
-  connection: {
-    id: string | number
-    connectionType: string
-    comName?: string
-    baudRate?: number
-    dataBits?: number
-    stopBits?: number
-    parity?: string
-    name?: string
-    host?: string
-    port?: number
-    username?: string
-    password?: string
-    sessionId: string | number
-    remark?: string
+const emit = defineEmits([
+  'onClose',
+  'commandSent',
+  'onConnect',
+  'onDisconnect',
+  'openCommandEditor',
+  'remarkUpdated',
+  'fontLoaded',
+  'openSyntaxHighlight'
+])
+const props = withDefaults(
+  defineProps<{
+    connection: {
+      id: string | number
+      connectionType: string
+      comName?: string
+      baudRate?: number
+      dataBits?: number
+      stopBits?: number
+      parity?: string
+      name?: string
+      host?: string
+      port?: number
+      username?: string
+      password?: string
+      sessionId: string | number
+      remark?: string
+      aiManaged?: boolean
+      aiSessionState?: 'starting' | 'connected' | 'error' | 'closed' | 'unknown'
+    }
+    autoConnect?: boolean
+    onClose?: () => void
+  }>(),
+  {
+    autoConnect: true
   }
-  autoConnect?: boolean
-  onClose?: () => void
-}>(), {
-  autoConnect: true
-})
+)
 
 const unifiedTerminalRef = ref<InstanceType<typeof UnifiedTerminal>>()
 const isConnected = ref(false)
@@ -232,9 +298,11 @@ const autoNewline = ref(true)
 const hexMode = ref(false)
 const crcEnabled = ref(true)
 const crcMethod = ref<string>('CRC-16/MODBUS')
+let isApplyingRuntimeUpdate = false
 
 let removeMountedCloseListener: (() => void) | null = null
 let removeDataListener: (() => void) | null = null
+let removeRuntimeEventListener: (() => void) | null = null
 
 // 串口参数
 const baudRates = ref<number[]>([]) // 从全局设置加载
@@ -246,6 +314,43 @@ const remark = ref(props.connection.remark || '')
 
 const isConnectedValue = computed(() => isConnected.value)
 const currentSessionId = ref<string>('')
+let commandSettingsRevision = 0
+type ExternalSessionState = 'starting' | 'connected' | 'stopping' | 'error' | 'closed' | 'unknown'
+
+const syncSessionCommandSettings = (): void => {
+  const sessionId = currentSessionId.value || String(props.connection.sessionId || '')
+  if (!sessionId) return
+  commandSettingsRevision += 1
+  const revision = commandSettingsRevision
+  const settings = {
+    autoNewline: autoNewline.value,
+    hexMode: hexMode.value,
+    crcEnabled: crcEnabled.value,
+    crcMethod: crcMethod.value
+  }
+  void window.connectApi
+    .updateSessionCommandSettings({
+      sessionId,
+      revision,
+      settings
+    })
+    .then((result) => {
+      if (
+        !result.updated &&
+        result.revision >= revision &&
+        String(currentSessionId.value || props.connection.sessionId || '') === sessionId
+      ) {
+        commandSettingsRevision = result.revision
+        syncSessionCommandSettings()
+      }
+    })
+    .catch(() => undefined)
+}
+
+watch([autoNewline, hexMode, crcEnabled, crcMethod], syncSessionCommandSettings, {
+  immediate: true,
+  flush: 'post'
+})
 
 // 使用通用 composable
 const terminal = useTerminal({
@@ -261,7 +366,8 @@ const { openLogFolder, openLogFile, saveLogFile, cleanup: terminalCleanup } = te
 
 // 监听波特率变化
 watch(baudRate, (newVal) => {
-  if (newVal === '__add__' as any) {
+  if (isApplyingRuntimeUpdate) return
+  if (newVal === ('__add__' as any)) {
     showAddBaudRateDialog.value = true
     nextTick(() => {
       if (baudRates.value.length > 0) {
@@ -277,20 +383,26 @@ watch(baudRate, (newVal) => {
 })
 
 // 监听串口设置变化，自动保存
-watch([dataBits, stopBits, parity, encoding, readTimeout, writeTimeout, flowControl, dtr, rts], () => {
-  saveComSettings()
-  if (isConnected.value) {
-    applyComConfig()
+watch(
+  [dataBits, stopBits, parity, encoding, readTimeout, writeTimeout, flowControl, dtr, rts],
+  () => {
+    if (isApplyingRuntimeUpdate) return
+    saveComSettings()
+    if (isConnected.value) {
+      applyComConfig()
+    }
   }
-})
+)
 
 // 监听字体大小变化，仅保存设置（不重连串口）
 watch(terminal.fontSize, () => {
+  if (isApplyingRuntimeUpdate) return
   saveComSettings()
 })
 
 // 监听 HEX 显示模式变化
 watch(hexDisplayMode, (newVal) => {
+  if (isApplyingRuntimeUpdate) return
   saveComSettings()
   unifiedTerminalRef.value?.setHexDisplayMode?.(newVal)
   if (isConnected.value) {
@@ -300,52 +412,72 @@ watch(hexDisplayMode, (newVal) => {
 
 // 监听 CRLF 模式变化
 watch(autoNewline, (newVal) => {
+  if (isApplyingRuntimeUpdate) return
   saveComSettings()
   unifiedTerminalRef.value?.setAutoNewline?.(newVal)
 })
 
 // 监听 HEX 发送模式变化
 watch(hexMode, (newVal) => {
+  if (isApplyingRuntimeUpdate) return
   saveComSettings()
   unifiedTerminalRef.value?.setHexMode?.(newVal)
 })
 
 // 监听 CRC 启用状态变化
 watch(crcEnabled, (newVal) => {
+  if (isApplyingRuntimeUpdate) return
   saveComSettings()
   unifiedTerminalRef.value?.setCrcEnabled?.(newVal)
 })
 
 // 监听 CRC 计算方式变化
 watch(crcMethod, (newVal) => {
+  if (isApplyingRuntimeUpdate) return
   saveComSettings()
   unifiedTerminalRef.value?.setCrcMethod?.(newVal)
 })
 
 // 监听 UnifiedTerminal 的状态变化
-watch(() => unifiedTerminalRef.value?.getAutoNewline?.(), (newVal) => {
-  if (newVal !== undefined && newVal !== autoNewline.value) {
-    autoNewline.value = newVal
-  }
-}, { immediate: true })
+watch(
+  () => unifiedTerminalRef.value?.getAutoNewline?.(),
+  (newVal) => {
+    if (newVal !== undefined && newVal !== autoNewline.value) {
+      autoNewline.value = newVal
+    }
+  },
+  { immediate: true }
+)
 
-watch(() => unifiedTerminalRef.value?.getHexMode?.(), (newVal) => {
-  if (newVal !== undefined && newVal !== hexMode.value) {
-    hexMode.value = newVal
-  }
-}, { immediate: true })
+watch(
+  () => unifiedTerminalRef.value?.getHexMode?.(),
+  (newVal) => {
+    if (newVal !== undefined && newVal !== hexMode.value) {
+      hexMode.value = newVal
+    }
+  },
+  { immediate: true }
+)
 
-watch(() => unifiedTerminalRef.value?.getCrcEnabled?.(), (newVal) => {
-  if (newVal !== undefined && newVal !== crcEnabled.value) {
-    crcEnabled.value = newVal
-  }
-}, { immediate: true })
+watch(
+  () => unifiedTerminalRef.value?.getCrcEnabled?.(),
+  (newVal) => {
+    if (newVal !== undefined && newVal !== crcEnabled.value) {
+      crcEnabled.value = newVal
+    }
+  },
+  { immediate: true }
+)
 
-watch(() => unifiedTerminalRef.value?.getCrcMethod?.(), (newVal) => {
-  if (newVal !== undefined && newVal !== crcMethod.value) {
-    crcMethod.value = newVal
-  }
-}, { immediate: true })
+watch(
+  () => unifiedTerminalRef.value?.getCrcMethod?.(),
+  (newVal) => {
+    if (newVal !== undefined && newVal !== crcMethod.value) {
+      crcMethod.value = newVal
+    }
+  },
+  { immediate: true }
+)
 
 // 应用串口配置（热更新）
 const applyComConfig = async () => {
@@ -412,7 +544,8 @@ const loadComSettings = async () => {
       rts.value = settings.rts !== undefined ? settings.rts : false
       remark.value = settings.remark || ''
       hexDisplayMode.value = settings.hexDisplayMode || false
-      terminal.showTimestamp.value = settings.showTimestamp !== undefined ? settings.showTimestamp : true
+      terminal.showTimestamp.value =
+        settings.showTimestamp !== undefined ? settings.showTimestamp : true
       autoNewline.value = settings.autoNewline !== undefined ? settings.autoNewline : true
       hexMode.value = settings.hexMode || false
       crcEnabled.value = settings.crcEnabled !== undefined ? settings.crcEnabled : true
@@ -481,7 +614,11 @@ const notifyLogTimestampToBackend = async (showTs: boolean) => {
   if (!isConnected.value) return
   try {
     await window.connectApi.updateConnect(
-      { connectionType: 'com', comName: props.connection.comName, sessionId: props.connection.sessionId },
+      {
+        connectionType: 'com',
+        comName: props.connection.comName,
+        sessionId: props.connection.sessionId
+      },
       { logTimestamp: showTs }
     )
   } catch (error) {
@@ -510,6 +647,216 @@ const handleSettingsUpdated = (event: Event) => {
       baudRate.value = baudRates.value[0]
     }
   }
+}
+
+const bindDataListener = (): void => {
+  currentSessionId.value = String(props.connection.sessionId)
+  if (removeDataListener) {
+    removeDataListener()
+    removeDataListener = null
+  }
+  removeDataListener = window.connectApi.onRecvData((data) => {
+    if (String(data.connId) !== String(currentSessionId.value)) return
+    terminal.totalRxSize += data.data.length
+    unifiedTerminalRef.value?.updateRxBytes(data.data.length)
+    const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
+    const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
+    const displayText = `${prefix}${recvLabel}${data.data}\n`
+    unifiedTerminalRef.value?.appendToTerminal(displayText)
+  })
+}
+
+const appendExternalSessionState = (state: ExternalSessionState, result?: unknown): void => {
+  const message =
+    result &&
+    typeof result === 'object' &&
+    typeof (result as { message?: unknown }).message === 'string'
+      ? `: ${(result as { message: string }).message}`
+      : ''
+  if (state === 'connected') {
+    unifiedTerminalRef.value?.appendToTerminal(`\n[AI] ${t('comTerminal.connectSuccess')}\n`)
+  } else if (state === 'starting') {
+    unifiedTerminalRef.value?.appendToTerminal(
+      `\n[AI] ${t('comTerminal.connecting', { port: props.connection.comName })}\n`
+    )
+  } else if (state === 'error') {
+    unifiedTerminalRef.value?.appendToTerminal(
+      `\n[AI] ${t('comTerminal.connectFailed')}${message}\n`
+    )
+  } else if (state === 'closed') {
+    unifiedTerminalRef.value?.appendToTerminal(`\n[AI] ${t('comTerminal.connectionClosed')}\n`)
+  }
+}
+
+const applyExternalSessionState = (
+  state: ExternalSessionState | undefined,
+  result?: unknown
+): void => {
+  if (!props.connection.aiManaged || !state) return
+  if (state === 'starting') {
+    isConnecting.value = true
+    isConnected.value = false
+    appendExternalSessionState(state, result)
+    return
+  }
+  if (state === 'connected') {
+    const wasConnected = isConnected.value
+    isConnecting.value = false
+    isConnected.value = true
+    bindDataListener()
+    if (!wasConnected) appendExternalSessionState(state, result)
+    emit('onConnect', props.connection.sessionId)
+    return
+  }
+
+  const wasConnected = isConnected.value
+  isConnecting.value = false
+  isConnected.value = false
+  if (removeDataListener) {
+    removeDataListener()
+    removeDataListener = null
+  }
+  if (state === 'error' || (state === 'closed' && wasConnected))
+    appendExternalSessionState(state, result)
+  if (wasConnected || state === 'error' || state === 'closed')
+    emit('onDisconnect', props.connection.sessionId)
+}
+
+watch(
+  () => props.connection.aiSessionState,
+  (state, previousState) => {
+    if (props.connection.aiManaged && state !== previousState) {
+      applyExternalSessionState(state)
+    }
+  }
+)
+
+const formatRuntimeTimestamp = (timestamp?: string): string => {
+  const parsed = timestamp ? new Date(timestamp) : new Date()
+  const date = Number.isNaN(parsed.getTime()) ? new Date() : parsed
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}.${String(date.getMilliseconds()).padStart(3, '0')}`
+}
+
+const formatAiCommand = (command: string, displayCommand?: unknown): string => {
+  if (typeof displayCommand === 'string') return displayCommand
+  if (hexMode.value) {
+    return Array.from(command)
+      .map((char) => char.charCodeAt(0).toString(16).padStart(2, '0').toUpperCase())
+      .join(' ')
+  }
+  return command.replace(/(?:\r\n|\r|\n)+$/, '')
+}
+
+const appendAiTxEvent = (event: RuntimeUiEvent): boolean => {
+  if (
+    (event?.eventType !== 'tx.accepted' && event?.eventType !== 'tx.failed') ||
+    event?.source !== 'ai' ||
+    String(event?.sessionId) !== String(props.connection.sessionId)
+  )
+    return false
+
+  const payload = event.payload || {}
+  const command = typeof payload.command === 'string' ? payload.command : ''
+  if (!command) return true
+
+  const displayCommand = formatAiCommand(command, payload.displayCommand)
+  const failed = event.eventType === 'tx.failed'
+  const result = payload.result as { message?: unknown } | undefined
+  const errorSuffix = failed && typeof result?.message === 'string' ? ` (${result.message})` : ''
+  const label = failed ? `AI ${sendDisplayText.value} FAILED` : `AI ${sendDisplayText.value}`
+  unifiedTerminalRef.value?.appendToTerminal(
+    `\n[${formatRuntimeTimestamp(event.timestamp)}] ${label} ${displayCommand}${errorSuffix}\n`
+  )
+
+  if (!failed) {
+    const byteLength = typeof payload.byteLength === 'number' ? payload.byteLength : command.length
+    unifiedTerminalRef.value?.updateTxBytes(byteLength)
+  }
+  return true
+}
+
+// AI 或其他 GUI 通过主进程修改当前 COM 会话后，应用同一份运行时 patch。
+const appendExternalSessionEvent = (event: RuntimeUiEvent): boolean => {
+  if (
+    !props.connection.aiManaged ||
+    (event?.eventType !== 'session.state' && event?.eventType !== 'session.closed') ||
+    (event?.source !== 'ai' && event?.source !== 'system') ||
+    String(event?.sessionId) !== String(props.connection.sessionId)
+  )
+    return false
+
+  const payload = event.payload || {}
+  const state =
+    event.eventType === 'session.closed' ? 'closed' : (payload.state as ExternalSessionState)
+  applyExternalSessionState(state, payload.result)
+  return true
+}
+
+const handleRuntimeEvent = (event: RuntimeUiEvent): void => {
+  if (appendExternalSessionEvent(event)) return
+  if (appendAiTxEvent(event)) return
+
+  const isSessionEvent =
+    event?.eventType === 'session.config.changed' &&
+    String(event.sessionId) === String(props.connection.sessionId)
+  const isConfigEvent =
+    event?.eventType === 'config.changed' &&
+    event.payload?.domain === 'com-settings' &&
+    String(event.payload?.targetId) === String(props.connection.comName)
+  if (!isSessionEvent && !isConfigEvent) return
+
+  const changed = event.payload?.changed
+  if (!changed || typeof changed !== 'object' || Array.isArray(changed)) return
+  const values = changed as Record<string, unknown>
+  isApplyingRuntimeUpdate = true
+  if (typeof values.baudRate === 'number') baudRate.value = values.baudRate
+  if (typeof values.dataBits === 'number') dataBits.value = values.dataBits
+  if (typeof values.stopBits === 'number') stopBits.value = values.stopBits
+  if (typeof values.parity === 'string') parity.value = values.parity
+  if (typeof values.encoding === 'string') encoding.value = values.encoding
+  if (typeof values.readTimeout === 'number') readTimeout.value = values.readTimeout
+  if (typeof values.writeTimeout === 'number') writeTimeout.value = values.writeTimeout
+  if (
+    values.flowControl === 'none' ||
+    values.flowControl === 'hardware' ||
+    values.flowControl === 'software'
+  ) {
+    flowControl.value = values.flowControl
+  }
+  if (typeof values.dtr === 'boolean') dtr.value = values.dtr
+  if (typeof values.rts === 'boolean') rts.value = values.rts
+  if (typeof values.hexDisplayMode === 'boolean') {
+    hexDisplayMode.value = values.hexDisplayMode
+    unifiedTerminalRef.value?.setHexDisplayMode?.(hexDisplayMode.value)
+    if (isConnected.value) void updateReceiveHexMode(hexDisplayMode.value)
+  }
+  if (typeof values.showTimestamp === 'boolean') {
+    terminal.showTimestamp.value = values.showTimestamp
+    unifiedTerminalRef.value?.setShowTimestamp?.(terminal.showTimestamp.value)
+    if (isConnected.value) void notifyLogTimestampToBackend(terminal.showTimestamp.value)
+  }
+  if (typeof values.autoNewline === 'boolean') {
+    autoNewline.value = values.autoNewline
+    unifiedTerminalRef.value?.setAutoNewline?.(autoNewline.value)
+  }
+  if (typeof values.hexMode === 'boolean') {
+    hexMode.value = values.hexMode
+    unifiedTerminalRef.value?.setHexMode?.(hexMode.value)
+  }
+  if (typeof values.crcEnabled === 'boolean') {
+    crcEnabled.value = values.crcEnabled
+    unifiedTerminalRef.value?.setCrcEnabled?.(crcEnabled.value)
+  }
+  if (typeof values.crcMethod === 'string') {
+    crcMethod.value = values.crcMethod
+    unifiedTerminalRef.value?.setCrcMethod?.(crcMethod.value)
+  }
+  if (values.commandInput !== undefined) {
+    unifiedTerminalRef.value?.setCommandInput?.(String(values.commandInput ?? ''))
+  }
+  nextTick(() => {
+    isApplyingRuntimeUpdate = false
+  })
 }
 
 // 新增波特率（更新全局设置）
@@ -561,7 +908,9 @@ const deleteBaudRate = async (rate: number) => {
 
 const handleConnect = async () => {
   isConnecting.value = true
-  unifiedTerminalRef.value?.appendToTerminal(`\n${t('comTerminal.connecting', { port: props.connection.comName })}\n`)
+  unifiedTerminalRef.value?.appendToTerminal(
+    `\n${t('comTerminal.connecting', { port: props.connection.comName })}\n`
+  )
 
   try {
     const result = await window.connectApi.startConnect({
@@ -581,6 +930,7 @@ const handleConnect = async () => {
 
     if (result.success) {
       currentSessionId.value = String(props.connection.sessionId)
+      syncSessionCommandSettings()
       isConnected.value = true
       isConnecting.value = false
       unifiedTerminalRef.value?.appendToTerminal(`\n${t('comTerminal.connectSuccess')}\n`)
@@ -589,30 +939,22 @@ const handleConnect = async () => {
       notifyLogTimestampToBackend(terminal.showTimestamp.value)
 
       // 清理旧的数据监听器，防止重复注册
-      if (removeDataListener) {
-        removeDataListener()
-        removeDataListener = null
-      }
-      removeDataListener = window.connectApi.onRecvData((data) => {
-        if (String(data.connId) !== String(currentSessionId.value)) return
-        terminal.totalRxSize += data.data.length
-        unifiedTerminalRef.value?.updateRxBytes(data.data.length)
-        const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
-        const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
-        const displayText = `${prefix}${recvLabel}${data.data}\n`
-        unifiedTerminalRef.value?.appendToTerminal(displayText)
-      })
+      bindDataListener()
 
       unifiedTerminalRef.value?.focusInput()
     } else {
-      const err = new Error(result.message || t('comTerminal.connectFailed')) as Error & { code?: string }
+      const err = new Error(result.message || t('comTerminal.connectFailed')) as Error & {
+        code?: string
+      }
       err.code = result.code
       throw err
     }
   } catch (error) {
     isConnecting.value = false
     const err = error as Error & { code?: string }
-    unifiedTerminalRef.value?.appendToTerminal(`\n${t('comTerminal.connectFailed')}: ${err.message}\n`)
+    unifiedTerminalRef.value?.appendToTerminal(
+      `\n${t('comTerminal.connectFailed')}: ${err.message}\n`
+    )
     ElMessage.error(t('comTerminal.connectFailed'))
     // Linux 串口权限不足：提供一键修复入口（pkexec 写入 udev 规则）
     if (err.code === 'EACCES') {
@@ -624,12 +966,16 @@ const handleConnect = async () => {
 // Linux 串口权限不足时，提供一键修复（AppImage 等无安装钩子的包格式依赖此路径）
 const offerSerialPermissionFix = async () => {
   try {
-    await ElMessageBox.confirm(t('comTerminal.fixPermissionConfirm'), t('comTerminal.fixPermissionTitle'), {
-      confirmButtonText: t('comTerminal.fixPermissionBtn'),
-      cancelButtonText: t('common.cancel'),
-      type: 'warning',
-      center: true
-    })
+    await ElMessageBox.confirm(
+      t('comTerminal.fixPermissionConfirm'),
+      t('comTerminal.fixPermissionTitle'),
+      {
+        confirmButtonText: t('comTerminal.fixPermissionBtn'),
+        cancelButtonText: t('common.cancel'),
+        type: 'warning',
+        center: true
+      }
+    )
   } catch {
     return // 用户取消
   }
@@ -689,7 +1035,9 @@ const handleSendCommand = async (command: string, originalInput?: string) => {
   // 显示发送内容
   const now = new Date()
   const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`
-  unifiedTerminalRef.value?.appendToTerminal(`\n[${timestamp}] ${sendDisplayText.value} ${displayCommand}\n`)
+  unifiedTerminalRef.value?.appendToTerminal(
+    `\n[${timestamp}] ${sendDisplayText.value} ${displayCommand}\n`
+  )
 
   try {
     await window.connectApi.sendData({
@@ -707,7 +1055,6 @@ const handleSendCommand = async (command: string, originalInput?: string) => {
     console.error(t('comTerminal.commandSendFailed'), error)
   }
 }
-
 
 const saveLog = async () => {
   await saveLogFile()
@@ -736,7 +1083,9 @@ defineExpose({
   reconnect,
   disconnect: handleClose,
   isConnected: isConnectedValue,
-  preventAutoReconnect: () => { preventAutoReconnect.value = true },
+  preventAutoReconnect: () => {
+    preventAutoReconnect.value = true
+  },
   getRemark: () => remark.value,
   updateRemark,
   handleFontChange,
@@ -754,6 +1103,7 @@ onMounted(async () => {
   preventAutoReconnect.value = false
   await loadBaudRates()
   await loadComSettings()
+  syncSessionCommandSettings()
 
   nextTick(() => {
     unifiedTerminalRef.value?.setHexDisplayMode?.(hexDisplayMode.value)
@@ -776,8 +1126,11 @@ onMounted(async () => {
 
   // 监听设置更新事件（波特率列表变化时刷新）
   window.addEventListener('settings-updated', handleSettingsUpdated)
+  removeRuntimeEventListener = window.connectApi.onRuntimeEvent(handleRuntimeEvent)
 
-  if (props.autoConnect) {
+  if (props.connection.aiManaged) {
+    applyExternalSessionState(props.connection.aiSessionState)
+  } else if (props.autoConnect) {
     handleConnect()
   }
 })
@@ -785,6 +1138,8 @@ onMounted(async () => {
 onUnmounted(() => {
   terminalCleanup()
   window.removeEventListener('settings-updated', handleSettingsUpdated)
+  removeRuntimeEventListener?.()
+  removeRuntimeEventListener = null
   if (removeDataListener) {
     removeDataListener()
     removeDataListener = null

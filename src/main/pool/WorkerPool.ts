@@ -15,11 +15,21 @@
 import { Worker } from 'worker_threads'
 import path from 'path'
 import logger from '../ipc/IpcAppLogger'
+import type { SessionLifecycleRef } from '../services/types/RuntimeTypes'
 
 // ===================== 消息类型定义 =====================
 
 export interface WorkerToMainMessage {
-  type: 'ready' | 'data' | 'log' | 'close' | 'start-result' | 'send-result' | 'stop-result' | 'update-config-result' | 'error'
+  type:
+    | 'ready'
+    | 'data'
+    | 'log'
+    | 'close'
+    | 'start-result'
+    | 'send-result'
+    | 'stop-result'
+    | 'update-config-result'
+    | 'error'
   sessionId: string
   requestId?: string
   success?: boolean
@@ -45,12 +55,17 @@ export interface MainToWorkerMessage {
 interface WorkerEntry {
   worker: Worker
   sessionId: string
+  lifecycle: SessionLifecycleRef
   alive: boolean
-  pendingRequests: Map<string, {
-    resolve: (value: any) => void
-    reject: (reason: any) => void
-    timer: NodeJS.Timeout
-  }>
+  closeNotified: boolean
+  pendingRequests: Map<
+    string,
+    {
+      resolve: (value: any) => void
+      reject: (reason: any) => void
+      timer: NodeJS.Timeout
+    }
+  >
 }
 
 export default class WorkerPool {
@@ -62,9 +77,12 @@ export default class WorkerPool {
   private requestCounter: number = 0
 
   // 全局回调（所有 Worker 的数据/日志/关闭事件都通过这里通知外部）
-  private onDataCallback: ((sessionId: string, displayData: string, timestamp: string, isHex: boolean) => void) | null = null
-  private onLogCallback: ((sessionId: string, logStr: string, timestamp: string) => void) | null = null
-  private onCloseCallback: ((sessionId: string) => void) | null = null
+  private onDataCallback:
+    ((sessionId: string, displayData: string, timestamp: string, isHex: boolean) => void) | null =
+    null
+  private onLogCallback: ((sessionId: string, logStr: string, timestamp: string) => void) | null =
+    null
+  private onCloseCallback: ((lifecycle: SessionLifecycleRef) => void) | null = null
 
   private constructor() {
     logger.info('[WorkerPool] Initialized (1 Connection = 1 Worker)')
@@ -83,7 +101,7 @@ export default class WorkerPool {
   setCallbacks(
     onData: (sessionId: string, displayData: string, timestamp: string, isHex: boolean) => void,
     onLog: (sessionId: string, logStr: string, timestamp: string) => void,
-    onClose: (sessionId: string) => void
+    onClose: (lifecycle: SessionLifecycleRef) => void
   ): void {
     this.onDataCallback = onData
     this.onLogCallback = onLog
@@ -100,7 +118,8 @@ export default class WorkerPool {
   /**
    * 为指定 sessionId 创建独立 Worker
    */
-  private createWorker(sessionId: string): WorkerEntry {
+  private createWorker(lifecycle: SessionLifecycleRef): WorkerEntry {
+    const sessionId = lifecycle.sessionId
     const workerPath = this.getWorkerPath()
     logger.info(`[WorkerPool] Creating Worker for session: ${sessionId}`)
 
@@ -111,7 +130,9 @@ export default class WorkerPool {
     const entry: WorkerEntry = {
       worker,
       sessionId,
+      lifecycle,
       alive: true,
+      closeNotified: false,
       pendingRequests: new Map()
     }
 
@@ -133,12 +154,12 @@ export default class WorkerPool {
       entry.alive = false
 
       // 如果 Worker 异常退出（非主动 disconnect），通知外部连接已断开
-      if (this.workerMap.has(sessionId)) {
-        this.onCloseCallback?.(sessionId)
+      if (this.workerMap.get(sessionId) === entry) {
+        this.workerMap.delete(sessionId)
+        this.notifyCloseOnce(entry)
       }
 
       this.rejectAllPending(entry, new Error(`Worker exited`))
-      this.workerMap.delete(sessionId)
     })
 
     this.workerMap.set(sessionId, entry)
@@ -155,7 +176,11 @@ export default class WorkerPool {
         break
 
       case 'data':
-        if (msg.sessionId && msg.displayData !== undefined) {
+        if (
+          this.workerMap.get(entry.sessionId) === entry &&
+          msg.sessionId &&
+          msg.displayData !== undefined
+        ) {
           this.onDataCallback?.(
             msg.sessionId,
             msg.displayData,
@@ -166,20 +191,21 @@ export default class WorkerPool {
         break
 
       case 'log':
-        if (msg.sessionId && msg.logStr !== undefined) {
-          this.onLogCallback?.(
-            msg.sessionId,
-            msg.logStr,
-            msg.timestamp || ''
-          )
+        if (
+          this.workerMap.get(entry.sessionId) === entry &&
+          msg.sessionId &&
+          msg.logStr !== undefined
+        ) {
+          this.onLogCallback?.(msg.sessionId, msg.logStr, msg.timestamp || '')
         }
         break
 
       case 'close':
-        if (msg.sessionId) {
+        if (msg.sessionId && this.workerMap.get(entry.sessionId) === entry) {
           // 连接关闭后，终止 Worker 回收资源
-          this.terminateWorker(msg.sessionId)
-          this.onCloseCallback?.(msg.sessionId)
+          void this.terminateWorker(msg.sessionId, entry).finally(() => {
+            this.notifyCloseOnce(entry)
+          })
         }
         break
 
@@ -213,6 +239,12 @@ export default class WorkerPool {
       pending.reject(reason)
     }
     entry.pendingRequests.clear()
+  }
+
+  private notifyCloseOnce(entry: WorkerEntry): void {
+    if (entry.closeNotified) return
+    entry.closeNotified = true
+    this.onCloseCallback?.(entry.lifecycle)
   }
 
   /**
@@ -252,9 +284,9 @@ export default class WorkerPool {
   /**
    * 终止并回收 Worker
    */
-  private async terminateWorker(sessionId: string): Promise<void> {
+  private async terminateWorker(sessionId: string, expectedEntry?: WorkerEntry): Promise<void> {
     const entry = this.workerMap.get(sessionId)
-    if (!entry) return
+    if (!entry || (expectedEntry && entry !== expectedEntry)) return
 
     if (entry.alive) {
       try {
@@ -262,10 +294,12 @@ export default class WorkerPool {
         // 给 Worker 一点时间清理
         await new Promise((resolve) => setTimeout(resolve, 200))
         await entry.worker.terminate()
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
-    this.workerMap.delete(sessionId)
+    if (this.workerMap.get(sessionId) === entry) this.workerMap.delete(sessionId)
     logger.info(`[WorkerPool] Worker [${sessionId}] terminated`)
   }
 
@@ -274,15 +308,19 @@ export default class WorkerPool {
   /**
    * 创建新连接（创建独立 Worker）
    */
-  async startConnection(connInfo: any, connectionType: string): Promise<{ success: boolean; message?: string; connId?: string }> {
-    const sessionId = String(connInfo.sessionId)
+  async startConnection(
+    connInfo: any,
+    connectionType: string,
+    lifecycle: SessionLifecycleRef = { sessionId: String(connInfo.sessionId), generation: 0 }
+  ): Promise<{ success: boolean; message?: string; connId?: string }> {
+    const sessionId = lifecycle.sessionId
 
     // 如果已有同 sessionId 的 Worker，先清理
     if (this.workerMap.has(sessionId)) {
       await this.terminateWorker(sessionId)
     }
 
-    const entry = this.createWorker(sessionId)
+    const entry = this.createWorker(lifecycle)
 
     // 等待 Worker ready（带超时保护）
     try {
@@ -313,7 +351,7 @@ export default class WorkerPool {
       })
     } catch (err: any) {
       logger.error(`[WorkerPool] Worker [${sessionId}] failed to become ready:`, err.message)
-      this.workerMap.delete(sessionId)
+      if (this.workerMap.get(sessionId) === entry) this.workerMap.delete(sessionId)
       return { success: false, message: err.message }
     }
 
@@ -329,7 +367,7 @@ export default class WorkerPool {
 
       if (!result.success) {
         // 启动失败，回收 Worker
-        await this.terminateWorker(sessionId)
+        await this.terminateWorker(sessionId, entry)
       }
 
       return {
@@ -339,7 +377,7 @@ export default class WorkerPool {
       }
     } catch (err: any) {
       logger.error(`[WorkerPool] startConnection failed:`, err.message)
-      await this.terminateWorker(sessionId)
+      await this.terminateWorker(sessionId, entry)
       return { success: false, message: err.message }
     }
   }
@@ -347,7 +385,11 @@ export default class WorkerPool {
   /**
    * 发送数据到指定连接
    */
-  async sendData(sessionId: string, _connectionType: string, command: string): Promise<{ success: boolean; message?: string }> {
+  async sendData(
+    sessionId: string,
+    _connectionType: string,
+    command: string
+  ): Promise<{ success: boolean; message?: string }> {
     try {
       const normalizedSessionId = String(sessionId)
       const result = await this.sendToWorker(normalizedSessionId, {
@@ -368,14 +410,21 @@ export default class WorkerPool {
   /**
    * 断开连接（终止 Worker）
    */
-  async stopConnection(sessionId: string, _connectionType: string): Promise<{ success: boolean; message?: string }> {
+  async stopConnection(
+    sessionId: string,
+    _connectionType: string
+  ): Promise<{ success: boolean; message?: string }> {
     const normalizedSessionId = String(sessionId)
     // 先通知 Worker 主动断开
     try {
-      await this.sendToWorker(normalizedSessionId, {
-        type: 'stop',
-        sessionId: normalizedSessionId
-      }, 5000) // 断开超时设为 5 秒
+      await this.sendToWorker(
+        normalizedSessionId,
+        {
+          type: 'stop',
+          sessionId: normalizedSessionId
+        },
+        5000
+      ) // 断开超时设为 5 秒
     } catch {
       // 超时或失败都继续 terminate
     }

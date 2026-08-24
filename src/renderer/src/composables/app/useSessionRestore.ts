@@ -59,9 +59,18 @@ export function useSessionRestore(options: {
   pinnedTabs: { has: (id: string) => boolean; add: (id: string) => void }
   splitState: SplitState
   isConnected: (tab: TabItem) => boolean
+  shouldPersistTab?: (tab: TabItem) => boolean
   connectionStateDependency?: { value: number }
 }) {
-  const { connectionTabs, activeTabId, pinnedTabs, splitState, isConnected, connectionStateDependency } = options
+  const {
+    connectionTabs,
+    activeTabId,
+    pinnedTabs,
+    splitState,
+    isConnected,
+    shouldPersistTab = () => true,
+    connectionStateDependency
+  } = options
 
   const hasLoaded = ref(false)
   const savedTabs = ref<TabItem[]>([])
@@ -75,8 +84,10 @@ export function useSessionRestore(options: {
    * 生成当前会话快照（不包含密码等敏感字段）
    */
   const buildSessionSnapshot = (): SessionState => {
+    const persistedTabs = connectionTabs.value.filter(shouldPersistTab)
+    const persistedIds = new Set(persistedTabs.map((tab) => tab.id.toString()))
     return {
-      tabs: connectionTabs.value.map((tab) => {
+      tabs: persistedTabs.map((tab) => {
         const { password, ...rest } = tab as any
         return {
           ...rest,
@@ -84,14 +95,18 @@ export function useSessionRestore(options: {
           wasConnected: isConnected(tab)
         }
       }),
-      activeTabId: activeTabId.value,
-      pinnedTabIds: connectionTabs.value
+      activeTabId: persistedIds.has(activeTabId.value)
+        ? activeTabId.value
+        : persistedTabs[0]?.id.toString() || '',
+      pinnedTabIds: persistedTabs
         .filter((t) => pinnedTabs.has(t.id))
         .map((t) => t.id),
       panels: splitState.panels.map((p) => ({
         id: p.id,
-        activeTabId: p.activeTabId,
-        tabIds: [...p.tabIds]
+        activeTabId: persistedIds.has(p.activeTabId)
+          ? p.activeTabId
+          : p.tabIds.find((id) => persistedIds.has(id)) || '',
+        tabIds: p.tabIds.filter((id) => persistedIds.has(id))
       })),
       direction: splitState.direction,
       splitRatio: splitState.splitRatio
@@ -148,10 +163,22 @@ export function useSessionRestore(options: {
       hasLoaded.value = true
       return
     }
-    savedTabs.value = session.tabs
-    savedActiveTabId.value = session.activeTabId || ''
-    savedPinnedTabIds.value = session.pinnedTabIds || []
-    savedSplitPanels.value = session.panels || []
+    const restorableTabs = session.tabs.filter(shouldPersistTab)
+    const restorableIds = new Set(restorableTabs.map((tab) => tab.id.toString()))
+    savedTabs.value = restorableTabs
+    savedActiveTabId.value = restorableIds.has(session.activeTabId)
+      ? session.activeTabId
+      : restorableTabs[0]?.id.toString() || ''
+    savedPinnedTabIds.value = (session.pinnedTabIds || []).filter((id) =>
+      restorableIds.has(id)
+    )
+    savedSplitPanels.value = (session.panels || []).map((panel) => ({
+      ...panel,
+      activeTabId: restorableIds.has(panel.activeTabId)
+        ? panel.activeTabId
+        : panel.tabIds.find((id) => restorableIds.has(id)) || '',
+      tabIds: panel.tabIds.filter((id) => restorableIds.has(id))
+    }))
     savedSplitDirection.value = session.direction || 'horizontal'
     savedSplitRatio.value = session.splitRatio ?? 0.5
     hasLoaded.value = true

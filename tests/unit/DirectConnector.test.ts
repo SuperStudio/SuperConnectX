@@ -43,7 +43,15 @@ import DirectConnector from '../../src/main/ipc/connectors/DirectConnector'
 import ConnectionStateManager from '../../src/main/ipc/connectors/ConnectionStateManager'
 import ProtocolLogger from '../../src/main/utils/ProtocolLogger'
 
-function makeConn(overrides: Partial<{ connectionType: string; sessionId: string; host: string; port: number; comName: string }> = {}): any {
+function makeConn(
+  overrides: Partial<{
+    connectionType: string
+    sessionId: string
+    host: string
+    port: number
+    comName: string
+  }> = {}
+): any {
   return {
     connectionType: 'com',
     sessionId: 's1',
@@ -85,14 +93,20 @@ describe('DirectConnector', () => {
       const { dc } = createDirectConnector()
       const conn = makeConn({ connectionType: 'com' })
 
-      const result = await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's1' })
+      const result = await dc.startConnection(conn, {
+        host: '',
+        port: 0,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
 
       expect(result).toEqual({ success: true, message: 'connected' })
       expect(mockComStart).toHaveBeenCalledWith(
         expect.any(Object),
-        expect.any(Function),  // onData
-        expect.any(Function),  // onClose
-        expect.any(Function)   // onLog
+        expect.any(Function), // onData
+        expect.any(Function), // onClose
+        expect.any(Function) // onLog
       )
     })
 
@@ -100,7 +114,13 @@ describe('DirectConnector', () => {
       const { dc } = createDirectConnector()
       const conn = makeConn({ connectionType: 'telnet' })
 
-      const result = await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's1' })
+      const result = await dc.startConnection(conn, {
+        host: '',
+        port: 0,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
 
       expect(result).toEqual({ success: true, message: 'connected' })
     })
@@ -112,7 +132,13 @@ describe('DirectConnector', () => {
     it('should send data when client exists', async () => {
       const { dc } = createDirectConnector()
       const conn = makeConn({ connectionType: 'com', sessionId: 's1' })
-      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's1' })
+      await dc.startConnection(conn, {
+        host: '',
+        port: 0,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
 
       const result = await dc.sendData(conn, 'AT\r\n')
       expect(result).toEqual({ success: true })
@@ -134,7 +160,13 @@ describe('DirectConnector', () => {
     it('should disconnect and clean up client', async () => {
       const { dc } = createDirectConnector()
       const conn = makeConn({ connectionType: 'com', sessionId: 's1' })
-      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's1' })
+      await dc.startConnection(conn, {
+        host: '',
+        port: 0,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
 
       const result = await dc.stopConnection(conn)
       expect(result).toEqual({ success: true })
@@ -157,7 +189,13 @@ describe('DirectConnector', () => {
     it('should update config when client exists', async () => {
       const { dc } = createDirectConnector()
       const conn = makeConn({ connectionType: 'com', sessionId: 's1' })
-      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's1' })
+      await dc.startConnection(conn, {
+        host: '',
+        port: 0,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
 
       const result = await dc.updateConnectionConfig(conn, { receiveHex: true })
       expect(result).toEqual({ success: true })
@@ -181,7 +219,13 @@ describe('DirectConnector', () => {
       const sendSpy = vi.spyOn(sm, 'sendDataToRenderer')
 
       const conn = makeConn({ connectionType: 'com', sessionId: 's1', receiveHex: false })
-      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's1' })
+      await dc.startConnection(conn, {
+        host: '',
+        port: 0,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
 
       // Extract the onData callback from mockComStart call
       const onData = mockComStart.mock.calls[0][1]
@@ -196,7 +240,13 @@ describe('DirectConnector', () => {
 
       const conn = makeConn({ connectionType: 'com', sessionId: 's1' })
       sm.setReceiveHex('s1', true)
-      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's1' })
+      await dc.startConnection(conn, {
+        host: '',
+        port: 0,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
 
       const onData = mockComStart.mock.calls[0][1]
       onData({ data: 'A', timestamp: '12:00:00' })
@@ -205,21 +255,46 @@ describe('DirectConnector', () => {
       expect(sendSpy).toHaveBeenCalledWith('s1', 'A', '12:00:00', true)
     })
 
-    it('onClose should call stateManager.cleanupOnClose and delete client', async () => {
+    it('onClose should report the captured lifecycle and delete only its own client', async () => {
       const { dc, sm } = createDirectConnector()
-      const cleanupSpy = vi.spyOn(sm, 'cleanupOnClose')
+      const closeSpy = vi.spyOn(sm, 'notifyBackendClosed')
 
       const conn = makeConn({ connectionType: 'com', sessionId: 's1' })
-      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's1' })
+      await dc.startConnection(conn, {
+        host: '',
+        port: 0,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
 
       const onClose = mockComStart.mock.calls[0][2]
       onClose()
 
-      expect(cleanupSpy).toHaveBeenCalledWith('s1')
+      expect(closeSpy).toHaveBeenCalledWith({ sessionId: 's1', generation: 0 })
 
       // After close, client should be removed from map
       const result = await dc.sendData(conn, 'test')
       expect(result.success).toBe(false)
+    })
+
+    it('should ignore an old client close callback after the same sessionId is reused', async () => {
+      const { dc, sm } = createDirectConnector()
+      const closeSpy = vi.spyOn(sm, 'notifyBackendClosed')
+      const conn = makeConn({ connectionType: 'com', sessionId: 'COM80' })
+      const info = { host: '', port: 0, username: '', password: '', sessionId: 'COM80' }
+
+      await dc.startConnection(conn, info, { sessionId: 'COM80', generation: 1 })
+      const oldClose = mockComStart.mock.calls[0][2]
+      await dc.startConnection(conn, info, { sessionId: 'COM80', generation: 2 })
+      const currentClose = mockComStart.mock.calls[1][2]
+
+      oldClose()
+      expect(closeSpy).not.toHaveBeenCalled()
+      await expect(dc.sendData(conn, 'still-current')).resolves.toMatchObject({ success: true })
+
+      currentClose()
+      expect(closeSpy).toHaveBeenCalledWith({ sessionId: 'COM80', generation: 2 })
     })
 
     it('onLog should call logger.appendToConnLog with proper format', async () => {
@@ -228,7 +303,13 @@ describe('DirectConnector', () => {
 
       const conn = makeConn({ connectionType: 'com', sessionId: 's1' })
       sm.setLogTimestamp('s1', true)
-      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's1' })
+      await dc.startConnection(conn, {
+        host: '',
+        port: 0,
+        username: '',
+        password: '',
+        sessionId: 's1'
+      })
 
       const onLog = mockComStart.mock.calls[0][3]
       onLog('connected', '12:00:00')

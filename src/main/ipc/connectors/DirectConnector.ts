@@ -7,12 +7,23 @@
 import ConnectionInfo from '../../protocol/ConnectionInfo'
 import ProtocolLogger from '../../utils/ProtocolLogger'
 import ConnectionStateManager from './ConnectionStateManager'
+import type { SessionLifecycleRef } from '../../services/types/RuntimeTypes'
 
 interface DirectClient {
-  start(info: ConnectionInfo, onData: (dataObj: { data: string; timestamp: string }) => void, onClose: () => void, onLog: (logStr: string, timestamp: string) => void): Promise<object>
+  start(
+    info: ConnectionInfo,
+    onData: (dataObj: { data: string; timestamp: string }) => void,
+    onClose: () => void,
+    onLog: (logStr: string, timestamp: string) => void
+  ): Promise<object>
   send(sessionId: string, command: string, onComplete: (dataStr: string) => void): Promise<object>
   disconnect(sessionId: string): Promise<object>
   updateConfig(sessionId: string, config: Record<string, unknown>): Promise<object>
+}
+
+interface DirectClientEntry {
+  client: DirectClient
+  lifecycle: SessionLifecycleRef
 }
 
 export default class DirectConnector {
@@ -20,7 +31,7 @@ export default class DirectConnector {
   private logger: ProtocolLogger | null = null
 
   // 直连模式客户端实例（每个 session 独立实例，避免 onData/onClose 回调覆盖）
-  private directClients: Map<string, DirectClient> = new Map()
+  private directClients: Map<string, DirectClientEntry> = new Map()
 
   constructor(stateManager: ConnectionStateManager) {
     this.stateManager = stateManager
@@ -35,24 +46,32 @@ export default class DirectConnector {
 
   // ============ 回调工厂 ============
 
-  private createOnData(sessionId: string) {
+  private isCurrent(entry: DirectClientEntry): boolean {
+    return this.directClients.get(entry.lifecycle.sessionId) === entry
+  }
+
+  private createOnData(entry: DirectClientEntry) {
     return (dataObj: { data: string; timestamp: string }) => {
+      if (!this.isCurrent(entry)) return
+      const sessionId = entry.lifecycle.sessionId
       const isHex = this.stateManager.getReceiveHex(sessionId)
       // HEX 转换已下沉到 BufferLineSplitter.decodeBuffer() 中完成，此处不再重复转换
       this.stateManager.sendDataToRenderer(sessionId, dataObj.data, dataObj.timestamp, isHex)
     }
   }
 
-  private createOnClose(sessionId: string): () => void {
+  private createOnClose(entry: DirectClientEntry): () => void {
     return () => {
-      this.stateManager.cleanupOnClose(sessionId)
-      this.directClients.delete(sessionId)
+      if (!this.isCurrent(entry)) return
+      this.directClients.delete(entry.lifecycle.sessionId)
+      this.stateManager.notifyBackendClosed(entry.lifecycle)
     }
   }
 
-  private createOnLog(sessionId: string) {
+  private createOnLog(entry: DirectClientEntry) {
     return (logStr: string, timestamp: string) => {
-      if (!this.logger) return
+      if (!this.logger || !this.isCurrent(entry)) return
+      const sessionId = entry.lifecycle.sessionId
       const finalLog = this.stateManager.buildLogContent(sessionId, logStr, timestamp)
       this.logger.appendToConnLog(finalLog, sessionId)
     }
@@ -60,44 +79,57 @@ export default class DirectConnector {
 
   // ============ 连接管理 ============
 
-  async startConnection(conn: any, connInfo: ConnectionInfo): Promise<object> {
-    const sessionId = conn.sessionId
+  async startConnection(
+    conn: any,
+    connInfo: ConnectionInfo,
+    lifecycle: SessionLifecycleRef = { sessionId: String(conn.sessionId), generation: 0 }
+  ): Promise<object> {
+    const sessionId = lifecycle.sessionId
 
     const ComClient = (await import('../../protocol/ComClient')).default
     const TelnetClient = (await import('../../protocol/TelnetClient')).default
 
     const ClientClass = conn.connectionType === 'com' ? ComClient : TelnetClient
     const client = new ClientClass()
-    this.directClients.set(sessionId, client)
+    const entry = { client, lifecycle }
+    this.directClients.set(sessionId, entry)
 
-    return await client.start(
-      connInfo,
-      this.createOnData(sessionId),
-      this.createOnClose(sessionId),
-      this.createOnLog(sessionId)
-    )
+    try {
+      const result = await client.start(
+        connInfo,
+        this.createOnData(entry),
+        this.createOnClose(entry),
+        this.createOnLog(entry)
+      )
+      if ((result as { success?: boolean }).success === false && this.isCurrent(entry)) {
+        this.directClients.delete(sessionId)
+      }
+      return result
+    } catch (error) {
+      if (this.isCurrent(entry)) this.directClients.delete(sessionId)
+      throw error
+    }
   }
 
   async sendData(conn: any, command: string): Promise<object> {
-    const client = this.directClients.get(conn.sessionId)
-    if (!client) return { success: false, message: 'Direct mode client not initialized' }
-    return await client.send(
-      conn.sessionId, command,
-      (dataStr: string) => this.logger?.appendToConnLog(dataStr, conn.sessionId)
+    const entry = this.directClients.get(conn.sessionId)
+    if (!entry) return { success: false, message: 'Direct mode client not initialized' }
+    return await entry.client.send(conn.sessionId, command, (dataStr: string) =>
+      this.logger?.appendToConnLog(dataStr, conn.sessionId)
     )
   }
 
   async stopConnection(conn: any): Promise<object> {
-    const client = this.directClients.get(conn.sessionId)
-    if (!client) return { success: true }
-    const result = await client.disconnect(conn.sessionId)
-    this.directClients.delete(conn.sessionId)
+    const entry = this.directClients.get(conn.sessionId)
+    if (!entry) return { success: true }
+    const result = await entry.client.disconnect(conn.sessionId)
+    if (this.isCurrent(entry)) this.directClients.delete(conn.sessionId)
     return result || { success: true }
   }
 
   async updateConnectionConfig(conn: any, config: any): Promise<object> {
-    const client = this.directClients.get(conn.sessionId)
-    if (!client) return { success: false, message: 'Direct mode client not initialized' }
-    return await client.updateConfig(conn.sessionId, config)
+    const entry = this.directClients.get(conn.sessionId)
+    if (!entry) return { success: false, message: 'Direct mode client not initialized' }
+    return await entry.client.updateConfig(conn.sessionId, config)
   }
 }
