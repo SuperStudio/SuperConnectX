@@ -7,6 +7,7 @@
       :is-connecting="isConnecting"
       :init-message="connection.ftpMode === 'server' ? `create server ${connection.port}` : `try to connect ${connection.host}:${connection.port}`"
       :placeholder="t('terminal.inputPrompt')"
+      :show-bottom-panel="showBottomPanel"
       session-id-prefix="telnet"
       @on-close="handleClose"
       @on-reconnect="handleReconnect"
@@ -49,8 +50,10 @@ const props = withDefaults(defineProps<{
   }
   onClose?: () => void
   autoConnect?: boolean
+  showBottomPanel?: boolean
 }>(), {
-  autoConnect: true
+  autoConnect: true,
+  showBottomPanel: true
 })
 
 const isConnected = ref(false)

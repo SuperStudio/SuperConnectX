@@ -8,24 +8,6 @@
   >
     <template #left>
     <div class="titlebar-left">
-      <button
-        class="titlebar-btn toggle-connection-btn"
-        @click="toggleConnectionList"
-        :class="{ toggled: !showConnectionList }"
-      >
-        <svg
-          viewBox="0 0 1024 1024"
-          fill="currentColor"
-          xmlns="http://www.w3.org/2000/svg"
-          width="15"
-          height="15"
-        >
-          <path
-            d="M901.632 896H122.368c-30.72 0-55.808-25.088-55.808-55.808v-1.536c0-30.72 25.088-55.808 55.808-55.808h779.776c30.72 0 55.808 25.088 55.808 55.808v1.536c-0.512 30.72-25.6 55.808-56.32 55.808zM901.632 568.32H122.368c-30.72 0-55.808-25.088-55.808-55.808v-1.536c0-30.72 25.088-55.808 55.808-55.808h779.776c30.72 0 55.808 25.088 55.808 55.808v1.536c-0.512 30.72-25.6 55.808-56.32 55.808zM901.632 240.64H122.368c-30.72 0-55.808-25.088-55.808-55.808v-1.536c0-30.72 25.088-55.808 55.808-55.808h779.776c30.72 0 55.808 25.088 55.808 55.808v1.536c-0.512 30.72-25.6 55.808-56.32 55.808z"
-            p-id="15235"
-          ></path>
-        </svg>
-      </button>
       <div class="app-logo">
         <img class="logo-img" src="../assets/icon.png" alt="App Icon" />
       </div>
@@ -116,6 +98,28 @@
         >
           <div class="menu-item" @click="handleSettings">{{ t('sidebar.settings') }}</div>
           <div class="menu-item" @click="handleShortcuts">{{ t('sidebar.shortcuts') }}</div>
+          <div
+            class="menu-item submenu-trigger"
+            @mouseenter="showThemeSubmenu = true"
+            @mouseleave="showThemeSubmenu = false"
+          >
+            <span>{{ t('titlebar.theme') }}</span>
+            <div
+              v-if="showThemeSubmenu"
+              class="dropdown-submenu theme-submenu"
+              @mouseenter="showThemeSubmenu = true"
+              @mouseleave="showThemeSubmenu = false"
+            >
+              <div class="menu-item checkbox-item" @click.stop="switchTheme('dark')">
+                <span class="checkbox-mark">{{ currentTheme === 'dark' ? '✓' : '' }}</span>
+                <span>{{ t('titlebar.darkTheme') }}</span>
+              </div>
+              <div class="menu-item checkbox-item" @click.stop="switchTheme('light')">
+                <span class="checkbox-mark">{{ currentTheme === 'light' ? '✓' : '' }}</span>
+                <span>{{ t('titlebar.lightTheme') }}</span>
+              </div>
+            </div>
+          </div>
           <div class="menu-separator"></div>
           <div class="menu-item" @click="handleVirtualPort">{{ t('virtualPort.title') }}</div>
           <div class="menu-item" @click="handleCheckUpdate">{{ t('sidebar.checkUpdate') }}</div>
@@ -145,57 +149,37 @@
     </template>
 
     <template #right>
-      <!-- 皮肤切换按钮 -->
-      <div class="theme-switcher-wrapper" ref="themeSwitcherRef">
-        <button class="titlebar-btn theme-btn" @click="toggleThemePanel" title="切换皮肤">
-          <svg
-            viewBox="0 0 1024 1024"
-            width="16"
-            height="16"
-            fill="currentColor"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path d="M328.147627 164.706987h67.403093c4.973227 2.94912 12.22656 4.068693 16.75264 7.5776 6.161067 4.734293 10.58816 10.738347 15.407787 16.892586 6.509227 8.2944 18.7904 16.3328 29.125973 20.657494 12.079787 4.98688 24.90368 7.8336 39.717547 10.581333 4.672853 0.303787 9.345707 0.508587 14.015146 0.812373 6.263467 0.965973 15.213227-0.559787 20.3776-1.62816 27.886933-5.597867 41.857707-10.175147 60.197547-24.726186 7.15776-5.748053 10.98752-15.213227 18.438827-20.70528 4.17792-2.286933 8.400213-4.67968 12.62592-7.021227 3.628373-1.42336 6.212267-0.610987 9.19552-2.440533h19.831466c19.135147 0 47.571627-2.594133 60.197547 4.017493 8.895147 4.78208 15.70816 12.311893 22.667947 19.07712 9.693867 9.41056 19.38432 18.824533 29.026986 28.235093 31.26272 30.47424 62.580053 60.89728 93.794987 91.37152 9.844053 10.530133 21.22752 19.636907 31.020373 30.221654 8.04864 8.495787 16.59904 14.854827 21.02272 27.163306 0.150187 1.98656 0.201387 3.969707 0.249174 5.956267 2.235733 13.431467-3.877547 23.197013-10.042027 30.982827-26.19392 25.38496-52.391253 50.82112-78.63296 76.158293-9.54368 10.635947-21.47328 25.439573-38.324907 28.53888-22.96832 4.225707-35.986773-9.919147-46.721706-20.34688-3.4816-3.457707-6.413653-7.8848-10.93632-10.379947-0.197973 0.2048-0.546133 0.4096-0.846507 0.5632v272.182614c-0.047787 25.53856-0.146773 51.17952-0.293547 76.71808-1.839787 8.8576-7.60832 18.01216-13.919573 22.84544-15.755947 11.905707-43.543893 9.25696-71.427413 9.25696H371.2c-19.43552 0-39.867733 1.47456-51.49696-6.048427-6.51264-4.072107-13.6704-11.70432-16.554667-19.28192-3.280213-8.751787-2.484907-20.964693-2.484906-32.6144v-51.38432-271.981227h-1.143467c-11.58144 10.175147-20.48 22.79424-36.037973 29.15328-13.21984 5.440853-28.678827-0.252587-36.928854-5.952853-5.76512-4.068693-10.141013-9.311573-15.110826-14.144853a23320.081067 23320.081067 0 0 0-35.488427-33.98656 1789.088427 1789.088427 0 0 1-16.800427-16.940374c-6.908587-5.799253-12.92288-12.417707-19.285333-18.722133-7.703893-7.529813-16.104107-13.380267-20.72576-23.965013-1.989973-4.478293-5.915307-12.56448-4.47488-20.094294 3.382613-17.855147 14.465707-27.26912 25.746773-37.290666 6.710613-5.901653 12.62592-12.76928 19.285334-18.71872l111.09376-108.21632c6.710613-6.509227 13.421227-13.021867 20.13184-19.585707 9.741653-9.458347 18.438827-21.162667 37.229226-21.77024-0.006827-0.3584-0.006827-0.662187-0.006826-1.017173z" fill="currentColor" p-id="7120"></path>
+      <div class="layout-controls">
+        <button
+          class="layout-toggle"
+          :class="{ 'is-visible': showConnectionList }"
+          type="button"
+          :title="t('titlebar.togglePrimarySidebar')"
+          :aria-label="t('titlebar.togglePrimarySidebar')"
+          :aria-pressed="showConnectionList"
+          @click="emit('toggle-primary-sidebar')"
+        >
+          <svg viewBox="0 0 18 18" aria-hidden="true">
+            <rect class="layout-outline" x="2" y="2.5" width="14" height="13" rx="2" />
+            <path class="layout-divider" d="M6.5 3v12" />
+            <rect class="layout-fill" x="3" y="3.5" width="2.5" height="11" rx="0.75" />
           </svg>
         </button>
-        <!-- 皮肤选择悬浮面板 -->
-        <Transition name="theme-fade">
-          <div v-if="showThemePanel" class="theme-panel" @click.stop>
-            <div class="theme-panel-title">{{ t('titlebar.theme') }}</div>
-            <div class="theme-options">
-              <div
-                class="theme-option"
-                :class="{ active: currentTheme === 'dark' }"
-                @click="switchTheme('dark')"
-              >
-                <div class="theme-preview theme-preview-dark">
-                  <div class="preview-bar"></div>
-                  <div class="preview-content">
-                    <div class="preview-sidebar"></div>
-                    <div class="preview-main"></div>
-                  </div>
-                </div>
-                <span class="theme-label">{{ t('titlebar.darkTheme') }}</span>
-                <span v-if="currentTheme === 'dark'" class="theme-check">✓</span>
-              </div>
-              <div
-                class="theme-option"
-                :class="{ active: currentTheme === 'light' }"
-                @click="switchTheme('light')"
-              >
-                <div class="theme-preview theme-preview-light">
-                  <div class="preview-bar"></div>
-                  <div class="preview-content">
-                    <div class="preview-sidebar"></div>
-                    <div class="preview-main"></div>
-                  </div>
-                </div>
-                <span class="theme-label">{{ t('titlebar.lightTheme') }}</span>
-                <span v-if="currentTheme === 'light'" class="theme-check">✓</span>
-              </div>
-            </div>
-          </div>
-        </Transition>
+        <button
+          class="layout-toggle"
+          :class="{ 'is-visible': showBottomPanel }"
+          type="button"
+          :title="t('titlebar.toggleBottomPanel')"
+          :aria-label="t('titlebar.toggleBottomPanel')"
+          :aria-pressed="showBottomPanel"
+          @click="emit('toggle-bottom-panel')"
+        >
+          <svg viewBox="0 0 18 18" aria-hidden="true">
+            <rect class="layout-outline" x="2" y="2.5" width="14" height="13" rx="2" />
+            <path class="layout-divider" d="M2.5 10.5h13" />
+            <rect class="layout-fill" x="3" y="11.5" width="12" height="3" rx="0.75" />
+          </svg>
+        </button>
       </div>
     </template>
   </WindowTitleBar>
@@ -225,19 +209,22 @@ const systemFonts = ref<string[]>([])
 const currentFontFamily = ref(getDefaultTerminalFont()) // 当前活动的字体
 
 // ---- 皮肤切换 ----
-const showThemePanel = ref(false)
+const showThemeSubmenu = ref(false)
 const { theme: currentTheme, applyTheme } = useTheme()
-
-const toggleThemePanel = () => {
-  showThemePanel.value = !showThemePanel.value
-}
 
 const switchTheme = (theme: 'dark' | 'light') => {
   applyTheme(theme)
-  showThemePanel.value = false
+  showThemeSubmenu.value = false
+  showToolsMenu.value = false
 }
+
+watch(showToolsMenu, (visible) => {
+  if (!visible) showThemeSubmenu.value = false
+})
+
 const emit = defineEmits([
-  'toggle-connection-list',
+  'toggle-primary-sidebar',
+  'toggle-bottom-panel',
   'refreshCommands',
   'refreshConnections',
   'notifyImport',
@@ -256,6 +243,10 @@ const emit = defineEmits([
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps({
   showConnectionList: {
+    type: Boolean,
+    default: true
+  },
+  showBottomPanel: {
     type: Boolean,
     default: true
   },
@@ -282,7 +273,6 @@ const handleWindowUnmaximized = () => (isMaximized.value = false)
 const minimizeWindow = () => window.windowApi.minimizeWindow()
 const maximizeWindow = () => window.windowApi.maximizeWindow()
 const closeWindow = () => window.windowApi.closeWindow()
-const toggleConnectionList = () => emit('toggle-connection-list')
 
 const hideFileMenu = () => {
   setTimeout(() => {
@@ -584,10 +574,6 @@ const handleClickOutside = (event: MouseEvent) => {
     showHelpMenu.value = false
     showFontSubmenu.value = false
   }
-  // 关闭皮肤面板
-  if (showThemePanel.value && !target.closest('.theme-switcher-wrapper')) {
-    showThemePanel.value = false
-  }
 }
 </script>
 
@@ -680,26 +666,70 @@ const handleClickOutside = (event: MouseEvent) => {
   width: 30px;
   height: 30px;
 }
-.toggle-connection-btn {
+.layout-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
   -webkit-app-region: no-drag;
-  margin-left: -10px;
+}
+
+.layout-toggle {
+  width: 28px;
+  height: 30px;
+  padding: 0;
   border: none;
   background: transparent;
+  color: var(--text-titlebar);
   cursor: pointer;
-
-  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  opacity: 0.58;
+  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
 
-.toggle-connection-btn:hover {
+.layout-toggle:hover {
   background-color: var(--overlay-hover);
+  color: var(--text-white);
+  opacity: 1;
 }
 
-.toggle-connection-btn:active {
+.layout-toggle:active {
   background-color: var(--overlay-active);
 }
 
-.toggle-connection-btn.toggled svg {
-  transform: rotate(90deg);
+.layout-toggle:focus-visible {
+  outline: 1px solid var(--focus-border-color);
+  outline-offset: -2px;
+}
+
+.layout-toggle.is-visible {
+  color: var(--text-white);
+  opacity: 1;
+}
+
+.layout-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.layout-outline,
+.layout-divider {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.35;
+}
+
+.layout-fill {
+  fill: currentColor;
+  opacity: 0.18;
+  transition: opacity 0.15s ease;
+}
+
+.layout-toggle.is-visible .layout-fill {
+  opacity: 0.78;
 }
 
 .titlebar-menu {
@@ -850,147 +880,7 @@ const handleClickOutside = (event: MouseEvent) => {
   background: transparent;
 }
 
-/* ---- 皮肤切换 ---- */
-.theme-switcher-wrapper {
-  position: relative;
-  -webkit-app-region: no-drag;
-}
-
-.theme-btn {
-  color: var(--text-titlebar);
-}
-
-.theme-btn:hover {
-  color: var(--text-white);
-}
-
-.theme-panel {
-  position: absolute;
-  top: 30px;
-  right: 0;
-  width: 210px;
-  background-color: var(--menu-bg-color);
-  border: 1px solid var(--menu-border-color);
-  border-radius: var(--menu-border-radius);
-  box-shadow: var(--menu-box-shadow);
-  padding: 12px;
-  z-index: 10001;
-}
-
-.theme-panel-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--menu-item-color);
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--menu-divider-color);
-}
-
-.theme-options {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.theme-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-  position: relative;
-}
-
-.theme-option:hover {
-  background-color: var(--menu-item-hover-bg);
-}
-
-.theme-option.active {
-  background-color: var(--accent-blue-subtle);
-}
-
-.theme-preview {
-  width: 40px;
-  height: 28px;
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid var(--menu-border-color);
-  flex-shrink: 0;
-}
-
-.theme-preview-dark {
-  background: #1e1e1e;
-}
-
-.theme-preview-dark .preview-bar {
-  height: 6px;
-  background: #323233;
-}
-
-.theme-preview-dark .preview-content {
-  display: flex;
-  height: 22px;
-}
-
-.theme-preview-dark .preview-sidebar {
-  width: 10px;
-  background: #252526;
-  border-right: 1px solid #333;
-}
-
-.theme-preview-dark .preview-main {
-  flex: 1;
-  background: #1e1e1e;
-}
-
-.theme-preview-light {
-  background: #f5f5f5;
-}
-
-.theme-preview-light .preview-bar {
-  height: 6px;
-  background: #e0e0e0;
-}
-
-.theme-preview-light .preview-content {
-  display: flex;
-  height: 22px;
-}
-
-.theme-preview-light .preview-sidebar {
-  width: 10px;
-  background: #ffffff;
-  border-right: 1px solid #d0d0d0;
-}
-
-.theme-preview-light .preview-main {
-  flex: 1;
-  background: #f5f5f5;
-}
-
-.theme-label {
-  font-size: 12px;
-  color: var(--menu-item-color);
-  flex: 1;
-}
-
-.theme-check {
-  color: var(--btn-icon-text);
-  font-size: 12px;
-  font-weight: bold;
-}
-
-/* 面板过渡动画 */
-.theme-fade-enter-active,
-.theme-fade-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.theme-fade-enter-from,
-.theme-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
+.theme-submenu {
+  min-width: 130px;
 }
 </style>
