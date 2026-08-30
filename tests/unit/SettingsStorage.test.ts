@@ -32,6 +32,8 @@ describe('SettingsStorage', () => {
       const settings = storage.getSettings()
       expect(settings.supportedBaudRates).toEqual([9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600, 1500000])
       expect(settings.showPortType).toBe(true)
+      expect(settings.showSerialPortFriendlyName).toBe(true)
+      expect(settings.showSerialPortDetails).toBe(false)
     })
 
     it('返回语法高亮默认设置', () => {
