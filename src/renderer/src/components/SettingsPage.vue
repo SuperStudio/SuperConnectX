@@ -154,6 +154,20 @@
               </div>
               <el-switch class="terminal-switch" v-model="settings.showPortType" />
             </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('serialSettings.showFriendlyName') }}</span>
+                <span class="label-desc">{{ t('serialSettings.showFriendlyNameDesc') }}</span>
+              </div>
+              <el-switch class="terminal-switch" v-model="settings.showSerialPortFriendlyName" />
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('serialSettings.showPortDetails') }}</span>
+                <span class="label-desc">{{ t('serialSettings.showPortDetailsDesc') }}</span>
+              </div>
+              <el-switch class="terminal-switch" v-model="settings.showSerialPortDetails" />
+            </div>
           </div>
         </div>
 

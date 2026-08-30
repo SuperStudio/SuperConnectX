@@ -42,15 +42,40 @@
                       :class="isSerialPortConnected(port.path) ? 'connected' : 'disconnected'"
                     ></span>
                     <div class="serial-port-info">
-                      <div class="serial-port-row">
-                        <span class="conn-name">{{ port.path }}</span>
-                        <span v-if="showPortType" class="serial-port-type">
-                          <el-tag v-if="port.type === 'virtual'" type="info" size="small" effect="dark">{{ t('sidebar.virtual') }}</el-tag>
-                          <el-tag v-else-if="port.type === 'usb'" type="success" size="small" effect="dark">{{ t('sidebar.usb') }}</el-tag>
-                          <el-tag v-else-if="port.type === 'bluetooth'" class="bluetooth-tag" size="small" effect="dark">{{ t('sidebar.bluetooth') }}</el-tag>
-                          <el-tag v-else type="info" size="small" effect="dark">{{ t('sidebar.noType') }}</el-tag>
-                        </span>
-                      </div>
+                      <el-tooltip
+                        :disabled="!showSerialPortDetails || !hasPortDetails(port)"
+                        :show-after="TOOLTIP_SHOW_AFTER"
+                        placement="right"
+                        effect="dark"
+                        :enterable="false"
+                      >
+                        <template #content>
+                          <div class="port-detail-tooltip">
+                            <div v-if="port.friendlyName" class="port-detail-row"><span class="port-detail-label">{{ t('sidebar.friendlyName') }}:</span> {{ port.friendlyName }}</div>
+                            <div v-if="port.manufacturer" class="port-detail-row"><span class="port-detail-label">{{ t('sidebar.manufacturer') }}:</span> {{ port.manufacturer }}</div>
+                            <div v-if="port.vendorId || port.productId" class="port-detail-row"><span class="port-detail-label">VID/PID:</span> {{ port.vendorId || '-' }}/{{ port.productId || '-' }}</div>
+                            <div v-if="port.serialNumber" class="port-detail-row"><span class="port-detail-label">{{ t('sidebar.serialNumber') }}:</span> {{ port.serialNumber }}</div>
+                            <div v-if="port.pnpId" class="port-detail-row"><span class="port-detail-label">PnP ID:</span> {{ port.pnpId }}</div>
+                            <div v-if="port.locationId" class="port-detail-row"><span class="port-detail-label">{{ t('sidebar.locationId') }}:</span> {{ port.locationId }}</div>
+                          </div>
+                        </template>
+                        <div class="serial-port-device">
+                          <div class="serial-port-row">
+                            <span class="conn-name">{{ port.path }}</span>
+                            <span v-if="showPortType" class="serial-port-type">
+                              <el-tag v-if="port.type === 'virtual'" type="info" size="small" effect="dark">{{ t('sidebar.virtual') }}</el-tag>
+                              <el-tag v-else-if="port.type === 'usb'" type="success" size="small" effect="dark">{{ t('sidebar.usb') }}</el-tag>
+                              <el-tag v-else-if="port.type === 'bluetooth'" class="bluetooth-tag" size="small" effect="dark">{{ t('sidebar.bluetooth') }}</el-tag>
+                              <el-tag v-else type="info" size="small" effect="dark">{{ t('sidebar.noType') }}</el-tag>
+                            </span>
+                          </div>
+                          <span
+                            v-if="showSerialPortFriendlyName && getPortFriendlyName(port)"
+                            class="serial-friendly-name"
+                            :title="getPortFriendlyName(port)"
+                          >{{ getPortFriendlyName(port) }}</span>
+                        </div>
+                      </el-tooltip>
                       <el-tooltip v-if="serialRemarks[port.path]" :content="serialRemarks[port.path]" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
                         <span class="serial-remark">{{ serialRemarks[port.path] }}</span>
                       </el-tooltip>
@@ -178,6 +203,8 @@ const props = defineProps<{
   filteredSerialPorts: SerialPortInfo[]
   serialPortExpanded: boolean
   showPortType: boolean
+  showSerialPortFriendlyName: boolean
+  showSerialPortDetails: boolean
   connectionGroups: Record<string, any[]>
   connectionGroupExpanded: Record<string, boolean>
   serialRemarks: Record<string, string>
@@ -205,6 +232,25 @@ const handleClickOutside = (e: MouseEvent) => {
   if (sidebarMenuRef.value && !sidebarMenuRef.value.contains(e.target as Node)) {
     showSidebarMenu.value = false
   }
+}
+
+const getPortFriendlyName = (port: SerialPortInfo): string => {
+  const friendlyName = port.friendlyName?.trim()
+  if (!friendlyName) return ''
+  const escapedPath = port.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return friendlyName.replace(new RegExp(`\\s*\\(${escapedPath}\\)\\s*$`, 'i'), '').trim()
+}
+
+const hasPortDetails = (port: SerialPortInfo): boolean => {
+  return !!(
+    port.friendlyName ||
+    port.manufacturer ||
+    port.vendorId ||
+    port.productId ||
+    port.serialNumber ||
+    port.pnpId ||
+    port.locationId
+  )
 }
 
 onMounted(() => {
@@ -380,35 +426,48 @@ const handleMenuClick = (command: string) => {
 
 /* 串口卡片样式 */
 .serial-port-card {
+  width: 100%;
+  max-width: 250px;
   padding: 0 !important;
   margin-top: 6px;
   min-height: auto !important;
 }
 
 .serial-port-card :deep(.el-card__body) {
-  padding: 8px 12px !important;
-  overflow-x: hidden;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 8px 10px !important;
+  overflow: hidden;
 }
 
 .serial-port-content {
+  position: relative;
   display: flex;
+  width: 100%;
   justify-content: space-between;
   align-items: center;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .serial-port-left {
   flex: 1;
   min-width: 0;
-  overflow-x: hidden;
+  overflow: hidden;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
 }
 
 .serial-port-info {
   flex: 1;
   min-width: 0;
+}
+
+.serial-port-device {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .serial-port-row {
@@ -422,7 +481,6 @@ const handleMenuClick = (command: string) => {
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  margin-top: 6px;
 }
 
 .serial-port-left .connection-dot.connected {
@@ -434,20 +492,31 @@ const handleMenuClick = (command: string) => {
 }
 
 .serial-port-right {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: -2px;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   opacity: 0;
-  transition: opacity 0.2s ease;
-  flex-shrink: 0;
+  visibility: hidden;
+  pointer-events: none;
+  padding-left: 14px;
+  background: linear-gradient(90deg, transparent 0, var(--sidebar-card-bg) 14px);
+  transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
 .serial-port-card:hover .serial-port-right {
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .serial-port-btn {
   padding: 4px 8px !important;
   font-size: 12px !important;
+  background-color: transparent !important;
 }
 
 .disconnect-btn {
@@ -472,6 +541,31 @@ const handleMenuClick = (command: string) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.serial-friendly-name {
+  display: block;
+  color: var(--sidebar-remark);
+  font-size: 12px;
+  font-weight: normal;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.port-detail-tooltip {
+  max-width: 360px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.port-detail-row {
+  overflow-wrap: anywhere;
+}
+
+.port-detail-label {
+  color: var(--text-muted, #aaa);
 }
 
 .serial-port-type {
