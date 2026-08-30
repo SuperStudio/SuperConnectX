@@ -949,14 +949,16 @@ const stopAllLoopSend = () => {
   runAllCommandIndex.value = 0
 }
 
+const closeContextMenuOnContextMenu = () => {
+  contextMenuVisible.value = false
+}
+
 // 组件生命周期
 onMounted(() => {
   loadGroups()
   loadPresetCommands()
   document.addEventListener('click', closeContextMenuOnClickOutside)
-  document.addEventListener('contextmenu', () => {
-    contextMenuVisible.value = false
-  })
+  document.addEventListener('contextmenu', closeContextMenuOnContextMenu)
   // 监听命令组变化事件
   eventBus.on('commandGroupsChanged', handleCommandGroupsChanged)
   // 监听预设命令变化事件
@@ -965,9 +967,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeContextMenuOnClickOutside)
-  document.removeEventListener('contextmenu', () => {
-    contextMenuVisible.value = false
-  })
+  document.removeEventListener('contextmenu', closeContextMenuOnContextMenu)
   // 移除命令组变化事件监听
   eventBus.off('commandGroupsChanged', handleCommandGroupsChanged)
   // 移除预设命令变化事件监听

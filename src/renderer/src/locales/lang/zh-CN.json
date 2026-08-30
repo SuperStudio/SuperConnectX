@@ -66,7 +66,7 @@
     "recvDisplayText": "接收命令显示文本",
     "recvDisplayTextDesc": "接收数据时终端中显示的文本前缀",
     "maxDisplayText": "可显示最大文本",
-    "maxDisplayTextDesc": "终端文本框达到此大小时自动清空（MB）",
+    "maxDisplayTextDesc": "终端文本超过此大小时滚动保留较新的内容（MB）",
     "backup": "备份",
     "backupUnimplemented": "备份（未实现）",
     "autoBackup": "自动备份",

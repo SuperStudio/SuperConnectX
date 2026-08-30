@@ -142,7 +142,7 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import * as monaco from 'monaco-editor'
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { getMonacoTheme } from '../utils/MonacoTheme'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
@@ -630,6 +630,10 @@ const setPreviewText = (text: string) => {
   previewModel.setValue(text)
 }
 
+const closeContextMenuOnContextMenu = () => {
+  contextMenuVisible.value = false
+}
+
 // 当切换组时，更新预览文本并自动应用高亮
 watch(activeGroup, (newGroup) => {
   if (!previewModel) return
@@ -660,9 +664,7 @@ onMounted(async () => {
     schedulePreviewApply()
   }
   document.addEventListener('click', closeContextMenuOnClickOutside)
-  document.addEventListener('contextmenu', () => {
-    contextMenuVisible.value = false
-  })
+  document.addEventListener('contextmenu', closeContextMenuOnContextMenu)
 
   // 监听主题切换，动态更新 Monaco Editor 主题
   themeObserver = new MutationObserver(() => {
@@ -694,6 +696,7 @@ onUnmounted(() => {
   regexCache.clear()
   syntaxClassMap.clear()
   document.removeEventListener('click', closeContextMenuOnClickOutside)
+  document.removeEventListener('contextmenu', closeContextMenuOnContextMenu)
   if (themeObserver) {
     themeObserver.disconnect()
     themeObserver = null

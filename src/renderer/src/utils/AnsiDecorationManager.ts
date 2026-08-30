@@ -1,5 +1,6 @@
-import * as monaco from 'monaco-editor'
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
 import type { AnsiSegment } from './AnsiParser'
+import { takeDecorationOverflow } from './DecorationLimit'
 
 /**
  * 将 cleanText 内的字符偏移转换为 Monaco Position
@@ -115,6 +116,10 @@ export class AnsiDecorationManager {
     if (newDecorations.length > 0) {
       const newIds = editor.deltaDecorations([], newDecorations)
       this.decorationIds.push(...newIds)
+      const expiredIds = takeDecorationOverflow(this.decorationIds)
+      if (expiredIds.length > 0) {
+        editor.deltaDecorations(expiredIds, [])
+      }
     }
   }
 

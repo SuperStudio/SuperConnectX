@@ -202,12 +202,18 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import * as monaco from 'monaco-editor'
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
 import PresetCommands from './PresetCommands.vue'
 import TerminalControl from './TerminalControl.vue'
 import LogFilterPanel from './LogFilterPanel.vue'
 import { parseAnsiToSegments } from '../utils/AnsiParser'
 import { AnsiDecorationManager } from '../utils/AnsiDecorationManager'
+import { takeDecorationOverflow } from '../utils/DecorationLimit'
+import {
+  getRetainedOutputStartOffset,
+  TERMINAL_FLUSH_INTERVAL_MS,
+  TERMINAL_IMMEDIATE_FLUSH_SIZE
+} from '../utils/TerminalOutputBuffer'
 import { getMonacoTheme } from '../utils/MonacoTheme'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
 import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
@@ -495,6 +501,9 @@ let filterHighlightDeco: string[] = [] // 过滤定位行高亮装饰
 const ansiDecorationMgr = new AnsiDecorationManager()
 let totalRecvSize = 0
 let totalTxSize = 0
+let pendingTerminalChunks: string[] = []
+let pendingTerminalLength = 0
+let terminalFlushTimer: ReturnType<typeof setTimeout> | null = null
 let isInternalChange = false // 标记是否由内部触发的 isAutoScroll 变化
 let autoScrollToast = true // 固定滚屏时弹出提示（默认开启）
 let autoScrollOnFocus = true // 获得焦点时固定滚屏（默认开启）
@@ -722,11 +731,53 @@ watch(showLogFilter, (val) => {
   }
 })
 
-const appendToTerminal = (content: string) => {
-  if (!editorModel) return
+const compactTerminalModelIfNeeded = (): boolean => {
+  if (!editorModel) return false
 
-  // 如果不显示日志，直接返回
-  if (!isShowLog.value) return
+  const currentLength = editorModel.getValueLength()
+  const retainStartOffset = getRetainedOutputStartOffset(currentLength, getMaxClearSize())
+  if (retainStartOffset === null) return false
+
+  const lineCount = editorModel.getLineCount()
+  const startPosition = editorModel.getPositionAt(retainStartOffset)
+  let startLineNumber = startPosition.lineNumber
+  let startColumn = startPosition.column
+  // 尽量从完整行开始保留，避免裁剪出半行日志。
+  if (startPosition.lineNumber < lineCount) {
+    startLineNumber++
+    startColumn = 1
+  }
+
+  const retainedText = editorModel.getValueInRange({
+    startLineNumber,
+    startColumn,
+    endLineNumber: lineCount,
+    endColumn: editorModel.getLineMaxColumn(lineCount)
+  })
+
+  if (editor) {
+    syntaxDecorationIds = editor.deltaDecorations(syntaxDecorationIds, [])
+    filterHighlightDeco = editor.deltaDecorations(filterHighlightDeco, [])
+  }
+  ansiDecorationMgr.reset()
+
+  // setValue 会重建 Monaco 的 piece tree，真正释放长期追加造成的碎片缓冲区。
+  editorModel.setValue(retainedText)
+  lastSyntaxTextLength = editorModel.getValueLength()
+  logLines.value = []
+  if (showLogFilter.value) rebuildLogLines()
+
+  window.dispatchEvent(
+    new CustomEvent('terminal-text-cleared', {
+      detail: { connectionName: props.connection.name }
+    })
+  )
+  return true
+}
+
+const writeTerminalContent = (content: string) => {
+  if (!editorModel) return
+  if (!content) return
 
   // 解析 ANSI SGR 序列：得到纯文本 + 样式段信息
   const { cleanText, segments } = parseAnsiToSegments(content)
@@ -742,8 +793,9 @@ const appendToTerminal = (content: string) => {
   const insertOffset = editorModel.getOffsetAt({ lineNumber: lastLine, column: lastCol })
 
   try {
-    editorModel.pushEditOperations(
-      [],
+    // 终端输出是只读流，不应该进入 Monaco 的撤销栈。
+    // pushEditOperations 会长期保留历史文本，持续输出时会显著放大内存占用。
+    editorModel.applyEdits(
       [
         {
           range: new monaco.Range(lastLine, lastCol, lastLine, lastCol),
@@ -751,32 +803,65 @@ const appendToTerminal = (content: string) => {
           forceMoveMarkers: true
         }
       ],
-      () => null
+      false
     )
   } catch (err) {
     console.error('appendToTerminal error:', err)
     return
   }
 
-  // 增量同步日志行缓存（供过滤面板）
-  syncLogLines(prevLineCount)
+  const compacted = compactTerminalModelIfNeeded()
 
-  // 应用 ANSI 颜色装饰器（新增文本部分）
-  ansiDecorationMgr.apply(segments, insertOffset, cleanText)
+  if (!compacted) {
+    // 增量同步日志行缓存（供过滤面板）。压缩时已在上方按新行号重建。
+    syncLogLines(prevLineCount)
+    // 应用 ANSI 颜色装饰器（新增文本部分）
+    ansiDecorationMgr.apply(segments, insertOffset, cleanText)
+  }
 
   if (isAutoScroll.value) {
     scrollToEnd()
   }
 
-  totalRecvSize += cleanText.length
-  rxBytes.value = formatBytes(totalRecvSize)
-  if (totalRecvSize > getMaxClearSize()) {
-    clearTerminal()
-    window.dispatchEvent(new CustomEvent('terminal-text-cleared', { detail: { connectionName: props.connection.name } }))
-  }
-
   // 增量语法高亮（只扫描新增文本，成本极低）
-  applySyntaxWithClasses()
+  if (!compacted) applySyntaxWithClasses()
+}
+
+const flushPendingTerminalContent = () => {
+  if (terminalFlushTimer) {
+    clearTimeout(terminalFlushTimer)
+    terminalFlushTimer = null
+  }
+  if (pendingTerminalLength === 0) return
+
+  const content = pendingTerminalChunks.join('')
+  pendingTerminalChunks = []
+  pendingTerminalLength = 0
+  writeTerminalContent(content)
+}
+
+const discardPendingTerminalContent = () => {
+  if (terminalFlushTimer) {
+    clearTimeout(terminalFlushTimer)
+    terminalFlushTimer = null
+  }
+  pendingTerminalChunks = []
+  pendingTerminalLength = 0
+}
+
+const appendToTerminal = (content: string) => {
+  if (!editorModel || !content || !isShowLog.value) return
+
+  pendingTerminalChunks.push(content)
+  pendingTerminalLength += content.length
+
+  if (pendingTerminalLength >= TERMINAL_IMMEDIATE_FLUSH_SIZE) {
+    flushPendingTerminalContent()
+    return
+  }
+  if (!terminalFlushTimer) {
+    terminalFlushTimer = setTimeout(flushPendingTerminalContent, TERMINAL_FLUSH_INTERVAL_MS)
+  }
 }
 
 // 将关键词模式转为正则（支持逗号分隔的多个关键词），结果会被缓存
@@ -940,6 +1025,10 @@ const applySyntaxWithClasses = () => {
   // 返回的新 IDs 追加到 tracked IDs 中
   const newIds = editor.deltaDecorations([], newDecorations)
   syntaxDecorationIds.push(...newIds)
+  const expiredIds = takeDecorationOverflow(syntaxDecorationIds)
+  if (expiredIds.length > 0) {
+    editor.deltaDecorations(expiredIds, [])
+  }
   lastSyntaxTextLength = fullLen
 }
 
@@ -970,6 +1059,7 @@ const handleScrollToTop = () => {
 }
 
 const clearTerminal = () => {
+  discardPendingTerminalContent()
   if (editorModel) {
     editorModel.setValue('')
   }
@@ -1289,7 +1379,8 @@ const formatBytes = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-const updateRxBytes = (_len: number) => {
+const updateRxBytes = (len: number) => {
+  totalRecvSize += len
   rxBytes.value = formatBytes(totalRecvSize)
 }
 
@@ -1319,6 +1410,7 @@ const focusInput = () => {
 }
 
 const getEditorContent = (): string => {
+  flushPendingTerminalContent()
   return editorModel?.getValue() || ''
 }
 
@@ -1483,6 +1575,7 @@ const startVerticalSplit = (e: MouseEvent) => {
 }
 
 onUnmounted(() => {
+  discardPendingTerminalContent()
   if (editorModel) {
     editorModel.dispose()
     editorModel = null

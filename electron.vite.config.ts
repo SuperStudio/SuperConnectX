@@ -42,7 +42,8 @@ export default defineConfig({
       rollupOptions: {
         output: {
           manualChunks: {
-            'monaco-editor': ['monaco-editor']
+            // 终端和语法预览只使用编辑器核心，避免把 TS/HTML/CSS 等语言 Worker 全部带入。
+            'monaco-editor': ['monaco-editor/esm/vs/editor/editor.api.js']
           }
         }
       }

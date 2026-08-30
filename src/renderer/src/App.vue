@@ -166,7 +166,7 @@
                 v-if="tab.connectionType === 'com'"
                 v-show="isTabActiveInItsPanel(tab.id.toString())"
                 :connection="tab"
-                :ref="(el: any) => { if (el) comTerminalRefs[tab.id] = el }"
+                :ref="(el: any) => setTerminalRef(comTerminalRefs, tab.id, el)"
                 :auto-connect="tab.wasConnected !== false"
                 :show-bottom-panel="showBottomPanel"
                 @onClose="handleTerminalClose(tab.id)"
@@ -185,7 +185,7 @@
                 :connection="tab"
                 :auto-connect="tab.wasConnected !== false"
                 :show-bottom-panel="showBottomPanel"
-                :ref="(el: any) => { if (el) telnetTerminalRefs[tab.id] = el }"
+                :ref="(el: any) => setTerminalRef(telnetTerminalRefs, tab.id, el)"
                 @onClose="handleTerminalClose(tab.id)"
                 @commandSent="handleCommandSent"
                 @openCommandEditor="openCommandEditorTab"
@@ -245,7 +245,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, reactive, computed, defineAsyncComponent, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import CustomTitleBar from './components/CustomTitleBar.vue'
@@ -258,17 +258,19 @@ import ConnectionSidebar from './components/app/ConnectionSidebar.vue'
 import TerminalPanel from './components/app/TerminalPanel.vue'
 import SuperSplit from './components/app/SuperSplit.vue'
 import SerialRemarkDialog from './components/app/SerialRemarkDialog.vue'
-import ComTerminal from './components/ComTerminal.vue'
-import TelnetTerminal from './components/TelnetTerminal.vue'
 import CommandEditor from './components/CommandEditor.vue'
 import ShortcutsPage from './components/ShortcutsPage.vue'
-import SettingsPage from './components/SettingsPage.vue'
 import VirtualPortPage from './components/VirtualPortPage.vue'
 import AppShell from './foundation/shell/AppShell.vue'
 import StatusBar from './foundation/shell/StatusBar.vue'
 import SidebarResizeHandle from './foundation/shell/SidebarResizeHandle.vue'
 import { useSidebarResize } from './foundation/shell/useSidebarResize'
 import logoImage from './assets/icon.png'
+
+// Monaco 体积较大，只在打开终端或设置页时加载，降低空闲状态的基础内存。
+const ComTerminal = defineAsyncComponent(() => import('./components/ComTerminal.vue'))
+const TelnetTerminal = defineAsyncComponent(() => import('./components/TelnetTerminal.vue'))
+const SettingsPage = defineAsyncComponent(() => import('./components/SettingsPage.vue'))
 
 // Composables
 import { useConnectionSidebar } from './composables/app/useConnectionSidebar'
@@ -295,6 +297,16 @@ const lastSentCommand = ref('')
 const connectedSerialPorts = reactive<Record<string, boolean>>({})
 const comTerminalRefs = reactive<Record<string, any>>({})
 const telnetTerminalRefs = reactive<Record<string, any>>({})
+
+const setTerminalRef = (refs: Record<string, any>, tabId: string | number, instance: any) => {
+  const key = String(tabId)
+  if (instance) {
+    refs[key] = instance
+  } else {
+    // Vue 在组件卸载时会传入 null，必须删除强引用，否则 Monaco 模型无法回收。
+    delete refs[key]
+  }
+}
 // 连接状态变化计数器：当任何终端的连接状态变化时 +1，用于驱动 computed 重新计算
 const connectionChangeCounter = ref(0)
 
