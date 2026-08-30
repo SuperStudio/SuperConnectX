@@ -7,6 +7,7 @@
       :is-connecting="isConnecting"
       :init-message="t('comTerminal.waiting', { port: connection.comName })"
       :placeholder="t('comTerminal.placeholder')"
+      :show-bottom-panel="showBottomPanel"
       session-id-prefix="com"
       @on-close="handleClose"
       @on-reconnect="reconnect"
@@ -197,9 +198,11 @@ const props = withDefaults(defineProps<{
     remark?: string
   }
   autoConnect?: boolean
+  showBottomPanel?: boolean
   onClose?: () => void
 }>(), {
-  autoConnect: true
+  autoConnect: true,
+  showBottomPanel: true
 })
 
 const unifiedTerminalRef = ref<InstanceType<typeof UnifiedTerminal>>()

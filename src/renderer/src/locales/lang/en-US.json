@@ -201,6 +201,8 @@
     "en-US": "English"
   },
   "titlebar": {
+    "togglePrimarySidebar": "Toggle Primary Side Bar",
+    "toggleBottomPanel": "Toggle Bottom Panel",
     "file": "File",
     "edit": "Edit",
     "tools": "Tools",

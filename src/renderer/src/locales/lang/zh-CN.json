@@ -201,6 +201,8 @@
     "en-US": "English"
   },
   "titlebar": {
+    "togglePrimarySidebar": "切换主侧栏",
+    "toggleBottomPanel": "切换底部面板",
     "file": "文件",
     "edit": "编辑",
     "tools": "工具",

@@ -2,7 +2,8 @@
   <AppShell>
     <template #titlebar>
       <CustomTitleBar
-      @toggle-connection-list="toggleConnectionList"
+      @toggle-primary-sidebar="toggleConnectionList"
+      @toggle-bottom-panel="toggleBottomPanel"
       @refreshCommands="refreshHandler"
       @refreshConnections="loadConnections"
       @notifyImport="handleImportNotify"
@@ -18,6 +19,7 @@
       @toggle-line-numbers="handleToggleLineNumbers"
       @toggle-log-editable="handleToggleLogEditable"
       :show-connection-list="showConnectionList"
+      :show-bottom-panel="showBottomPanel"
       :current-font="currentFont"
       :word-wrap="terminalWordWrap"
       :line-numbers="terminalLineNumbers"
@@ -164,6 +166,7 @@
                 :connection="tab"
                 :ref="(el: any) => { if (el) comTerminalRefs[tab.id] = el }"
                 :auto-connect="tab.wasConnected !== false"
+                :show-bottom-panel="showBottomPanel"
                 @onClose="handleTerminalClose(tab.id)"
                 @commandSent="handleCommandSent"
                 @onConnect="() => { if (tab.comName) connectedSerialPorts[tab.comName] = true }"
@@ -179,6 +182,7 @@
                 v-show="isTabActiveInItsPanel(tab.id.toString())"
                 :connection="tab"
                 :auto-connect="tab.wasConnected !== false"
+                :show-bottom-panel="showBottomPanel"
                 :ref="(el: any) => { if (el) telnetTerminalRefs[tab.id] = el }"
                 @onClose="handleTerminalClose(tab.id)"
                 @commandSent="handleCommandSent"
@@ -319,10 +323,10 @@ const panelRefs = reactive<Record<string, InstanceType<typeof TerminalPanel> | n
 // ---- Sidebar ----
 const {
   connections, serialPorts,
-  showConnectionList, sidebarWidth, serialPortExpanded, showPortType,
+  showConnectionList, showBottomPanel, sidebarWidth, serialPortExpanded, showPortType,
   connectionGroupExpanded, filteredSerialPorts, connectionGroups,
   handleSearch, loadConnections, loadSerialPorts, loadSidebarState,
-  handleSerialPortsChanged, toggleConnectionList
+  handleSerialPortsChanged, toggleConnectionList, toggleBottomPanel
 } = useConnectionSidebar()
 
 // ---- Tab Manager ----
