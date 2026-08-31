@@ -13,18 +13,27 @@ defineEmits<{ resizeStart: [event: MouseEvent] }>()
 
 <style scoped>
 .sidebar-resize-handle {
-  width: 4px;
+  width: 0;
   height: 100%;
-  background: transparent;
   cursor: col-resize;
-  flex-shrink: 0;
+  flex: 0 0 0;
   position: relative;
   z-index: 10;
+}
+
+.sidebar-resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  width: 6px;
+  background: transparent;
   transition: background-color 0.2s;
 }
 
-.sidebar-resize-handle:hover,
-.sidebar-resize-handle.resizing {
+.sidebar-resize-handle:hover::before,
+.sidebar-resize-handle.resizing::before {
   background-color: var(--sidebar-resizer-hover);
 }
 </style>

@@ -427,7 +427,9 @@ const handleMenuClick = (command: string) => {
 /* 串口卡片样式 */
 .serial-port-card {
   width: 100%;
-  max-width: 250px;
+  max-width: none;
+  align-self: stretch;
+  box-sizing: border-box;
   padding: 0 !important;
   margin-top: 6px;
   min-height: auto !important;
