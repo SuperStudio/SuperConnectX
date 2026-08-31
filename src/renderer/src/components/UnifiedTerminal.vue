@@ -489,8 +489,6 @@ let autoScrollAfterSend = true // 发送命令后停止滚屏（默认开启）
 let autoScrollOnWheel = true // 鼠标滚动决策固定（默认开启）
 let clearInputAfterSend = false // 发送命令后自动清空输入栏
 let toastDebounceTimer: ReturnType<typeof setTimeout> | null = null
-let syntaxHighlightTimer: ReturnType<typeof setTimeout> | null = null
-const SYNTAX_HIGHLIGHT_DEBOUNCE_MS = 100 // 语法高亮防抖延迟
 const MAX_SYNTAX_DECORATIONS = 5000
 
 const presetCommandsRef = ref<InstanceType<typeof PresetCommands>>()
@@ -1528,18 +1526,6 @@ onUnmounted(() => {
     editor = null
   }
 
-  // 清理语法高亮防抖定时器
-  if (syntaxHighlightTimer) {
-    clearTimeout(syntaxHighlightTimer)
-    syntaxHighlightTimer = null
-  }
-
-  // 清理批量刷新定时器
-  if (appendFlushTimer) {
-    clearTimeout(appendFlushTimer)
-    appendFlushTimer = null
-  }
-  pendingAppendBuffer = ''
   // Monaco dispose 后不再需要保留这些 ID/缓存引用，及时释放大终端的辅助数据。
   syntaxDecorationIds = []
   syntaxClassMap.clear()
