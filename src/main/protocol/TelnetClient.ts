@@ -7,6 +7,7 @@ const DEFAULT_TELNET_PORT = 23
 const DEFAULT_TIMOUT_MS = 10 * 1000
 const DEFAULT_TERMINAL_TYPE = 'vt100' /* cmd 中默认常用 vt100 */
 const READ_INTERVAL_MS = 10 // 固定10ms读取间隔
+const MAX_BUFFER_BYTES = 1024 * 1024 // 无换行输出也必须有上限，避免接收缓冲区无限增长
 
 interface TelnetConnectionInfo {
   host: string
@@ -48,6 +49,16 @@ export default class TelnetClient extends BaseClient {
         const timestamp = BufferLineSplitter.timestamp()
         onData?.({ data: result.data, timestamp })
         onLog?.(result.log, timestamp)
+      }
+
+      // 某些设备会持续发送不带换行符的内容。此时 split() 会一直保留
+      // remainder，必须定期强制刷新，否则 Buffer 会随运行时间无限增长。
+      if (connData.buffer.length > MAX_BUFFER_BYTES) {
+        const timestamp = BufferLineSplitter.timestamp()
+        const remainingStr = splitter.decodeFull(connData.buffer)
+        connData.buffer = Buffer.alloc(0)
+        onData?.({ data: remainingStr, timestamp })
+        onLog?.(remainingStr, timestamp)
       }
     } catch (err: any) {
       this.logger.error(`processBuffer error: ${err?.message || err}`)
