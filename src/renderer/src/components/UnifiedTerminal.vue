@@ -208,7 +208,9 @@ import { getDefaultTerminalFont } from '../utils/FontDetector'
 import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
 import { sendDisplayText } from '../composables/app/useSettingsStore'
 
-const maxClearSizeMB = ref(30)
+const MAX_DISPLAY_TEXT_MB = 8
+const MAX_DISPLAY_LINES = 50000
+const maxClearSizeMB = ref(MAX_DISPLAY_TEXT_MB)
 
 const props = withDefaults(defineProps<{
   connection: {
@@ -487,6 +489,9 @@ let autoScrollAfterSend = true // 发送命令后停止滚屏（默认开启）
 let autoScrollOnWheel = true // 鼠标滚动决策固定（默认开启）
 let clearInputAfterSend = false // 发送命令后自动清空输入栏
 let toastDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let syntaxHighlightTimer: ReturnType<typeof setTimeout> | null = null
+const SYNTAX_HIGHLIGHT_DEBOUNCE_MS = 100 // 语法高亮防抖延迟
+const MAX_SYNTAX_DECORATIONS = 5000
 
 const presetCommandsRef = ref<InstanceType<typeof PresetCommands>>()
 
@@ -746,21 +751,20 @@ const appendToTerminal = (content: string) => {
   const insertOffset = editorModel.getOffsetAt({ lineNumber: lastLine, column: lastCol })
 
   try {
-    editorModel.pushEditOperations(
-      [],
-      [
-        {
-          range: new monaco.Range(lastLine, lastCol, lastLine, lastCol),
-          text: cleanText,
-          forceMoveMarkers: true
-        }
-      ],
-      () => null
-    )
+     // 终端是只读输出，不需要为每次接收数据建立 Monaco 撤销记录。
+     editorModel.applyEdits([
+       {
+         range: new monaco.Range(lastLine, lastCol, lastLine, lastCol),
+         text: cleanText,
+         forceMoveMarkers: true
+       }
+     ], false)
   } catch (err) {
     console.error('appendToTerminal error:', err)
     return
   }
+
+  trimTerminalLines()
 
   // 增量同步日志行缓存（供过滤面板）
   syncLogLines(prevLineCount)
@@ -781,6 +785,23 @@ const appendToTerminal = (content: string) => {
 
   // 增量语法高亮（只扫描新增文本，成本极低）
   applySyntaxWithClasses()
+}
+
+const trimTerminalLines = () => {
+  if (!editorModel || editorModel.getLineCount() <= MAX_DISPLAY_LINES) return
+
+  const startLine = editorModel.getLineCount() - MAX_DISPLAY_LINES + 1
+  const text = editorModel.getValueInRange({
+    startLineNumber: startLine,
+    startColumn: 1,
+    endLineNumber: editorModel.getLineCount(),
+    endColumn: editorModel.getLineMaxColumn(editorModel.getLineCount())
+  })
+  editorModel.setValue(text)
+  logLines.value = []
+  lastSyntaxTextLength = 0
+  syntaxDecorationIds = editor?.deltaDecorations(syntaxDecorationIds, []) || []
+  ansiDecorationMgr.reset()
 }
 
 // 将关键词模式转为正则（支持逗号分隔的多个关键词），结果会被缓存
@@ -944,6 +965,10 @@ const applySyntaxWithClasses = () => {
   // 返回的新 IDs 追加到 tracked IDs 中
   const newIds = editor.deltaDecorations([], newDecorations)
   syntaxDecorationIds.push(...newIds)
+  if (syntaxDecorationIds.length > MAX_SYNTAX_DECORATIONS) {
+    // 只保留后续输出的高亮，避免每个匹配项都长期占用 Monaco 内存。
+    syntaxDecorationIds = editor.deltaDecorations(syntaxDecorationIds, [])
+  }
   lastSyntaxTextLength = fullLen
 }
 
@@ -1379,13 +1404,13 @@ defineExpose({
 })
 
 const getMaxClearSize = () => {
-  return (maxClearSizeMB.value || 30) * 1024 * 1024
+  return Math.min(maxClearSizeMB.value || MAX_DISPLAY_TEXT_MB, MAX_DISPLAY_TEXT_MB) * 1024 * 1024
 }
 
 const loadMaxClearSize = async () => {
   try {
     const settings = await window.storageApi.getSettings()
-    maxClearSizeMB.value = settings?.maxDisplayText ?? 30
+    maxClearSizeMB.value = Math.min(settings?.maxDisplayText ?? MAX_DISPLAY_TEXT_MB, MAX_DISPLAY_TEXT_MB)
     autoScrollToast = settings?.autoScrollToast !== false
     autoScrollOnFocus = settings?.autoScrollOnFocus !== false
     autoScrollAfterSend = settings?.autoScrollAfterSend !== false
@@ -1550,7 +1575,7 @@ const handleSettingsUpdated = async (event: Event) => {
       await loadHistory()
     }
     if ('maxDisplayText' in updatedSettings) {
-      maxClearSizeMB.value = updatedSettings.maxDisplayText ?? 30
+      maxClearSizeMB.value = Math.min(updatedSettings.maxDisplayText ?? MAX_DISPLAY_TEXT_MB, MAX_DISPLAY_TEXT_MB)
     }
     if ('autoScrollToast' in updatedSettings) {
       autoScrollToast = updatedSettings.autoScrollToast !== false

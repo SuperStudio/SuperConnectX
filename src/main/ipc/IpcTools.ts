@@ -1,5 +1,5 @@
 import os from 'os'
-import { shell, ipcMain } from 'electron'
+import { app, shell, ipcMain } from 'electron'
 import logger from './IpcAppLogger'
 import fs from 'fs'
 import { getExeDir, getAppDataDir } from '../utils/AppDir'
@@ -53,15 +53,16 @@ export default class IpcTools {
       }
       prevCpuTimes = curCpuTimes
 
-      // 系统总内存占用率
+      // 统计 SuperConnectX 主进程及其渲染/工具子进程的实际占用，
+      // 不再把整台机器的系统内存误报为应用内存。
       const totalMem = os.totalmem()
-      const freeMem = os.freemem()
-      const usedMem = totalMem - freeMem
+      const appMetrics = app.getAppMetrics()
+      const usedMem = appMetrics.reduce((sum, metric) => sum + metric.memory.workingSetSize * BYTE_VALUE_SIZE, 0)
       const memRate = ((usedMem / totalMem) * FLOAT_TO_PERCENT).toFixed(MEM_FLOAT_FIXED_SIZE)
 
       return {
         cpu: cpuRate,
-        memory: (usedMem / BYTE_VALUE_SIZE / BYTE_VALUE_SIZE / BYTE_VALUE_SIZE).toFixed(MEM_FLOAT_FIXED_SIZE),
+        memory: (usedMem / BYTE_VALUE_SIZE / BYTE_VALUE_SIZE).toFixed(0),
         memRate: memRate
       }
     })

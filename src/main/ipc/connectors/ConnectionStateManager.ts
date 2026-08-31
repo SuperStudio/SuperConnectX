@@ -9,6 +9,8 @@ import { BrowserWindow } from 'electron'
 import ProtocolLogger from '../../utils/ProtocolLogger'
 
 export default class ConnectionStateManager {
+  private static readonly DATA_FLUSH_INTERVAL_MS = 30
+  private static readonly MAX_PENDING_DATA_BYTES = 256 * 1024
   private receiveHexMap = new Map<string, boolean>()
   private logTimestampMap = new Map<string, boolean>()
   private connectionTypeMap = new Map<string, string>()
@@ -17,6 +19,8 @@ export default class ConnectionStateManager {
   // 外部依赖（由 IpcConnector 注入）
   private windows: { mainWindow?: BrowserWindow | null } = { mainWindow: undefined }
   private logger: ProtocolLogger | null = null
+  private pendingData = new Map<string, { data: string; timestamp: string; isHex: boolean }>()
+  private dataFlushTimer: NodeJS.Timeout | null = null
 
   init(
     winRef: { mainWindow?: BrowserWindow | null },
@@ -70,6 +74,7 @@ export default class ConnectionStateManager {
    * 连接关闭时的统一清理逻辑（4 处重复代码的合并）
    */
   cleanupOnClose(sessionId: string): void {
+    this.flushPendingData(sessionId)
     this.logger?.flushConnLog(sessionId)
     this.receiveHexMap.delete(sessionId)
     this.logTimestampMap.delete(sessionId)
@@ -95,13 +100,49 @@ export default class ConnectionStateManager {
    * 发送数据到渲染进程
    */
   sendDataToRenderer(sessionId: string, data: string, timestamp: string, isHex: boolean): void {
+    const pending = this.pendingData.get(sessionId)
+    const wc = this.windows.mainWindow?.webContents
+    if (!wc || wc.isDestroyed()) return
+
+    // 保持首包立即送达；后续短时间内到达的数据再合并，避免改变终端首屏时序。
+    if (!pending) {
+      wc.send('on-recv-data', { connId: sessionId, data, timestamp, isHex })
+      return
+    }
+
+    const combinedData = pending ? pending.data + data : data
+    if (Buffer.byteLength(combinedData, 'utf8') >= ConnectionStateManager.MAX_PENDING_DATA_BYTES) {
+      this.pendingData.set(sessionId, { data: combinedData, timestamp, isHex })
+      this.flushPendingData(sessionId)
+      return
+    }
+
+    this.pendingData.set(sessionId, { data: combinedData, timestamp, isHex })
+    this.scheduleDataFlush()
+  }
+
+  private scheduleDataFlush(): void {
+    if (this.dataFlushTimer) return
+    this.dataFlushTimer = setTimeout(() => {
+      this.dataFlushTimer = null
+      for (const sessionId of this.pendingData.keys()) {
+        this.flushPendingData(sessionId)
+      }
+    }, ConnectionStateManager.DATA_FLUSH_INTERVAL_MS)
+  }
+
+  private flushPendingData(sessionId: string): void {
+    const pending = this.pendingData.get(sessionId)
+    if (!pending) return
+    this.pendingData.delete(sessionId)
+
     const wc = this.windows.mainWindow?.webContents
     if (!wc || wc.isDestroyed()) return
     wc.send('on-recv-data', {
       connId: sessionId,
-      data,
-      timestamp,
-      isHex
+      data: pending.data,
+      timestamp: pending.timestamp,
+      isHex: pending.isHex
     })
   }
 

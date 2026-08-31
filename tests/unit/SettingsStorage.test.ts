@@ -15,7 +15,7 @@ describe('SettingsStorage', () => {
       expect(settings.autoScroll).toBe(true)
       expect(settings.language).toBe('zh-CN')
       expect(settings.backupInterval).toBe(30)
-      expect(settings.maxDisplayText).toBe(30)
+      expect(settings.maxDisplayText).toBe(8)
     })
 
     it('返回日志相关默认设置', () => {

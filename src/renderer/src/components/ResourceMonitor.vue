@@ -18,7 +18,7 @@
             class="progress mem-progress"
             :style="{ width: `${memRate}%`, backgroundColor: getProgressColor(memRate) }"
           >
-            <span class="progress-text">内存 {{ memRate }}%</span>
+            <span class="progress-text">内存 {{ memoryUsage }} MB</span>
           </div>
         </div>
       </div>
@@ -31,6 +31,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 
 const cpuUsage = ref(0)
 const memRate = ref(0)
+const memoryUsage = ref('0')
 let timer: ReturnType<typeof setInterval> | null = null
 
 const fetchResourceData = async () => {
@@ -38,6 +39,7 @@ const fetchResourceData = async () => {
     const data = await window.toolApi.getAppResource()
     cpuUsage.value = data.cpu
     memRate.value = data.memRate
+    memoryUsage.value = data.memory
   } catch (error) {
     console.error('Failed to get resource data:', error)
   }

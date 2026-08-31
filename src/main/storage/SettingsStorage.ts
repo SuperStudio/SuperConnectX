@@ -82,7 +82,7 @@ const defaultSettings: Settings = {
   backupInterval: 30,
   autoStart: false,
   preventSleep: false,
-  maxDisplayText: 30,
+  maxDisplayText: 8,
   sendDisplayText: 'SEND>>>>>>>>>>>>>',
   recvDisplayText: '',
   // 串口设置

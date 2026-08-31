@@ -26,6 +26,7 @@ export function offsetInTextToMonacoPos(
  * 负责将 ANSI 样式段转换为 Monaco decorations，并管理 CSS 注入/清理生命周期
  */
 export class AnsiDecorationManager {
+  private static readonly MAX_DECORATIONS = 5000
   private editor: monaco.editor.IStandaloneCodeEditor | null = null
   private model: monaco.editor.ITextModel | null = null
 
@@ -115,6 +116,9 @@ export class AnsiDecorationManager {
     if (newDecorations.length > 0) {
       const newIds = editor.deltaDecorations([], newDecorations)
       this.decorationIds.push(...newIds)
+      if (this.decorationIds.length > AnsiDecorationManager.MAX_DECORATIONS) {
+        this.clearDecorations()
+      }
     }
   }
 
