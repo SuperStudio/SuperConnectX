@@ -76,6 +76,26 @@
         <el-form-item :label="t('dialog.password')" prop="password" v-if="['ftp', 'tftp', 'http'].includes(formData.connectionType)">
           <el-input v-model="(formData as any).password" :placeholder="t('dialog.passwordPlaceholder')" type="password" />
         </el-form-item>
+        <el-form-item :label="t('comTerminal.encoding')" v-if="formData.connectionType === 'telnet'">
+          <el-select v-model="formData.encoding" style="width: 100%">
+            <el-option label="UTF-8" value="utf8" />
+            <el-option label="GB2312" value="gb2312" />
+            <el-option label="GBK" value="gbk" />
+            <el-option label="GB18030" value="gb18030" />
+            <el-option label="BIG5" value="big5" />
+            <el-option label="Shift-JIS" value="shift-jis" />
+            <el-option label="EUC-KR" value="euc-kr" />
+            <el-option label="ASCII" value="ascii" />
+            <el-option label="ISO-8859-1" value="latin1" />
+            <el-option label="ISO-8859-2" value="latin2" />
+            <el-option label="KOI8-R" value="koi8-r" />
+            <el-option label="windows-1251" value="windows-1251" />
+            <el-option label="windows-1252" value="windows-1252" />
+            <el-option label="ISO-8859-5" value="iso-8859-5" />
+            <el-option label="UTF-16LE" value="utf16le" />
+            <el-option label="UTF-16BE" value="utf16be" />
+          </el-select>
+        </el-form-item>
       </template>
     </el-form>
     <template #footer>

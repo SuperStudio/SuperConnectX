@@ -46,6 +46,7 @@ const props = withDefaults(defineProps<{
     name?: string
     sessionId: string | number
     ftpMode?: string
+    encoding?: string
   }
   onClose?: () => void
   autoConnect?: boolean

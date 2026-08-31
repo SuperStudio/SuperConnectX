@@ -2,6 +2,7 @@ import { Telnet } from 'telnet-client'
 import BaseClient, { ILogger } from './BaseClient'
 import ConnectionInfo from './ConnectionInfo'
 import { BufferLineSplitter } from './BufferLineSplitter'
+import * as iconv from 'iconv-lite'
 
 const DEFAULT_TELNET_PORT = 23
 const DEFAULT_TIMOUT_MS = 10 * 1000
@@ -12,6 +13,7 @@ const MAX_BUFFER_BYTES = 1024 * 1024 // 无换行输出也必须有上限，避�
 interface TelnetConnectionInfo {
   host: string
   port: number
+  encoding: string
 }
 
 interface TelnetConnection {
@@ -88,7 +90,8 @@ export default class TelnetClient extends BaseClient {
 
       await connection.connect(params)
       this.telnetConnections.set(sessionId, connection)
-      this.connectionInfos.set(sessionId, { host, port: port || DEFAULT_TELNET_PORT })
+      const encoding = info.encoding || 'utf8'
+      this.connectionInfos.set(sessionId, { host, port: port || DEFAULT_TELNET_PORT, encoding })
 
       // 存储连接数据对象
       const connData: TelnetConnection = {
@@ -98,7 +101,7 @@ export default class TelnetClient extends BaseClient {
         onData,
         onClose,
         onLog,
-        splitter: new BufferLineSplitter('utf8', false)
+        splitter: new BufferLineSplitter(encoding, false)
       }
       this.telnetConnectionData.set(sessionId, connData)
 
@@ -122,7 +125,7 @@ export default class TelnetClient extends BaseClient {
         // 关闭前输出缓冲区中剩余的数据
         if (connData.buffer && connData.buffer.length > 0) {
           const timestamp = BufferLineSplitter.timestamp()
-          const remainingStr = connData.buffer.toString('utf8')
+          const remainingStr = connData.splitter.decodeFull(connData.buffer)
           connData.onData?.({ data: remainingStr, timestamp })
           connData.onLog?.(remainingStr, timestamp)
           connData.buffer = Buffer.alloc(0)
@@ -152,7 +155,8 @@ export default class TelnetClient extends BaseClient {
 
     try {
       const dataStr = `[${BufferLineSplitter.timestamp()}] SEND >>>>>>>>>> ${command}`
-      await connection.send(command + '\n')
+      const encoding = this.connectionInfos.get(connId)?.encoding || 'utf8'
+      await connection.send(iconv.encode(command + '\n', encoding))
       onComplete?.(dataStr)
 
       this.logger.info(`send command: ${command}`)

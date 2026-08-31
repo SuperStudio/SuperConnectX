@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import * as iconv from 'iconv-lite'
 import { BufferLineSplitter } from '../../src/main/protocol/BufferLineSplitter'
 
 describe('BufferLineSplitter', () => {
@@ -256,6 +257,57 @@ describe('BufferLineSplitter', () => {
         expect(first.text + second.text).toBe(text)
         expect(second.remainder.length).toBe(0)
       }
+    })
+
+    it.each([
+      ['gb2312', '中文测试'],
+      ['gbk', '中文€测试'],
+      ['gb18030', '中文😀测试'],
+      ['big5', '繁體中文'],
+      ['shift-jis', '日本語テスト'],
+      ['euc-kr', '한국어 테스트'],
+      ['utf16le', '中文😀test'],
+      ['utf16be', '中文😀test']
+    ])('%s 在每个字节边界都可无损重组', (encoding, text) => {
+      const splitter = new BufferLineSplitter(encoding)
+      const encoded = iconv.encode(text, encoding)
+
+      for (let splitAt = 0; splitAt <= encoded.length; splitAt++) {
+        const first = splitter.decodeCompletePrefix(encoded.subarray(0, splitAt))
+        const second = splitter.decodeCompletePrefix(
+          Buffer.concat([first.remainder, encoded.subarray(splitAt)])
+        )
+
+        expect(first.text + second.text).toBe(text)
+        expect(second.remainder.length).toBe(0)
+      }
+    })
+
+    it.each([
+      ['ascii', 'ASCII test'],
+      ['latin1', 'café'],
+      ['latin2', 'Zażółć'],
+      ['koi8-r', 'Русский'],
+      ['windows-1251', 'Русский'],
+      ['windows-1252', 'café €'],
+      ['iso-8859-5', 'Русский']
+    ])('%s 单字节编码可完整输出', (encoding, text) => {
+      const splitter = new BufferLineSplitter(encoding)
+      const result = splitter.decodeCompletePrefix(iconv.encode(text, encoding))
+
+      expect(result.text).toBe(text)
+      expect(result.remainder.length).toBe(0)
+    })
+  })
+
+  describe('split - UTF-16 换行', () => {
+    it.each(['utf16le', 'utf16be'])('%s 正确解析 CRLF 和 LF', (encoding) => {
+      const splitter = new BufferLineSplitter(encoding)
+      const result = splitter.split(iconv.encode('第一行\r\n第二行\n', encoding))
+
+      expect(result.data).toBe('第一行\n第二行')
+      expect(result.count).toBe(2)
+      expect(result.remainder.length).toBe(0)
     })
   })
 

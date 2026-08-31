@@ -104,7 +104,8 @@ describe('Protocol Strategies', () => {
     host: '',
     port: 23,
     username: '',
-    password: ''
+    password: '',
+    encoding: 'utf8'
   }, 'telnet')
 
   // SSH Strategy

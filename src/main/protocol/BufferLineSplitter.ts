@@ -48,13 +48,47 @@ export class BufferLineSplitter {
 
   /**
    * 解码可安全输出的完整字符，并返回需要留到下一批的残缺字节。
-   * 当前主要用于 UTF-8 Telnet 超长无换行数据的有界刷新。
+   * 用于 Telnet 超长无换行数据的有界刷新。
    */
   decodeCompletePrefix(buffer: Buffer): { text: string; remainder: Buffer } {
-    if (this.receiveHex || !['utf8', 'utf-8'].includes(this.encoding) || buffer.length === 0) {
+    if (this.receiveHex || buffer.length === 0) {
       return { text: this.decodeFull(buffer), remainder: Buffer.alloc(0) }
     }
 
+    const encoding = this.encoding.toLowerCase().replace(/_/g, '-')
+    let splitAt = buffer.length
+
+    if (['utf8', 'utf-8'].includes(encoding)) {
+      splitAt = this.getUtf8CompleteLength(buffer)
+    } else if (['utf16le', 'utf-16le', 'ucs2', 'ucs-2'].includes(encoding)) {
+      splitAt = this.getUtf16CompleteLength(buffer, true)
+    } else if (['utf16be', 'utf-16be'].includes(encoding)) {
+      splitAt = this.getUtf16CompleteLength(buffer, false)
+    } else if (encoding === 'gb18030') {
+      splitAt = this.getGb18030CompleteLength(buffer)
+    } else if (['gbk', 'cp936'].includes(encoding)) {
+      splitAt = this.getDbcsCompleteLength(buffer, (byte) => byte >= 0x81 && byte <= 0xfe)
+    } else if (['gb2312', 'euc-cn'].includes(encoding)) {
+      splitAt = this.getDbcsCompleteLength(buffer, (byte) => byte >= 0xa1 && byte <= 0xf7)
+    } else if (['big5', 'big-5', 'cp950'].includes(encoding)) {
+      splitAt = this.getDbcsCompleteLength(buffer, (byte) => byte >= 0x81 && byte <= 0xfe)
+    } else if (['shift-jis', 'shiftjis', 'sjis', 'cp932'].includes(encoding)) {
+      splitAt = this.getDbcsCompleteLength(
+        buffer,
+        (byte) => (byte >= 0x81 && byte <= 0x9f) || (byte >= 0xe0 && byte <= 0xfc)
+      )
+    } else if (['euc-kr', 'euckr', 'cp949'].includes(encoding)) {
+      splitAt = this.getDbcsCompleteLength(buffer, (byte) => byte >= 0x81 && byte <= 0xfe)
+    }
+
+    return {
+      text: this.decodeBuffer(buffer, 0, splitAt),
+      // Buffer.subarray() 会继续引用整个大 Buffer，复制后才能真正释放它。
+      remainder: Buffer.from(buffer.subarray(splitAt))
+    }
+  }
+
+  private getUtf8CompleteLength(buffer: Buffer): number {
     let sequenceStart = buffer.length - 1
     while (sequenceStart >= 0 && (buffer[sequenceStart] & 0xc0) === 0x80) {
       sequenceStart--
@@ -63,7 +97,7 @@ export class BufferLineSplitter {
     if (sequenceStart < 0) {
       // 全部是孤立的 continuation byte，属于非法 UTF-8；直接按替代字符输出，
       // 不能把异常输入永久留在有界缓冲区中。
-      return { text: this.decodeFull(buffer), remainder: Buffer.alloc(0) }
+      return buffer.length
     }
 
     const leadByte = buffer[sequenceStart]
@@ -73,13 +107,59 @@ export class BufferLineSplitter {
           : (leadByte & 0xf8) === 0xf0 ? 4
             : 1
     const completeLength = buffer.length - sequenceStart
-    const splitAt = completeLength < expectedLength ? sequenceStart : buffer.length
+    return completeLength < expectedLength ? sequenceStart : buffer.length
+  }
 
-    return {
-      text: this.decodeBuffer(buffer, 0, splitAt),
-      // Buffer.subarray() 会继续引用整个大 Buffer，复制后才能真正释放它。
-      remainder: Buffer.from(buffer.subarray(splitAt))
+  private getUtf16CompleteLength(buffer: Buffer, littleEndian: boolean): number {
+    let length = buffer.length - (buffer.length % 2)
+    if (length < 2) return 0
+
+    const lastCodeUnit = littleEndian
+      ? buffer.readUInt16LE(length - 2)
+      : buffer.readUInt16BE(length - 2)
+    if (lastCodeUnit >= 0xd800 && lastCodeUnit <= 0xdbff) {
+      length -= 2
     }
+    return length
+  }
+
+  private getDbcsCompleteLength(buffer: Buffer, isLeadByte: (byte: number) => boolean): number {
+    let offset = 0
+    while (offset < buffer.length) {
+      if (!isLeadByte(buffer[offset])) {
+        offset++
+      } else if (offset + 1 >= buffer.length) {
+        return offset
+      } else {
+        offset += 2
+      }
+    }
+    return offset
+  }
+
+  private getGb18030CompleteLength(buffer: Buffer): number {
+    let offset = 0
+    while (offset < buffer.length) {
+      const first = buffer[offset]
+      if (first <= 0x7f || first === 0x80 || first === 0xff) {
+        offset++
+        continue
+      }
+      if (first < 0x81 || first > 0xfe) {
+        offset++
+        continue
+      }
+      if (offset + 1 >= buffer.length) return offset
+
+      const second = buffer[offset + 1]
+      if (second >= 0x30 && second <= 0x39) {
+        if (offset + 3 >= buffer.length) return offset
+        offset += 4
+      } else {
+        offset += 2
+      }
+    }
+    return offset
   }
 
   /**
@@ -127,6 +207,14 @@ export class BufferLineSplitter {
         count: hexData ? 1 : 0,
         remainder: Buffer.alloc(0)
       }
+    }
+
+    const normalizedEncoding = this.encoding.toLowerCase().replace(/_/g, '-')
+    if (['utf16le', 'utf-16le', 'ucs2', 'ucs-2'].includes(normalizedEncoding)) {
+      return this.splitUtf16(buffer, true)
+    }
+    if (['utf16be', 'utf-16be'].includes(normalizedEncoding)) {
+      return this.splitUtf16(buffer, false)
     }
 
     const CR = 0x0d
@@ -185,6 +273,37 @@ export class BufferLineSplitter {
       log: resultLog,
       count: dataLines.length,
       remainder: resultRemainder
+    }
+  }
+
+  private splitUtf16(buffer: Buffer, littleEndian: boolean): LineSplitResult {
+    const dataLines: string[] = []
+    const logLines: string[] = []
+    const completeLength = buffer.length - (buffer.length % 2)
+    let offset = 0
+
+    for (let pos = 0; pos < completeLength; pos += 2) {
+      const codeUnit = littleEndian ? buffer.readUInt16LE(pos) : buffer.readUInt16BE(pos)
+      if (codeUnit !== 0x0d && codeUnit !== 0x0a) continue
+
+      const line = this.decodeBuffer(buffer, offset, pos)
+      if (line) {
+        dataLines.push(line)
+        logLines.push(this.toLogLine(line))
+      }
+
+      if (codeUnit === 0x0d && pos + 3 < completeLength) {
+        const next = littleEndian ? buffer.readUInt16LE(pos + 2) : buffer.readUInt16BE(pos + 2)
+        if (next === 0x0a) pos += 2
+      }
+      offset = pos + 2
+    }
+
+    return {
+      data: dataLines.join('\n'),
+      log: logLines.join('\n'),
+      count: dataLines.length,
+      remainder: Buffer.from(buffer.subarray(offset))
     }
   }
 
