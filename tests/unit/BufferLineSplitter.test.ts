@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import * as iconv from 'iconv-lite'
 import { BufferLineSplitter } from '../../src/main/protocol/BufferLineSplitter'
 
 describe('BufferLineSplitter', () => {
@@ -171,6 +172,142 @@ describe('BufferLineSplitter', () => {
       expect(splitter.toLogLine('41 42')).toBe('41 42')
       splitter.updateReceiveHex(false)
       expect(splitter.toLogLine('AB')).toBe('AB')
+    })
+  })
+
+  describe('decodeCompletePrefix', () => {
+    it('完整 UTF-8 内容全部输出', () => {
+      const splitter = new BufferLineSplitter('utf8')
+      const result = splitter.decodeCompletePrefix(Buffer.from('abc你好'))
+
+      expect(result.text).toBe('abc你好')
+      expect(result.remainder.length).toBe(0)
+    })
+
+    it('保留跨批次的 UTF-8 残缺字符', () => {
+      const splitter = new BufferLineSplitter('utf8')
+      const encoded = Buffer.from('abc中')
+      const first = splitter.decodeCompletePrefix(encoded.subarray(0, encoded.length - 1))
+
+      expect(first.text).toBe('abc')
+      expect(first.remainder).toEqual(encoded.subarray(3, encoded.length - 1))
+
+      const second = splitter.decodeCompletePrefix(
+        Buffer.concat([first.remainder, encoded.subarray(encoded.length - 1)])
+      )
+      expect(second.text).toBe('中')
+      expect(second.remainder.length).toBe(0)
+    })
+
+    it('保留四字节 UTF-8 字符的残缺尾部', () => {
+      const splitter = new BufferLineSplitter('utf-8')
+      const encoded = Buffer.from('x😀')
+      const result = splitter.decodeCompletePrefix(encoded.subarray(0, encoded.length - 1))
+
+      expect(result.text).toBe('x')
+      expect(result.remainder.length).toBe(3)
+    })
+
+    it('非法 continuation byte 不会永久滞留', () => {
+      const splitter = new BufferLineSplitter('utf8')
+      const result = splitter.decodeCompletePrefix(Buffer.from([0x80, 0x80, 0x80]))
+
+      expect(result.text).not.toBe('')
+      expect(result.remainder.length).toBe(0)
+    })
+
+    it.each([
+      ['1 字节 ASCII', 'A'],
+      ['2 字节字符', 'é'],
+      ['3 字节字符', '中'],
+      ['4 字节 Emoji', '😀'],
+      ['Unicode 最大码点', String.fromCodePoint(0x10ffff)]
+    ])('%s 在每个字节边界都可无损重组', (_name, character) => {
+      const splitter = new BufferLineSplitter('utf8')
+      const encoded = Buffer.from(`prefix${character}`)
+      const characterStart = Buffer.byteLength('prefix')
+
+      for (let splitAt = characterStart; splitAt <= encoded.length; splitAt++) {
+        const first = splitter.decodeCompletePrefix(encoded.subarray(0, splitAt))
+        const second = splitter.decodeCompletePrefix(
+          Buffer.concat([first.remainder, encoded.subarray(splitAt)])
+        )
+
+        expect(first.text + second.text).toBe(`prefix${character}`)
+        expect(second.remainder.length).toBe(0)
+      }
+    })
+
+    it.each([
+      ['组合字符', 'e\u0301'],
+      ['生僻字', '𠮷'],
+      ['ZWJ Emoji', '👨‍👩‍👧‍👦'],
+      ['旗帜 Emoji', '🇨🇳'],
+      ['多语言文本', '中文 العربية हिन्दी 日本語 한글']
+    ])('%s 跨任意字节边界后内容不变', (_name, text) => {
+      const splitter = new BufferLineSplitter('utf8')
+      const encoded = Buffer.from(text)
+
+      for (let splitAt = 0; splitAt <= encoded.length; splitAt++) {
+        const first = splitter.decodeCompletePrefix(encoded.subarray(0, splitAt))
+        const second = splitter.decodeCompletePrefix(
+          Buffer.concat([first.remainder, encoded.subarray(splitAt)])
+        )
+
+        expect(first.text + second.text).toBe(text)
+        expect(second.remainder.length).toBe(0)
+      }
+    })
+
+    it.each([
+      ['gb2312', '中文测试'],
+      ['gbk', '中文€测试'],
+      ['gb18030', '中文😀测试'],
+      ['big5', '繁體中文'],
+      ['shift-jis', '日本語テスト'],
+      ['euc-kr', '한국어 테스트'],
+      ['utf16le', '中文😀test'],
+      ['utf16be', '中文😀test']
+    ])('%s 在每个字节边界都可无损重组', (encoding, text) => {
+      const splitter = new BufferLineSplitter(encoding)
+      const encoded = iconv.encode(text, encoding)
+
+      for (let splitAt = 0; splitAt <= encoded.length; splitAt++) {
+        const first = splitter.decodeCompletePrefix(encoded.subarray(0, splitAt))
+        const second = splitter.decodeCompletePrefix(
+          Buffer.concat([first.remainder, encoded.subarray(splitAt)])
+        )
+
+        expect(first.text + second.text).toBe(text)
+        expect(second.remainder.length).toBe(0)
+      }
+    })
+
+    it.each([
+      ['ascii', 'ASCII test'],
+      ['latin1', 'café'],
+      ['latin2', 'Zażółć'],
+      ['koi8-r', 'Русский'],
+      ['windows-1251', 'Русский'],
+      ['windows-1252', 'café €'],
+      ['iso-8859-5', 'Русский']
+    ])('%s 单字节编码可完整输出', (encoding, text) => {
+      const splitter = new BufferLineSplitter(encoding)
+      const result = splitter.decodeCompletePrefix(iconv.encode(text, encoding))
+
+      expect(result.text).toBe(text)
+      expect(result.remainder.length).toBe(0)
+    })
+  })
+
+  describe('split - UTF-16 换行', () => {
+    it.each(['utf16le', 'utf16be'])('%s 正确解析 CRLF 和 LF', (encoding) => {
+      const splitter = new BufferLineSplitter(encoding)
+      const result = splitter.split(iconv.encode('第一行\r\n第二行\n', encoding))
+
+      expect(result.data).toBe('第一行\n第二行')
+      expect(result.count).toBe(2)
+      expect(result.remainder.length).toBe(0)
     })
   })
 

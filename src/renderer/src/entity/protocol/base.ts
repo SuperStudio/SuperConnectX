@@ -21,6 +21,7 @@ export interface TelnetConnection extends BaseConnection {
   port: number
   username: string
   password: string
+  encoding: string
 }
 
 export interface SshConnection extends BaseConnection {

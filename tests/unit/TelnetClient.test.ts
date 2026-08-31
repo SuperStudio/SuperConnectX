@@ -3,6 +3,7 @@
  * 使用 mock 的 telnet-client 库测试 TelnetClient 核心逻辑
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import * as iconv from 'iconv-lite'
 
 // Mock telnet-client
 vi.mock('telnet-client', () => {
@@ -228,6 +229,19 @@ describe('TelnetClient', () => {
       expect(r1.success).toBe(true)
       expect(r2.success).toBe(true)
       expect(r3.success).toBe(true)
+    })
+
+    it('should encode commands with the connection encoding', async () => {
+      await client.start(
+        { host: '1.2.3.4', port: 23, username: '', password: '', sessionId: 'gbk', encoding: 'gbk' },
+        vi.fn(), vi.fn(), vi.fn()
+      )
+      const connection = client.telnetConnections.get('gbk')!
+      const sendSpy = vi.spyOn(connection, 'send')
+
+      await client.send('gbk', '中文命令', vi.fn())
+
+      expect(sendSpy).toHaveBeenCalledWith(iconv.encode('中文命令\n', 'gbk'))
     })
   })
 
