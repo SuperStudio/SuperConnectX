@@ -47,6 +47,42 @@ export class BufferLineSplitter {
   }
 
   /**
+   * 解码可安全输出的完整字符，并返回需要留到下一批的残缺字节。
+   * 当前主要用于 UTF-8 Telnet 超长无换行数据的有界刷新。
+   */
+  decodeCompletePrefix(buffer: Buffer): { text: string; remainder: Buffer } {
+    if (this.receiveHex || !['utf8', 'utf-8'].includes(this.encoding) || buffer.length === 0) {
+      return { text: this.decodeFull(buffer), remainder: Buffer.alloc(0) }
+    }
+
+    let sequenceStart = buffer.length - 1
+    while (sequenceStart >= 0 && (buffer[sequenceStart] & 0xc0) === 0x80) {
+      sequenceStart--
+    }
+
+    if (sequenceStart < 0) {
+      // 全部是孤立的 continuation byte，属于非法 UTF-8；直接按替代字符输出，
+      // 不能把异常输入永久留在有界缓冲区中。
+      return { text: this.decodeFull(buffer), remainder: Buffer.alloc(0) }
+    }
+
+    const leadByte = buffer[sequenceStart]
+    const expectedLength = leadByte < 0x80 ? 1
+      : (leadByte & 0xe0) === 0xc0 ? 2
+        : (leadByte & 0xf0) === 0xe0 ? 3
+          : (leadByte & 0xf8) === 0xf0 ? 4
+            : 1
+    const completeLength = buffer.length - sequenceStart
+    const splitAt = completeLength < expectedLength ? sequenceStart : buffer.length
+
+    return {
+      text: this.decodeBuffer(buffer, 0, splitAt),
+      // Buffer.subarray() 会继续引用整个大 Buffer，复制后才能真正释放它。
+      remainder: Buffer.from(buffer.subarray(splitAt))
+    }
+  }
+
+  /**
    * 将 Buffer 片段解码为字符串。
    * - HEX 模式：直接输出 hex 字符串（如 "aa 22 0d 0a 61 05"），不经过任何字符编码层
    * - STR 模式：按 encoding 解码（utf8/gb2312/gbk 等）

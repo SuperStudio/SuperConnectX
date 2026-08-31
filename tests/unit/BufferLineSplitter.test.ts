@@ -174,6 +174,48 @@ describe('BufferLineSplitter', () => {
     })
   })
 
+  describe('decodeCompletePrefix', () => {
+    it('完整 UTF-8 内容全部输出', () => {
+      const splitter = new BufferLineSplitter('utf8')
+      const result = splitter.decodeCompletePrefix(Buffer.from('abc你好'))
+
+      expect(result.text).toBe('abc你好')
+      expect(result.remainder.length).toBe(0)
+    })
+
+    it('保留跨批次的 UTF-8 残缺字符', () => {
+      const splitter = new BufferLineSplitter('utf8')
+      const encoded = Buffer.from('abc中')
+      const first = splitter.decodeCompletePrefix(encoded.subarray(0, encoded.length - 1))
+
+      expect(first.text).toBe('abc')
+      expect(first.remainder).toEqual(encoded.subarray(3, encoded.length - 1))
+
+      const second = splitter.decodeCompletePrefix(
+        Buffer.concat([first.remainder, encoded.subarray(encoded.length - 1)])
+      )
+      expect(second.text).toBe('中')
+      expect(second.remainder.length).toBe(0)
+    })
+
+    it('保留四字节 UTF-8 字符的残缺尾部', () => {
+      const splitter = new BufferLineSplitter('utf-8')
+      const encoded = Buffer.from('x😀')
+      const result = splitter.decodeCompletePrefix(encoded.subarray(0, encoded.length - 1))
+
+      expect(result.text).toBe('x')
+      expect(result.remainder.length).toBe(3)
+    })
+
+    it('非法 continuation byte 不会永久滞留', () => {
+      const splitter = new BufferLineSplitter('utf8')
+      const result = splitter.decodeCompletePrefix(Buffer.from([0x80, 0x80, 0x80]))
+
+      expect(result.text).not.toBe('')
+      expect(result.remainder.length).toBe(0)
+    })
+  })
+
   describe('timestamp', () => {
     it('生成 YYYY-MM-DD HH:mm:ss.mmm 格式', () => {
       const ts = BufferLineSplitter.timestamp()

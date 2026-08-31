@@ -55,10 +55,12 @@ export default class TelnetClient extends BaseClient {
       // remainder，必须定期强制刷新，否则 Buffer 会随运行时间无限增长。
       if (connData.buffer.length > MAX_BUFFER_BYTES) {
         const timestamp = BufferLineSplitter.timestamp()
-        const remainingStr = splitter.decodeFull(connData.buffer)
-        connData.buffer = Buffer.alloc(0)
-        onData?.({ data: remainingStr, timestamp })
-        onLog?.(remainingStr, timestamp)
+        const flushed = splitter.decodeCompletePrefix(connData.buffer)
+        connData.buffer = flushed.remainder
+        if (flushed.text) {
+          onData?.({ data: flushed.text, timestamp })
+          onLog?.(flushed.text, timestamp)
+        }
       }
     } catch (err: any) {
       this.logger.error(`processBuffer error: ${err?.message || err}`)
