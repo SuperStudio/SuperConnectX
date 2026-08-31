@@ -214,6 +214,49 @@ describe('BufferLineSplitter', () => {
       expect(result.text).not.toBe('')
       expect(result.remainder.length).toBe(0)
     })
+
+    it.each([
+      ['1 字节 ASCII', 'A'],
+      ['2 字节字符', 'é'],
+      ['3 字节字符', '中'],
+      ['4 字节 Emoji', '😀'],
+      ['Unicode 最大码点', String.fromCodePoint(0x10ffff)]
+    ])('%s 在每个字节边界都可无损重组', (_name, character) => {
+      const splitter = new BufferLineSplitter('utf8')
+      const encoded = Buffer.from(`prefix${character}`)
+      const characterStart = Buffer.byteLength('prefix')
+
+      for (let splitAt = characterStart; splitAt <= encoded.length; splitAt++) {
+        const first = splitter.decodeCompletePrefix(encoded.subarray(0, splitAt))
+        const second = splitter.decodeCompletePrefix(
+          Buffer.concat([first.remainder, encoded.subarray(splitAt)])
+        )
+
+        expect(first.text + second.text).toBe(`prefix${character}`)
+        expect(second.remainder.length).toBe(0)
+      }
+    })
+
+    it.each([
+      ['组合字符', 'e\u0301'],
+      ['生僻字', '𠮷'],
+      ['ZWJ Emoji', '👨‍👩‍👧‍👦'],
+      ['旗帜 Emoji', '🇨🇳'],
+      ['多语言文本', '中文 العربية हिन्दी 日本語 한글']
+    ])('%s 跨任意字节边界后内容不变', (_name, text) => {
+      const splitter = new BufferLineSplitter('utf8')
+      const encoded = Buffer.from(text)
+
+      for (let splitAt = 0; splitAt <= encoded.length; splitAt++) {
+        const first = splitter.decodeCompletePrefix(encoded.subarray(0, splitAt))
+        const second = splitter.decodeCompletePrefix(
+          Buffer.concat([first.remainder, encoded.subarray(splitAt)])
+        )
+
+        expect(first.text + second.text).toBe(text)
+        expect(second.remainder.length).toBe(0)
+      }
+    })
   })
 
   describe('timestamp', () => {
