@@ -41,20 +41,38 @@
                       class="connection-dot"
                       :class="isSerialPortConnected(port.path) ? 'connected' : 'disconnected'"
                     ></span>
-                    <div class="serial-port-info">
-                      <div class="serial-port-row">
-                        <span class="conn-name">{{ port.path }}</span>
-                        <span v-if="showPortType" class="serial-port-type">
-                          <el-tag v-if="port.type === 'virtual'" type="info" size="small" effect="dark">{{ t('sidebar.virtual') }}</el-tag>
-                          <el-tag v-else-if="port.type === 'usb'" type="success" size="small" effect="dark">{{ t('sidebar.usb') }}</el-tag>
-                          <el-tag v-else-if="port.type === 'bluetooth'" class="bluetooth-tag" size="small" effect="dark">{{ t('sidebar.bluetooth') }}</el-tag>
-                          <el-tag v-else type="info" size="small" effect="dark">{{ t('sidebar.noType') }}</el-tag>
-                        </span>
+                    <el-tooltip
+                      :disabled="!hasPortDetails(port)"
+                      :show-after="TOOLTIP_SHOW_AFTER"
+                      placement="right"
+                      effect="dark"
+                      :enterable="false"
+                    >
+                      <template #content>
+                        <div class="port-detail-tooltip">
+                          <div v-if="port.friendlyName" class="port-detail-row"><span class="port-detail-label">{{ t('sidebar.friendlyName') }}:</span> {{ port.friendlyName }}</div>
+                          <div v-if="port.manufacturer" class="port-detail-row"><span class="port-detail-label">{{ t('sidebar.manufacturer') }}:</span> {{ port.manufacturer }}</div>
+                          <div v-if="port.vendorId || port.productId" class="port-detail-row"><span class="port-detail-label">VID/PID:</span> {{ port.vendorId || '-' }}/{{ port.productId || '-' }}</div>
+                          <div v-if="port.serialNumber" class="port-detail-row"><span class="port-detail-label">{{ t('sidebar.serialNumber') }}:</span> {{ port.serialNumber }}</div>
+                          <div v-if="port.pnpId" class="port-detail-row"><span class="port-detail-label">PnP ID:</span> {{ port.pnpId }}</div>
+                        </div>
+                      </template>
+                      <div class="serial-port-info">
+                        <div class="serial-port-row">
+                          <span class="conn-name">{{ port.path }}</span>
+                          <span v-if="showPortType" class="serial-port-type">
+                            <el-tag v-if="port.type === 'virtual'" type="info" size="small" effect="dark">{{ t('sidebar.virtual') }}</el-tag>
+                            <el-tag v-else-if="port.type === 'usb'" type="success" size="small" effect="dark">{{ t('sidebar.usb') }}</el-tag>
+                            <el-tag v-else-if="port.type === 'bluetooth'" class="bluetooth-tag" size="small" effect="dark">{{ t('sidebar.bluetooth') }}</el-tag>
+                            <el-tag v-else type="info" size="small" effect="dark">{{ t('sidebar.noType') }}</el-tag>
+                          </span>
+                        </div>
+                        <span v-if="port.friendlyName" class="serial-friendly-name">{{ port.friendlyName }}</span>
+                        <el-tooltip v-if="serialRemarks[port.path]" :content="serialRemarks[port.path]" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
+                          <span class="serial-remark">{{ serialRemarks[port.path] }}</span>
+                        </el-tooltip>
                       </div>
-                      <el-tooltip v-if="serialRemarks[port.path]" :content="serialRemarks[port.path]" placement="top" effect="dark" :enterable="false" :show-after="TOOLTIP_SHOW_AFTER">
-                        <span class="serial-remark">{{ serialRemarks[port.path] }}</span>
-                      </el-tooltip>
-                    </div>
+                    </el-tooltip>
                   </div>
                   <div class="serial-port-right">
                     <el-button
@@ -214,6 +232,10 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside, true)
 })
+
+const hasPortDetails = (port: SerialPortInfo): boolean => {
+  return !!(port.friendlyName || port.manufacturer || port.vendorId || port.productId || port.serialNumber || port.pnpId)
+}
 
 const toggleGroupExpanded = (type: string) => {
   emit('sidebarMenuCommand', '__toggleGroup__' + type)
@@ -472,6 +494,33 @@ const handleMenuClick = (command: string) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.serial-friendly-name {
+  display: block;
+  color: var(--sidebar-remark);
+  font-size: 12px;
+  font-weight: normal;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.port-detail-tooltip {
+  max-width: 300px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.port-detail-row {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.port-detail-label {
+  color: var(--text-muted, #aaa);
 }
 
 .serial-port-type {
