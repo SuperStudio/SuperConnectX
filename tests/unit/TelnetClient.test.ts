@@ -79,6 +79,14 @@ vi.mock('../../src/main/protocol/BufferLineSplitter', () => ({
       return result.trim()
     }
 
+    decodeFull(buffer: Buffer): string {
+      return buffer.toString(this.encoding as BufferEncoding)
+    }
+
+    decodeCompletePrefix(buffer: Buffer): { text: string; remainder: Buffer } {
+      return { text: buffer.toString(this.encoding as BufferEncoding), remainder: Buffer.alloc(0) }
+    }
+
     static timestamp(): string {
       const now = new Date()
       return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`
@@ -242,6 +250,40 @@ describe('TelnetClient', () => {
       await client.send('gbk', '中文命令', vi.fn())
 
       expect(sendSpy).toHaveBeenCalledWith(iconv.encode('中文命令\n', 'gbk'))
+    })
+  })
+
+  describe('receive buffer cap', () => {
+    const makeCapInfo = (sessionId: string) => ({
+      host: '1.2.3.4', port: 23, username: '', password: '', sessionId
+    })
+
+    it('should force-flush buffer exceeding 1MB when no newline arrives', async () => {
+      const onData = vi.fn()
+      const onLog = vi.fn()
+      await client.start(makeCapInfo('cap-1'), onData, vi.fn(), onLog)
+
+      const connData = client.telnetConnectionData.get('cap-1')!
+      // 模拟设备持续发送不带换行符的内容（split 会一直保留 remainder）
+      connData.buffer = Buffer.alloc(1024 * 1024 + 1, 'a')
+      ;(client as any).processBuffer('cap-1')
+
+      expect(onData).toHaveBeenCalledTimes(1)
+      expect(onData.mock.calls[0][0].data.length).toBe(1024 * 1024 + 1)
+      expect(onLog).toHaveBeenCalledTimes(1)
+      expect(connData.buffer.length).toBe(0)
+    })
+
+    it('should keep buffer below the cap for the next chunk', async () => {
+      const onData = vi.fn()
+      await client.start(makeCapInfo('cap-2'), onData, vi.fn(), vi.fn())
+
+      const connData = client.telnetConnectionData.get('cap-2')!
+      connData.buffer = Buffer.from('no newline yet')
+      ;(client as any).processBuffer('cap-2')
+
+      expect(onData).not.toHaveBeenCalled()
+      expect(connData.buffer.toString()).toBe('no newline yet')
     })
   })
 
