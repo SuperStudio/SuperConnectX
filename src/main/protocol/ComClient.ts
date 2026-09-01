@@ -11,6 +11,7 @@ const DEFAULT_PARITY = 'none' as const
 const DEFAULT_ENCODING = 'utf8'
 const READ_INTERVAL_MS = 10 // 固定10ms读取间隔
 const FLUSH_TIMEOUT_MS = 100 // 空闲超时：buffer 中有数据但超过此时间无新数据到达，强制刷新
+const MAX_BUFFER_BYTES = 1024 * 1024 // 无换行输出也必须有上限，避免接收缓冲区无限增长
 
 interface SerialConnection {
   port: SerialPort
@@ -47,6 +48,19 @@ export default class ComClient extends BaseClient {
         const timestamp = BufferLineSplitter.timestamp()
         onData?.({ data: result.data, timestamp })
         onLog?.(result.log, timestamp)
+      }
+
+      // 空闲刷新只对"停止发送"生效；若设备持续发送不带换行符的内容（如用 \b
+      // 刷进度条），split() 会一直保留 remainder，必须有界刷新，否则 Buffer 随运行时间无限增长。
+      if (connection.buffer.length > MAX_BUFFER_BYTES) {
+        const timestamp = BufferLineSplitter.timestamp()
+        const flushed = splitter.decodeCompletePrefix(connection.buffer)
+        connection.buffer = flushed.remainder
+        this.logger.info(`serial buffer cap flush: ${flushed.text.length} chars`)
+        if (flushed.text) {
+          onData?.({ data: flushed.text, timestamp })
+          onLog?.(splitter.toLogLine(flushed.text), timestamp)
+        }
       }
     } catch (err: any) {
       this.logger.error(`processBuffer error: ${err?.message || err}`)
