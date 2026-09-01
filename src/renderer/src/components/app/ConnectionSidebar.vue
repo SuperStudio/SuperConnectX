@@ -59,7 +59,7 @@
                             <div v-if="port.locationId" class="port-detail-row"><span class="port-detail-label">{{ t('sidebar.locationId') }}:</span> {{ port.locationId }}</div>
                           </div>
                         </template>
-                        <div class="serial-port-device">
+                        <div class="serial-port-device" tabindex="0">
                           <div class="serial-port-row">
                             <span class="conn-name">{{ port.path }}</span>
                             <span v-if="showPortType" class="serial-port-type">
