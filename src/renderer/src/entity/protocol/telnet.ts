@@ -8,7 +8,8 @@ export const TelnetStrategy = {
       host: '',
       port: 23,
       username: '',
-      password: ''
+      password: '',
+      encoding: 'utf8'
     }
   },
 
@@ -20,7 +21,8 @@ export const TelnetStrategy = {
       host: raw.host || '',
       port: raw.port || 23,
       username: raw.username || '',
-      password: raw.password || ''
+      password: raw.password || '',
+      encoding: raw.encoding || 'utf8'
     }
   }
 }
