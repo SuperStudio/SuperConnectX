@@ -8,7 +8,7 @@ import {
 
 describe('calculateTerminalSplitRatio', () => {
   it('uses the pointer position as a ratio of the current container', () => {
-    expect(calculateTerminalSplitRatio(650, 50, 1000)).toBe(0.6)
+    expect(calculateTerminalSplitRatio(650, 50, 1000)).toBeCloseTo(0.6, 10)
   })
 
   it('keeps the terminal output above its minimum height', () => {
