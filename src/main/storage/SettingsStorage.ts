@@ -46,6 +46,8 @@ interface Settings extends Record<string, any> {
   // 串口设置
   supportedBaudRates?: number[]
   showPortType?: boolean
+  showSerialPortFriendlyName?: boolean
+  showSerialPortDetails?: boolean
   // 日志
   enableLogStorage?: boolean
   logPath?: string
@@ -88,6 +90,8 @@ const defaultSettings: Settings = {
   // 串口设置
   supportedBaudRates: [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600, 1500000],
   showPortType: true,
+  showSerialPortFriendlyName: true,
+  showSerialPortDetails: false,
   // 日志
   enableLogStorage: true,
   logPath: '',

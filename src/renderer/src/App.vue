@@ -35,6 +35,8 @@
         :filtered-serial-ports="filteredSerialPorts"
         :serial-port-expanded="serialPortExpanded"
         :show-port-type="showPortType"
+        :show-serial-port-friendly-name="showSerialPortFriendlyName"
+        :show-serial-port-details="showSerialPortDetails"
         :connection-groups="connectionGroups"
         :connection-group-expanded="connectionGroupExpanded"
         :serial-remarks="serialRemarks"
@@ -320,6 +322,7 @@ const panelRefs = reactive<Record<string, InstanceType<typeof TerminalPanel> | n
 const {
   connections, serialPorts,
   showConnectionList, sidebarWidth, serialPortExpanded, showPortType,
+  showSerialPortFriendlyName, showSerialPortDetails,
   connectionGroupExpanded, filteredSerialPorts, connectionGroups,
   handleSearch, loadConnections, loadSerialPorts, loadSidebarState,
   handleSerialPortsChanged, toggleConnectionList
@@ -1102,6 +1105,12 @@ const handleSettingsUpdated = (event: Event) => {
   const settings = (event as CustomEvent).detail
   if (settings && 'showPortType' in settings) {
     showPortType.value = settings.showPortType
+  }
+  if (settings && 'showSerialPortFriendlyName' in settings) {
+    showSerialPortFriendlyName.value = settings.showSerialPortFriendlyName
+  }
+  if (settings && 'showSerialPortDetails' in settings) {
+    showSerialPortDetails.value = settings.showSerialPortDetails
   }
 }
 
