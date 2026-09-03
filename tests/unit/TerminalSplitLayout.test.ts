@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  MIN_BOTTOM_CONTROLS_HEIGHT,
   MIN_TERMINAL_OUTPUT_HEIGHT,
   TERMINAL_SPLITTER_HEIGHT,
   calculateTerminalSplitRatio
@@ -13,22 +12,31 @@ describe('calculateTerminalSplitRatio', () => {
 
   it('keeps the terminal output above its minimum height', () => {
     const ratio = calculateTerminalSplitRatio(20, 0, 800)
-    expect(ratio * 800).toBe(MIN_TERMINAL_OUTPUT_HEIGHT)
+    expect(ratio * 800).toBeCloseTo(MIN_TERMINAL_OUTPUT_HEIGHT, 10)
   })
 
-  it('reserves enough room for the bottom controls and command input', () => {
+  it('allows the bottom controls to shrink to an arbitrary height', () => {
     const containerHeight = 800
     const ratio = calculateTerminalSplitRatio(790, 0, containerHeight)
     const outputHeight = ratio * containerHeight
 
-    expect(outputHeight).toBe(
-      containerHeight - TERMINAL_SPLITTER_HEIGHT - MIN_BOTTOM_CONTROLS_HEIGHT
+    expect(outputHeight).toBeCloseTo(790, 10)
+    expect(containerHeight - TERMINAL_SPLITTER_HEIGHT - outputHeight).toBeCloseTo(4, 10)
+  })
+
+  it('keeps the splitter visible when dragged past the bottom edge', () => {
+    const containerHeight = 800
+    const ratio = calculateTerminalSplitRatio(900, 0, containerHeight)
+
+    expect(ratio * containerHeight).toBeCloseTo(
+      containerHeight - TERMINAL_SPLITTER_HEIGHT,
+      10
     )
   })
 
   it('scales the split when the window size changes', () => {
     const ratio = calculateTerminalSplitRatio(500, 0, 1000)
-    expect(ratio * 700).toBe(350)
+    expect(ratio * 700).toBeCloseTo(350, 10)
   })
 
   it('handles an unavailable container safely', () => {

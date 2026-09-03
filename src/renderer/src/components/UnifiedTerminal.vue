@@ -36,7 +36,6 @@
     <div
       v-show="showBottomPanel"
       class="bottom-controls"
-      :class="{ 'is-resized': terminalOutputRatio !== null }"
     >
 
 
@@ -211,10 +210,7 @@ import { AnsiDecorationManager } from '../utils/AnsiDecorationManager'
 import { getMonacoTheme } from '../utils/MonacoTheme'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
 import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
-import {
-  MIN_BOTTOM_CONTROLS_HEIGHT,
-  calculateTerminalSplitRatio
-} from '../utils/TerminalSplitLayout'
+import { calculateTerminalSplitRatio } from '../utils/TerminalSplitLayout'
 import { sendDisplayText } from '../composables/app/useSettingsStore'
 
 const maxClearSizeMB = ref(30)
@@ -331,7 +327,7 @@ const terminalOutputStyle = computed(() => {
     return { height: 'auto', flex: '1 1 auto' }
   }
   if (terminalOutputRatio.value !== null) {
-    return { height: `${terminalOutputRatio.value * 100}%`, flex: '0 1 auto' }
+    return { height: `${terminalOutputRatio.value * 100}%`, flex: '0 0 auto' }
   }
   return { flex: '1 1 auto' }
 })
@@ -1660,12 +1656,9 @@ watch(() => props.showBottomPanel, () => {
 .bottom-controls {
   display: flex;
   flex-direction: column;
-  flex: 0 0 auto;
-  min-height: v-bind('MIN_BOTTOM_CONTROLS_HEIGHT + "px"');
-}
-
-.bottom-controls.is-resized {
-  flex: 1 1 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .vertical-splitter {

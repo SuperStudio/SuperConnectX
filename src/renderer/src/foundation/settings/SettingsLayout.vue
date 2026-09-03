@@ -20,10 +20,7 @@
 </template>
 
 <script setup lang="ts">
-export interface SettingsCategory {
-  key: string
-  label: string
-}
+import type { SettingsCategory } from './types'
 
 withDefaults(defineProps<{
   modelValue: string

@@ -102,6 +102,10 @@
     "addNew": "新增",
     "showPortType": "显示串口类型",
     "showPortTypeDesc": "在串口列表中显示类型标签（虚拟串口、USB、蓝牙）",
+    "showFriendlyName": "显示设备友好名称",
+    "showFriendlyNameDesc": "在 COM 号下方显示系统提供的设备名称",
+    "showPortDetails": "显示设备详细信息",
+    "showPortDetailsDesc": "鼠标悬停时显示制造商、VID/PID、序列号和设备 ID",
     "atLeastOneRate": "至少保留一个波特率",
     "invalidBaudRate": "请输入有效的波特率",
     "rateExists": "该波特率已存在"
@@ -243,7 +247,11 @@
     "virtual": "虚拟串口",
     "usb": "USB",
     "bluetooth": "蓝牙",
-    "noType": "无类型"
+    "noType": "无类型",
+    "friendlyName": "设备名称",
+    "manufacturer": "制造商",
+    "serialNumber": "序列号",
+    "locationId": "位置 ID"
   },
   "tabs": {
     "disconnectAll": "断开全部",

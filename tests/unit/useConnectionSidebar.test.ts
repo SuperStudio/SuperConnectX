@@ -33,7 +33,18 @@ function filterConnections(connections: any[], keyword: string): any[] {
 function filterSerialPorts(ports: any[], keyword: string): any[] {
   if (!keyword) return ports
   const lower = keyword.toLowerCase()
-  return ports.filter((port) => port.path.toLowerCase().includes(lower))
+  return ports.filter((port) =>
+    [
+      port.path,
+      port.friendlyName,
+      port.manufacturer,
+      port.vendorId,
+      port.productId,
+      port.serialNumber,
+      port.pnpId,
+      port.locationId
+    ].some((value) => value?.toLowerCase().includes(lower))
+  )
 }
 
 function groupConnections(connections: any[]): Record<string, any[]> {
@@ -137,9 +148,9 @@ describe('filterConnections', () => {
 
 describe('filterSerialPorts', () => {
   const ports = [
-    { path: 'COM1', manufacturer: 'USB' },
-    { path: 'COM2', manufacturer: 'USB' },
-    { path: 'COM55', manufacturer: 'Virtual' },
+    { path: 'COM1', manufacturer: 'WCH', friendlyName: 'USB-Enhanced-SERIAL-A CH344' },
+    { path: 'COM2', manufacturer: 'FTDI', serialNumber: 'FT123', vendorId: '0403', productId: '6001' },
+    { path: 'COM55', manufacturer: 'Virtual', pnpId: 'ROOT\\PORTS\\VIRTUAL55' },
   ]
 
   it('should return all ports when keyword is empty', () => {
@@ -154,6 +165,17 @@ describe('filterSerialPorts', () => {
 
   it('should be case-insensitive', () => {
     expect(filterSerialPorts(ports, 'com55')).toHaveLength(1)
+  })
+
+  it('should filter by friendly name and manufacturer', () => {
+    expect(filterSerialPorts(ports, 'ch344')).toHaveLength(1)
+    expect(filterSerialPorts(ports, 'ftdi')).toHaveLength(1)
+  })
+
+  it('should filter by device identifiers', () => {
+    expect(filterSerialPorts(ports, 'FT123')).toHaveLength(1)
+    expect(filterSerialPorts(ports, '0403')).toHaveLength(1)
+    expect(filterSerialPorts(ports, 'virtual55')).toHaveLength(1)
   })
 
   it('should return empty for no match', () => {

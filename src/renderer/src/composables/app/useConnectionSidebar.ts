@@ -18,6 +18,8 @@ export function useConnectionSidebar() {
   const sidebarWidth = ref(320)
   const serialPortExpanded = ref(true)
   const showPortType = ref(true)
+  const showSerialPortFriendlyName = ref(true)
+  const showSerialPortDetails = ref(false)
 
   const connectionGroupExpanded = ref<Record<string, boolean>>({
     telnet: true,
@@ -58,7 +60,18 @@ export function useConnectionSidebar() {
   const filteredSerialPorts = computed(() => {
     if (!searchKeyword.value) return serialPorts.value
     const keyword = searchKeyword.value.toLowerCase()
-    return serialPorts.value.filter((port) => port.path.toLowerCase().includes(keyword))
+    return serialPorts.value.filter((port) =>
+      [
+        port.path,
+        port.friendlyName,
+        port.manufacturer,
+        port.vendorId,
+        port.productId,
+        port.serialNumber,
+        port.pnpId,
+        port.locationId
+      ].some((value) => value?.toLowerCase().includes(keyword))
+    )
   })
 
   const connectionGroups = computed(() => {
@@ -125,6 +138,8 @@ export function useConnectionSidebar() {
       }
       const settings = await window.storageApi.getSettings()
       showPortType.value = settings.showPortType ?? true
+      showSerialPortFriendlyName.value = settings.showSerialPortFriendlyName ?? true
+      showSerialPortDetails.value = settings.showSerialPortDetails ?? false
     } catch (error) {
       console.error(t('common.loadFailed'), error)
     }
@@ -179,6 +194,8 @@ export function useConnectionSidebar() {
     sidebarWidth,
     serialPortExpanded,
     showPortType,
+    showSerialPortFriendlyName,
+    showSerialPortDetails,
     connectionGroupExpanded,
     filteredSerialPorts,
     connectionGroups,

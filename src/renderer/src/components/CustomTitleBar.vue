@@ -98,28 +98,6 @@
         >
           <div class="menu-item" @click="handleSettings">{{ t('sidebar.settings') }}</div>
           <div class="menu-item" @click="handleShortcuts">{{ t('sidebar.shortcuts') }}</div>
-          <div
-            class="menu-item submenu-trigger"
-            @mouseenter="showThemeSubmenu = true"
-            @mouseleave="showThemeSubmenu = false"
-          >
-            <span>{{ t('titlebar.theme') }}</span>
-            <div
-              v-if="showThemeSubmenu"
-              class="dropdown-submenu theme-submenu"
-              @mouseenter="showThemeSubmenu = true"
-              @mouseleave="showThemeSubmenu = false"
-            >
-              <div class="menu-item checkbox-item" @click.stop="switchTheme('dark')">
-                <span class="checkbox-mark">{{ currentTheme === 'dark' ? '✓' : '' }}</span>
-                <span>{{ t('titlebar.darkTheme') }}</span>
-              </div>
-              <div class="menu-item checkbox-item" @click.stop="switchTheme('light')">
-                <span class="checkbox-mark">{{ currentTheme === 'light' ? '✓' : '' }}</span>
-                <span>{{ t('titlebar.lightTheme') }}</span>
-              </div>
-            </div>
-          </div>
           <div class="menu-separator"></div>
           <div class="menu-item" @click="handleVirtualPort">{{ t('virtualPort.title') }}</div>
           <div class="menu-item" @click="handleCheckUpdate">{{ t('sidebar.checkUpdate') }}</div>
@@ -149,37 +127,82 @@
     </template>
 
     <template #right>
-      <div class="layout-controls">
-        <button
-          class="layout-toggle"
-          :class="{ 'is-visible': showConnectionList }"
-          type="button"
-          :title="t('titlebar.togglePrimarySidebar')"
-          :aria-label="t('titlebar.togglePrimarySidebar')"
-          :aria-pressed="showConnectionList"
-          @click="emit('toggle-primary-sidebar')"
-        >
-          <svg viewBox="0 0 18 18" aria-hidden="true">
-            <rect class="layout-outline" x="2" y="2.5" width="14" height="13" rx="2" />
-            <path class="layout-divider" d="M6.5 3v12" />
-            <rect class="layout-fill" x="3" y="3.5" width="2.5" height="11" rx="0.75" />
-          </svg>
-        </button>
-        <button
-          class="layout-toggle"
-          :class="{ 'is-visible': showBottomPanel }"
-          type="button"
-          :title="t('titlebar.toggleBottomPanel')"
-          :aria-label="t('titlebar.toggleBottomPanel')"
-          :aria-pressed="showBottomPanel"
-          @click="emit('toggle-bottom-panel')"
-        >
-          <svg viewBox="0 0 18 18" aria-hidden="true">
-            <rect class="layout-outline" x="2" y="2.5" width="14" height="13" rx="2" />
-            <path class="layout-divider" d="M2.5 10.5h13" />
-            <rect class="layout-fill" x="3" y="11.5" width="12" height="3" rx="0.75" />
-          </svg>
-        </button>
+      <div class="titlebar-actions">
+        <div class="layout-controls">
+          <button
+            class="layout-toggle"
+            :class="{ 'is-visible': showConnectionList }"
+            type="button"
+            :title="t('titlebar.togglePrimarySidebar')"
+            :aria-label="t('titlebar.togglePrimarySidebar')"
+            :aria-pressed="showConnectionList"
+            @click="emit('toggle-primary-sidebar')"
+          >
+            <svg viewBox="0 0 18 18" aria-hidden="true">
+              <rect class="layout-outline" x="2" y="2.5" width="14" height="13" rx="2" />
+              <path class="layout-divider" d="M6.5 3v12" />
+              <rect class="layout-fill" x="3" y="3.5" width="2.5" height="11" rx="0.75" />
+            </svg>
+          </button>
+          <button
+            class="layout-toggle"
+            :class="{ 'is-visible': showBottomPanel }"
+            type="button"
+            :title="t('titlebar.toggleBottomPanel')"
+            :aria-label="t('titlebar.toggleBottomPanel')"
+            :aria-pressed="showBottomPanel"
+            @click="emit('toggle-bottom-panel')"
+          >
+            <svg viewBox="0 0 18 18" aria-hidden="true">
+              <rect class="layout-outline" x="2" y="2.5" width="14" height="13" rx="2" />
+              <path class="layout-divider" d="M2.5 10.5h13" />
+              <rect class="layout-fill" x="3" y="11.5" width="12" height="3" rx="0.75" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="theme-switcher-wrapper">
+          <button
+            class="titlebar-btn theme-btn"
+            type="button"
+            :title="t('titlebar.theme')"
+            :aria-label="t('titlebar.theme')"
+            :aria-expanded="showThemePanel"
+            @click.stop="toggleThemePanel"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3a9 9 0 1 0 0 18h1.2a1.8 1.8 0 0 0 0-3.6h-.7a1.7 1.7 0 0 1 0-3.4H15a6 6 0 0 0 0-12h-3Z" />
+              <circle cx="7.5" cy="10" r="1" />
+              <circle cx="9.5" cy="6.8" r="1" />
+              <circle cx="14" cy="6.5" r="1" />
+            </svg>
+          </button>
+          <Transition name="theme-fade">
+            <div v-if="showThemePanel" class="theme-panel" @click.stop>
+              <div class="theme-panel-title">{{ t('titlebar.theme') }}</div>
+              <button
+                class="theme-option"
+                :class="{ active: currentTheme === 'dark' }"
+                type="button"
+                @click="switchTheme('dark')"
+              >
+                <span class="theme-swatch theme-swatch-dark"></span>
+                <span>{{ t('titlebar.darkTheme') }}</span>
+                <span class="theme-check">{{ currentTheme === 'dark' ? '✓' : '' }}</span>
+              </button>
+              <button
+                class="theme-option"
+                :class="{ active: currentTheme === 'light' }"
+                type="button"
+                @click="switchTheme('light')"
+              >
+                <span class="theme-swatch theme-swatch-light"></span>
+                <span>{{ t('titlebar.lightTheme') }}</span>
+                <span class="theme-check">{{ currentTheme === 'light' ? '✓' : '' }}</span>
+              </button>
+            </div>
+          </Transition>
+        </div>
       </div>
     </template>
   </WindowTitleBar>
@@ -209,18 +232,17 @@ const systemFonts = ref<string[]>([])
 const currentFontFamily = ref(getDefaultTerminalFont()) // 当前活动的字体
 
 // ---- 皮肤切换 ----
-const showThemeSubmenu = ref(false)
+const showThemePanel = ref(false)
 const { theme: currentTheme, applyTheme } = useTheme()
+
+const toggleThemePanel = () => {
+  showThemePanel.value = !showThemePanel.value
+}
 
 const switchTheme = (theme: 'dark' | 'light') => {
   applyTheme(theme)
-  showThemeSubmenu.value = false
-  showToolsMenu.value = false
+  showThemePanel.value = false
 }
-
-watch(showToolsMenu, (visible) => {
-  if (!visible) showThemeSubmenu.value = false
-})
 
 const emit = defineEmits([
   'toggle-primary-sidebar',
@@ -574,6 +596,9 @@ const handleClickOutside = (event: MouseEvent) => {
     showHelpMenu.value = false
     showFontSubmenu.value = false
   }
+  if (!target.closest('.theme-switcher-wrapper')) {
+    showThemePanel.value = false
+  }
 }
 </script>
 
@@ -666,6 +691,14 @@ const handleClickOutside = (event: MouseEvent) => {
   width: 30px;
   height: 30px;
 }
+
+.titlebar-actions {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  -webkit-app-region: no-drag;
+}
+
 .layout-controls {
   display: flex;
   align-items: center;
@@ -730,6 +763,100 @@ const handleClickOutside = (event: MouseEvent) => {
 
 .layout-toggle.is-visible .layout-fill {
   opacity: 0.78;
+}
+
+.theme-switcher-wrapper {
+  position: relative;
+  height: 30px;
+  -webkit-app-region: no-drag;
+}
+
+.theme-btn {
+  width: 32px;
+  color: var(--text-titlebar);
+}
+
+.theme-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.theme-panel {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  z-index: 10001;
+  width: 180px;
+  padding: 8px;
+  background-color: var(--menu-bg-color);
+  border: 1px solid var(--menu-border-color);
+  border-radius: var(--menu-border-radius);
+  box-shadow: var(--menu-box-shadow);
+}
+
+.theme-panel-title {
+  padding: 2px 6px 7px;
+  margin-bottom: 4px;
+  color: var(--menu-item-color);
+  font-size: 12px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--menu-divider-color);
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+  padding: 7px 8px;
+  color: var(--menu-item-color);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.theme-option:hover {
+  background-color: var(--menu-item-hover-bg);
+}
+
+.theme-option.active {
+  background-color: var(--accent-blue-subtle);
+}
+
+.theme-swatch {
+  width: 18px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 1px solid var(--menu-border-color);
+  border-radius: 3px;
+}
+
+.theme-swatch-dark {
+  background: #1e1e1e;
+}
+
+.theme-swatch-light {
+  background: #f5f5f5;
+}
+
+.theme-check {
+  min-width: 12px;
+  margin-left: auto;
+  color: var(--btn-icon-text);
+}
+
+.theme-fade-enter-active,
+.theme-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.theme-fade-enter-from,
+.theme-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 .titlebar-menu {
@@ -880,7 +1007,4 @@ const handleClickOutside = (event: MouseEvent) => {
   background: transparent;
 }
 
-.theme-submenu {
-  min-width: 130px;
-}
 </style>

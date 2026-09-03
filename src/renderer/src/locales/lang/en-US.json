@@ -102,6 +102,10 @@
     "addNew": "Add New",
     "showPortType": "Show Port Type",
     "showPortTypeDesc": "Show type labels in port list (Virtual, USB, Bluetooth)",
+    "showFriendlyName": "Show Device Friendly Name",
+    "showFriendlyNameDesc": "Show the system-provided device name below the COM port",
+    "showPortDetails": "Show Device Details",
+    "showPortDetailsDesc": "Show manufacturer, VID/PID, serial number, and device ID on hover",
     "atLeastOneRate": "At least one baud rate must be kept",
     "invalidBaudRate": "Please enter a valid baud rate",
     "rateExists": "This baud rate already exists"
@@ -243,7 +247,11 @@
     "virtual": "Virtual Port",
     "usb": "USB",
     "bluetooth": "Bluetooth",
-    "noType": "Unknown"
+    "noType": "Unknown",
+    "friendlyName": "Friendly Name",
+    "manufacturer": "Manufacturer",
+    "serialNumber": "Serial Number",
+    "locationId": "Location ID"
   },
   "tabs": {
     "disconnectAll": "Disconnect All",

@@ -154,6 +154,20 @@
               </div>
               <el-switch class="terminal-switch" v-model="settings.showPortType" />
             </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('serialSettings.showFriendlyName') }}</span>
+                <span class="label-desc">{{ t('serialSettings.showFriendlyNameDesc') }}</span>
+              </div>
+              <el-switch class="terminal-switch" v-model="settings.showSerialPortFriendlyName" />
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('serialSettings.showPortDetails') }}</span>
+                <span class="label-desc">{{ t('serialSettings.showPortDetailsDesc') }}</span>
+              </div>
+              <el-switch class="terminal-switch" v-model="settings.showSerialPortDetails" />
+            </div>
           </div>
         </div>
 
@@ -356,7 +370,8 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { setLocale } from '../locales'
 import SyntaxHighlightPage from './SyntaxHighlightPage.vue'
-import SettingsLayout, { type SettingsCategory } from '../foundation/settings/SettingsLayout.vue'
+import SettingsLayout from '../foundation/settings/SettingsLayout.vue'
+import { SettingsRegistry } from '../foundation/settings/SettingsRegistry'
 
 const { t } = useI18n()
 
@@ -394,14 +409,14 @@ const saveActiveCategory = async () => {
   }
 }
 
-const categories = computed<SettingsCategory[]>(() => [
-  { key: 'basic', label: t('settingsNav.basic') },
-  { key: 'serial', label: t('settingsNav.serial') },
-  { key: 'log', label: t('settingsNav.log') },
-  { key: 'syntax', label: t('settingsNav.syntax') },
-  { key: 'history', label: t('settingsNav.history') },
-  { key: 'backup', label: t('settingsNav.backup') }
-])
+const settingsRegistry = new SettingsRegistry()
+settingsRegistry.register({ key: 'basic', getLabel: () => t('settingsNav.basic'), order: 0 })
+settingsRegistry.register({ key: 'serial', getLabel: () => t('settingsNav.serial'), order: 10 })
+settingsRegistry.register({ key: 'log', getLabel: () => t('settingsNav.log'), order: 20 })
+settingsRegistry.register({ key: 'syntax', getLabel: () => t('settingsNav.syntax'), order: 30 })
+settingsRegistry.register({ key: 'history', getLabel: () => t('settingsNav.history'), order: 40 })
+settingsRegistry.register({ key: 'backup', getLabel: () => t('settingsNav.backup'), order: 50 })
+const categories = computed(() => settingsRegistry.getCategories())
 
 // 默认配置从后端获取
 const defaultSettings = ref<Record<string, any>>({})
