@@ -161,47 +161,57 @@
           </button>
         </div>
 
-        <div class="theme-switcher-wrapper">
-          <button
-            class="titlebar-btn theme-btn"
-            type="button"
-            :title="t('titlebar.theme')"
-            :aria-label="t('titlebar.theme')"
-            :aria-expanded="showThemePanel"
-            @click.stop="toggleThemePanel"
+        <!-- 皮肤切换按钮：保留项目原版图标与选择面板 -->
+        <div class="theme-switcher-wrapper" ref="themeSwitcherRef">
+        <button class="titlebar-btn theme-btn" @click="toggleThemePanel" title="切换皮肤">
+          <svg
+            viewBox="0 0 1024 1024"
+            width="16"
+            height="16"
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 3a9 9 0 1 0 0 18h1.2a1.8 1.8 0 0 0 0-3.6h-.7a1.7 1.7 0 0 1 0-3.4H15a6 6 0 0 0 0-12h-3Z" />
-              <circle cx="7.5" cy="10" r="1" />
-              <circle cx="9.5" cy="6.8" r="1" />
-              <circle cx="14" cy="6.5" r="1" />
-            </svg>
-          </button>
-          <Transition name="theme-fade">
-            <div v-if="showThemePanel" class="theme-panel" @click.stop>
-              <div class="theme-panel-title">{{ t('titlebar.theme') }}</div>
-              <button
+            <path d="M328.147627 164.706987h67.403093c4.973227 2.94912 12.22656 4.068693 16.75264 7.5776 6.161067 4.734293 10.58816 10.738347 15.407787 16.892586 6.509227 8.2944 18.7904 16.3328 29.125973 20.657494 12.079787 4.98688 24.90368 7.8336 39.717547 10.581333 4.672853 0.303787 9.345707 0.508587 14.015146 0.812373 6.263467 0.965973 15.213227-0.559787 20.3776-1.62816 27.886933-5.597867 41.857707-10.175147 60.197547-24.726186 7.15776-5.748053 10.98752-15.213227 18.438827-20.70528 4.17792-2.286933 8.400213-4.67968 12.62592-7.021227 3.628373-1.42336 6.212267-0.610987 9.19552-2.440533h19.831466c19.135147 0 47.571627-2.594133 60.197547 4.017493 8.895147 4.78208 15.70816 12.311893 22.667947 19.07712 9.693867 9.41056 19.38432 18.824533 29.026986 28.235093 31.26272 30.47424 62.580053 60.89728 93.794987 91.37152 9.844053 10.530133 21.22752 19.636907 31.020373 30.221654 8.04864 8.495787 16.59904 14.854827 21.02272 27.163306 0.150187 1.98656 0.201387 3.969707 0.249174 5.956267 2.235733 13.431467-3.877547 23.197013-10.042027 30.982827-26.19392 25.38496-52.391253 50.82112-78.63296 76.158293-9.54368 10.635947-21.47328 25.439573-38.324907 28.53888-22.96832 4.225707-35.986773-9.919147-46.721706-20.34688-3.4816-3.457707-6.413653-7.8848-10.93632-10.379947-0.197973 0.2048-0.546133 0.4096-0.846507 0.5632v272.182614c-0.047787 25.53856-0.146773 51.17952-0.293547 76.71808-1.839787 8.8576-7.60832 18.01216-13.919573 22.84544-15.755947 11.905707-43.543893 9.25696-71.427413 9.25696H371.2c-19.43552 0-39.867733 1.47456-51.49696-6.048427-6.51264-4.072107-13.6704-11.70432-16.554667-19.28192-3.280213-8.751787-2.484907-20.964693-2.484906-32.6144v-51.38432-271.981227h-1.143467c-11.58144 10.175147-20.48 22.79424-36.037973 29.15328-13.21984 5.440853-28.678827-0.252587-36.928854-5.952853-5.76512-4.068693-10.141013-9.311573-15.110826-14.144853a23320.081067 23320.081067 0 0 0-35.488427-33.98656 1789.088427 1789.088427 0 0 1-16.800427-16.940374c-6.908587-5.799253-12.92288-12.417707-19.285333-18.722133-7.703893-7.529813-16.104107-13.380267-20.72576-23.965013-1.989973-4.478293-5.915307-12.56448-4.47488-20.094294 3.382613-17.855147 14.465707-27.26912 25.746773-37.290666 6.710613-5.901653 12.62592-12.76928 19.285334-18.71872l111.09376-108.21632c6.710613-6.509227 13.421227-13.021867 20.13184-19.585707 9.741653-9.458347 18.438827-21.162667 37.229226-21.77024-0.006827-0.3584-0.006827-0.662187-0.006826-1.017173z" fill="currentColor" p-id="7120"></path>
+          </svg>
+        </button>
+        <!-- 皮肤选择悬浮面板 -->
+        <Transition name="theme-fade">
+          <div v-if="showThemePanel" class="theme-panel" @click.stop>
+            <div class="theme-panel-title">{{ t('titlebar.theme') }}</div>
+            <div class="theme-options">
+              <div
                 class="theme-option"
                 :class="{ active: currentTheme === 'dark' }"
-                type="button"
                 @click="switchTheme('dark')"
               >
-                <span class="theme-swatch theme-swatch-dark"></span>
-                <span>{{ t('titlebar.darkTheme') }}</span>
-                <span class="theme-check">{{ currentTheme === 'dark' ? '✓' : '' }}</span>
-              </button>
-              <button
+                <div class="theme-preview theme-preview-dark">
+                  <div class="preview-bar"></div>
+                  <div class="preview-content">
+                    <div class="preview-sidebar"></div>
+                    <div class="preview-main"></div>
+                  </div>
+                </div>
+                <span class="theme-label">{{ t('titlebar.darkTheme') }}</span>
+                <span v-if="currentTheme === 'dark'" class="theme-check">✓</span>
+              </div>
+              <div
                 class="theme-option"
                 :class="{ active: currentTheme === 'light' }"
-                type="button"
                 @click="switchTheme('light')"
               >
-                <span class="theme-swatch theme-swatch-light"></span>
-                <span>{{ t('titlebar.lightTheme') }}</span>
-                <span class="theme-check">{{ currentTheme === 'light' ? '✓' : '' }}</span>
-              </button>
+                <div class="theme-preview theme-preview-light">
+                  <div class="preview-bar"></div>
+                  <div class="preview-content">
+                    <div class="preview-sidebar"></div>
+                    <div class="preview-main"></div>
+                  </div>
+                </div>
+                <span class="theme-label">{{ t('titlebar.lightTheme') }}</span>
+                <span v-if="currentTheme === 'light'" class="theme-check">✓</span>
+              </div>
             </div>
-          </Transition>
+          </div>
+        </Transition>
         </div>
       </div>
     </template>
@@ -243,7 +253,6 @@ const switchTheme = (theme: 'dark' | 'light') => {
   applyTheme(theme)
   showThemePanel.value = false
 }
-
 const emit = defineEmits([
   'toggle-primary-sidebar',
   'toggle-bottom-panel',
@@ -596,7 +605,8 @@ const handleClickOutside = (event: MouseEvent) => {
     showHelpMenu.value = false
     showFontSubmenu.value = false
   }
-  if (!target.closest('.theme-switcher-wrapper')) {
+  // 关闭皮肤面板
+  if (showThemePanel.value && !target.closest('.theme-switcher-wrapper')) {
     showThemePanel.value = false
   }
 }
@@ -765,100 +775,6 @@ const handleClickOutside = (event: MouseEvent) => {
   opacity: 0.78;
 }
 
-.theme-switcher-wrapper {
-  position: relative;
-  height: 30px;
-  -webkit-app-region: no-drag;
-}
-
-.theme-btn {
-  width: 32px;
-  color: var(--text-titlebar);
-}
-
-.theme-btn svg {
-  width: 16px;
-  height: 16px;
-  fill: currentColor;
-}
-
-.theme-panel {
-  position: absolute;
-  top: 30px;
-  right: 0;
-  z-index: 10001;
-  width: 180px;
-  padding: 8px;
-  background-color: var(--menu-bg-color);
-  border: 1px solid var(--menu-border-color);
-  border-radius: var(--menu-border-radius);
-  box-shadow: var(--menu-box-shadow);
-}
-
-.theme-panel-title {
-  padding: 2px 6px 7px;
-  margin-bottom: 4px;
-  color: var(--menu-item-color);
-  font-size: 12px;
-  font-weight: 600;
-  border-bottom: 1px solid var(--menu-divider-color);
-}
-
-.theme-option {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  gap: 8px;
-  padding: 7px 8px;
-  color: var(--menu-item-color);
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  text-align: left;
-}
-
-.theme-option:hover {
-  background-color: var(--menu-item-hover-bg);
-}
-
-.theme-option.active {
-  background-color: var(--accent-blue-subtle);
-}
-
-.theme-swatch {
-  width: 18px;
-  height: 14px;
-  flex: 0 0 auto;
-  border: 1px solid var(--menu-border-color);
-  border-radius: 3px;
-}
-
-.theme-swatch-dark {
-  background: #1e1e1e;
-}
-
-.theme-swatch-light {
-  background: #f5f5f5;
-}
-
-.theme-check {
-  min-width: 12px;
-  margin-left: auto;
-  color: var(--btn-icon-text);
-}
-
-.theme-fade-enter-active,
-.theme-fade-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.theme-fade-enter-from,
-.theme-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
 .titlebar-menu {
   margin-left: 10px;
   display: flex;
@@ -1007,4 +923,147 @@ const handleClickOutside = (event: MouseEvent) => {
   background: transparent;
 }
 
+/* ---- 皮肤切换 ---- */
+.theme-switcher-wrapper {
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+.theme-btn {
+  color: var(--text-titlebar);
+}
+
+.theme-btn:hover {
+  color: var(--text-white);
+}
+
+.theme-panel {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  width: 210px;
+  background-color: var(--menu-bg-color);
+  border: 1px solid var(--menu-border-color);
+  border-radius: var(--menu-border-radius);
+  box-shadow: var(--menu-box-shadow);
+  padding: 12px;
+  z-index: 10001;
+}
+
+.theme-panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--menu-item-color);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--menu-divider-color);
+}
+
+.theme-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  position: relative;
+}
+
+.theme-option:hover {
+  background-color: var(--menu-item-hover-bg);
+}
+
+.theme-option.active {
+  background-color: var(--accent-blue-subtle);
+}
+
+.theme-preview {
+  width: 40px;
+  height: 28px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--menu-border-color);
+  flex-shrink: 0;
+}
+
+.theme-preview-dark {
+  background: #1e1e1e;
+}
+
+.theme-preview-dark .preview-bar {
+  height: 6px;
+  background: #323233;
+}
+
+.theme-preview-dark .preview-content {
+  display: flex;
+  height: 22px;
+}
+
+.theme-preview-dark .preview-sidebar {
+  width: 10px;
+  background: #252526;
+  border-right: 1px solid #333;
+}
+
+.theme-preview-dark .preview-main {
+  flex: 1;
+  background: #1e1e1e;
+}
+
+.theme-preview-light {
+  background: #f5f5f5;
+}
+
+.theme-preview-light .preview-bar {
+  height: 6px;
+  background: #e0e0e0;
+}
+
+.theme-preview-light .preview-content {
+  display: flex;
+  height: 22px;
+}
+
+.theme-preview-light .preview-sidebar {
+  width: 10px;
+  background: #ffffff;
+  border-right: 1px solid #d0d0d0;
+}
+
+.theme-preview-light .preview-main {
+  flex: 1;
+  background: #f5f5f5;
+}
+
+.theme-label {
+  font-size: 12px;
+  color: var(--menu-item-color);
+  flex: 1;
+}
+
+.theme-check {
+  color: var(--btn-icon-text);
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* 面板过渡动画 */
+.theme-fade-enter-active,
+.theme-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.theme-fade-enter-from,
+.theme-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
 </style>

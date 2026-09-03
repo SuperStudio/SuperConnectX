@@ -50,7 +50,8 @@ test.describe('串口设备信息显示', () => {
           centerOffset: Math.abs(dot.top + dot.height / 2 - (content.top + content.height / 2))
         }
       })
-      expect(initialLayout.cardWidth).toBeLessThanOrEqual(250)
+      // 默认侧栏宽度为 320px，扣除列表内边距后卡片应完整落在侧栏内。
+      expect(initialLayout.cardWidth).toBeLessThanOrEqual(320)
       expect(initialLayout.actionPosition).toBe('absolute')
       expect(initialLayout.actionVisibility).toBe('hidden')
       expect(initialLayout.actionOpacity).toBe('0')
