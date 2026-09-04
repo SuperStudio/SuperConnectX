@@ -36,6 +36,7 @@
     <div
       v-show="showBottomPanel"
       class="bottom-controls"
+      :class="{ 'is-resized': terminalOutputRatio !== null }"
     >
 
 
@@ -212,6 +213,7 @@ import { getDefaultTerminalFont } from '../utils/FontDetector'
 import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
 import { calculateTerminalSplitRatio } from '../utils/TerminalSplitLayout'
 import { sendDisplayText } from '../composables/app/useSettingsStore'
+import { useTerminalPanelLayout } from '../composables/useTerminalPanelLayout'
 
 const maxClearSizeMB = ref(30)
 
@@ -318,7 +320,7 @@ const connectionKey = computed(() => {
 })
 const terminalRoot = ref<HTMLElement | null>(null)
 const editorContainer = ref<HTMLElement | null>(null)
-const terminalOutputRatio = ref<number | null>(null) // null 表示输出区自动填充剩余空间
+const { terminalOutputRatio } = useTerminalPanelLayout() // null 表示该终端首次打开时自动填充
 const isSplitting = ref(false)
 
 
@@ -1656,9 +1658,24 @@ watch(() => props.showBottomPanel, () => {
 .bottom-controls {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-height: 0;
-  overflow: hidden;
+  /*
+   * 底部面板允许被压缩到任意高度，但不应因此变成可被焦点自动滚动的容器。
+   * overflow: hidden 仍会建立滚动容器，连接按钮切换或输入框获得焦点时，
+   * Chromium 可能修改 scrollTop，导致面板内容突然上下跳动。
+   */
+  overflow: clip;
+  overflow-anchor: none;
+}
+
+.bottom-controls.is-resized {
+  /* 拖动后只占用输出区和分隔条之外的空间，不再用内容高度参与 flex 计算。 */
+  flex: 1 1 0;
+}
+
+.bottom-controls > :deep(*) {
+  flex-shrink: 0;
 }
 
 .vertical-splitter {
