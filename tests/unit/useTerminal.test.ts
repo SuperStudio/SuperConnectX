@@ -52,7 +52,7 @@ const mockRotateLogFile = vi.fn().mockResolvedValue({
   }
 }
 
-import { useTerminal, type TerminalConnection, type UseTerminalOptions } from '../../src/renderer/src/composables/useTerminal'
+import { useTerminal, type TerminalConnection, type UseTerminalOptions } from '../../src/renderer/src/features/terminal/useTerminal'
 
 function createOptions(overrides: Partial<UseTerminalOptions> = {}): UseTerminalOptions {
   const conn: TerminalConnection = {

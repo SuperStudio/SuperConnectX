@@ -173,7 +173,7 @@ import { ref, onUnmounted, onMounted, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import UnifiedTerminal from './UnifiedTerminal.vue'
-import { useTerminal } from '../composables/useTerminal'
+import { useTerminal } from '../features/terminal/useTerminal'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
 import { sendDisplayText, recvDisplayText } from '../composables/app/useSettingsStore'
 

@@ -31,7 +31,7 @@ import { ElMessage } from 'element-plus'
 const { t } = useI18n()
 import UnifiedTerminal from './UnifiedTerminal.vue'
 import { fromRawConnection } from '../entity/protocol'
-import { useTerminal } from '../composables/useTerminal'
+import { useTerminal } from '../features/terminal/useTerminal'
 import { recvDisplayText } from '../composables/app/useSettingsStore'
 
 const MAX_RETRY_COUNT = 1000

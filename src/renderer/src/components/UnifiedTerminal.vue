@@ -213,7 +213,7 @@ import { getDefaultTerminalFont } from '../utils/FontDetector'
 import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
 import { calculateTerminalSplitRatio } from '../utils/TerminalSplitLayout'
 import { sendDisplayText } from '../composables/app/useSettingsStore'
-import { useTerminalPanelLayout } from '../composables/useTerminalPanelLayout'
+import { useTerminalPanelLayout } from '../features/terminal/useTerminalPanelLayout'
 
 const maxClearSizeMB = ref(30)
 

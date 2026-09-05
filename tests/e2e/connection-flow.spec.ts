@@ -9,6 +9,26 @@ import { launchApp, closeApp } from './helpers'
  *  4. 验证连接出现在侧边栏对应分组中
  */
 test.describe('新建连接流程', () => {
+  test('串口分组可展开和收起', async () => {
+    const { app, page, userDataDir } = await launchApp()
+    try {
+      const serialPortGroup = page.getByTestId('serial-port-group')
+      const serialPortHeader = serialPortGroup.locator('.section-header')
+      const serialPortList = serialPortGroup.locator('.connection-group-list')
+
+      await expect(serialPortGroup).toBeVisible()
+      await expect(serialPortList).toBeVisible()
+
+      await serialPortHeader.click()
+      await expect(serialPortList).toBeHidden()
+
+      await serialPortHeader.click()
+      await expect(serialPortList).toBeVisible()
+    } finally {
+      await closeApp(app, userDataDir)
+    }
+  })
+
   test('通过对话框创建一个 Telnet 连接', async () => {
     const { app, page, userDataDir } = await launchApp()
     try {

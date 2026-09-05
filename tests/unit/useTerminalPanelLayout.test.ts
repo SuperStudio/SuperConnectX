@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { useTerminalPanelLayout } from '../../src/renderer/src/composables/useTerminalPanelLayout'
+import { useTerminalPanelLayout } from '../../src/renderer/src/features/terminal/useTerminalPanelLayout'
 
 describe('useTerminalPanelLayout', () => {
   it('keeps the dragged split ratio independent for every terminal', () => {
