@@ -271,7 +271,7 @@ import { useSidebarResize } from './foundation/shell/useSidebarResize'
 import logoImage from './assets/icon.png'
 
 // Composables
-import { useConnectionSidebar } from './composables/app/useConnectionSidebar'
+import { useConnectionSidebar } from './features/connections/useConnectionSidebar'
 import { useTabManager } from './composables/app/useTabManager'
 import { useSplitPanel } from './composables/app/useSplitPanel'
 import type { Panel } from './composables/app/useSplitPanel'
@@ -280,7 +280,7 @@ import { useShortcuts } from './composables/app/useShortcuts'
 import { useTerminalDisplay } from './composables/app/useTerminalDisplay'
 import { useFontManager } from './composables/app/useFontManager'
 import { loadSendDisplayText, initSendDisplayTextListener } from './composables/app/useSettingsStore'
-import { useConnectionDialog } from './composables/app/useConnectionDialog'
+import { useConnectionDialog } from './features/connections/useConnectionDialog'
 import { useSessionRestore } from './composables/app/useSessionRestore'
 
 const { t } = useI18n()
