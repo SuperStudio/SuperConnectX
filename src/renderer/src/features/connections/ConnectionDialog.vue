@@ -36,8 +36,8 @@
 import { ref, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElForm } from 'element-plus'
-import { createDefaultConnection, fromRawConnection } from '../../entity/protocol'
-import type { ConnectionFormData } from '../../entity/protocol/base'
+import { createDefaultConnection, fromRawConnection } from './protocol'
+import type { ConnectionFormData } from './protocol/base'
 
 const { t } = useI18n()
 const emit = defineEmits<{ (e: 'submit', data: ConnectionFormData): void }>()

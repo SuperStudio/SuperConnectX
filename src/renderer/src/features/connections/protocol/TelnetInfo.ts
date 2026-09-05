@@ -1,5 +1,5 @@
 /**
- * @deprecated 请使用 '@/entity/protocol' 中的 createDefaultConnection / fromRawConnection
+ * @deprecated 请使用 './index' 中的 createDefaultConnection / fromRawConnection
  * 此文件仅为向后兼容保留
  */
 import { createDefaultConnection, fromRawConnection } from './index'

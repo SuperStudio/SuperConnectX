@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 
-// Test the type guards from entity/protocol/base.ts
+// Test the type guards from features/connections/protocol/base.ts
 // These are pure functions with no external dependencies
-describe('entity/protocol/base - type guards', () => {
+describe('features/connections/protocol/base - type guards', () => {
   // We test these by importing from ProtocolRegistry which re-exports them,
   // or we can test them inline since they're just string comparisons
   const isTelnetConnection = (conn: any) => conn.connectionType === 'telnet'
@@ -109,14 +109,14 @@ describe('entity/protocol/base - type guards', () => {
   })
 })
 
-describe('entity/protocol/base - ProtocolType', () => {
+describe('features/connections/protocol/base - ProtocolType', () => {
   it('ProtocolType should accept all 9 valid values', () => {
     const types = ['telnet', 'ssh', 'ftp', 'tcp', 'udp', 'ping', 'tftp', 'http', 'com']
     expect(types.length).toBe(9)
   })
 })
 
-describe('entity/protocol/base - FtpPermission', () => {
+describe('features/connections/protocol/base - FtpPermission', () => {
   it('should have all 4 permission types', () => {
     const perms = ['get', 'put', 'delete', 'rename']
     expect(perms.length).toBe(4)

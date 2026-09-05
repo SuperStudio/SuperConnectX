@@ -34,7 +34,7 @@ vi.mock('element-plus', () => ({
   }
 }))
 
-vi.mock('../../src/renderer/src/entity/protocol', () => ({
+vi.mock('../../src/renderer/src/features/connections/protocol', () => ({
   fromRawConnection: (conn: any) => ({ ...conn })
 }))
 

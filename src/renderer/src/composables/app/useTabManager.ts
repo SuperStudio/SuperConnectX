@@ -5,7 +5,7 @@
 import { ref, reactive, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { fromRawConnection } from '../../entity/protocol'
+import { fromRawConnection } from '../../features/connections/protocol'
 import type { ComTerminalRef, TelnetTerminalRef } from './types'
 
 export interface TabItem {

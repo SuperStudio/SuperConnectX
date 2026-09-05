@@ -4,16 +4,16 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { ComStrategy } from '../../src/renderer/src/entity/protocol/com'
-import { FtpStrategy } from '../../src/renderer/src/entity/protocol/ftp'
-import { TelnetStrategy } from '../../src/renderer/src/entity/protocol/telnet'
-import { SshStrategy } from '../../src/renderer/src/entity/protocol/ssh'
-import { TcpStrategy } from '../../src/renderer/src/entity/protocol/tcp'
-import { UdpStrategy } from '../../src/renderer/src/entity/protocol/udp'
-import { HttpStrategy } from '../../src/renderer/src/entity/protocol/http'
-import { PingStrategy } from '../../src/renderer/src/entity/protocol/ping'
-import { TftpStrategy } from '../../src/renderer/src/entity/protocol/tftp'
-import TelnetInfo from '../../src/renderer/src/entity/protocol/TelnetInfo'
+import { ComStrategy } from '../../src/renderer/src/features/connections/protocol/com'
+import { FtpStrategy } from '../../src/renderer/src/features/connections/protocol/ftp'
+import { TelnetStrategy } from '../../src/renderer/src/features/connections/protocol/telnet'
+import { SshStrategy } from '../../src/renderer/src/features/connections/protocol/ssh'
+import { TcpStrategy } from '../../src/renderer/src/features/connections/protocol/tcp'
+import { UdpStrategy } from '../../src/renderer/src/features/connections/protocol/udp'
+import { HttpStrategy } from '../../src/renderer/src/features/connections/protocol/http'
+import { PingStrategy } from '../../src/renderer/src/features/connections/protocol/ping'
+import { TftpStrategy } from '../../src/renderer/src/features/connections/protocol/tftp'
+import TelnetInfo from '../../src/renderer/src/features/connections/protocol/TelnetInfo'
 
 // Helper to test a strategy
 function testStrategy(

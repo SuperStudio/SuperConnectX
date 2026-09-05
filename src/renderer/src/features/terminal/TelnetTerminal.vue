@@ -30,7 +30,7 @@ import { ElMessage } from 'element-plus'
 
 const { t } = useI18n()
 import UnifiedTerminal from './UnifiedTerminal.vue'
-import { fromRawConnection } from '../../entity/protocol'
+import { fromRawConnection } from '../../features/connections/protocol'
 import { useTerminal } from './useTerminal'
 import { recvDisplayText } from './useTerminalDisplayText'
 

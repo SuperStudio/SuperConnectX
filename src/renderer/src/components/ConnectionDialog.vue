@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import FeatureConnectionDialog from '../features/connections/ConnectionDialog.vue'
-import type { ConnectionFormData } from '../entity/protocol/base'
+import type { ConnectionFormData } from '../features/connections/protocol/base'
 
 const emit = defineEmits<{ (e: 'submit', data: ConnectionFormData): void }>()
 const dialogRef = ref<InstanceType<typeof FeatureConnectionDialog> | null>(null)
