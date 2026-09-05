@@ -257,7 +257,7 @@ import ConnectionDialog from './features/connections/ConnectionDialog.vue'
 import ConnectionSidebar from './features/connections/ConnectionSidebar.vue'
 import TerminalPanel from './components/app/TerminalPanel.vue'
 import SuperSplit from './components/app/SuperSplit.vue'
-import SerialRemarkDialog from './components/app/SerialRemarkDialog.vue'
+import SerialRemarkDialog from './features/connections/SerialRemarkDialog.vue'
 import ComTerminal from './components/ComTerminal.vue'
 import TelnetTerminal from './components/TelnetTerminal.vue'
 import CommandEditor from './components/CommandEditor.vue'
@@ -275,11 +275,11 @@ import { useConnectionSidebar } from './features/connections/useConnectionSideba
 import { useTabManager } from './composables/app/useTabManager'
 import { useSplitPanel } from './composables/app/useSplitPanel'
 import type { Panel } from './composables/app/useSplitPanel'
-import { useSerialRemarks } from './composables/app/useSerialRemarks'
+import { useSerialRemarks } from './features/connections/useSerialRemarks'
 import { useShortcuts } from './composables/app/useShortcuts'
 import { useTerminalDisplay } from './features/terminal/useTerminalDisplay'
-import { useFontManager } from './composables/app/useFontManager'
-import { loadSendDisplayText, initSendDisplayTextListener } from './composables/app/useSettingsStore'
+import { useFontManager } from './features/terminal/useFontManager'
+import { loadTerminalDisplayText, initTerminalDisplayTextListener } from './features/terminal/useTerminalDisplayText'
 import { useConnectionDialog } from './features/connections/useConnectionDialog'
 import { useSessionRestore } from './composables/app/useSessionRestore'
 
@@ -1130,8 +1130,8 @@ onMounted(async () => {
   loadShortcutActions()
   loadShortcuts()
   loadTerminalDisplaySettings()
-  loadSendDisplayText()
-  initSendDisplayTextListener()
+  loadTerminalDisplayText()
+  initTerminalDisplayTextListener()
 
   // 会话恢复：重建上次退出时打开的选项卡，并恢复连接状态
   await sessionRestore.restore()

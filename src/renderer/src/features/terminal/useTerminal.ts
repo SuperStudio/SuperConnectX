@@ -2,7 +2,7 @@ import { ref, watch, onUnmounted, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { getDefaultTerminalFont } from '../../utils/FontDetector'
-import { sendDisplayText as sendDisplayTextStore } from '../../composables/app/useSettingsStore'
+import { sendDisplayText as sendDisplayTextStore } from './useTerminalDisplayText'
 
 /** A SuperConnectX connection opened by a terminal session. */
 export interface TerminalConnection {

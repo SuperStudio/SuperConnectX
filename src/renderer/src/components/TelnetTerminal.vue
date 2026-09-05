@@ -32,7 +32,7 @@ const { t } = useI18n()
 import UnifiedTerminal from './UnifiedTerminal.vue'
 import { fromRawConnection } from '../entity/protocol'
 import { useTerminal } from '../features/terminal/useTerminal'
-import { recvDisplayText } from '../composables/app/useSettingsStore'
+import { recvDisplayText } from '../features/terminal/useTerminalDisplayText'
 
 const MAX_RETRY_COUNT = 1000
 const RETRY_INTERVAL_MS = 3000

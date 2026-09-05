@@ -175,7 +175,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import UnifiedTerminal from './UnifiedTerminal.vue'
 import { useTerminal } from '../features/terminal/useTerminal'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
-import { sendDisplayText, recvDisplayText } from '../composables/app/useSettingsStore'
+import { sendDisplayText, recvDisplayText } from '../features/terminal/useTerminalDisplayText'
 
 const { t } = useI18n()
 

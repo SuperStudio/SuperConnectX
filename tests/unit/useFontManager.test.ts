@@ -16,7 +16,7 @@ vi.mock('../../src/renderer/src/utils/FontDetector', () => ({
   getDefaultTerminalFont: () => 'Consolas'
 }))
 
-import { useFontManager } from '../../src/renderer/src/composables/app/useFontManager'
+import { useFontManager } from '../../src/renderer/src/features/terminal/useFontManager'
 
 describe('useFontManager', () => {
   let activeTabId: any
