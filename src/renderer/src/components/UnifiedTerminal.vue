@@ -1,5 +1,5 @@
 <template>
-  <div :class="['unified-terminal']">
+  <div ref="terminalRoot" class="unified-terminal">
 
     <!-- 终端输出区域（+ 日志过滤面板） -->
     <div class="output-area" :style="terminalOutputStyle">
@@ -25,6 +25,7 @@
 
     <!-- 垂直分隔条 -->
     <div
+      v-show="showBottomPanel"
       class="vertical-splitter"
       @mousedown="startVerticalSplit"
     >
@@ -32,7 +33,11 @@
     </div>
 
     <!-- 底部控件包裹容器（拖拽后不撑开） -->
-    <div class="bottom-controls">
+    <div
+      v-show="showBottomPanel"
+      class="bottom-controls"
+      :class="{ 'is-resized': terminalOutputRatio !== null }"
+    >
 
 
     <!-- 基础操作按钮 -->
@@ -206,7 +211,9 @@ import { AnsiDecorationManager } from '../utils/AnsiDecorationManager'
 import { getMonacoTheme } from '../utils/MonacoTheme'
 import { getDefaultTerminalFont } from '../utils/FontDetector'
 import { TOOLTIP_SHOW_AFTER } from '../utils/constants'
+import { calculateTerminalSplitRatio } from '../utils/TerminalSplitLayout'
 import { sendDisplayText } from '../composables/app/useSettingsStore'
+import { useTerminalPanelLayout } from '../composables/useTerminalPanelLayout'
 
 const maxClearSizeMB = ref(30)
 
@@ -226,12 +233,14 @@ const props = withDefaults(defineProps<{
   initMessage?: string
   placeholder?: string
   sessionIdPrefix?: string
+  showBottomPanel?: boolean
 }>(), {
   isConnected: false,
   isConnecting: false,
   initMessage: '', // will be set via t() in script
   placeholder: '', // will be set via t() in script
-  sessionIdPrefix: 'terminal'
+  sessionIdPrefix: 'terminal',
+  showBottomPanel: true
 })
 
 const emit = defineEmits<{
@@ -309,14 +318,18 @@ const connectionKey = computed(() => {
     : props.connection.id
   return `${props.connection.connectionType}:${connId}`
 })
+const terminalRoot = ref<HTMLElement | null>(null)
 const editorContainer = ref<HTMLElement | null>(null)
-const terminalOutputHeight = ref<number | null>(null) // null 表示自动撑满
+const { terminalOutputRatio } = useTerminalPanelLayout() // null 表示该终端首次打开时自动填充
 const isSplitting = ref(false)
 
 
 const terminalOutputStyle = computed(() => {
-  if (terminalOutputHeight.value !== null) {
-    return { height: terminalOutputHeight.value + 'px', flex: '0 0 auto' }
+  if (!props.showBottomPanel) {
+    return { height: 'auto', flex: '1 1 auto' }
+  }
+  if (terminalOutputRatio.value !== null) {
+    return { height: `${terminalOutputRatio.value * 100}%`, flex: '0 0 auto' }
   }
   return { flex: '1 1 auto' }
 })
@@ -556,25 +569,6 @@ const initEditor = async () => {
 
   editor.layout()
   editor.updateOptions({ readOnly: true })
-
-  // 将 terminal-output 容器高度锁定为固定 px 值，避免 flex 布局在 v-show 切换时的过渡态导致跳动
-  // 用 ResizeObserver 持续同步真实高度（模拟 split 拖拽后的效果）
-  if (editorContainer.value && typeof ResizeObserver !== 'undefined') {
-    const syncHeight = () => {
-      if (!editorContainer.value) return
-      const h = editorContainer.value.getBoundingClientRect().height
-      if (h > 0) {
-        terminalOutputHeight.value = h
-      }
-    }
-    // 初始化时立即锁定一次
-    syncHeight()
-    const ro = new ResizeObserver(() => {
-      syncHeight()
-    })
-    ro.observe(editorContainer.value)
-    ;(editor as any).__resizeObserver = ro
-  }
 
   const domNode = editor.getDomNode()
 
@@ -1460,16 +1454,16 @@ onMounted(async () => {
 // 垂直分隔条拖拽逻辑
 const startVerticalSplit = (e: MouseEvent) => {
   isSplitting.value = true
-  const container = (e.currentTarget as HTMLElement).parentElement
+  const container = terminalRoot.value || (e.currentTarget as HTMLElement).parentElement
   if (!container) return
   const containerRect = container.getBoundingClientRect()
-  const maxHeight = containerRect.height - 6
-  const minHeight = 60
 
   const onMouseMove = (moveEvent: MouseEvent) => {
-    const newHeight = moveEvent.clientY - containerRect.top
-    if (newHeight >= maxHeight || newHeight <= minHeight) return
-    terminalOutputHeight.value = newHeight
+    terminalOutputRatio.value = calculateTerminalSplitRatio(
+      moveEvent.clientY,
+      containerRect.top,
+      containerRect.height
+    )
   }
 
   const onMouseUp = () => {
@@ -1487,12 +1481,6 @@ const startVerticalSplit = (e: MouseEvent) => {
 }
 
 onUnmounted(() => {
-  // 清理 ResizeObserver
-  if (editor && (editor as any).__resizeObserver) {
-    ;(editor as any).__resizeObserver.disconnect()
-    ;(editor as any).__resizeObserver = null
-  }
-
   if (editorModel) {
     editorModel.dispose()
     editorModel = null
@@ -1600,6 +1588,10 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
     syntaxLog('failed to persist syntax group selection', e)
   }
 })
+
+watch(() => props.showBottomPanel, () => {
+  nextTick(() => editor?.layout())
+})
 </script>
 
 <style scoped>
@@ -1666,8 +1658,24 @@ watch(activeSyntaxGroupId, async (newVal, oldVal) => {
 .bottom-controls {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-height: 0;
+  /*
+   * 底部面板允许被压缩到任意高度，但不应因此变成可被焦点自动滚动的容器。
+   * overflow: hidden 仍会建立滚动容器，连接按钮切换或输入框获得焦点时，
+   * Chromium 可能修改 scrollTop，导致面板内容突然上下跳动。
+   */
+  overflow: clip;
+  overflow-anchor: none;
+}
+
+.bottom-controls.is-resized {
+  /* 拖动后只占用输出区和分隔条之外的空间，不再用内容高度参与 flex 计算。 */
+  flex: 1 1 0;
+}
+
+.bottom-controls > :deep(*) {
+  flex-shrink: 0;
 }
 
 .vertical-splitter {

@@ -14,6 +14,7 @@ export function useConnectionSidebar() {
   const filterConnection = ref<any[]>([])
   const serialPorts = ref<SerialPortInfo[]>([])
   const showConnectionList = ref(true)
+  const showBottomPanel = ref(true)
   const sidebarWidth = ref(320)
   const serialPortExpanded = ref(true)
   const showPortType = ref(true)
@@ -125,6 +126,7 @@ export function useConnectionSidebar() {
       const savedState = await window.storageApi.getAppSettings()
       if (savedState?.sidebar) {
         showConnectionList.value = savedState.sidebar.showConnectionList ?? true
+        showBottomPanel.value = savedState.sidebar.showBottomPanel ?? true
         serialPortExpanded.value = savedState.sidebar.serialPortExpanded ?? true
         if (savedState.sidebar.sidebarWidth) {
           sidebarWidth.value = savedState.sidebar.sidebarWidth
@@ -150,6 +152,7 @@ export function useConnectionSidebar() {
         ...currentSettings,
         sidebar: {
           showConnectionList: Boolean(showConnectionList.value),
+          showBottomPanel: Boolean(showBottomPanel.value),
           serialPortExpanded: Boolean(serialPortExpanded.value),
           sidebarWidth: Number(sidebarWidth.value),
           connectionGroupExpanded: JSON.parse(JSON.stringify(connectionGroupExpanded.value))
@@ -165,9 +168,13 @@ export function useConnectionSidebar() {
     showConnectionList.value = !showConnectionList.value
   }
 
+  const toggleBottomPanel = () => {
+    showBottomPanel.value = !showBottomPanel.value
+  }
+
   // 自动保存
   watch(
-    [showConnectionList, serialPortExpanded, connectionGroupExpanded, sidebarWidth],
+    [showConnectionList, showBottomPanel, serialPortExpanded, connectionGroupExpanded, sidebarWidth],
     () => { saveSidebarState() },
     { deep: true }
   )
@@ -183,6 +190,7 @@ export function useConnectionSidebar() {
     filterConnection,
     serialPorts,
     showConnectionList,
+    showBottomPanel,
     sidebarWidth,
     serialPortExpanded,
     showPortType,
@@ -198,6 +206,7 @@ export function useConnectionSidebar() {
     loadSidebarState,
     saveSidebarState,
     toggleConnectionList,
+    toggleBottomPanel,
     parseSerialPortType
   }
 }

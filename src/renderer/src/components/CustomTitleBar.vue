@@ -8,24 +8,6 @@
   >
     <template #left>
     <div class="titlebar-left">
-      <button
-        class="titlebar-btn toggle-connection-btn"
-        @click="toggleConnectionList"
-        :class="{ toggled: !showConnectionList }"
-      >
-        <svg
-          viewBox="0 0 1024 1024"
-          fill="currentColor"
-          xmlns="http://www.w3.org/2000/svg"
-          width="15"
-          height="15"
-        >
-          <path
-            d="M901.632 896H122.368c-30.72 0-55.808-25.088-55.808-55.808v-1.536c0-30.72 25.088-55.808 55.808-55.808h779.776c30.72 0 55.808 25.088 55.808 55.808v1.536c-0.512 30.72-25.6 55.808-56.32 55.808zM901.632 568.32H122.368c-30.72 0-55.808-25.088-55.808-55.808v-1.536c0-30.72 25.088-55.808 55.808-55.808h779.776c30.72 0 55.808 25.088 55.808 55.808v1.536c-0.512 30.72-25.6 55.808-56.32 55.808zM901.632 240.64H122.368c-30.72 0-55.808-25.088-55.808-55.808v-1.536c0-30.72 25.088-55.808 55.808-55.808h779.776c30.72 0 55.808 25.088 55.808 55.808v1.536c-0.512 30.72-25.6 55.808-56.32 55.808z"
-            p-id="15235"
-          ></path>
-        </svg>
-      </button>
       <div class="app-logo">
         <img class="logo-img" src="../assets/icon.png" alt="App Icon" />
       </div>
@@ -145,8 +127,42 @@
     </template>
 
     <template #right>
-      <!-- 皮肤切换按钮 -->
-      <div class="theme-switcher-wrapper" ref="themeSwitcherRef">
+      <div class="titlebar-actions">
+        <div class="layout-controls">
+          <button
+            class="layout-toggle"
+            :class="{ 'is-visible': showConnectionList }"
+            type="button"
+            :title="t('titlebar.togglePrimarySidebar')"
+            :aria-label="t('titlebar.togglePrimarySidebar')"
+            :aria-pressed="showConnectionList"
+            @click="emit('toggle-primary-sidebar')"
+          >
+            <svg viewBox="0 0 18 18" aria-hidden="true">
+              <rect class="layout-outline" x="2" y="2.5" width="14" height="13" rx="2" />
+              <path class="layout-divider" d="M6.5 3v12" />
+              <rect class="layout-fill" x="3" y="3.5" width="2.5" height="11" rx="0.75" />
+            </svg>
+          </button>
+          <button
+            class="layout-toggle"
+            :class="{ 'is-visible': showBottomPanel }"
+            type="button"
+            :title="t('titlebar.toggleBottomPanel')"
+            :aria-label="t('titlebar.toggleBottomPanel')"
+            :aria-pressed="showBottomPanel"
+            @click="emit('toggle-bottom-panel')"
+          >
+            <svg viewBox="0 0 18 18" aria-hidden="true">
+              <rect class="layout-outline" x="2" y="2.5" width="14" height="13" rx="2" />
+              <path class="layout-divider" d="M2.5 10.5h13" />
+              <rect class="layout-fill" x="3" y="11.5" width="12" height="3" rx="0.75" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- 皮肤切换按钮：保留项目原版图标与选择面板 -->
+        <div class="theme-switcher-wrapper" ref="themeSwitcherRef">
         <button class="titlebar-btn theme-btn" @click="toggleThemePanel" title="切换皮肤">
           <svg
             viewBox="0 0 1024 1024"
@@ -196,6 +212,7 @@
             </div>
           </div>
         </Transition>
+        </div>
       </div>
     </template>
   </WindowTitleBar>
@@ -237,7 +254,8 @@ const switchTheme = (theme: 'dark' | 'light') => {
   showThemePanel.value = false
 }
 const emit = defineEmits([
-  'toggle-connection-list',
+  'toggle-primary-sidebar',
+  'toggle-bottom-panel',
   'refreshCommands',
   'refreshConnections',
   'notifyImport',
@@ -256,6 +274,10 @@ const emit = defineEmits([
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps({
   showConnectionList: {
+    type: Boolean,
+    default: true
+  },
+  showBottomPanel: {
     type: Boolean,
     default: true
   },
@@ -282,7 +304,6 @@ const handleWindowUnmaximized = () => (isMaximized.value = false)
 const minimizeWindow = () => window.windowApi.minimizeWindow()
 const maximizeWindow = () => window.windowApi.maximizeWindow()
 const closeWindow = () => window.windowApi.closeWindow()
-const toggleConnectionList = () => emit('toggle-connection-list')
 
 const hideFileMenu = () => {
   setTimeout(() => {
@@ -680,26 +701,78 @@ const handleClickOutside = (event: MouseEvent) => {
   width: 30px;
   height: 30px;
 }
-.toggle-connection-btn {
+
+.titlebar-actions {
+  display: flex;
+  align-items: center;
+  height: 30px;
   -webkit-app-region: no-drag;
-  margin-left: -10px;
+}
+
+.layout-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  -webkit-app-region: no-drag;
+}
+
+.layout-toggle {
+  width: 28px;
+  height: 30px;
+  padding: 0;
   border: none;
   background: transparent;
+  color: var(--text-titlebar);
   cursor: pointer;
-
-  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  opacity: 0.58;
+  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
 
-.toggle-connection-btn:hover {
+.layout-toggle:hover {
   background-color: var(--overlay-hover);
+  color: var(--text-white);
+  opacity: 1;
 }
 
-.toggle-connection-btn:active {
+.layout-toggle:active {
   background-color: var(--overlay-active);
 }
 
-.toggle-connection-btn.toggled svg {
-  transform: rotate(90deg);
+.layout-toggle:focus-visible {
+  outline: 1px solid var(--focus-border-color);
+  outline-offset: -2px;
+}
+
+.layout-toggle.is-visible {
+  color: var(--text-white);
+  opacity: 1;
+}
+
+.layout-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.layout-outline,
+.layout-divider {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.35;
+}
+
+.layout-fill {
+  fill: currentColor;
+  opacity: 0.18;
+  transition: opacity 0.15s ease;
+}
+
+.layout-toggle.is-visible .layout-fill {
+  opacity: 0.78;
 }
 
 .titlebar-menu {
