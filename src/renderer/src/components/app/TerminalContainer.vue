@@ -50,8 +50,8 @@
 </template>
 
 <script setup lang="ts">
-import ComTerminal from '../ComTerminal.vue'
-import TelnetTerminal from '../TelnetTerminal.vue'
+import ComTerminal from '../../features/terminal/ComTerminal.vue'
+import TelnetTerminal from '../../features/terminal/TelnetTerminal.vue'
 import CommandEditor from '../../features/commands/CommandEditor.vue'
 import ShortcutsPage from '../ShortcutsPage.vue'
 import SettingsPage from '../SettingsPage.vue'
