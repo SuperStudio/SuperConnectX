@@ -223,6 +223,8 @@ import { Plus, Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
 import FormUtils from '../../utils/FormUtils'
 import eventBus from '../../utils/EventBus'
 import { TOOLTIP_SHOW_AFTER } from '../../utils/constants'
+import { stripWhitespace, isValidHex, hexToBinaryString } from '../diagnostics/hex'
+import { requestCrcBinary } from '../diagnostics/dataCheck'
 
 // 组相关状态
 const groups = ref<any[]>([])
@@ -765,43 +767,20 @@ const closeContextMenuOnClickOutside = (event: MouseEvent) => {
 
 // 解析HEX字符串为二进制
 const parseHexString = (hex: string): string | null => {
-  try {
-    const cleaned = hex.replace(/[\s\n\r]+/g, '')
-    if (!/^[0-9A-Fa-f]*$/.test(cleaned) || cleaned.length % 2 !== 0) {
-      console.error('Invalid HEX format')
-      return null
-    }
-    let result = ''
-    for (let i = 0; i < cleaned.length; i += 2) {
-      result += String.fromCharCode(parseInt(cleaned.substr(i, 2), 16))
-    }
-    return result
-  } catch (error) {
-    console.error('HEX parse error:', error)
+  const cleaned = stripWhitespace(hex)
+  if (!isValidHex(cleaned)) {
+    console.error('Invalid HEX format')
     return null
   }
+  return hexToBinaryString(cleaned)
 }
 
 // 计算 CRC 校验字节（异步，通过主进程 DataCheckEngine）
 const computeCrcBytes = async (hexInput: string): Promise<string | null> => {
   if (!props.crcEnabled || !props.crcMethod || !hexInput) return null
-  try {
-    const result = await window.dataCheckApi.checkData(props.crcMethod, hexInput)
-    const hex = result.hexResult
-    const byteLen = hex.length / 2
-    const bytes = new Uint8Array(byteLen)
-    for (let i = 0; i < hex.length; i += 2) {
-      bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
-    }
-    let binary = ''
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i])
-    }
-    return binary
-  } catch {
-    console.error('CRC compute error')
-    return null
-  }
+  const binary = await requestCrcBinary(props.crcMethod, hexInput)
+  if (binary === null) console.error('CRC compute error')
+  return binary
 }
 
 const sendPresetCommand = async (cmd: any) => {

@@ -50,6 +50,8 @@ const commonCoverage = {
     'src/renderer/src/features/connections/protocol/base.ts',
     'src/renderer/src/features/connections/protocol/index.ts',
     'src/renderer/src/features/connections/protocol/TelnetInfo.ts',
+    'src/renderer/src/features/diagnostics/hex.ts',
+    'src/renderer/src/features/diagnostics/dataCheck.ts',
     'src/main/utils/ProtocolLogger.ts'
   ],
   exclude: ['out/**', 'node_modules/**', 'tests/**', '**/*.test.ts', '**/__mocks__/**']

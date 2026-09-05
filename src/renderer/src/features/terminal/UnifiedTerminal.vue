@@ -205,7 +205,7 @@ import { useI18n } from 'vue-i18n'
 import * as monaco from 'monaco-editor'
 import PresetCommands from '../commands/PresetCommands.vue'
 import TerminalControl from './TerminalControl.vue'
-import LogFilterPanel from './LogFilterPanel.vue'
+import LogFilterPanel from '../diagnostics/LogFilterPanel.vue'
 import { parseAnsiToSegments } from '../../utils/AnsiParser'
 import { AnsiDecorationManager } from '../../utils/AnsiDecorationManager'
 import { getMonacoTheme } from '../../utils/MonacoTheme'
@@ -214,6 +214,14 @@ import { TOOLTIP_SHOW_AFTER } from '../../utils/constants'
 import { calculateTerminalSplitRatio } from '../../utils/TerminalSplitLayout'
 import { sendDisplayText } from './useTerminalDisplayText'
 import { useTerminalPanelLayout } from './useTerminalPanelLayout'
+import {
+  isValidHex,
+  hexToUint8Array,
+  hexToSpacedHex,
+  uint8ArrayToHex,
+  uint8ArrayToBinaryString
+} from '../diagnostics/hex'
+import { migrateCrcMethod, loadCrcPlugins, requestCrcHex } from '../diagnostics/dataCheck'
 
 const maxClearSizeMB = ref(30)
 
@@ -355,14 +363,6 @@ const crcResultBytes = ref<Uint8Array | null>(null)
 
 const crcMethodLabel = computed(() => crcMethod.value)
 
-// 旧 CRC 方法名 → 新算法名 迁移
-const CRC_MIGRATION_MAP: Record<string, string> = {
-  'crc8': 'CRC-8/ITU',
-  'crc16modbus': 'CRC-16/MODBUS',
-  'crc16ccitt': 'CRC-16/CCITT-FALSE',
-  'crc32': 'CRC-32'
-}
-
 // 点击外部关闭CRC菜单
 const handleClickOutsideCrc = (e: MouseEvent) => {
   if (crcBtnRef.value && !crcBtnRef.value.contains(e.target as Node)) {
@@ -379,14 +379,10 @@ const crcInputData = computed((): Uint8Array | null => {
     let bytes: Uint8Array
     if (hexMode.value) {
       // HEX模式：解析HEX字符串
-      const cleaned = cmd.replace(/[\s\n\r]+/g, '')
-      if (!/^[0-9A-Fa-f]*$/.test(cleaned) || cleaned.length % 2 !== 0) {
+      if (!isValidHex(cmd)) {
         return null
       }
-      bytes = new Uint8Array(cleaned.length / 2)
-      for (let i = 0; i < cleaned.length; i += 2) {
-        bytes[i / 2] = parseInt(cleaned.substring(i, i + 2), 16)
-      }
+      bytes = hexToUint8Array(cmd)
     } else {
       // STR模式
       const encoder = new TextEncoder()
@@ -432,25 +428,12 @@ async function updateCrc(): Promise<void> {
     return
   }
   try {
-    const hexInput = Array.from(data)
-      .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
-      .join('')
-    const result = await window.dataCheckApi.checkData(crcMethod.value, hexInput)
+    const hexInput = uint8ArrayToHex(data)
+    const hex = await requestCrcHex(crcMethod.value, hexInput)
     if (seq !== _crcUpdateSeq) return // 丢弃过期结果
-    // 解析 hexResult → Uint8Array
-    const hex = result.hexResult
-    const byteLen = hex.length / 2
-    const bytes = new Uint8Array(byteLen)
-    for (let i = 0; i < hex.length; i += 2) {
-      bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
-    }
-    crcResultBytes.value = bytes
-    // 空格分隔的十六进制展示
-    const parts: string[] = []
-    for (let i = 0; i < hex.length; i += 2) {
-      parts.push(hex.substring(i, i + 2))
-    }
-    crcResultDisplay.value = parts.join(' ')
+    if (hex === null) throw new Error('CRC 计算失败') // 触发下方 ERR 展示
+    crcResultBytes.value = hexToUint8Array(hex)
+    crcResultDisplay.value = hexToSpacedHex(hex)
   } catch {
     if (seq !== _crcUpdateSeq) return
     crcResultDisplay.value = 'ERR'
@@ -467,11 +450,7 @@ watch([crcInputData, crcMethod, crcEnabled], () => {
 const getCrcBytesBinary = (): string | null => {
   const bytes = crcResultBytes.value
   if (!bytes || bytes.length === 0) return null
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  return binary
+  return uint8ArrayToBinaryString(bytes)
 }
 
 // 命令历史相关
@@ -1339,7 +1318,7 @@ defineExpose({
   setAutoNewline: (val: boolean) => { autoNewline.value = val },
   setHexMode: (val: boolean) => { hexMode.value = val },
   setCrcEnabled: (val: boolean) => { crcEnabled.value = val },
-  setCrcMethod: (val: string) => { crcMethod.value = CRC_MIGRATION_MAP[val] || val },
+  setCrcMethod: (val: string) => { crcMethod.value = migrateCrcMethod(val) },
   setHexDisplayMode: (val: boolean) => { hexDisplayMode.value = val },
   setShowTimestamp: (val: boolean) => { showTimestamp.value = val },
   setCommandInput: (val: string) => { currentCommand.value = val },
@@ -1427,7 +1406,7 @@ onMounted(async () => {
 
   // 加载数据校验算法列表
   try {
-    crcPluginList.value = await window.dataCheckApi.getPlugins()
+    crcPluginList.value = await loadCrcPlugins()
   } catch (e) {
     console.error('Failed to load CRC plugins:', e)
   }
