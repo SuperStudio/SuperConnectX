@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import ComTerminal from '../ComTerminal.vue'
 import TelnetTerminal from '../TelnetTerminal.vue'
-import CommandEditor from '../CommandEditor.vue'
+import CommandEditor from '../../features/commands/CommandEditor.vue'
 import ShortcutsPage from '../ShortcutsPage.vue'
 import SettingsPage from '../SettingsPage.vue'
 

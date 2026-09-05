@@ -203,7 +203,7 @@
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as monaco from 'monaco-editor'
-import PresetCommands from './PresetCommands.vue'
+import PresetCommands from '../features/commands/PresetCommands.vue'
 import TerminalControl from './TerminalControl.vue'
 import LogFilterPanel from './LogFilterPanel.vue'
 import { parseAnsiToSegments } from '../utils/AnsiParser'
