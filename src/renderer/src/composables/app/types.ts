@@ -1,39 +1,5 @@
 /**
- * Composables 共享类型定义
+ * Composables 共享类型 兼容转发层
+ * @deprecated 请从 features/tabs/types 导入
  */
-
-export interface ComTerminalRef {
-  isConnected?: boolean
-  reconnect?: () => void
-  preventAutoReconnect?: () => void
-  disconnect?: () => void
-  cleanup?: () => void
-  clearTerminal?: () => void
-  getFontFamily?: () => string
-  getRemark?: () => string
-  updateRemark?: (remark: string) => Promise<void>
-  handleFontChange?: (fontFamily: string) => void
-  handleFontSizeChange?: (action: string) => void
-  refreshGroupsCmds?: () => void
-  setWordWrap?: (value: boolean) => void
-  setLineNumbers?: (value: boolean) => void
-  setLogEditable?: (value: boolean) => void
-  [key: string]: any
-}
-
-export interface TelnetTerminalRef {
-  isConnected?: boolean
-  reconnect?: () => void
-  preventAutoReconnect?: () => void
-  disconnect?: () => void
-  cleanup?: () => void
-  clearTerminal?: () => void
-  getFontFamily?: () => string
-  handleFontChange?: (fontFamily: string) => void
-  handleFontSizeChange?: (action: string) => void
-  refreshGroupsCmds?: () => void
-  setWordWrap?: (value: boolean) => void
-  setLineNumbers?: (value: boolean) => void
-  setLogEditable?: (value: boolean) => void
-  [key: string]: any
-}
+export type { ComTerminalRef, TelnetTerminalRef } from '../../features/tabs/types'

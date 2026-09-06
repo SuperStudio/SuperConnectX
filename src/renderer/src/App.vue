@@ -272,7 +272,7 @@ import logoImage from './assets/icon.png'
 
 // Composables
 import { useConnectionSidebar } from './features/connections/useConnectionSidebar'
-import { useTabManager } from './composables/app/useTabManager'
+import { useTabManager } from './features/tabs/useTabManager'
 import { useSplitPanel } from './composables/app/useSplitPanel'
 import type { Panel } from './composables/app/useSplitPanel'
 import { useSerialRemarks } from './features/connections/useSerialRemarks'
