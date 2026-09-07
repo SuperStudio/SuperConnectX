@@ -61,7 +61,7 @@
                         </template>
                         <div class="serial-port-device" tabindex="0">
                           <div class="serial-port-row">
-                            <span class="conn-name">{{ port.path }}</span>
+                            <span class="conn-name" :title="port.path">{{ port.path }}</span>
                             <span v-if="showPortType" class="serial-port-type">
                               <el-tag v-if="port.type === 'virtual'" type="info" size="small" effect="dark">{{ t('sidebar.virtual') }}</el-tag>
                               <el-tag v-else-if="port.type === 'usb'" type="success" size="small" effect="dark">{{ t('sidebar.usb') }}</el-tag>
@@ -360,8 +360,8 @@ const handleMenuClick = (command: string) => {
   font-weight: 600;
   color: var(--text-secondary);
   display: inline-block;
-  width: 80px;
-  flex-shrink: 0;
+  min-width: 0;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
