@@ -8,6 +8,12 @@ import { ElMessage } from 'element-plus'
 
 export type SerialPortType = 'virtual' | 'usb' | 'bluetooth' | 'none'
 
+export function getSerialPortDisplayName(path: string): string {
+  const fileName = path.replace(/\\/g, '/').split('/').pop() || path
+  // macOS 的 cu./tty. 表示设备访问模式，不是设备名称；Linux 的 ttyUSB/ttyACM 则保留类型信息。
+  return fileName.replace(/^(?:cu|tty)\./i, '')
+}
+
 export function useConnectionSidebar() {
   const { t } = useI18n()
   const connections = ref<any[]>([])

@@ -3,6 +3,7 @@
  * 测试：串口类型解析、搜索过滤、连接分组
  */
 import { describe, it, expect } from 'vitest'
+import { getSerialPortDisplayName } from '../../src/renderer/src/features/connections/useConnectionSidebar'
 
 // Extract pure functions from useConnectionSidebar for testing
 function parseSerialPortType(port: { path: string; friendlyName?: string; manufacturer?: string; pnpId?: string }): 'virtual' | 'usb' | 'bluetooth' | 'none' {
@@ -56,6 +57,20 @@ function groupConnections(connections: any[]): Record<string, any[]> {
   })
   return groups
 }
+
+describe('getSerialPortDisplayName', () => {
+  it.each([
+    ['COM3', 'COM3'],
+    ['\\\\.\\COM10', 'COM10'],
+    ['/dev/ttyUSB0', 'ttyUSB0'],
+    ['/dev/ttyACM0', 'ttyACM0'],
+    ['/dev/rfcomm0', 'rfcomm0'],
+    ['/dev/cu.usbserial-1410', 'usbserial-1410'],
+    ['/dev/tty.usbmodem1101', 'usbmodem1101']
+  ])('formats %s as %s', (path, expected) => {
+    expect(getSerialPortDisplayName(path)).toBe(expected)
+  })
+})
 
 describe('parseSerialPortType', () => {
   it('should return virtual for ports with virtual in name', () => {
