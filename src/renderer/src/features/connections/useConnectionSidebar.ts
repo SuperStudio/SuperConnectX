@@ -8,6 +8,10 @@ import { ElMessage } from 'element-plus'
 
 export type SerialPortType = 'virtual' | 'usb' | 'bluetooth' | 'none'
 
+export function getSerialPortDisplayName(path: string): string {
+  return path.replace(/\\/g, '/').split('/').pop() || path
+}
+
 export function useConnectionSidebar() {
   const { t } = useI18n()
   const connections = ref<any[]>([])
