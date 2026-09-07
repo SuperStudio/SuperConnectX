@@ -65,8 +65,8 @@ describe('getSerialPortDisplayName', () => {
     ['/dev/ttyUSB0', 'ttyUSB0'],
     ['/dev/ttyACM0', 'ttyACM0'],
     ['/dev/rfcomm0', 'rfcomm0'],
-    ['/dev/cu.usbserial-1410', 'usbserial-1410'],
-    ['/dev/tty.usbmodem1101', 'usbmodem1101']
+    ['/dev/cu.usbserial-1410', 'cu.usbserial-1410'],
+    ['/dev/tty.usbmodem1101', 'tty.usbmodem1101']
   ])('formats %s as %s', (path, expected) => {
     expect(getSerialPortDisplayName(path)).toBe(expected)
   })
