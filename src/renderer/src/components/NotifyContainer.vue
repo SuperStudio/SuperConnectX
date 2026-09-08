@@ -8,9 +8,11 @@ import { useI18n } from 'vue-i18n'
 import NotificationCenter from '../foundation/shell/NotificationCenter.vue'
 
 const { t } = useI18n()
+const props = withDefaults(defineProps<{ defaultDuration?: number }>(), { defaultDuration: 0 })
 const notificationCenterRef = ref<InstanceType<typeof NotificationCenter> | null>(null)
 
-const add = (title: string, message: string, duration?: number): number | undefined => notificationCenterRef.value?.add(title, message, duration)
+const add = (title: string, message: string, duration = props.defaultDuration): number | undefined =>
+  notificationCenterRef.value?.add(title, message, duration)
 const remove = (id: number): void => notificationCenterRef.value?.remove(id)
 const clear = (): void => notificationCenterRef.value?.clear()
 

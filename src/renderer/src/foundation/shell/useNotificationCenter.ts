@@ -33,7 +33,7 @@ export function useNotificationCenter(onItemAdded?: () => void): NotificationCen
     }
   }
 
-  const add = (title: string, message: string, duration = 5000): number => {
+  const add = (title: string, message: string, duration = 0): number => {
     const existing = items.value.find(item => item.title === title && item.message === message)
     if (existing) {
       existing.count++

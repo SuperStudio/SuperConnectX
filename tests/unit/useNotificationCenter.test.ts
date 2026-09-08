@@ -59,6 +59,15 @@ describe('useNotificationCenter', () => {
     expect(items.value).toEqual([])
   })
 
+  it('keeps notifications permanently by default', () => {
+    const { add, items } = useNotificationCenter()
+    add('Title', 'message')
+
+    vi.runAllTimers()
+    expect(items.value).toHaveLength(1)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it('restarts the timer when a duplicate notification is added', () => {
     const { add, items } = useNotificationCenter()
     add('Title', 'message', 1000)
