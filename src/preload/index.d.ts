@@ -105,6 +105,7 @@ declare global {
       getWindowState: () => Promise<boolean>
       getAppVersion: () => Promise<string>
       toggleFullscreenWindow: () => Promise<void>
+      onMaximizedChanged: (callback: (maximized: boolean) => void) => () => void
     }
     toolApi: {
       openDevtools: () => Promise<void>

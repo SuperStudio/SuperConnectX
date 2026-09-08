@@ -9,6 +9,7 @@ import SettingsStorage from '../storage/SettingsStorage'
 import BackupManager from '../utils/BackupManager'
 import fs from 'fs'
 import path from 'path'
+import { WINDOW_IPC_CHANNELS } from '../../shared/ipc/window'
 
 (app as any).isQuitting = false
 let isQuitting = false
@@ -74,18 +75,20 @@ export default class IpcMain {
         return { action: 'deny' }
       })
 
-      // 监听窗口最大化状态变化
-      mainWindow.on('maximize', () => {
-        mainWindow.webContents.executeJavaScript(
-          'window.dispatchEvent(new Event("window-maximized"))'
-        )
-      })
-
-      mainWindow.on('unmaximize', () => {
-        mainWindow.webContents.executeJavaScript(
-          'window.dispatchEvent(new Event("window-unmaximized"))'
-        )
-      })
+      // 监听窗口最大化状态变化（多事件兜底，兼容 Ubuntu 24 等 Linux 窗口管理器）
+      // 仅在状态真正变化时才通知渲染进程，避免 resize 事件风暴期间频繁 IPC。
+      let lastMaximized: boolean | null = null
+      const dispatchMaximizeState = () => {
+        const maximized = mainWindow.isMaximized()
+        if (maximized === lastMaximized) return
+        lastMaximized = maximized
+        if (mainWindow.isDestroyed()) return
+        mainWindow.webContents.send(WINDOW_IPC_CHANNELS.maximizedChanged, maximized)
+      }
+      mainWindow.on('maximize', dispatchMaximizeState)
+      mainWindow.on('unmaximize', dispatchMaximizeState)
+      // resize 事件兜底：某些 Linux 桌面环境（如 GNOME on Ubuntu 24）可能不触发 unmaximize
+      mainWindow.on('resize', dispatchMaximizeState)
 
       // 监听窗口关闭事件
       mainWindow.on('close', (event) => {

@@ -5,7 +5,8 @@ export const WINDOW_IPC_CHANNELS = {
   getMaximized: 'get-window-state',
   toggleMaximize: 'maximize-window',
   getAppVersion: 'get-app-version',
-  toggleFullscreen: 'toggle-fullscreen-window'
+  toggleFullscreen: 'toggle-fullscreen-window',
+  maximizedChanged: 'window-maximized-changed'
 } as const
 
 export type WindowIpcChannel = (typeof WINDOW_IPC_CHANNELS)[keyof typeof WINDOW_IPC_CHANNELS]

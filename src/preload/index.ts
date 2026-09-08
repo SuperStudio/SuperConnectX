@@ -121,7 +121,12 @@ contextBridge.exposeInMainWorld('windowApi', {
   closeWindow: () => ipcRenderer.invoke(WINDOW_IPC_CHANNELS.close),
   getWindowState: () => ipcRenderer.invoke(WINDOW_IPC_CHANNELS.getMaximized),
   getAppVersion: () => ipcRenderer.invoke(WINDOW_IPC_CHANNELS.getAppVersion),
-  toggleFullscreenWindow: () => ipcRenderer.invoke(WINDOW_IPC_CHANNELS.toggleFullscreen)
+  toggleFullscreenWindow: () => ipcRenderer.invoke(WINDOW_IPC_CHANNELS.toggleFullscreen),
+  onMaximizedChanged: (callback: (maximized: boolean) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, maximized: boolean) => callback(maximized)
+    ipcRenderer.on(WINDOW_IPC_CHANNELS.maximizedChanged, listener)
+    return () => ipcRenderer.removeListener(WINDOW_IPC_CHANNELS.maximizedChanged, listener)
+  }
 })
 
 contextBridge.exposeInMainWorld('toolApi', {
