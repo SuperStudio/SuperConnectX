@@ -54,6 +54,7 @@
         @deleteConnection="deleteConnection"
         @sidebarMenuCommand="handleSidebarMenuCommand"
         @update:serialPortExpanded="(v) => serialPortExpanded = v"
+        @serialPortContextMenu="handleSerialPortContextMenu"
       />
 
       <!-- 侧边栏分隔条 -->
@@ -497,13 +498,18 @@ watch(connectionTabs, (tabs) => {
 const {
   showRemarkDialog, editingRemark, editingRemarkComName,
   serialRemarks,
-  loadAllSerialRemarks, openRemarkDialog, onRemarkDialogOpened, saveSerialRemark
+  loadAllSerialRemarks, openRemarkDialog, openSerialPortRemark, onRemarkDialogOpened, saveSerialRemark
 } = useSerialRemarks(comTerminalRefs)
 
 const openRemarkDialogHandler = async () => {
   if (!rightClickedTab.value?.comName) return
   await openRemarkDialog(rightClickedTab.value)
   hideTabMenu()
+}
+
+// 串口右键菜单处理
+const handleSerialPortContextMenu = async (data: { event: MouseEvent; port: any }) => {
+  await openSerialPortRemark(data.port.path)
 }
 
 // ---- 分屏操作 ----
@@ -845,7 +851,7 @@ const handleMergePanel = () => {
 */
 
 const saveSerialRemarkHandler = () => {
-  saveSerialRemark(rightClickedTab.value)
+  saveSerialRemark()
 }
 
 // ---- Connection Dialog ----
