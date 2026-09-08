@@ -4,8 +4,9 @@ import { ElMessage } from 'element-plus'
 
 /** Minimal COM terminal contract needed to keep serial remarks synchronized. */
 export interface ComTerminalRemarkRef {
+  getComName?: () => string
   getRemark?: () => string
-  updateRemark?: (remark: string) => Promise<void>
+  setRemark?: (remark: string) => void
 }
 
 /** Maintains persisted COM-port remarks for the SuperConnectX connection feature. */
@@ -16,9 +17,10 @@ export function useSerialRemarks(comTerminalRefs: Record<string, ComTerminalRema
   const editingRemarkComName = ref('')
   const serialRemarks = reactive<Record<string, string>>({})
   const remarkInputRef = ref<any>(null)
+  let openRequestId = 0
 
   const loadSerialRemark = async (comName: string): Promise<string> => {
-    if (serialRemarks[comName]) return serialRemarks[comName]
+    if (Object.hasOwn(serialRemarks, comName)) return serialRemarks[comName]
     try {
       const settings = await window.storageApi.getComSettings(comName)
       const remark = settings?.remark || ''
@@ -35,21 +37,37 @@ export function useSerialRemarks(comTerminalRefs: Record<string, ComTerminalRema
 
   const openRemarkDialog = async (tab: { comName?: string; id: string | number }) => {
     if (!tab.comName) return
-    editingRemarkComName.value = tab.comName
+    const comName = tab.comName
+    const requestId = ++openRequestId
+    editingRemarkComName.value = comName
     const terminal = comTerminalRefs[tab.id.toString()]
 
-    if (serialRemarks[tab.comName]) {
-      editingRemark.value = serialRemarks[tab.comName]
+    let remark: string
+    if (Object.hasOwn(serialRemarks, comName)) {
+      remark = serialRemarks[comName]
     } else if (terminal?.getRemark) {
-      editingRemark.value = terminal.getRemark() || ''
+      remark = terminal.getRemark() || ''
+      serialRemarks[comName] = remark
     } else {
       try {
-        const settings = await window.storageApi.getComSettings(tab.comName)
-        editingRemark.value = settings?.remark || ''
+        const settings = await window.storageApi.getComSettings(comName)
+        remark = settings?.remark || ''
+        serialRemarks[comName] = remark
       } catch {
-        editingRemark.value = ''
+        remark = ''
       }
     }
+    if (requestId !== openRequestId) return
+    editingRemark.value = remark
+    showRemarkDialog.value = true
+  }
+
+  const openSerialPortRemark = async (comName: string) => {
+    const requestId = ++openRequestId
+    editingRemarkComName.value = comName
+    const remark = Object.hasOwn(serialRemarks, comName) ? serialRemarks[comName] : await loadSerialRemark(comName)
+    if (requestId !== openRequestId) return
+    editingRemark.value = remark
     showRemarkDialog.value = true
   }
 
@@ -60,27 +78,25 @@ export function useSerialRemarks(comTerminalRefs: Record<string, ComTerminalRema
     })
   }
 
-  const saveSerialRemark = async (rightClickedTab?: { id: string | number; comName?: string } | null) => {
+  const saveSerialRemark = async (_rightClickedTab?: { id: string | number; comName?: string } | null) => {
     const comName = editingRemarkComName.value
     if (!comName) return
-    serialRemarks[comName] = editingRemark.value
-
-    const terminal = rightClickedTab ? comTerminalRefs[rightClickedTab.id.toString()] : undefined
-    if (terminal?.updateRemark) {
-      await terminal.updateRemark(editingRemark.value)
-      showRemarkDialog.value = false
-      return
-    }
+    const remark = editingRemark.value
 
     try {
       const currentSettings = await window.storageApi.getComSettings(comName)
-      await window.storageApi.saveComSettings(comName, { ...currentSettings, remark: editingRemark.value })
+      const saved = await window.storageApi.saveComSettings(comName, { ...currentSettings, remark })
+      if (saved === false) throw new Error('saveComSettings returned false')
+      serialRemarks[comName] = remark
+      for (const terminal of Object.values(comTerminalRefs)) {
+        if (terminal.getComName?.() === comName) terminal.setRemark?.(remark)
+      }
+      if (editingRemarkComName.value === comName) showRemarkDialog.value = false
     } catch (error) {
       console.error(t('dialog.remarkSaveFailed'), error)
       ElMessage.error(t('dialog.remarkSaveFailed'))
     }
-    showRemarkDialog.value = false
   }
 
-  return { showRemarkDialog, editingRemark, editingRemarkComName, serialRemarks, remarkInputRef, loadSerialRemark, loadAllSerialRemarks, openRemarkDialog, onRemarkDialogOpened, saveSerialRemark }
+  return { showRemarkDialog, editingRemark, editingRemarkComName, serialRemarks, remarkInputRef, loadSerialRemark, loadAllSerialRemarks, openRemarkDialog, openSerialPortRemark, onRemarkDialogOpened, saveSerialRemark }
 }

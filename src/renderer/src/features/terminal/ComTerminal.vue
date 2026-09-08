@@ -238,6 +238,18 @@ const crcMethod = ref<string>('CRC-16/MODBUS')
 
 let removeMountedCloseListener: (() => void) | null = null
 let removeDataListener: (() => void) | null = null
+let connectGeneration = 0
+let isDisposed = false
+let retryTimer: ReturnType<typeof setTimeout> | null = null
+
+const cancelPendingConnect = () => {
+  connectGeneration++
+  isConnecting.value = false
+  if (retryTimer) {
+    clearTimeout(retryTimer)
+    retryTimer = null
+  }
+}
 
 // 串口参数
 const baudRates = ref<number[]>([]) // 从全局设置加载
@@ -479,6 +491,11 @@ const updateRemark = async (newRemark: string) => {
   emit('remarkUpdated', { comName: props.connection.comName, remark: newRemark })
 }
 
+const setRemark = (newRemark: string) => {
+  remark.value = newRemark
+  emit('remarkUpdated', { comName: props.connection.comName, remark: newRemark })
+}
+
 // 通知后端更新日志时间戳配置
 const notifyLogTimestampToBackend = async (showTs: boolean) => {
   if (!isConnected.value) return
@@ -563,26 +580,37 @@ const deleteBaudRate = async (rate: number) => {
 }
 
 const handleConnect = async () => {
+  if (isDisposed || isConnecting.value || isConnected.value) return
+
+  const generation = ++connectGeneration
+  const connection = {
+    connectionType: 'com',
+    comName: props.connection.comName,
+    baudRate: baudRate.value,
+    dataBits: dataBits.value,
+    stopBits: stopBits.value,
+    parity: parity.value,
+    name: props.connection.name,
+    sessionId: props.connection.sessionId,
+    encoding: encoding.value,
+    readTimeout: readTimeout.value,
+    writeTimeout: writeTimeout.value,
+    receiveHex: hexDisplayMode.value
+  }
   isConnecting.value = true
   unifiedTerminalRef.value?.appendToTerminal(`\n${t('comTerminal.connecting', { port: props.connection.comName })}\n`)
 
   try {
-    const result = await window.connectApi.startConnect({
-      connectionType: 'com',
-      comName: props.connection.comName,
-      baudRate: baudRate.value,
-      dataBits: dataBits.value,
-      stopBits: stopBits.value,
-      parity: parity.value,
-      name: props.connection.name,
-      sessionId: props.connection.sessionId,
-      encoding: encoding.value,
-      readTimeout: readTimeout.value,
-      writeTimeout: writeTimeout.value,
-      receiveHex: hexDisplayMode.value
-    })
+    const result = await window.connectApi.startConnect(connection)
 
     if (result.success) {
+      if (isDisposed || generation !== connectGeneration) {
+        isConnecting.value = false
+        await window.connectApi.stopConnect(connection).catch((error) => {
+          console.error(t('comTerminal.connectionClosed'), error)
+        })
+        return
+      }
       currentSessionId.value = String(props.connection.sessionId)
       isConnected.value = true
       isConnecting.value = false
@@ -613,6 +641,7 @@ const handleConnect = async () => {
       throw err
     }
   } catch (error) {
+    if (isDisposed || generation !== connectGeneration) return
     isConnecting.value = false
     const err = error as Error & { code?: string }
     unifiedTerminalRef.value?.appendToTerminal(`\n${t('comTerminal.connectFailed')}: ${err.message}\n`)
@@ -647,6 +676,7 @@ const offerSerialPermissionFix = async () => {
 
 const handleClose = async () => {
   preventAutoReconnect.value = true
+  cancelPendingConnect()
   terminalCleanup()
   // 清理数据监听器
   if (removeDataListener) {
@@ -740,8 +770,10 @@ defineExpose({
   disconnect: handleClose,
   isConnected: isConnectedValue,
   preventAutoReconnect: () => { preventAutoReconnect.value = true },
+  getComName: () => props.connection.comName,
   getRemark: () => remark.value,
   updateRemark,
+  setRemark,
   handleFontChange,
   getFontFamily: () => {
     const unifiedFont = unifiedTerminalRef.value?.getFontFamily?.()
@@ -754,9 +786,11 @@ defineExpose({
 })
 
 onMounted(async () => {
+  isDisposed = false
   preventAutoReconnect.value = false
   await loadBaudRates()
   await loadComSettings()
+  if (isDisposed) return
 
   nextTick(() => {
     unifiedTerminalRef.value?.setHexDisplayMode?.(hexDisplayMode.value)
@@ -786,6 +820,9 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  const shouldStopConnection = isConnected.value || isConnecting.value
+  isDisposed = true
+  cancelPendingConnect()
   terminalCleanup()
   window.removeEventListener('settings-updated', handleSettingsUpdated)
   if (removeDataListener) {
@@ -797,7 +834,7 @@ onUnmounted(() => {
     removeMountedCloseListener = null
   }
 
-  if (isConnected.value) {
+  if (shouldStopConnection) {
     window.connectApi
       .stopConnect({
         connectionType: 'com',
