@@ -14,6 +14,19 @@ SuperConnectX 是**超级终端工具**，支持 com、telnet 等终端连接，
 
 下载地址：[点此下载](https://github.com/SuperStudio/SuperConnectX/releases)
 
+## macOS 安装与更新
+
+- Apple Silicon（M1/M2/M3/M4 等）请选择文件名包含 `macos-arm64.dmg` 的安装包；Intel Mac 请选择 `macos-x64.dmg`。
+- 项目当前未使用 Apple Developer ID 签名和公证。首次从浏览器下载并安装后，macOS 可能提示“无法验证开发者”或“应用已损坏”。请先在“系统设置 → 隐私与安全性”中找到被拦截记录，然后点击“仍要打开”。
+- 如果系统设置中没有“仍要打开”，仅在确认应用来自本项目 Releases 且已核对 `SHA256SUMS` 后，打开“终端”执行：
+
+```bash
+xattr -r -d com.apple.quarantine "/Applications/superconnectx.app"
+```
+
+- 如果安装到了其他目录，请将命令中的路径替换为实际 `.app` 路径。命令必须指向具体应用，避免对 `/Applications` 整体移除隔离属性。
+- 应用内可以检查 GitHub Release 元数据并识别对应 CPU 架构的更新包，但 macOS 自动安装更新依赖有效的代码签名，未签名版本不保证能够自动完成安装。建议点击更新窗口中的“官网下载”，前往 Releases 手动下载并覆盖安装；安装后若再次被 Gatekeeper 拦截，可重复以上步骤。
+
 
 ![image-20260531221403478](Image/image-20260531221403478.png)
 
