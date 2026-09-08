@@ -32,7 +32,7 @@ const { t } = useI18n()
 import UnifiedTerminal from './UnifiedTerminal.vue'
 import { fromRawConnection } from '../../features/connections/protocol'
 import { useTerminal } from './useTerminal'
-import { recvDisplayText } from './useTerminalDisplayText'
+import { formatReceivedData, recvDisplayText } from './useTerminalDisplayText'
 
 const MAX_RETRY_COUNT = 1000
 const RETRY_INTERVAL_MS = 3000
@@ -62,11 +62,13 @@ const isConnecting = ref(false)
 const unifiedTerminalRef = ref<InstanceType<typeof UnifiedTerminal>>()
 
 let retryCount = 0
-let retryTimer: NodeJS.Timeout | null = null
+let retryTimer: ReturnType<typeof setTimeout> | null = null
 const stopRetry = ref(false)
 let preventAutoReconnect = false
 let removeDataListener: (() => void) | null = null
 let removeCloseListener: (() => void) | null = null
+let connectGeneration = 0
+let connectAttemptQueue = Promise.resolve()
 
 // 获取原始 connection id
 const getOriginalConnectionId = (): number | undefined => {
@@ -129,25 +131,58 @@ const terminal = useTerminal({
 
 const { openLogFolder, openLogFile, saveLogFile, cleanup: terminalCleanup } = terminal
 
-const handleClose = async () => {
-  stopRetry.value = true
+const clearRetryTimer = () => {
   if (retryTimer) {
     clearTimeout(retryTimer)
     retryTimer = null
   }
+}
+
+const getStopConnectionPayload = () => {
+  const stopConn: any = {
+    connectionType: props.connection.connectionType,
+    sessionId: props.connection.sessionId
+  }
+  if (props.connection.connectionType === 'telnet') {
+    stopConn.host = props.connection.host
+    stopConn.port = props.connection.port
+  }
+  return stopConn
+}
+
+// This primitive must stay queue-free because it is also used from a queued start task.
+const stopConnectionDirect = async () => {
+  await window.connectApi.stopConnect(getStopConnectionPayload())
+}
+
+const enqueueConnectionTask = (task: () => Promise<void>) => {
+  const queuedTask = connectAttemptQueue.catch(() => undefined).then(task)
+  connectAttemptQueue = queuedTask
+  return queuedTask
+}
+
+const stopConnection = async () => {
+  // Cancel a pending backend start immediately, then wait for its renderer task
+  // to observe the generation change before a later generation can start.
+  await stopConnectionDirect()
+  await connectAttemptQueue.catch(() => undefined)
+}
+
+const cancelConnectLifecycle = () => {
+  connectGeneration++
+  stopRetry.value = true
+  clearRetryTimer()
+  isConnecting.value = false
+}
+
+const handleClose = async () => {
+  preventAutoReconnect = true
+  cancelConnectLifecycle()
   // 先清理监听器，防止 onConnectClose 回调触发重连提示
   cleanup()
   unifiedTerminalRef.value?.appendToTerminal(`\n连接已关闭\n`)
   try {
-    const stopConn: any = {
-      connectionType: props.connection.connectionType,
-      sessionId: props.connection.sessionId
-    }
-    if (props.connection.connectionType === 'telnet') {
-      stopConn.host = props.connection.host
-      stopConn.port = props.connection.port
-    }
-    await window.connectApi.stopConnect(stopConn)
+    await stopConnection()
   } catch (error) {
     console.error('Failed to close connection:', error)
   }
@@ -167,19 +202,45 @@ const cleanup = () => {
   isConnected.value = false
 }
 
-const handleReconnect = () => {
+const handleReconnect = async () => {
+  const shouldStopConnection = isConnected.value
+  cancelConnectLifecycle()
+  const reconnectGeneration = connectGeneration
+  cleanup()
   preventAutoReconnect = false
   stopRetry.value = false
   terminal.totalTxSize = 0
   terminal.totalRxSize = 0
   unifiedTerminalRef.value?.resetRxTx()
   unifiedTerminalRef.value?.appendToTerminal(`\n正在重新连接...\n`)
+  if (shouldStopConnection) {
+    try {
+      await stopConnection()
+    } catch (error) {
+      console.error('Failed to stop connection before reconnecting:', error)
+    }
+  }
+  if (reconnectGeneration !== connectGeneration || preventAutoReconnect) return
   connect()
 }
 
 const reconnect = () => handleReconnect()
 
-const handleTelnetClose = (_connId: number) => {
+const scheduleRetry = (callback: () => void, delay: number, generation: number) => {
+  clearRetryTimer()
+  retryTimer = setTimeout(() => {
+    retryTimer = null
+    if (generation !== connectGeneration || stopRetry.value || preventAutoReconnect) return
+    callback()
+  }, delay)
+}
+
+const handleTelnetClose = (_sessionId: string | number, generation: number) => {
+  if (generation !== connectGeneration) return
+  connectGeneration++
+  const reconnectGeneration = connectGeneration
+  clearRetryTimer()
+  isConnecting.value = false
   cleanup()
   if (preventAutoReconnect) {
     unifiedTerminalRef.value?.appendToTerminal(`\n连接已关闭\n`)
@@ -193,29 +254,51 @@ const handleTelnetClose = (_connId: number) => {
   ElMessage.info(t('terminal.reconnecting'))
   unifiedTerminalRef.value?.appendToTerminal(`\n连接已关闭，将在${RETRY_INTERVAL_MS / 1000}秒后尝试重连...\n`)
   if (!stopRetry.value) {
-    setTimeout(connect, 1000)
+    scheduleRetry(connect, RETRY_INTERVAL_MS, reconnectGeneration)
   }
 }
 
-let currentConnId = 0
+const registerConnectionListeners = (generation: number) => {
+  removeDataListener?.()
+  removeCloseListener?.()
+
+  const sessionId = String(props.connection.sessionId)
+  removeDataListener = window.connectApi.onRecvData((data) => {
+    if (generation !== connectGeneration || String(data.connId) !== sessionId) return
+    terminal.totalRxSize += data.data.length
+    unifiedTerminalRef.value?.updateRxBytes(data.data.length)
+    const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
+    const displayText = formatReceivedData(`${recvLabel}${data.data}`, terminal.showTimestamp.value, data.timestamp)
+    unifiedTerminalRef.value?.appendToTerminal(displayText)
+  })
+
+  removeCloseListener = window.connectApi.onConnectClose((closedSessionId) => {
+    if (String(closedSessionId) !== sessionId) return
+    handleTelnetClose(closedSessionId, generation)
+  })
+}
 
 const connect = async () => {
   if (preventAutoReconnect) {
     return
   }
+  clearRetryTimer()
+  const generation = ++connectGeneration
   stopRetry.value = false
   retryCount = 0
   isConnected.value = false
   isConnecting.value = true
-  currentConnId = 0
   terminal.totalRxSize = 0
   terminal.totalTxSize = 0
 
   const attemptConnect = async () => {
-    if (stopRetry.value) {
-      isConnecting.value = false
+    if (generation !== connectGeneration || stopRetry.value || preventAutoReconnect) {
+      if (generation === connectGeneration) isConnecting.value = false
       return
     }
+
+    // A retry may have been superseded while it was waiting in the timer queue.
+    clearRetryTimer()
 
     try {
       // 通过 connectionId 发起连接，后端从存储中解密密码
@@ -231,9 +314,19 @@ const connect = async () => {
           password: undefined
         }))
       )
+
+      if (generation !== connectGeneration || stopRetry.value || preventAutoReconnect) {
+        if (result.success) {
+          try {
+            await stopConnectionDirect()
+          } catch (error) {
+            console.error('Failed to clean up stale connection:', error)
+          }
+        }
+        return
+      }
+
       if (result.success) {
-        terminalCleanup()
-        currentConnId = result.connId
         isConnected.value = true
         isConnecting.value = false
 
@@ -252,31 +345,7 @@ const connect = async () => {
           { logTimestamp: terminal.showTimestamp.value }
         )
 
-        // 清理旧监听器，防止重复注册
-        if (removeDataListener) {
-          removeDataListener()
-          removeDataListener = null
-        }
-        if (removeCloseListener) {
-          removeCloseListener()
-          removeCloseListener = null
-        }
 
-        removeDataListener = window.connectApi.onRecvData((data) => {
-          if (data.connId !== currentConnId) return
-          terminal.totalRxSize += data.data.length
-          unifiedTerminalRef.value?.updateRxBytes(data.data.length)
-          const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
-          const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
-          const displayText = `${prefix}${recvLabel}${data.data}\n`
-          unifiedTerminalRef.value?.appendToTerminal(displayText)
-        })
-
-        removeCloseListener = window.connectApi.onConnectClose((connId) => {
-          // 只处理自己连接的断开事件
-          if (String(connId) !== String(props.connection.sessionId)) return
-          handleTelnetClose(connId)
-        })
         const successMsg = props.connection.ftpMode === 'server'
           ? `\nserver started, retry count: ${retryCount + 1}\n`
           : `\nconnect success, retry count: ${retryCount + 1}\n`
@@ -286,20 +355,35 @@ const connect = async () => {
         throw new Error(result.message || '连接失败')
       }
     } catch (error) {
+      if (generation !== connectGeneration || stopRetry.value || preventAutoReconnect) return
       retryCount++
       const errMsg = (error as Error).message
       unifiedTerminalRef.value?.appendToTerminal(`\nconnect failed: (${retryCount}/${MAX_RETRY_COUNT}): ${errMsg}\n`)
       if (retryCount < MAX_RETRY_COUNT && !stopRetry.value) {
-        retryTimer = setTimeout(attemptConnect, RETRY_INTERVAL_MS)
+        scheduleRetry(runAttempt, RETRY_INTERVAL_MS, generation)
       } else if (retryCount >= MAX_RETRY_COUNT) {
         isConnecting.value = false
+        // Do not leave the failed generation's callbacks registered indefinitely.
+        cleanup()
         emit('onClose')
         if (typeof props.onClose === 'function') props.onClose()
       }
     }
   }
 
-  await attemptConnect()
+  const runAttempt = async () => {
+    // A stale successful start must finish stopping before a newer generation
+    // starts with the same sessionId, otherwise its cleanup could stop the new one.
+    await enqueueConnectionTask(async () => {
+      if (generation !== connectGeneration || stopRetry.value || preventAutoReconnect) return
+      // Register only after the previous generation has cleaned itself up, but
+      // before this generation starts, so neither stale close nor early data wins.
+      registerConnectionListeners(generation)
+      await attemptConnect()
+    })
+  }
+
+  await runAttempt()
 }
 
 const handleSend = async (command: string, _originalInput?: string) => {
@@ -372,20 +456,12 @@ defineExpose({
   reconnect,
   cleanup: () => {
     preventAutoReconnect = true
-    stopRetry.value = true
-    if (retryTimer) {
-      clearTimeout(retryTimer)
-      retryTimer = null
-    }
+    cancelConnectLifecycle()
     cleanup()
   },
   preventAutoReconnect: () => {
     preventAutoReconnect = true
-    stopRetry.value = true
-    if (retryTimer) {
-      clearTimeout(retryTimer)
-      retryTimer = null
-    }
+    cancelConnectLifecycle()
   },
   getFontFamily: () => {
     const unifiedFont = unifiedTerminalRef.value?.getFontFamily?.()
@@ -400,12 +476,11 @@ defineExpose({
 onBeforeUnmount(() => {
   // 组件销毁时确保一切清理干净：停止重试、移除监听器
   preventAutoReconnect = true
-  stopRetry.value = true
-  if (retryTimer) {
-    clearTimeout(retryTimer)
-    retryTimer = null
-  }
+  cancelConnectLifecycle()
   cleanup()
+  stopConnection().catch((error) => {
+    console.error('Failed to disconnect on unmount:', error)
+  })
 })
 
 onMounted(() => {

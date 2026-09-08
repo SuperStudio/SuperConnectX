@@ -21,6 +21,9 @@ export default class DirectConnector {
 
   // 直连模式客户端实例（每个 session 独立实例，避免 onData/onClose 回调覆盖）
   private directClients: Map<string, DirectClient> = new Map()
+  private pendingStarts: Map<string, Set<Promise<object>>> = new Map()
+  private startQueues: Map<string, Promise<void>> = new Map()
+  private generations: Map<string, number> = new Map()
 
   constructor(stateManager: ConnectionStateManager) {
     this.stateManager = stateManager
@@ -35,24 +38,26 @@ export default class DirectConnector {
 
   // ============ 回调工厂 ============
 
-  private createOnData(sessionId: string) {
+  private createOnData(sessionId: string, client: DirectClient) {
     return (dataObj: { data: string; timestamp: string }) => {
+      if (this.directClients.get(sessionId) !== client) return
       const isHex = this.stateManager.getReceiveHex(sessionId)
       // HEX 转换已下沉到 BufferLineSplitter.decodeBuffer() 中完成，此处不再重复转换
       this.stateManager.sendDataToRenderer(sessionId, dataObj.data, dataObj.timestamp, isHex)
     }
   }
 
-  private createOnClose(sessionId: string): () => void {
+  private createOnClose(sessionId: string, client: DirectClient): () => void {
     return () => {
+      if (this.directClients.get(sessionId) !== client) return
       this.stateManager.cleanupOnClose(sessionId)
       this.directClients.delete(sessionId)
     }
   }
 
-  private createOnLog(sessionId: string) {
+  private createOnLog(sessionId: string, client: DirectClient) {
     return (logStr: string, timestamp: string) => {
-      if (!this.logger) return
+      if (!this.logger || this.directClients.get(sessionId) !== client) return
       const finalLog = this.stateManager.buildLogContent(sessionId, logStr, timestamp)
       this.logger.appendToConnLog(finalLog, sessionId)
     }
@@ -62,20 +67,47 @@ export default class DirectConnector {
 
   async startConnection(conn: any, connInfo: ConnectionInfo): Promise<object> {
     const sessionId = conn.sessionId
+    const generation = (this.generations.get(sessionId) ?? 0) + 1
+    this.generations.set(sessionId, generation)
+    const previousQueue = this.startQueues.get(sessionId) ?? Promise.resolve()
+    let startPromise!: Promise<object>
+    startPromise = previousQueue.then(async () => {
+      if ((this.generations.get(sessionId) ?? 0) !== generation) {
+        return { success: false, message: 'Direct mode start cancelled' }
+      }
 
-    const ComClient = (await import('../../protocol/ComClient')).default
-    const TelnetClient = (await import('../../protocol/TelnetClient')).default
+      const ComClient = (await import('../../protocol/ComClient')).default
+      const TelnetClient = (await import('../../protocol/TelnetClient')).default
+      const ClientClass = conn.connectionType === 'com' ? ComClient : TelnetClient
+      const client = new ClientClass()
+      this.directClients.set(sessionId, client)
 
-    const ClientClass = conn.connectionType === 'com' ? ComClient : TelnetClient
-    const client = new ClientClass()
-    this.directClients.set(sessionId, client)
+      const result = await client.start(
+        connInfo,
+        this.createOnData(sessionId, client),
+        this.createOnClose(sessionId, client),
+        this.createOnLog(sessionId, client)
+      )
 
-    return await client.start(
-      connInfo,
-      this.createOnData(sessionId),
-      this.createOnClose(sessionId),
-      this.createOnLog(sessionId)
-    )
+      if ((this.generations.get(sessionId) ?? 0) !== generation || this.directClients.get(sessionId) !== client) {
+        await client.disconnect(sessionId)
+        if (this.directClients.get(sessionId) === client) this.directClients.delete(sessionId)
+        return { success: false, message: 'Direct mode start cancelled' }
+      }
+      return result
+    })
+    const pending = this.pendingStarts.get(sessionId) ?? new Set<Promise<object>>()
+    pending.add(startPromise)
+    this.pendingStarts.set(sessionId, pending)
+    const queue = startPromise.then(() => undefined, () => undefined)
+    this.startQueues.set(sessionId, queue)
+    try {
+      return await startPromise
+    } finally {
+      pending.delete(startPromise)
+      if (pending.size === 0) this.pendingStarts.delete(sessionId)
+      if (this.startQueues.get(sessionId) === queue) this.startQueues.delete(sessionId)
+    }
   }
 
   async sendData(conn: any, command: string): Promise<object> {
@@ -88,10 +120,15 @@ export default class DirectConnector {
   }
 
   async stopConnection(conn: any): Promise<object> {
-    const client = this.directClients.get(conn.sessionId)
+    const sessionId = conn.sessionId
+    this.generations.set(sessionId, (this.generations.get(sessionId) ?? 0) + 1)
+    const pending = this.pendingStarts.get(sessionId)
+    const activeStart = pending?.values().next().value as Promise<object> | undefined
+    await activeStart?.catch(() => undefined)
+    const client = this.directClients.get(sessionId)
     if (!client) return { success: true }
-    const result = await client.disconnect(conn.sessionId)
-    this.directClients.delete(conn.sessionId)
+    const result = await client.disconnect(sessionId)
+    if (this.directClients.get(sessionId) === client) this.directClients.delete(sessionId)
     return result || { success: true }
   }
 
