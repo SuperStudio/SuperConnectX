@@ -109,7 +109,8 @@ describe('ProtocolLogger', () => {
       logger.setLogDir('relative-logs/%Y')
       const dir = logger.createConnLogFile('relative-1', 'Test')
       expect(dir).toContain('.log')
-      expect(logger.getLogDir()).toContain('logs/relative-logs/')
+      // Windows 下路径分隔符为反斜杠，统一后再断言
+      expect(logger.getLogDir().replace(/\\/g, '/')).toContain('logs/relative-logs/')
     })
 
     it('设置空目录回退到默认', async () => {
