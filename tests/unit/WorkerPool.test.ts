@@ -1,16 +1,25 @@
 /**
  * WorkerPool 测试
- * 测试 Worker 线程池的核心逻辑（纯逻辑测试，不实际创建 Worker 线程）
+ * 测试 Worker 线程池的核心逻辑（使用可控 Worker mock）
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+const workerState = vi.hoisted(() => ({
+  instances: [] as any[]
+}))
 
 // Mock worker_threads
 vi.mock('worker_threads', () => ({
   Worker: class {
     _listeners: Map<string, Function[]> = new Map()
     _terminated: boolean = false
+    messages: any[] = []
+    workerData: any
 
-    constructor(_path: string, _options: any) {}
+    constructor(_path: string, options: any) {
+      this.workerData = options.workerData
+      workerState.instances.push(this)
+    }
 
     on(event: string, handler: Function) {
       if (!this._listeners.has(event)) this._listeners.set(event, [])
@@ -19,7 +28,11 @@ vi.mock('worker_threads', () => ({
     }
 
     once(event: string, handler: Function) {
-      this.on(event, handler)
+      const wrapper = (...args: any[]) => {
+        this.off(event, wrapper)
+        handler(...args)
+      }
+      this.on(event, wrapper)
       return this
     }
 
@@ -30,7 +43,15 @@ vi.mock('worker_threads', () => ({
       return this
     }
 
-    postMessage(_msg: any) {}
+    postMessage(msg: any) {
+      this.messages.push(msg)
+    }
+
+    emit(event: string, ...args: any[]) {
+      for (const handler of [...(this._listeners.get(event) || [])]) {
+        handler(...args)
+      }
+    }
 
     async terminate() {
       this._terminated = true
@@ -51,13 +72,46 @@ vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
 
 import WorkerPool from '../../src/main/pool/WorkerPool'
 
+async function flushPromises(): Promise<void> {
+  await Promise.resolve()
+  await Promise.resolve()
+}
+
+function startRequest(worker: any): any {
+  return worker.messages.find((message: any) => message.type === 'start')
+}
+
+function makeReady(worker: any): void {
+  worker.emit('message', {
+    type: 'ready',
+    sessionId: worker.workerData.sessionId
+  })
+}
+
+function resolveStart(worker: any, success = true): void {
+  const request = startRequest(worker)
+  worker.emit('message', {
+    type: 'start-result',
+    sessionId: worker.workerData.sessionId,
+    requestId: request.requestId,
+    success,
+    connId: `${worker.workerData.sessionId}-connection`
+  })
+}
+
 describe('WorkerPool', () => {
   let pool: WorkerPool
 
   beforeEach(() => {
+    vi.useFakeTimers()
+    workerState.instances.length = 0
     // Reset singleton
     ;(WorkerPool as any).sInstance = null
     pool = WorkerPool.getInstance()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   describe('getInstance', () => {
@@ -113,22 +167,205 @@ describe('WorkerPool', () => {
     })
   })
 
-  describe('startConnection - validation', () => {
-    it('should require sessionId in connInfo', async () => {
-      const connInfo = {
-        host: 'localhost',
-        port: 23,
-        username: '',
-        password: '',
-        // missing sessionId
-      }
+  describe('startConnection concurrency', () => {
+    it('serializes two starts for the same session and sends start to its own entry', async () => {
+      const first = pool.startConnection({ sessionId: 'same', host: 'first' }, 'telnet')
+      await flushPromises()
+      const firstWorker = workerState.instances[0]
 
-      // Worker creation will fail because the mock Worker doesn't emit 'ready'
-      // We just verify the interface accepts the parameters
-      const promise = pool.startConnection(connInfo, 'telnet')
-      // This will likely timeout because Worker mock doesn't emit ready
-      // We just verify it doesn't throw synchronously
-      expect(promise).toBeInstanceOf(Promise)
+      makeReady(firstWorker)
+      await flushPromises()
+      const second = pool.startConnection({ sessionId: 'same', host: 'second' }, 'telnet')
+      await flushPromises()
+
+      expect(workerState.instances).toHaveLength(1)
+      expect(startRequest(firstWorker).connInfo.host).toBe('first')
+
+      resolveStart(firstWorker)
+      await expect(first).resolves.toMatchObject({ success: true })
+      await vi.advanceTimersByTimeAsync(200)
+      await flushPromises()
+
+      const secondWorker = workerState.instances[1]
+      expect(secondWorker).toBeDefined()
+      expect(firstWorker._terminated).toBe(true)
+      expect(startRequest(secondWorker)).toBeUndefined()
+
+      makeReady(secondWorker)
+      await flushPromises()
+      expect(startRequest(secondWorker).connInfo.host).toBe('second')
+      expect(firstWorker.messages.filter((message: any) => message.type === 'start')).toHaveLength(1)
+
+      resolveStart(secondWorker)
+      await expect(second).resolves.toMatchObject({ success: true })
+    })
+
+    it('starts different sessions in parallel', async () => {
+      const first = pool.startConnection({ sessionId: 'a' }, 'telnet')
+      const second = pool.startConnection({ sessionId: 'b' }, 'telnet')
+      await flushPromises()
+
+      expect(workerState.instances).toHaveLength(2)
+      const [workerA, workerB] = workerState.instances
+      makeReady(workerA)
+      makeReady(workerB)
+      await flushPromises()
+
+      expect(startRequest(workerA)).toBeDefined()
+      expect(startRequest(workerB)).toBeDefined()
+      resolveStart(workerA)
+      resolveStart(workerB)
+
+      await expect(Promise.all([first, second])).resolves.toEqual([
+        expect.objectContaining({ success: true }),
+        expect.objectContaining({ success: true })
+      ])
+    })
+
+    it('cancels a start while it is waiting for the worker', async () => {
+      const start = pool.startConnection({ sessionId: 'pending' }, 'telnet')
+      await flushPromises()
+      const worker = workerState.instances[0]
+
+      const stop = pool.stopConnection('pending', 'telnet')
+      await vi.advanceTimersByTimeAsync(200)
+      await expect(stop).resolves.toMatchObject({ success: true })
+      await expect(start).resolves.toMatchObject({
+        success: false,
+        message: 'Start cancelled by stop'
+      })
+      expect(worker._terminated).toBe(true)
+      expect(pool.getStatus().workerCount).toBe(0)
+    })
+
+    it('cancels a queued second start after stop', async () => {
+      const first = pool.startConnection({ sessionId: 'queued', generation: 1 }, 'telnet')
+      await flushPromises()
+      const worker = workerState.instances[0]
+      const second = pool.startConnection({ sessionId: 'queued', generation: 2 }, 'telnet')
+      const stop = pool.stopConnection('queued', 'telnet')
+
+      await vi.advanceTimersByTimeAsync(200)
+      await expect(stop).resolves.toMatchObject({ success: true })
+      await expect(first).resolves.toMatchObject({ success: false })
+      await expect(second).resolves.toMatchObject({
+        success: false,
+        message: 'Start cancelled by stop'
+      })
+      expect(workerState.instances).toHaveLength(1)
+      expect(worker._terminated).toBe(true)
+      expect(pool.getStatus().workerCount).toBe(0)
+    })
+
+    it('ignores close and exit cleanup from an old worker generation', async () => {
+      const first = pool.startConnection({ sessionId: 'same', generation: 1 }, 'telnet')
+      await flushPromises()
+      const oldWorker = workerState.instances[0]
+      makeReady(oldWorker)
+      await flushPromises()
+      resolveStart(oldWorker)
+      await first
+
+      const second = pool.startConnection({ sessionId: 'same', generation: 2 }, 'telnet')
+      await flushPromises()
+      await vi.advanceTimersByTimeAsync(200)
+      await flushPromises()
+      const newWorker = workerState.instances[1]
+      makeReady(newWorker)
+      await flushPromises()
+      resolveStart(newWorker)
+      await second
+
+      oldWorker.emit('message', { type: 'close', sessionId: 'same' })
+      oldWorker.emit('exit', 0)
+
+      expect(pool.getStatus()).toEqual({
+        workerCount: 1,
+        sessions: [{ sessionId: 'same', alive: true }]
+      })
+      expect(newWorker._terminated).toBe(false)
+    })
+
+    it('ignores data and log messages from an old worker generation', async () => {
+      const onData = vi.fn()
+      const onLog = vi.fn()
+      pool.setCallbacks(onData, onLog, vi.fn())
+
+      const first = pool.startConnection({ sessionId: 'messages', generation: 1 }, 'telnet')
+      await flushPromises()
+      const oldWorker = workerState.instances[0]
+      makeReady(oldWorker)
+      await flushPromises()
+      resolveStart(oldWorker)
+      await first
+
+      const second = pool.startConnection({ sessionId: 'messages', generation: 2 }, 'telnet')
+      await flushPromises()
+      await vi.advanceTimersByTimeAsync(200)
+      await flushPromises()
+      const newWorker = workerState.instances[1]
+      makeReady(newWorker)
+      await flushPromises()
+      resolveStart(newWorker)
+      await second
+
+      oldWorker.emit('message', {
+        type: 'data',
+        sessionId: 'messages',
+        displayData: 'old-data'
+      })
+      oldWorker.emit('message', {
+        type: 'log',
+        sessionId: 'messages',
+        logStr: 'old-log'
+      })
+      newWorker.emit('message', {
+        type: 'data',
+        sessionId: 'messages',
+        displayData: 'new-data'
+      })
+      newWorker.emit('message', {
+        type: 'log',
+        sessionId: 'messages',
+        logStr: 'new-log'
+      })
+
+      expect(onData).toHaveBeenCalledTimes(1)
+      expect(onData).toHaveBeenCalledWith('messages', 'new-data', '', false)
+      expect(onLog).toHaveBeenCalledTimes(1)
+      expect(onLog).toHaveBeenCalledWith('messages', 'new-log', '')
+    })
+
+    it('cleans up a worker when the start request times out', async () => {
+      const start = pool.startConnection({ sessionId: 'timeout' }, 'telnet')
+      await flushPromises()
+      const worker = workerState.instances[0]
+      makeReady(worker)
+      await flushPromises()
+
+      await vi.advanceTimersByTimeAsync(30200)
+
+      await expect(start).resolves.toMatchObject({
+        success: false,
+        message: expect.stringContaining('Request timeout: start')
+      })
+      expect(worker._terminated).toBe(true)
+      expect(pool.getStatus().workerCount).toBe(0)
+    })
+
+    it('cleans up a worker when start returns failure', async () => {
+      const start = pool.startConnection({ sessionId: 'failed' }, 'telnet')
+      await flushPromises()
+      const worker = workerState.instances[0]
+      makeReady(worker)
+      await flushPromises()
+      resolveStart(worker, false)
+
+      await vi.advanceTimersByTimeAsync(200)
+
+      await expect(start).resolves.toMatchObject({ success: false })
+      expect(worker._terminated).toBe(true)
+      expect(pool.getStatus().workerCount).toBe(0)
     })
   })
 

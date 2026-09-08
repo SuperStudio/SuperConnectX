@@ -43,7 +43,7 @@ import DirectConnector from '../../src/main/ipc/connectors/DirectConnector'
 import ConnectionStateManager from '../../src/main/ipc/connectors/ConnectionStateManager'
 import ProtocolLogger from '../../src/main/utils/ProtocolLogger'
 
-function makeConn(overrides: Partial<{ connectionType: string; sessionId: string; host: string; port: number; comName: string }> = {}): any {
+function makeConn(overrides: Partial<{ connectionType: string; sessionId: string; host: string; port: number; comName: string; receiveHex: boolean }> = {}): any {
   return {
     connectionType: 'com',
     sessionId: 's1',
@@ -104,6 +104,26 @@ describe('DirectConnector', () => {
 
       expect(result).toEqual({ success: true, message: 'connected' })
     })
+
+    it('should serialize two starts for the same session', async () => {
+      let resolveFirst: ((result: object) => void) | undefined
+      mockComStart.mockImplementationOnce((() => new Promise<object>((resolve) => {
+        resolveFirst = resolve
+      })) as any)
+
+      const { dc } = createDirectConnector()
+      const conn = makeConn({ sessionId: 's-serial' })
+      const first = dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's-serial' })
+      await vi.waitFor(() => expect(resolveFirst).toBeDefined())
+      const second = dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's-serial' })
+
+      expect(mockComStart).toHaveBeenCalledTimes(1)
+      resolveFirst?.({ success: true })
+      await expect(first).resolves.toEqual({ success: false, message: 'Direct mode start cancelled' })
+      await expect(second).resolves.toEqual({ success: true, message: 'connected' })
+      expect(mockComStart).toHaveBeenCalledTimes(2)
+      expect(mockComDisconnect).toHaveBeenCalledTimes(1)
+    })
   })
 
   // ============ sendData ============
@@ -131,6 +151,46 @@ describe('DirectConnector', () => {
   // ============ stopConnection ============
 
   describe('stopConnection', () => {
+    it('should wait for a pending start before disconnecting', async () => {
+      let resolveStart: ((result: object) => void) | undefined
+      mockComStart.mockImplementationOnce((() => new Promise<object>((resolve) => {
+        resolveStart = resolve
+      })) as any)
+
+      const { dc } = createDirectConnector()
+      const conn = makeConn({ connectionType: 'com', sessionId: 's-pending' })
+      const startPromise = dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's-pending' })
+      await vi.waitFor(() => expect(resolveStart).toBeDefined())
+      const stopPromise = dc.stopConnection(conn)
+
+      expect(mockComDisconnect).not.toHaveBeenCalled()
+      resolveStart?.({ success: true })
+      await expect(stopPromise).resolves.toEqual({ success: true })
+      await startPromise
+      expect(mockComDisconnect).toHaveBeenCalledWith('s-pending')
+    })
+
+    it('should cancel queued starts and wait for the active start', async () => {
+      let resolveStart: ((result: object) => void) | undefined
+      mockComStart.mockImplementationOnce((() => new Promise<object>((resolve) => {
+        resolveStart = resolve
+      })) as any)
+
+      const { dc } = createDirectConnector()
+      const conn = makeConn({ sessionId: 's-cancel-queued' })
+      const first = dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's-cancel-queued' })
+      await vi.waitFor(() => expect(resolveStart).toBeDefined())
+      const queued = dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's-cancel-queued' })
+      const stop = dc.stopConnection(conn)
+
+      expect(mockComStart).toHaveBeenCalledTimes(1)
+      resolveStart?.({ success: true })
+      await expect(stop).resolves.toEqual({ success: true })
+      await expect(queued).resolves.toEqual({ success: false, message: 'Direct mode start cancelled' })
+      await first
+      expect(mockComDisconnect).toHaveBeenCalledTimes(1)
+    })
+
     it('should disconnect and clean up client', async () => {
       const { dc } = createDirectConnector()
       const conn = makeConn({ connectionType: 'com', sessionId: 's1' })
@@ -190,6 +250,23 @@ describe('DirectConnector', () => {
       expect(sendSpy).toHaveBeenCalledWith('s1', 'hello', '12:00:00', false)
     })
 
+    it('ignores data and log callbacks from a replaced client', async () => {
+      const { dc, sm, logger } = createDirectConnector()
+      const sendSpy = vi.spyOn(sm, 'sendDataToRenderer')
+      const conn = makeConn({ sessionId: 's-replaced' })
+
+      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's-replaced' })
+      const oldOnData = mockComStart.mock.calls[0][1]
+      const oldOnLog = mockComStart.mock.calls[0][3]
+      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's-replaced' })
+
+      oldOnData({ data: 'stale', timestamp: '12:00:00' })
+      oldOnLog('stale log', '12:00:00')
+
+      expect(sendSpy).not.toHaveBeenCalled()
+      expect(logger.appendToConnLog).not.toHaveBeenCalled()
+    })
+
     it('onData should pass through data directly when receiveHex is true (HEX conversion moved to BufferLineSplitter)', async () => {
       const { dc, sm } = createDirectConnector()
       const sendSpy = vi.spyOn(sm, 'sendDataToRenderer')
@@ -220,6 +297,21 @@ describe('DirectConnector', () => {
       // After close, client should be removed from map
       const result = await dc.sendData(conn, 'test')
       expect(result.success).toBe(false)
+    })
+
+    it('should not let an old client onClose delete the new client', async () => {
+      const { dc, sm } = createDirectConnector()
+      const cleanupSpy = vi.spyOn(sm, 'cleanupOnClose')
+      const conn = makeConn({ sessionId: 's-generations' })
+
+      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's-generations' })
+      const oldOnClose = mockComStart.mock.calls[0][2]
+      await dc.stopConnection(conn)
+      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's-generations' })
+
+      oldOnClose()
+      expect(cleanupSpy).toHaveBeenCalledTimes(0)
+      await expect(dc.sendData(conn, 'test')).resolves.toEqual({ success: true })
     })
 
     it('onLog should call logger.appendToConnLog with proper format', async () => {

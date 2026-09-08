@@ -7,6 +7,19 @@ const DEFAULT_RECV_DISPLAY_TEXT = ''
 export const sendDisplayText = ref<string>(DEFAULT_SEND_DISPLAY_TEXT)
 export const recvDisplayText = ref<string>(DEFAULT_RECV_DISPLAY_TEXT)
 
+/** Adds the receive batch timestamp to every line while preserving blank lines. */
+export function formatReceivedData(content: string, showTimestamp: boolean, timestamp?: string): string {
+  if (!showTimestamp || !timestamp) return `${content}\n`
+  if (!content) return '\n'
+
+  const prefix = `[${timestamp}] `
+  const lines = content.split(/\r\n|\n|\r/)
+  // split() adds one structural empty item for a trailing line break; the caller already appends the display newline.
+  if (/(?:\r\n|\n|\r)$/.test(content)) lines.pop()
+  if (lines.length === 1 && lines[0] === '') return '\n'
+  return `${lines.map(line => `${prefix}${line}`).join('\n')}\n`
+}
+
 /** Loads persisted terminal display labels. */
 export async function loadTerminalDisplayText(): Promise<void> {
   try {

@@ -46,6 +46,8 @@ interface WorkerEntry {
   worker: Worker
   sessionId: string
   alive: boolean
+  starting: boolean
+  cancelStart?: () => void
   pendingRequests: Map<string, {
     resolve: (value: any) => void
     reject: (reason: any) => void
@@ -58,6 +60,10 @@ export default class WorkerPool {
 
   // sessionId -> WorkerEntry 映射（每个连接一个 Worker）
   private workerMap = new Map<string, WorkerEntry>()
+
+  // 同一 session 的启动依次执行，不同 session 之间互不阻塞
+  private startOperations = new Map<string, Promise<unknown>>()
+  private startVersions = new Map<string, number>()
 
   private requestCounter: number = 0
 
@@ -112,6 +118,7 @@ export default class WorkerPool {
       worker,
       sessionId,
       alive: true,
+      starting: true,
       pendingRequests: new Map()
     }
 
@@ -133,12 +140,12 @@ export default class WorkerPool {
       entry.alive = false
 
       // 如果 Worker 异常退出（非主动 disconnect），通知外部连接已断开
-      if (this.workerMap.has(sessionId)) {
+      if (this.workerMap.get(sessionId) === entry) {
         this.onCloseCallback?.(sessionId)
+        this.workerMap.delete(sessionId)
       }
 
       this.rejectAllPending(entry, new Error(`Worker exited`))
-      this.workerMap.delete(sessionId)
     })
 
     this.workerMap.set(sessionId, entry)
@@ -149,13 +156,15 @@ export default class WorkerPool {
    * 处理 Worker 发来的消息
    */
   private handleWorkerMessage(entry: WorkerEntry, msg: WorkerToMainMessage): void {
+    const isCurrentEntry = this.workerMap.get(entry.sessionId) === entry
+
     switch (msg.type) {
       case 'ready':
         logger.info(`[WorkerPool] Worker [${entry.sessionId}] is ready`)
         break
 
       case 'data':
-        if (msg.sessionId && msg.displayData !== undefined) {
+        if (isCurrentEntry && msg.sessionId === entry.sessionId && msg.displayData !== undefined) {
           this.onDataCallback?.(
             msg.sessionId,
             msg.displayData,
@@ -166,7 +175,7 @@ export default class WorkerPool {
         break
 
       case 'log':
-        if (msg.sessionId && msg.logStr !== undefined) {
+        if (isCurrentEntry && msg.sessionId === entry.sessionId && msg.logStr !== undefined) {
           this.onLogCallback?.(
             msg.sessionId,
             msg.logStr,
@@ -176,9 +185,9 @@ export default class WorkerPool {
         break
 
       case 'close':
-        if (msg.sessionId) {
+        if (isCurrentEntry && msg.sessionId === entry.sessionId) {
           // 连接关闭后，终止 Worker 回收资源
-          this.terminateWorker(msg.sessionId)
+          void this.terminateEntry(entry)
           this.onCloseCallback?.(msg.sessionId)
         }
         break
@@ -235,13 +244,28 @@ export default class WorkerPool {
       throw new Error(`Worker for session ${sessionId} not found or not alive`)
     }
 
+    return this.sendToEntry(entry, msg, timeoutMs)
+  }
+
+  /**
+   * 发送消息到指定 WorkerEntry，避免启动期间重新查 map 后误发给新一代 Worker
+   */
+  private async sendToEntry(
+    entry: WorkerEntry,
+    msg: MainToWorkerMessage,
+    timeoutMs: number = 30000
+  ): Promise<any> {
+    if (!entry.alive) {
+      throw new Error(`Worker for session ${entry.sessionId} not found or not alive`)
+    }
+
     return new Promise((resolve, reject) => {
       const requestId = this.generateRequestId()
       msg.requestId = requestId
 
       const timer = setTimeout(() => {
         entry.pendingRequests.delete(requestId)
-        reject(new Error(`Request timeout: ${msg.type} (sessionId: ${sessionId})`))
+        reject(new Error(`Request timeout: ${msg.type} (sessionId: ${entry.sessionId})`))
       }, timeoutMs)
 
       entry.pendingRequests.set(requestId, { resolve, reject, timer })
@@ -256,7 +280,25 @@ export default class WorkerPool {
     const entry = this.workerMap.get(sessionId)
     if (!entry) return
 
-    if (entry.alive) {
+    await this.terminateEntry(entry)
+  }
+
+  /**
+   * 只回收传入的一代 Worker；旧异步流程不得删除或终止 map 中的新 Worker
+   */
+  private async terminateEntry(entry: WorkerEntry): Promise<void> {
+    const { sessionId } = entry
+    const wasAlive = entry.alive
+
+    entry.alive = false
+    entry.cancelStart?.()
+    entry.cancelStart = undefined
+    if (this.workerMap.get(sessionId) === entry) {
+      this.workerMap.delete(sessionId)
+    }
+    this.rejectAllPending(entry, new Error(`Worker terminated`))
+
+    if (wasAlive) {
       try {
         entry.worker.postMessage({ type: 'shutdown', sessionId })
         // 给 Worker 一点时间清理
@@ -265,7 +307,6 @@ export default class WorkerPool {
       } catch { /* ignore */ }
     }
 
-    this.workerMap.delete(sessionId)
     logger.info(`[WorkerPool] Worker [${sessionId}] terminated`)
   }
 
@@ -276,6 +317,32 @@ export default class WorkerPool {
    */
   async startConnection(connInfo: any, connectionType: string): Promise<{ success: boolean; message?: string; connId?: string }> {
     const sessionId = String(connInfo.sessionId)
+    const startVersion = this.startVersions.get(sessionId) || 0
+    const previous = this.startOperations.get(sessionId) || Promise.resolve()
+    const operation = previous
+      .catch(() => undefined)
+      .then(() => this.startConnectionSerial(sessionId, connInfo, connectionType, startVersion))
+
+    this.startOperations.set(sessionId, operation)
+    try {
+      return await operation
+    } finally {
+      if (this.startOperations.get(sessionId) === operation) {
+        this.startOperations.delete(sessionId)
+      }
+    }
+  }
+
+  private async startConnectionSerial(
+    sessionId: string,
+    connInfo: any,
+    connectionType: string,
+    startVersion: number
+  ): Promise<{ success: boolean; message?: string; connId?: string }> {
+
+    if ((this.startVersions.get(sessionId) || 0) !== startVersion) {
+      return { success: false, message: 'Start cancelled by stop' }
+    }
 
     // 如果已有同 sessionId 的 Worker，先清理
     if (this.workerMap.has(sessionId)) {
@@ -287,40 +354,54 @@ export default class WorkerPool {
     // 等待 Worker ready（带超时保护）
     try {
       await new Promise<void>((resolve, reject) => {
+        const cleanup = () => {
+          clearTimeout(timer)
+          entry.worker.off('message', onReady)
+          entry.worker.off('error', onError)
+          entry.worker.off('exit', onExit)
+        }
         const onReady = (msg: WorkerToMainMessage) => {
           if (msg.type === 'ready' && msg.sessionId === sessionId) {
-            entry.worker.off('message', onReady)
-            entry.worker.off('error', onError)
-            entry.worker.off('exit', onExit)
+            cleanup()
+            entry.cancelStart = undefined
             resolve()
           }
         }
         const onError = (err: Error) => {
-          entry.worker.off('message', onReady)
-          entry.worker.off('error', onError)
-          entry.worker.off('exit', onExit)
+          cleanup()
           reject(new Error(`Worker error before ready: ${err.message}`))
         }
         const onExit = (code: number) => {
-          entry.worker.off('message', onReady)
-          entry.worker.off('error', onError)
-          entry.worker.off('exit', onExit)
+          cleanup()
           reject(new Error(`Worker exited with code ${code} before ready`))
         }
+        const timer = setTimeout(() => {
+          cleanup()
+          reject(new Error(`Worker ready timeout (sessionId: ${sessionId})`))
+        }, 30000)
         entry.worker.on('message', onReady)
         entry.worker.once('error', onError)
         entry.worker.once('exit', onExit)
+        entry.cancelStart = () => {
+          cleanup()
+          reject(new Error('Start cancelled by stop'))
+        }
       })
     } catch (err: any) {
       logger.error(`[WorkerPool] Worker [${sessionId}] failed to become ready:`, err.message)
-      this.workerMap.delete(sessionId)
+      await this.terminateEntry(entry)
       return { success: false, message: err.message }
+    }
+
+    if ((this.startVersions.get(sessionId) || 0) !== startVersion || !entry.alive) {
+      await this.terminateEntry(entry)
+      return { success: false, message: 'Start cancelled by stop' }
     }
 
     logger.info(`[WorkerPool] Starting connection ${sessionId} in dedicated Worker`)
 
     try {
-      const result = await this.sendToWorker(sessionId, {
+      const result = await this.sendToEntry(entry, {
         type: 'start',
         sessionId,
         connInfo,
@@ -329,7 +410,7 @@ export default class WorkerPool {
 
       if (!result.success) {
         // 启动失败，回收 Worker
-        await this.terminateWorker(sessionId)
+        await this.terminateEntry(entry)
       }
 
       return {
@@ -339,8 +420,10 @@ export default class WorkerPool {
       }
     } catch (err: any) {
       logger.error(`[WorkerPool] startConnection failed:`, err.message)
-      await this.terminateWorker(sessionId)
+      await this.terminateEntry(entry)
       return { success: false, message: err.message }
+    } finally {
+      entry.starting = false
     }
   }
 
@@ -370,17 +453,24 @@ export default class WorkerPool {
    */
   async stopConnection(sessionId: string, _connectionType: string): Promise<{ success: boolean; message?: string }> {
     const normalizedSessionId = String(sessionId)
-    // 先通知 Worker 主动断开
-    try {
-      await this.sendToWorker(normalizedSessionId, {
-        type: 'stop',
-        sessionId: normalizedSessionId
-      }, 5000) // 断开超时设为 5 秒
-    } catch {
-      // 超时或失败都继续 terminate
+    this.startVersions.set(normalizedSessionId, (this.startVersions.get(normalizedSessionId) || 0) + 1)
+
+    const entry = this.workerMap.get(normalizedSessionId)
+    if (entry && !entry.starting) {
+      // 已完成启动的 Worker 先收到 stop；启动中的 Worker 直接取消并回收。
+      try {
+        await this.sendToEntry(entry, {
+          type: 'stop',
+          sessionId: normalizedSessionId
+        }, 5000)
+      } catch {
+        // 超时或失败都继续 terminate
+      }
     }
 
-    await this.terminateWorker(normalizedSessionId)
+    if (entry) {
+      await this.terminateEntry(entry)
+    }
     return { success: true }
   }
 
