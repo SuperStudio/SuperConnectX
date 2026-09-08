@@ -13,7 +13,7 @@
       @on-reconnect="reconnect"
       @on-open-log-folder="openLogFolder"
       @on-open-log-file="openLogFile"
-      @on-save-log="saveLog"
+      @on-save-log="saveLogFileAs"
       @on-send="handleSendCommand"
       @on-command-sent="handleCommandSent"
       @on-open-command-editor="emit('openCommandEditor', connection.connectionType)"
@@ -260,7 +260,7 @@ const terminal = useTerminal({
   sendDisplaySuffix: 'SEND>>>>>>>>>>>>>'
 })
 
-const { openLogFolder, openLogFile, saveLogFile, cleanup: terminalCleanup } = terminal
+const { openLogFolder, openLogFile, saveLogFileAs, cleanup: terminalCleanup } = terminal
 
 // 监听波特率变化
 watch(baudRate, (newVal) => {
@@ -711,10 +711,6 @@ const handleSendCommand = async (command: string, originalInput?: string) => {
   }
 }
 
-
-const saveLog = async () => {
-  await saveLogFile()
-}
 
 const handleCommandSent = (cmdName: string) => emit('commandSent', cmdName)
 

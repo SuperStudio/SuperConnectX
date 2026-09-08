@@ -55,6 +55,9 @@ interface Settings extends Record<string, any> {
   maxLogSize?: number
   logTimestamp?: boolean
   logHex?: boolean
+  maxLogAgeDays?: number
+  maxLogCount?: number
+  exportTimeRange?: number
   // 语法高亮
   enableSyntaxHighlight?: boolean
   syntaxRuleGroups?: SyntaxRuleGroup[]
@@ -73,7 +76,6 @@ const defaultSettings: Settings = {
   // 基本设置
   minimizeToTray: false,
   logSplit: true,
-  logSplitSize: 20,
   autoScroll: true,
   autoScrollToast: true,
   autoScrollOnFocus: true,
@@ -96,9 +98,13 @@ const defaultSettings: Settings = {
   enableLogStorage: true,
   logPath: '',
   logFileName: '%C-%Y-%M-%D-%hh-%mm-%ss',
+  logSplitSize: 20,
   maxLogSize: 50,
   logTimestamp: true,
   logHex: false,
+  maxLogAgeDays: 0,  // 0 = 不清理
+  maxLogCount: 0,    // 0 = 不限制
+  exportTimeRange: 0,
   // 语法高亮
   enableSyntaxHighlight: true,
   syntaxRuleGroups: [

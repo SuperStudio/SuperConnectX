@@ -43,7 +43,8 @@ export interface UseTerminalReturn {
   totalTxSize: number
   openLogFolder: () => Promise<void>
   openLogFile: () => Promise<void>
-  saveLogFile: () => Promise<void>
+  saveLogFileAs: () => Promise<void>
+  rotateLogFile: () => Promise<void>
   handleClose: () => Promise<void>
   handleSend: (command: string, originalInput?: string) => Promise<void>
   reconnect: () => void
@@ -138,7 +139,57 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
     }
   }
 
-  const saveLogFile = async () => {
+  const saveLogFileAs = async () => {
+    try {
+      const settings = await window.storageApi.getSettings()
+      if (settings?.enableLogStorage === false) {
+        ElMessage.warning(t('terminal.logStorageDisabled'))
+        return
+      }
+
+      let remark = conn.remark || ''
+      if (connectionType === 'com' && conn.comName) {
+        try {
+          const settings = await window.storageApi.getComSettings(conn.comName)
+          remark = settings?.remark ?? remark
+        } catch {
+          // Fall back to the remark carried by the connection.
+        }
+      }
+
+      const shortName = connectionType === 'telnet'
+        ? `${conn.host}_${conn.port}`
+        : (conn.comName || 'unknown').split('/').pop() || conn.comName || 'unknown'
+      const sanitize = (value: unknown) => String(value).replace(/[\\/*?:"<>|]/g, '-')
+      const now = new Date()
+      const date = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`
+      const namePrefix = remark ? `${sanitize(remark)}-${sanitize(shortName)}` : sanitize(shortName)
+      const dialogResult = await window.dialogApi.saveFileDialog({
+        title: t('terminal.saveLogAs'),
+        defaultPath: `${namePrefix}-${date}.log`,
+        filters: [{ name: t('terminal.logFileFilter'), extensions: ['log', 'txt'] }]
+      })
+      if (!dialogResult.filePath) return
+
+      const exportHours = settings?.exportTimeRange || 0
+      ElMessage.info(t('terminal.exporting'))
+      const result = await window.connectApi.copyLogFile(
+        String(conn.sessionId),
+        dialogResult.filePath,
+        exportHours > 0 ? exportHours : undefined
+      )
+      if (result.success) {
+        ElMessage.success(t('terminal.saveLogSuccess'))
+        window.toolApi.showItemInFolder(dialogResult.filePath)
+      } else {
+        ElMessage.error(t('terminal.saveFailed', { message: result.message || t('terminal.unknownError') }))
+      }
+    } catch (error) {
+      ElMessage.error(t('terminal.saveFailedWithError', { error: error instanceof Error ? error.message : t('terminal.unknownError') }))
+    }
+  }
+
+  const rotateLogFile = async () => {
     try {
       const result = await window.connectApi.rotateLogFile(String(conn.sessionId))
       if (result.success) {
@@ -227,7 +278,8 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
     totalTxSize,
     openLogFolder,
     openLogFile,
-    saveLogFile,
+    saveLogFileAs,
+    rotateLogFile,
     handleClose,
     handleSend,
     reconnect,

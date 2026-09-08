@@ -13,7 +13,7 @@
       @on-reconnect="handleReconnect"
       @on-open-log-folder="openLogFolder"
       @on-open-log-file="openLogFile"
-      @on-save-log="saveLogFile"
+      @on-save-log="saveLogFileAs"
       @on-send="handleSend"
       @on-command-sent="handleCommandSent"
       @on-file-upload="handleFileUpload"
@@ -127,7 +127,7 @@ const terminal = useTerminal({
   saveFontSettings
 })
 
-const { openLogFolder, openLogFile, saveLogFile, cleanup: terminalCleanup } = terminal
+const { openLogFolder, openLogFile, saveLogFileAs, cleanup: terminalCleanup } = terminal
 
 const handleClose = async () => {
   stopRetry.value = true

@@ -68,9 +68,11 @@ interface ConnectApi {
   onRecvData: (callback: (data: { connId: number; data: string; timestamp?: string; isHex?: boolean }) => void) => () => void
   onConnectClose: (callback: (connId: number) => void) => () => void
   onLogSplit: (callback: (data: { connId: string; oldFileName: string; newFileName: string }) => void) => () => void
-  openConnectLog: (sessionId: string) => Promise<any>
+  openConnectLog: (sessionId: string, mode?: 'folder' | 'file') => Promise<any>
+  onCopyLogProgress: (callback: (data: { sessionId: string; percent: number }) => void) => () => void
   getLogFilePath: (sessionId: string) => Promise<string>
-  copyLogFile: (sessionId: string, destPath: string) => Promise<any>
+  copyLogFile: (sessionId: string, destPath: string, hours?: number) => Promise<any>
+  cleanupLogs: () => Promise<{ success: boolean; deletedCount: number; deletedSize: number; failedCount: number; failedFiles: string[] }>
   rotateLogFile: (sessionId: string) => Promise<any>
   listSerialPorts: () => Promise<any[]>
   fixSerialPermissions: () => Promise<{ success: boolean; message?: string }>

@@ -6,6 +6,7 @@ import { printAppInfo } from '../utils/PrintAppInfo'
 import IpcTray from './IpcTray'
 import IpcConnector from './IpcConnector'
 import SettingsStorage from '../storage/SettingsStorage'
+import AppSettingsStorage from '../storage/AppSettingsStorage'
 import BackupManager from '../utils/BackupManager'
 import fs from 'fs'
 import path from 'path'
@@ -20,9 +21,11 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
 export default class IpcMain {
   private static sInstance: IpcMain
   private settingsStorage: SettingsStorage
+  private appSettingsStorage: AppSettingsStorage
 
   constructor() {
     this.settingsStorage = new SettingsStorage()
+    this.appSettingsStorage = new AppSettingsStorage()
   }
 
   static getInstance(): IpcMain {
@@ -186,13 +189,22 @@ export default class IpcMain {
       return { filePaths: [] }
     })
 
-    // 保存文件对话框
+    // 保存文件对话框（自动记忆上次保存目录）
     ipcMain.handle('save-file-dialog', async (_, options) => {
       const mainWindow = BrowserWindow.getFocusedWindow()
-      if (mainWindow) {
-        return await dialog.showSaveDialog(mainWindow, options)
+      if (!mainWindow) return { filePath: null }
+
+      const opts = { ...options }
+      const lastDir = this.appSettingsStorage.getSettings().lastSaveDir
+      if (lastDir && opts.defaultPath && path.dirname(opts.defaultPath) === '.') {
+        opts.defaultPath = path.join(lastDir, opts.defaultPath)
       }
-      return { filePath: null }
+
+      const result = await dialog.showSaveDialog(mainWindow, opts)
+      if (result.filePath) {
+        this.appSettingsStorage.saveSettings({ lastSaveDir: path.dirname(result.filePath) })
+      }
+      return result
     })
 
     // 目录选择对话框

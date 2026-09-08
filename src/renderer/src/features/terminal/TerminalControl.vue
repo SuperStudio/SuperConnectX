@@ -82,7 +82,7 @@
         :active-text="t('terminal.showLog')"
       />
       <el-button icon="DocumentAdd" size="small" class="btn-primary log-btn" @click="emit('onSaveLog')">
-        {{ t('terminal.logRotate') }}
+        {{ t('terminal.saveLogAs') }}
       </el-button>
       <el-select
         v-model="selectedSyntaxGroupId"

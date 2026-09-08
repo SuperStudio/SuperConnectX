@@ -37,6 +37,8 @@ vi.mock('../../src/main/utils/ProtocolLogger', () => ({
     setEnableLogStorage() {}
     setLogDir() {}
     setLogFileName() {}
+    setMaxLogAgeDays() {}
+    setMaxLogCount() {}
     setLogSplitCallback() {}
     openConnLog() { return { success: true } }
     getLogFilePath() { return { success: true, path: '/mock' } }
@@ -88,7 +90,7 @@ function makeLogger(): any {
     createConnLogFile: vi.fn(), appendToConnLog: vi.fn(), flushConnLog: vi.fn(),
     clearConnLogFile: vi.fn(), markConnLogRotate: vi.fn(),
     setLogSplitSize: vi.fn(), setEnableLogStorage: vi.fn(), setLogDir: vi.fn(),
-    setLogFileName: vi.fn(), setLogSplitCallback: vi.fn(),
+    setLogFileName: vi.fn(), setMaxLogAgeDays: vi.fn(), setMaxLogCount: vi.fn(), setLogSplitCallback: vi.fn(),
     openConnLog: vi.fn(async () => ({ success: true })),
     getLogFilePath: vi.fn(async () => ({ success: true, path: '/mock' })),
     copyLogFile: vi.fn(async () => ({ success: true })),
@@ -173,6 +175,30 @@ describe('IpcConnector', () => {
       expect(() => connector.applySettings({ enableLogStorage: true })).not.toThrow()
       expect(() => connector.applySettings({ logPath: '/custom' })).not.toThrow()
       expect(() => connector.applySettings({})).not.toThrow()
+    })
+
+    it('should apply zero split size when log splitting is disabled', () => {
+      connector.applySettings({ logSplit: false, logSplitSize: 20 })
+      expect(logger.setLogSplitSize).toHaveBeenLastCalledWith(0)
+    })
+
+    it('should apply the configured split size when enabled', () => {
+      connector.applySettings({ logSplit: true, logSplitSize: 50 })
+      expect(logger.setLogSplitSize).toHaveBeenLastCalledWith(50)
+    })
+
+    it('should preserve stored split state for partial updates', () => {
+      connector.applySettings({ logSplit: false, logSplitSize: 50 })
+      connector.applySettings({ logSplitSize: 80 })
+      expect(logger.setLogSplitSize).toHaveBeenLastCalledWith(0)
+      connector.applySettings({ logSplit: true })
+      expect(logger.setLogSplitSize).toHaveBeenLastCalledWith(80)
+    })
+
+    it('should apply zero values for unlimited log retention', () => {
+      connector.applySettings({ maxLogAgeDays: 0, maxLogCount: 0 })
+      expect(logger.setMaxLogAgeDays).toHaveBeenLastCalledWith(0)
+      expect(logger.setMaxLogCount).toHaveBeenLastCalledWith(0)
     })
   })
 
