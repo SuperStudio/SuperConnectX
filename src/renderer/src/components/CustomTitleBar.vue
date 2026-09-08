@@ -299,8 +299,7 @@ const props = defineProps({
   }
 })
 
-const handleWindowMaximized = () => (isMaximized.value = true)
-const handleWindowUnmaximized = () => (isMaximized.value = false)
+let removeMaximizedListener: (() => void) | undefined
 const minimizeWindow = () => window.windowApi.minimizeWindow()
 const maximizeWindow = () => window.windowApi.maximizeWindow()
 const closeWindow = () => window.windowApi.closeWindow()
@@ -582,15 +581,13 @@ watch(() => props.currentFont, (newFont) => {
 
 onMounted(async () => {
   window.windowApi.getWindowState().then((state) => (isMaximized.value = state))
-  window.addEventListener('window-maximized', handleWindowMaximized)
-  window.addEventListener('window-unmaximized', handleWindowUnmaximized)
+  removeMaximizedListener = window.windowApi.onMaximizedChanged((maximized) => (isMaximized.value = maximized))
   // 点击其他地方关闭菜单
   document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('window-maximized', handleWindowMaximized)
-  window.removeEventListener('window-unmaximized', handleWindowUnmaximized)
+  removeMaximizedListener?.()
   document.removeEventListener('click', handleClickOutside)
 })
 

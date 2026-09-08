@@ -91,6 +91,7 @@ interface WindowApi {
   getWindowState: () => Promise<any>
   getAppVersion: () => Promise<string>
   toggleFullscreenWindow: () => Promise<void>
+  onMaximizedChanged: (callback: (maximized: boolean) => void) => () => void
 }
 
 declare global {
