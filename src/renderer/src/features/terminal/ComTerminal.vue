@@ -491,6 +491,11 @@ const updateRemark = async (newRemark: string) => {
   emit('remarkUpdated', { comName: props.connection.comName, remark: newRemark })
 }
 
+const setRemark = (newRemark: string) => {
+  remark.value = newRemark
+  emit('remarkUpdated', { comName: props.connection.comName, remark: newRemark })
+}
+
 // 通知后端更新日志时间戳配置
 const notifyLogTimestampToBackend = async (showTs: boolean) => {
   if (!isConnected.value) return
@@ -765,8 +770,10 @@ defineExpose({
   disconnect: handleClose,
   isConnected: isConnectedValue,
   preventAutoReconnect: () => { preventAutoReconnect.value = true },
+  getComName: () => props.connection.comName,
   getRemark: () => remark.value,
   updateRemark,
+  setRemark,
   handleFontChange,
   getFontFamily: () => {
     const unifiedFont = unifiedTerminalRef.value?.getFontFamily?.()
