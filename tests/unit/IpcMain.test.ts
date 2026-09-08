@@ -4,7 +4,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockDialogHandlers } = vi.hoisted(() => ({
+const { mockAppHandlers, mockConnectorCleanup, mockDialogHandlers } = vi.hoisted(() => ({
+  mockAppHandlers: new Map<string, Function>(),
+  mockConnectorCleanup: vi.fn((): Promise<void> => Promise.resolve()),
   mockDialogHandlers: new Map<string, Function>()
 }))
 
@@ -22,7 +24,7 @@ vi.mock('electron', () => ({
     setPath: vi.fn(),
     commandLine: { appendSwitch: vi.fn() },
     whenReady: vi.fn(() => Promise.resolve()),
-    on: vi.fn(),
+    on: vi.fn((event: string, handler: Function) => mockAppHandlers.set(event, handler)),
     quit: vi.fn()
   },
   BrowserWindow: class {
@@ -76,7 +78,7 @@ vi.mock('../../src/main/ipc/IpcTray', () => ({
 }))
 
 vi.mock('../../src/main/ipc/IpcConnector', () => ({
-  default: { getInstance() { return { init: vi.fn(), cleanup: vi.fn(), applySettings: vi.fn() } } }
+  default: { getInstance() { return { init: vi.fn(), cleanup: mockConnectorCleanup, applySettings: vi.fn() } } }
 }))
 
 vi.mock('../../src/main/storage/SettingsStorage', () => ({
@@ -111,7 +113,7 @@ vi.mock('fs', () => ({
   }
 }))
 
-import IpcMain from '../../src/main/ipc/IpcMain'
+import IpcMain, { getWindowCloseAction, getWindowFrameOptions } from '../../src/main/ipc/IpcMain'
 
 describe('IpcMain', () => {
   let ipcMainInst: IpcMain
@@ -119,12 +121,55 @@ describe('IpcMain', () => {
   beforeEach(() => {
     ;(IpcMain as any).sInstance = null
     ipcMainInst = IpcMain.getInstance()
+    mockAppHandlers.clear()
+    mockConnectorCleanup.mockClear()
     mockDialogHandlers.clear()
   })
 
   describe('getInstance', () => {
     it('should return same instance', () => {
       expect(IpcMain.getInstance()).toBe(IpcMain.getInstance())
+    })
+  })
+
+  describe('window frame options', () => {
+    it('uses native traffic lights only on macOS', () => {
+      expect(getWindowFrameOptions('darwin')).toEqual({
+        frame: true,
+        titleBarStyle: 'hiddenInset',
+        trafficLightPosition: { x: 12, y: 9 }
+      })
+      expect(getWindowFrameOptions('win32')).toEqual({ frame: false, titleBarStyle: 'hidden' })
+      expect(getWindowFrameOptions('linux')).toEqual({ frame: false, titleBarStyle: 'hidden' })
+    })
+  })
+
+  describe('window close action', () => {
+    it('keeps Windows/Linux behavior and quits macOS when tray mode is disabled', () => {
+      expect(getWindowCloseAction('darwin', false)).toBe('quit')
+      expect(getWindowCloseAction('darwin', true)).toBe('hide')
+      expect(getWindowCloseAction('win32', false)).toBe('close')
+      expect(getWindowCloseAction('linux', false)).toBe('close')
+    })
+  })
+
+  describe('quit cleanup', () => {
+    it('prevents the first quit until connection cleanup completes', async () => {
+      let finishCleanup: (() => void) | undefined
+      mockConnectorCleanup.mockImplementationOnce(() => new Promise<void>((resolve) => {
+        finishCleanup = resolve
+      }))
+      ipcMainInst.init({ flush: vi.fn() }, {})
+      const preventDefault = vi.fn()
+
+      const quitPromise = mockAppHandlers.get('before-quit')!({ preventDefault })
+      expect(preventDefault).toHaveBeenCalledOnce()
+      expect(mockConnectorCleanup).toHaveBeenCalledOnce()
+
+      finishCleanup?.()
+      await quitPromise
+      const { app } = await import('electron')
+      expect(app.quit).toHaveBeenCalled()
     })
   })
 

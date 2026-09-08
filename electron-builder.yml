@@ -39,6 +39,11 @@ nsis:
 mac:
   target: dmg
   icon: build/icon.icns
+  extraResources:
+    - from: build/iconTemplate.png
+      to: iconTemplate.png
+    - from: build/iconTemplate@2x.png
+      to: iconTemplate@2x.png
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.

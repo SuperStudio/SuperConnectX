@@ -12,6 +12,7 @@ const DEFAULT_ENCODING = 'utf8'
 const READ_INTERVAL_MS = 10 // 固定10ms读取间隔
 const FLUSH_TIMEOUT_MS = 100 // 空闲超时：buffer 中有数据但超过此时间无新数据到达，强制刷新
 const MAX_BUFFER_BYTES = 1024 * 1024 // 无换行输出也必须有上限，避免接收缓冲区无限增长
+const CLOSE_TIMEOUT_MS = 5000
 
 interface SerialConnection {
   port: SerialPort
@@ -338,18 +339,38 @@ export default class ComClient extends BaseClient {
         connection.buffer = Buffer.alloc(0)
       }
 
-      // 主动断开前先调用 onClose 回调（触发 flushConnLog 将缓存日志写入文件），
-      // 然后移除 close 监听器防止 port 关闭时再次触发
+      // 先屏蔽主动关闭期间的上层回调；保留底层 close 监听器，
+      // 以便超时后晚到的关闭事件仍能清理连接状态。
       const savedOnClose = connection.onClose
       connection.onClose = undefined
-      connection.port.removeAllListeners('close')
-      connection.port.close((err: Error | null) => {
-        if (err) {
-          this.logger.error(`serial port close error: ${err.message}`)
+
+      const closeError = await new Promise<Error | null>((resolve) => {
+        let settled = false
+        const finish = (error: Error | null) => {
+          if (settled) return
+          settled = true
+          clearTimeout(timeout)
+          resolve(error)
         }
+        const timeout = setTimeout(
+          () => finish(new Error(`Timed out closing serial port after ${CLOSE_TIMEOUT_MS}ms`)),
+          CLOSE_TIMEOUT_MS
+        )
+        if (!connection.port.isOpen) {
+          finish(null)
+          return
+        }
+        connection.port.close((err: Error | null) => finish(err))
       })
+
+      if (closeError) {
+        connection.onClose = savedOnClose
+        this.logger.error(`serial port close error: ${closeError.message}`)
+        return { success: false, message: closeError.message }
+      }
+
       this.serialConnections.delete(connId)
-      // 在 port.close() 之后调用 onClose，确保端口资源已释放
+      // close 回调完成后锁和文件描述符才真正释放，此时再通知上层。
       savedOnClose?.()
     } else {
       this.logger.warn('not find connId for disconnect', { connId })

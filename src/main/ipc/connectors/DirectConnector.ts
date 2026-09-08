@@ -76,6 +76,13 @@ export default class DirectConnector {
         return { success: false, message: 'Direct mode start cancelled' }
       }
 
+      const existingClient = this.directClients.get(sessionId)
+      if (existingClient) {
+        const disconnectResult = await existingClient.disconnect(sessionId) as { success?: boolean; message?: string }
+        if (disconnectResult?.success === false) return disconnectResult
+        if (this.directClients.get(sessionId) === existingClient) this.directClients.delete(sessionId)
+      }
+
       const ComClient = (await import('../../protocol/ComClient')).default
       const TelnetClient = (await import('../../protocol/TelnetClient')).default
       const ClientClass = conn.connectionType === 'com' ? ComClient : TelnetClient
@@ -128,7 +135,9 @@ export default class DirectConnector {
     const client = this.directClients.get(sessionId)
     if (!client) return { success: true }
     const result = await client.disconnect(sessionId)
-    if (this.directClients.get(sessionId) === client) this.directClients.delete(sessionId)
+    if ((result as { success?: boolean })?.success !== false && this.directClients.get(sessionId) === client) {
+      this.directClients.delete(sessionId)
+    }
     return result || { success: true }
   }
 
@@ -136,5 +145,26 @@ export default class DirectConnector {
     const client = this.directClients.get(conn.sessionId)
     if (!client) return { success: false, message: 'Direct mode client not initialized' }
     return await client.updateConfig(conn.sessionId, config)
+  }
+
+  async cleanup(): Promise<void> {
+    const sessionIds = new Set([
+      ...this.generations.keys(),
+      ...this.pendingStarts.keys(),
+      ...this.directClients.keys()
+    ])
+    for (const sessionId of sessionIds) {
+      this.generations.set(sessionId, (this.generations.get(sessionId) ?? 0) + 1)
+    }
+    await Promise.allSettled(
+      Array.from(this.pendingStarts.values()).flatMap((pending) => Array.from(pending))
+    )
+    await Promise.allSettled(
+      Array.from(this.directClients, ([sessionId, client]) => client.disconnect(sessionId))
+    )
+    this.directClients.clear()
+    this.generations.clear()
+    this.pendingStarts.clear()
+    this.startQueues.clear()
   }
 }

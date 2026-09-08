@@ -12,10 +12,32 @@ import path from 'path'
 
 (app as any).isQuitting = false
 let isQuitting = false
+let quitCleanupStarted = false
 let powerBlockerId: number | null = null
 
 const packageJsonPath = path.join(app.getAppPath(), 'package.json')
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
+
+export function getWindowFrameOptions(platform: NodeJS.Platform) {
+  return platform === 'darwin'
+    ? {
+        frame: true,
+        titleBarStyle: 'hiddenInset' as const,
+        trafficLightPosition: { x: 12, y: 9 }
+      }
+    : {
+        frame: false,
+        titleBarStyle: 'hidden' as const
+      }
+}
+
+export function getWindowCloseAction(
+  platform: NodeJS.Platform,
+  minimizeToTray: boolean
+): 'hide' | 'quit' | 'close' {
+  if (minimizeToTray) return 'hide'
+  return platform === 'darwin' ? 'quit' : 'close'
+}
 
 export default class IpcMain {
   private static sInstance: IpcMain
@@ -57,8 +79,7 @@ export default class IpcMain {
           nodeIntegration: false, // 禁用直接 Node 集成，通过 preload 暴露 API
           backgroundThrottling: false // 禁用后台节流，防止切换窗口时卡顿
         },
-        frame: false, // 无边框
-        titleBarStyle: 'hidden' // 隐藏标题栏
+        ...getWindowFrameOptions(process.platform)
       })
 
       // 加载界面（开发环境加载 Vite 服务，生产环境加载本地 HTML）
@@ -90,10 +111,15 @@ export default class IpcMain {
       // 监听窗口关闭事件
       mainWindow.on('close', (event) => {
         const settings = IpcMain.getInstance().settingsStorage.getSettings()
+        const closeAction = getWindowCloseAction(process.platform, settings.minimizeToTray === true)
         // 如果设置了关闭后最小化到托盘，并且不是真正退出，则阻止关闭并隐藏
-        if (settings.minimizeToTray && !isQuitting) {
+        if (closeAction === 'hide' && !isQuitting) {
           event.preventDefault()
           mainWindow.hide()
+        } else if (closeAction === 'quit' && !isQuitting) {
+          // 关闭到托盘未启用时退出，避免窗口消失后串口仍被后台进程持有。
+          event.preventDefault()
+          app.quit()
         }
       })
 
@@ -131,31 +157,20 @@ export default class IpcMain {
       }
     })
 
-    app.on('window-all-closed', async () => {
-      if (isQuitting) return
+    app.on('before-quit', async (event) => {
+      if (quitCleanupStarted) return
+      event.preventDefault()
+      quitCleanupStarted = true
       isQuitting = true
       ;(app as any).isQuitting = true
-
-      _logger.flush()
-
-      setTimeout(() => {
-        if (process.platform !== 'darwin') {
-          app.quit()
-        }
-      }, 300)
-    })
-
-    app.on('before-quit', async (_event) => {
-      if (isQuitting) return
-      isQuitting = true
-      ;(app as any).isQuitting = true
-      _logger.flush()
-      // 关闭所有 Worker 连接
-      await IpcConnector.getInstance().cleanup()
-      // 真正退出时销毁托盘
-      IpcTray.getInstance().destroyTray()
-      // 退出时执行自动备份（用户数据已保存）
-      this.performAutoBackupOnExit()
+      try {
+        _logger.flush()
+        await IpcConnector.getInstance().cleanup()
+        IpcTray.getInstance().destroyTray()
+        this.performAutoBackupOnExit()
+      } finally {
+        app.quit()
+      }
     })
 
     // 进程信号监听

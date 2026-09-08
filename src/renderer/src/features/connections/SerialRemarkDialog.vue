@@ -2,13 +2,16 @@
   <el-dialog
     :model-value="visible"
     :title="$t('dialog.editRemark')"
-    width="400px"
+    width="min(400px, calc(100vw - 32px))"
     :close-on-click-modal="false"
     @update:model-value="$emit('update:visible', $event)"
     @opened="$emit('opened')"
   >
-    <el-form label-width="80px" @submit.prevent>
-      <el-form-item :label="comName">
+    <el-form label-position="top" @submit.prevent>
+      <el-form-item>
+        <template #label>
+          <span class="serial-port-name" :title="comName">{{ comName }}</span>
+        </template>
         <el-input
           ref="remarkInputRef"
           :model-value="remark"
@@ -45,3 +48,12 @@ defineEmits<{
 const remarkInputRef = ref<any>(null)
 defineExpose({ remarkInputRef })
 </script>
+
+<style scoped>
+.serial-port-name {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+</style>
