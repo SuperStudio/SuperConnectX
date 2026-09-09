@@ -14,6 +14,19 @@ SuperConnectX is a **super terminal tool** supporting COM, Telnet, and other ter
 
 Download: [Click here](https://github.com/SuperStudio/SuperConnectX/releases)
 
+## macOS Installation and Updates
+
+- Choose the package ending in `macos-arm64.dmg` for Apple Silicon Macs (M1/M2/M3/M4, etc.), or `macos-x64.dmg` for Intel Macs.
+- The project is not currently signed or notarized with an Apple Developer ID. After the first browser download and installation, macOS may report that the developer cannot be verified or that the app is damaged. First open **System Settings → Privacy & Security**, find the blocked-app message, and choose **Open Anyway**.
+- If **Open Anyway** is unavailable, only after confirming that the app came from this project's Releases and verifying `SHA256SUMS`, run the following command in Terminal:
+
+```bash
+xattr -r -d com.apple.quarantine "/Applications/superconnectx.app"
+```
+
+- If the app is installed elsewhere, replace the path with the actual `.app` path. Target the individual app; do not remove quarantine attributes from the entire `/Applications` directory.
+- In-app update checks can read GitHub Release metadata and identify the package for the current CPU architecture, but automatic installation on macOS requires valid code signing and is not guaranteed for unsigned builds. Use **Download** in the update dialog to open Releases, then download and replace the app manually. If Gatekeeper blocks the updated app again, repeat the steps above.
+
 
 ![image-20260531221403478](Image/image-20260531221403478.png)
 
