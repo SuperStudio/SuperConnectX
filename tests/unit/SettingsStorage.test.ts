@@ -12,6 +12,7 @@ describe('SettingsStorage', () => {
     it('返回默认设置', () => {
       const settings = storage.getSettings()
       expect(settings.minimizeToTray).toBe(false)
+      expect(settings.notificationDuration).toBe(0)
       expect(settings.autoScroll).toBe(true)
       expect(settings.language).toBe('zh-CN')
       expect(settings.backupInterval).toBe(30)

@@ -26,7 +26,7 @@
       :log-editable="terminalLogEditable"
       />
     </template>
-    <NotifyContainer ref="notifyContainerRef" />
+    <NotifyContainer ref="notifyContainerRef" :default-duration="notificationDuration" />
 
     <div class="app-main">
       <!-- 侧边栏 -->
@@ -288,6 +288,7 @@ const { t } = useI18n()
 
 // ---- Refs ----
 const notifyContainerRef = ref<InstanceType<typeof NotifyContainer> | null>(null)
+const notificationDuration = ref(0)
 const isAboutDialogOpen = ref(false)
 const isUpdateDialogOpen = ref(false)
 const updateDialogRef = ref<InstanceType<typeof UpdateDialog> | null>(null)
@@ -1113,6 +1114,9 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 // ---- 设置更新事件 ----
 const handleSettingsUpdated = (event: Event) => {
   const settings = (event as CustomEvent).detail
+  if (settings && 'notificationDuration' in settings) {
+    notificationDuration.value = settings.notificationDuration === 5000 ? 5000 : 0
+  }
   if (settings && 'showPortType' in settings) {
     showPortType.value = settings.showPortType
   }
@@ -1124,11 +1128,22 @@ const handleSettingsUpdated = (event: Event) => {
   }
 }
 
+const loadNotificationDuration = async () => {
+  try {
+    const settings = await window.storageApi.getSettings()
+    notificationDuration.value = settings?.notificationDuration === 5000 ? 5000 : 0
+  } catch (error) {
+    console.error('Failed to load notification duration:', error)
+  }
+}
+
 // ---- Lifecycle ----
 onMounted(async () => {
   // 初始化主题
   const savedTheme = localStorage.getItem('app-theme') || 'dark'
   document.documentElement.setAttribute('data-theme', savedTheme)
+
+  await loadNotificationDuration()
 
   loadSidebarState()
   loadConnections()

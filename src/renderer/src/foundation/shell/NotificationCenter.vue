@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 import { useNotificationCenter } from './useNotificationCenter'
 
 withDefaults(defineProps<{ clearAllLabel?: string }>(), { clearAllLabel: 'Clear all' })
@@ -46,6 +46,8 @@ const hideMenu = (): void => { menuVisible.value = false }
 const clearFromMenu = (): void => { clear(); hideMenu() }
 
 defineExpose({ add, remove, clear })
+
+onUnmounted(clear)
 </script>
 
 <style scoped>
