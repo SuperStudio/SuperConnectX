@@ -90,8 +90,10 @@ declare global {
       onConnectClose: (callback: (connId: number) => void) => () => void
       onLogSplit: (callback: (data: { connId: string; oldFileName: string; newFileName: string }) => void) => () => void
       openConnectLog: (sessionId: string, mode?: 'folder' | 'file') => Promise<{ success: boolean; message?: string; filePath?: string }>
+      onCopyLogProgress: (callback: (data: { sessionId: string; percent: number }) => void) => () => void
       getLogFilePath: (sessionId: string) => Promise<{ success: boolean; filePath?: string; message?: string }>
-      copyLogFile: (sessionId: string, destPath: string) => Promise<{ success: boolean; message?: string }>
+      copyLogFile: (sessionId: string, destPath: string, hours?: number) => Promise<{ success: boolean; message?: string }>
+      cleanupLogs: () => Promise<{ success: boolean; deletedCount: number; deletedSize: number; failedCount: number; failedFiles: string[] }>
       rotateLogFile: (sessionId: string) => Promise<{ success: boolean; message?: string; oldFileName?: string; newFileName?: string }>
       listSerialPorts: () => Promise<SerialPortInfo[]>
       fixSerialPermissions: () => Promise<{ success: boolean; message?: string }>

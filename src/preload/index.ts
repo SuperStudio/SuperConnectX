@@ -95,9 +95,15 @@ contextBridge.exposeInMainWorld('connectApi', {
     ipcRenderer.on('on-log-split', listener)
     return () => ipcRenderer.removeListener('on-log-split', listener)
   },
+  onCopyLogProgress: (callback: (data: { sessionId: string; percent: number }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: { sessionId: string; percent: number }) =>
+      callback(data)
+    ipcRenderer.on('copy-log-progress', listener)
+    return () => ipcRenderer.removeListener('copy-log-progress', listener)
+  },
   openConnectLog: (sessionId: string, mode: 'folder' | 'file' = 'folder') => ipcRenderer.invoke('open-connect-log', sessionId, mode),
   getLogFilePath: (sessionId: string) => ipcRenderer.invoke('get-log-file-path', sessionId),
-  copyLogFile: (sessionId: string, destPath: string) => ipcRenderer.invoke('copy-log-file', { sessionId, destPath }),
+  copyLogFile: (sessionId: string, destPath: string, hours?: number) => ipcRenderer.invoke('copy-log-file', { sessionId, destPath, hours }),
   rotateLogFile: (sessionId: string) => ipcRenderer.invoke('rotate-log-file', sessionId),
   listSerialPorts: () => ipcRenderer.invoke('list-serial-ports'),
   fixSerialPermissions: () => ipcRenderer.invoke('fix-serial-permissions'),
@@ -106,7 +112,8 @@ contextBridge.exposeInMainWorld('connectApi', {
     ipcRenderer.on('on-serial-ports-changed', listener)
     return () => ipcRenderer.removeListener('on-serial-ports-changed', listener)
   },
-  writeToLog: (sessionId: string, content: string) => ipcRenderer.invoke('write-to-log', { sessionId, content })
+  writeToLog: (sessionId: string, content: string) => ipcRenderer.invoke('write-to-log', { sessionId, content }),
+  cleanupLogs: () => ipcRenderer.invoke('cleanup-logs')
 })
 
 contextBridge.exposeInMainWorld('dialogApi', {

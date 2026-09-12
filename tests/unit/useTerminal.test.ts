@@ -24,7 +24,8 @@ vi.mock('element-plus', () => ({
   ElMessage: {
     error: vi.fn(),
     success: vi.fn(),
-    warning: vi.fn()
+    warning: vi.fn(),
+    info: vi.fn()
   }
 }))
 
@@ -37,6 +38,8 @@ const mockUpdateConnect = vi.fn().mockResolvedValue({})
 const mockStopConnect = vi.fn().mockResolvedValue({})
 const mockSendData = vi.fn().mockResolvedValue({})
 const mockOpenConnectLog = vi.fn().mockResolvedValue({ success: true })
+const mockSaveFileDialog = vi.fn().mockResolvedValue({ filePath: '/tmp/export.log' })
+const mockCopyLogFile = vi.fn().mockResolvedValue({ success: true })
 const mockRotateLogFile = vi.fn().mockResolvedValue({
   success: true,
   oldFileName: 'old.log',
@@ -48,7 +51,18 @@ const mockRotateLogFile = vi.fn().mockResolvedValue({
     stopConnect: mockStopConnect,
     sendData: mockSendData,
     openConnectLog: mockOpenConnectLog,
-    rotateLogFile: mockRotateLogFile
+    rotateLogFile: mockRotateLogFile,
+    copyLogFile: mockCopyLogFile
+  },
+  dialogApi: {
+    saveFileDialog: mockSaveFileDialog
+  },
+  storageApi: {
+    getSettings: vi.fn().mockResolvedValue({}),
+    getComSettings: vi.fn().mockResolvedValue({})
+  },
+  toolApi: {
+    showItemInFolder: vi.fn()
   }
 }
 
@@ -84,6 +98,7 @@ function createOptions(overrides: Partial<UseTerminalOptions> = {}): UseTerminal
 describe('useTerminal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked((window as any).storageApi.getSettings).mockResolvedValue({ enableLogStorage: true })
   })
 
   describe('initialization', () => {
@@ -96,7 +111,7 @@ describe('useTerminal', () => {
       expect(terminal.showTimestamp).toBeDefined()
       expect(typeof terminal.openLogFolder).toBe('function')
       expect(typeof terminal.openLogFile).toBe('function')
-      expect(typeof terminal.saveLogFile).toBe('function')
+      expect(typeof terminal.saveLogFileAs).toBe('function')
       expect(typeof terminal.handleClose).toBe('function')
       expect(typeof terminal.handleSend).toBe('function')
       expect(typeof terminal.reconnect).toBe('function')
@@ -351,20 +366,45 @@ describe('useTerminal', () => {
     })
   })
 
-  describe('saveLogFile', () => {
-    it('should call rotateLogFile', async () => {
+  describe('saveLogFileAs', () => {
+    it('should warn before opening the dialog when log storage is disabled', async () => {
+      const { ElMessage } = await import('element-plus')
+      vi.mocked((window as any).storageApi.getSettings).mockResolvedValueOnce({ enableLogStorage: false })
+      const terminal = useTerminal(createOptions())
+
+      await terminal.saveLogFileAs()
+
+      expect(ElMessage.warning).toHaveBeenCalledWith('terminal.logStorageDisabled')
+      expect(mockSaveFileDialog).not.toHaveBeenCalled()
+      expect(mockCopyLogFile).not.toHaveBeenCalled()
+    })
+
+    it('should export the log through copyLogFile without rotating it', async () => {
       const opts = createOptions()
       const terminal = useTerminal(opts)
 
-      await terminal.saveLogFile()
-      expect(mockRotateLogFile).toHaveBeenCalledWith(expect.any(String))
+      await terminal.saveLogFileAs()
+      expect(mockSaveFileDialog).toHaveBeenCalled()
+      expect(mockCopyLogFile).toHaveBeenCalledWith(expect.any(String), '/tmp/export.log', undefined)
+      expect(mockRotateLogFile).not.toHaveBeenCalled()
+      expect(terminal.rotateLogFile).toBeDefined()
+    })
+
+    it('keeps log rotation behind its explicit internal API', async () => {
+      const opts = createOptions()
+      const terminal = useTerminal(opts)
+
+      await terminal.rotateLogFile()
+
+      expect(mockRotateLogFile).toHaveBeenCalledWith('12345')
+      expect(mockCopyLogFile).not.toHaveBeenCalled()
     })
 
     it('should show success message on success', async () => {
       const opts = createOptions()
       const terminal = useTerminal(opts)
 
-      await terminal.saveLogFile()
+      await terminal.saveLogFileAs()
       // ElMessage.success should have been called
     })
   })

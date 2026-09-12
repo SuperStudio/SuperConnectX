@@ -18,6 +18,7 @@
       @toggle-word-wrap="handleToggleWordWrap"
       @toggle-line-numbers="handleToggleLineNumbers"
       @toggle-log-editable="handleToggleLogEditable"
+      @save-log-as="handleSaveLogAs"
       :show-connection-list="showConnectionList"
       :show-bottom-panel="showBottomPanel"
       :current-font="currentFont"
@@ -1017,6 +1018,20 @@ const refreshHandler = () => {
       telnetTerminalRefs[tabId]?.refreshGroupsCmds?.()
     }
   }
+}
+
+const handleSaveLogAs = async () => {
+  const tabId = activeTabId.value
+  if (!tabId) {
+    ElMessage.warning(t('titlebar.noActiveTerminal'))
+    return
+  }
+  const terminal = comTerminalRefs[tabId] || telnetTerminalRefs[tabId]
+  if (!terminal?.saveLogFileAs) {
+    ElMessage.warning(t('titlebar.noActiveTerminal'))
+    return
+  }
+  await terminal.saveLogFileAs()
 }
 
 async function handleToggleWordWrap() {

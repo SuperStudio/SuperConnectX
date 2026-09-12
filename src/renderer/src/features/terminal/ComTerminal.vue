@@ -13,7 +13,7 @@
       @on-reconnect="reconnect"
       @on-open-log-folder="openLogFolder"
       @on-open-log-file="openLogFile"
-      @on-save-log="saveLog"
+      @on-rotate-log="rotateLogFile"
       @on-send="handleSendCommand"
       @on-command-sent="handleCommandSent"
       @on-open-command-editor="emit('openCommandEditor', connection.connectionType)"
@@ -272,7 +272,7 @@ const terminal = useTerminal({
   sendDisplaySuffix: 'SEND>>>>>>>>>>>>>'
 })
 
-const { openLogFolder, openLogFile, saveLogFile, cleanup: terminalCleanup } = terminal
+const { openLogFolder, openLogFile, saveLogFileAs, rotateLogFile, cleanup: terminalCleanup } = terminal
 
 // 监听波特率变化
 watch(baudRate, (newVal) => {
@@ -742,10 +742,6 @@ const handleSendCommand = async (command: string, originalInput?: string) => {
 }
 
 
-const saveLog = async () => {
-  await saveLogFile()
-}
-
 const handleCommandSent = (cmdName: string) => emit('commandSent', cmdName)
 
 const refreshGroupsCmds = () => unifiedTerminalRef.value?.refreshGroupsCmds?.()
@@ -782,7 +778,8 @@ defineExpose({
   clearTerminal: () => unifiedTerminalRef.value?.clearTerminal?.(),
   setWordWrap: (val: boolean) => unifiedTerminalRef.value?.setWordWrap?.(val),
   setLineNumbers: (val: boolean) => unifiedTerminalRef.value?.setLineNumbers?.(val),
-  setLogEditable: (val: boolean) => unifiedTerminalRef.value?.setLogEditable?.(val)
+  setLogEditable: (val: boolean) => unifiedTerminalRef.value?.setLogEditable?.(val),
+  saveLogFileAs
 })
 
 onMounted(async () => {
