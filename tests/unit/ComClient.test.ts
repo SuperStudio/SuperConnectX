@@ -10,6 +10,7 @@ vi.mock('serialport', () => {
     private listeners: Map<string, Function[]> = new Map()
     path: string
     baudRate: number
+    isOpen = true
 
     constructor(opts: any) {
       this.path = opts.path
@@ -47,6 +48,7 @@ vi.mock('serialport', () => {
     }
 
     close(callback?: (err: Error | null) => void): void {
+      this.isOpen = false
       callback?.(null)
     }
 
@@ -121,6 +123,66 @@ describe('ComClient', () => {
 
       expect(onData).not.toHaveBeenCalled()
       expect(connection.buffer.toString()).toBe('no newline yet')
+    })
+  })
+
+  describe('disconnect()', () => {
+    it('waits for the serial port close callback before resolving', async () => {
+      await startConnection('close-1')
+      const connection = client.serialConnections.get('close-1')!
+      let finishClose: ((err: Error | null) => void) | undefined
+      connection.port.close = vi.fn((callback) => {
+        finishClose = callback
+      })
+
+      let settled = false
+      const disconnectPromise = client.disconnect('close-1').then((result) => {
+        settled = true
+        return result
+      })
+      await Promise.resolve()
+
+      expect(settled).toBe(false)
+      expect(client.serialConnections.has('close-1')).toBe(true)
+
+      finishClose?.(null)
+      await expect(disconnectPromise).resolves.toMatchObject({ success: true })
+      expect(client.serialConnections.has('close-1')).toBe(false)
+    })
+
+    it('keeps the connection when closing the serial port fails', async () => {
+      await startConnection('close-error')
+      const connection = client.serialConnections.get('close-error')!
+      connection.port.close = vi.fn((callback) => callback(new Error('close failed')))
+
+      await expect(client.disconnect('close-error')).resolves.toMatchObject({
+        success: false,
+        message: 'close failed'
+      })
+      expect(client.serialConnections.has('close-error')).toBe(true)
+    })
+
+    it('times out and keeps the connection when close never completes', async () => {
+      await startConnection('close-timeout')
+      const connection = client.serialConnections.get('close-timeout')!
+      connection.port.close = vi.fn()
+      vi.useFakeTimers()
+
+      try {
+        const disconnectPromise = client.disconnect('close-timeout')
+        await vi.advanceTimersByTimeAsync(5000)
+
+        await expect(disconnectPromise).resolves.toMatchObject({
+          success: false,
+          message: 'Timed out closing serial port after 5000ms'
+        })
+        expect(client.serialConnections.has('close-timeout')).toBe(true)
+
+        connection.port.emit('close')
+        expect(client.serialConnections.has('close-timeout')).toBe(false)
+      } finally {
+        vi.useRealTimers()
+      }
     })
   })
 })

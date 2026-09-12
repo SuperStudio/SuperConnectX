@@ -20,7 +20,11 @@ vi.mock('electron', () => ({
   },
   Menu: { buildFromTemplate: vi.fn((t: any[]) => t) },
   nativeImage: {
-    createFromPath: vi.fn(() => ({ isEmpty: () => false, resize: () => ({ setTemplateImage: vi.fn() }) })),
+    createFromPath: vi.fn(() => ({
+      isEmpty: () => false,
+      setTemplateImage: vi.fn(),
+      resize: () => ({ setTemplateImage: vi.fn() })
+    })),
     createEmpty: vi.fn(() => ({ isEmpty: () => true, resize: () => ({ setTemplateImage: vi.fn() }) }))
   },
   BrowserWindow: class {}
@@ -30,7 +34,7 @@ vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 }))
 
-import IpcTray from '../../src/main/ipc/IpcTray'
+import IpcTray, { getTrayIconFileName } from '../../src/main/ipc/IpcTray'
 
 describe('IpcTray', () => {
   let ipcTray: IpcTray
@@ -43,6 +47,14 @@ describe('IpcTray', () => {
   describe('getInstance', () => {
     it('should return same instance (singleton)', () => {
       expect(IpcTray.getInstance()).toBe(IpcTray.getInstance())
+    })
+  })
+
+  describe('tray icon selection', () => {
+    it('uses a template icon only on macOS', () => {
+      expect(getTrayIconFileName('darwin')).toBe('iconTemplate.png')
+      expect(getTrayIconFileName('win32')).toBe('icon.ico')
+      expect(getTrayIconFileName('linux')).toBe('icon.png')
     })
   })
 

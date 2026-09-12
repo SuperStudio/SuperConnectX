@@ -1,13 +1,15 @@
 <template>
   <WindowTitleBar
     class="custom-titlebar"
+    :class="{ 'is-mac': isMac }"
     :is-maximized="isMaximized"
+    :show-window-controls="!isMac"
     @minimize="minimizeWindow"
     @toggle-maximize="maximizeWindow"
     @close="closeWindow"
   >
     <template #left>
-    <div class="titlebar-left">
+    <div class="titlebar-left" :class="{ 'is-mac': isMac }">
       <div class="app-logo">
         <img class="logo-img" src="../assets/icon.png" alt="App Icon" />
       </div>
@@ -231,6 +233,7 @@ import WindowTitleBar from '../foundation/shell/WindowTitleBar.vue'
 const { t } = useI18n()
 
 const isMaximized = ref(false)
+const isMac = window.virtualPortApi.getPlatform() === 'darwin'
 const showFileMenu = ref(false)
 const showEditMenu = ref(false)
 const showToolsMenu = ref(false)
@@ -628,6 +631,10 @@ const handleClickOutside = (event: MouseEvent) => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.titlebar-left.is-mac {
+  margin-left: 82px;
 }
 
 .app-logo {

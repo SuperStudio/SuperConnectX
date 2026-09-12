@@ -3,6 +3,12 @@ import { join } from 'path'
 import logger from './IpcAppLogger'
 import { hideWindow, showAndFocusWindow } from '../../core/tray/WindowVisibility'
 
+export function getTrayIconFileName(platform: NodeJS.Platform): string {
+  if (platform === 'win32') return 'icon.ico'
+  if (platform === 'darwin') return 'iconTemplate.png'
+  return 'icon.png'
+}
+
 export default class IpcTray {
   private static sInstance: IpcTray
   private tray: Tray | null = null
@@ -25,12 +31,7 @@ export default class IpcTray {
       ? process.resourcesPath              // 打包后: resources/ 目录
       : join(__dirname, '../../build')     // 开发模式: build/ 目录
 
-    if (process.platform === 'win32') {
-      return join(basePath, 'icon.ico')
-    } else if (process.platform === 'darwin') {
-      return join(basePath, 'icon.icns')
-    }
-    return join(basePath, 'icon.png')
+    return join(basePath, getTrayIconFileName(process.platform))
   }
 
   createTray(mainWindow: BrowserWindow): void {
@@ -45,10 +46,8 @@ export default class IpcTray {
       logger.warn(`Tray icon not found at: ${iconPath}, using default icon`)
       this.tray = new Tray(nativeImage.createEmpty())
     } else if (process.platform === 'darwin') {
-      // macOS: 使用 16x16 模板图标（系统会自动根据明暗主题调整颜色）
-      const trayIcon = icon.resize({ width: 16, height: 16 })
-      trayIcon.setTemplateImage(true)
-      this.tray = new Tray(trayIcon)
+      icon.setTemplateImage(true)
+      this.tray = new Tray(icon)
     } else if (process.platform === 'win32') {
       // Windows: 直接使用原始图标，让系统自动选择最佳分辨率
       // .ico 文件内嵌多尺寸，不需要手动 resize

@@ -124,6 +124,18 @@ describe('DirectConnector', () => {
       expect(mockComStart).toHaveBeenCalledTimes(2)
       expect(mockComDisconnect).toHaveBeenCalledTimes(1)
     })
+
+    it('should not replace an existing client when disconnect fails', async () => {
+      const { dc } = createDirectConnector()
+      const conn = makeConn({ sessionId: 's-replace-fail' })
+      const info = { host: '', port: 0, username: '', password: '', sessionId: 's-replace-fail' }
+      await dc.startConnection(conn, info)
+      mockComDisconnect.mockResolvedValueOnce({ success: false } as any)
+
+      await expect(dc.startConnection(conn, info)).resolves.toEqual({ success: false })
+      expect(mockComStart).toHaveBeenCalledTimes(1)
+      await expect(dc.sendData(conn, 'test')).resolves.toEqual({ success: true })
+    })
   })
 
   // ============ sendData ============
@@ -208,6 +220,32 @@ describe('DirectConnector', () => {
       const result = await dc.stopConnection(conn)
       expect(result).toEqual({ success: true })
       expect(mockComDisconnect).not.toHaveBeenCalled()
+    })
+
+    it('should retain a client when disconnect fails', async () => {
+      mockComDisconnect.mockResolvedValueOnce({ success: false } as any)
+      const { dc } = createDirectConnector()
+      const conn = makeConn({ sessionId: 's-close-error' })
+      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's-close-error' })
+
+      await expect(dc.stopConnection(conn)).resolves.toEqual({ success: false })
+      await expect(dc.sendData(conn, 'test')).resolves.toEqual({ success: true })
+    })
+  })
+
+  describe('cleanup', () => {
+    it('disconnects all direct clients', async () => {
+      const { dc } = createDirectConnector()
+      const first = makeConn({ sessionId: 'cleanup-1' })
+      const second = makeConn({ sessionId: 'cleanup-2' })
+      await dc.startConnection(first, { host: '', port: 0, username: '', password: '', sessionId: 'cleanup-1' })
+      await dc.startConnection(second, { host: '', port: 0, username: '', password: '', sessionId: 'cleanup-2' })
+
+      await dc.cleanup()
+
+      expect(mockComDisconnect).toHaveBeenCalledWith('cleanup-1')
+      expect(mockComDisconnect).toHaveBeenCalledWith('cleanup-2')
+      await expect(dc.sendData(first, 'test')).resolves.toMatchObject({ success: false })
     })
   })
 
