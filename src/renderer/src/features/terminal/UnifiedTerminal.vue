@@ -54,7 +54,7 @@
       @on-clear-terminal="clearTerminal"
       @on-open-log-folder="emit('onOpenLogFolder')"
       @on-open-log-file="emit('onOpenLogFile')"
-      @on-save-log="emit('onSaveLog')"
+      @on-rotate-log="emit('onRotateLog')"
       @on-edit-syntax-rules="emit('onEditSyntaxRules')"
       @on-toggle-log-filter="showLogFilter = !showLogFilter"
       @update:is-auto-scroll="isAutoScroll = $event"
@@ -256,7 +256,7 @@ const emit = defineEmits<{
   onReconnect: []
   onOpenLogFolder: []
   onOpenLogFile: []
-  onSaveLog: []
+  onRotateLog: []
   onSend: [command: string, originalInput?: string]
   onCommandSent: [cmdName: string]
   onDataReceived: [data: string]

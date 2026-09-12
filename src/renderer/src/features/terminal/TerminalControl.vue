@@ -81,8 +81,8 @@
         class="terminal-switch"
         :active-text="t('terminal.showLog')"
       />
-      <el-button icon="DocumentAdd" size="small" class="btn-primary log-btn" @click="emit('onSaveLog')">
-        {{ t('terminal.saveLogAs') }}
+      <el-button icon="DocumentAdd" size="small" class="btn-primary log-btn" @click="emit('onRotateLog')">
+        {{ t('terminal.logRotate') }}
       </el-button>
       <el-select
         v-model="selectedSyntaxGroupId"
@@ -141,7 +141,7 @@ const emit = defineEmits<{
   onClearTerminal: []
   onOpenLogFolder: []
   onOpenLogFile: []
-  onSaveLog: []
+  onRotateLog: []
   onEditSyntaxRules: []
   onToggleLogFilter: []
   'update:isAutoScroll': [value: boolean]

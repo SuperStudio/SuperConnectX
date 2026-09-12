@@ -236,6 +236,8 @@
     "exportCmd": "导出命令",
     "exportData": "导出数据",
     "importFromSuperCom": "从 SuperCom 导入",
+    "saveLogAs": "另存为",
+    "noActiveTerminal": "请先打开一个连接选项卡",
     "openAppDir": "打开程序所在路径",
     "openUserDataDir": "打开用户数据文件夹",
     "exit": "退出",

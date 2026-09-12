@@ -22,6 +22,7 @@ export const SHORTCUT_ACTIONS: Record<string, string> = {
   'SerialPort:refresh': '刷新串口列表',
   'Window:toggleFullscreen': '切换全屏',
   'Terminal:toggleWordWrap': '自动换行',
+  'Terminal:saveLogAs': '日志另存为',
 }
 
 const STORAGE_NAME = 'shortcuts'
@@ -77,6 +78,7 @@ export default class ShortcutsStorage extends BaseStorage<ShortcutItem> {
       { action: 'SerialPort:refresh', keys: ['Ctrl', 'F5'] },
       { action: 'Window:toggleFullscreen', keys: ['F11'] },
       { action: 'Terminal:toggleWordWrap', keys: ['Alt', 'Z'] },
+      { action: 'Terminal:saveLogAs', keys: ['Ctrl', 'Shift', 'S'] },
     ]
   }
 }

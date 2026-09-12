@@ -236,6 +236,8 @@
     "exportCmd": "Export Commands",
     "exportData": "Export Data",
     "importFromSuperCom": "Import from SuperCom",
+    "saveLogAs": "Save Log As",
+    "noActiveTerminal": "Please open a connection tab first",
     "openAppDir": "Open App Directory",
     "openUserDataDir": "Open User Data Folder",
     "exit": "Exit",

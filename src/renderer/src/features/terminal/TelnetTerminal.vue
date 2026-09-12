@@ -13,7 +13,7 @@
       @on-reconnect="handleReconnect"
       @on-open-log-folder="openLogFolder"
       @on-open-log-file="openLogFile"
-      @on-save-log="saveLogFileAs"
+      @on-rotate-log="rotateLogFile"
       @on-send="handleSend"
       @on-command-sent="handleCommandSent"
       @on-file-upload="handleFileUpload"
@@ -127,7 +127,7 @@ const terminal = useTerminal({
   saveFontSettings
 })
 
-const { openLogFolder, openLogFile, saveLogFileAs, cleanup: terminalCleanup } = terminal
+const { openLogFolder, openLogFile, saveLogFileAs, rotateLogFile, cleanup: terminalCleanup } = terminal
 
 const handleClose = async () => {
   stopRetry.value = true
@@ -394,7 +394,8 @@ defineExpose({
   clearTerminal: () => unifiedTerminalRef.value?.clearTerminal?.(),
   setWordWrap: (val: boolean) => unifiedTerminalRef.value?.setWordWrap?.(val),
   setLineNumbers: (val: boolean) => unifiedTerminalRef.value?.setLineNumbers?.(val),
-  setLogEditable: (val: boolean) => unifiedTerminalRef.value?.setLogEditable?.(val)
+  setLogEditable: (val: boolean) => unifiedTerminalRef.value?.setLogEditable?.(val),
+  saveLogFileAs
 })
 
 onBeforeUnmount(() => {

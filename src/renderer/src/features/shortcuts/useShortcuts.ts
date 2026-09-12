@@ -108,6 +108,11 @@ export function useShortcuts(
             const terminal = comTerminalRefs[activeTabId.value] || telnetTerminalRefs[activeTabId.value]
             terminal?.clearTerminal?.()
           },
+          'Terminal:saveLogAs': () => {
+            if (!activeTabId.value) return
+            const terminal = comTerminalRefs[activeTabId.value] || telnetTerminalRefs[activeTabId.value]
+            terminal?.saveLogFileAs?.()
+          },
           'Tab:pinCurrent': () => {
             if (!activeTabId.value) return
             const tab = connectionTabs.value.find((item: any) => item.id.toString() === activeTabId.value)
