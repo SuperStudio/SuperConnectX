@@ -63,6 +63,16 @@
             </div>
             <div class="setting-item">
               <div class="setting-label">
+                <span class="label-text">{{ t('basicSettings.notificationDuration') }}</span>
+                <span class="label-desc">{{ t('basicSettings.notificationDurationDesc') }}</span>
+              </div>
+              <el-select v-model="settings.notificationDuration" size="small" style="width: 120px">
+                <el-option :label="t('basicSettings.notificationPermanent')" :value="0" />
+                <el-option :label="t('basicSettings.notificationFiveSeconds')" :value="5000" />
+              </el-select>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.autoScrollOnFocus') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoScrollOnFocus" />

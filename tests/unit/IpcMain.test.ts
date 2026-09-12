@@ -4,9 +4,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockAppHandlers, mockConnectorCleanup, mockDialogHandlers } = vi.hoisted(() => ({
+const { mockAppHandlers, mockConnectorCleanup, mockBrowserWindows, mockDialogHandlers } = vi.hoisted(() => ({
   mockAppHandlers: new Map<string, Function>(),
   mockConnectorCleanup: vi.fn((): Promise<void> => Promise.resolve()),
+  mockBrowserWindows: [] as any[],
   mockDialogHandlers: new Map<string, Function>()
 }))
 
@@ -31,18 +32,22 @@ vi.mock('electron', () => ({
     static getFocusedWindow() { return null }
     static getAllWindows() { return [] }
     constructor() {
-      // mock instance methods
+      const events = new Map<string, Function>()
       Object.assign(this, {
+        events,
         loadFile: vi.fn(),
         loadURL: vi.fn(),
         hide: vi.fn(),
-        on: vi.fn(),
+        on: vi.fn((event: string, handler: Function) => events.set(event, handler)),
+        isMaximized: vi.fn(() => false),
+        isDestroyed: vi.fn(() => false),
         webContents: {
           on: vi.fn(),
           setWindowOpenHandler: vi.fn(),
-          executeJavaScript: vi.fn()
+          send: vi.fn()
         }
       })
+      mockBrowserWindows.push(this)
     }
   },
   shell: { openExternal: vi.fn() },
@@ -124,6 +129,7 @@ describe('IpcMain', () => {
     mockAppHandlers.clear()
     mockConnectorCleanup.mockClear()
     mockDialogHandlers.clear()
+    mockBrowserWindows.length = 0
   })
 
   describe('getInstance', () => {
@@ -224,6 +230,35 @@ describe('IpcMain', () => {
     it('should call checkForUpdates without error', async () => {
       ipcMainInst.init({ flush: vi.fn() }, {})
       await expect(mockDialogHandlers.get('check-for-updates')!()).resolves.toBeUndefined()
+    })
+  })
+
+  describe('window maximized state notifications', () => {
+    it('uses typed IPC and de-duplicates unchanged resize state', async () => {
+      ipcMainInst.init({ flush: vi.fn() }, {})
+      await vi.waitFor(() => expect(mockBrowserWindows).toHaveLength(1))
+      const window = mockBrowserWindows[0]
+
+      window.events.get('resize')!()
+      window.events.get('resize')!()
+
+      expect(window.webContents.send).toHaveBeenCalledTimes(1)
+      expect(window.webContents.send).toHaveBeenCalledWith('window-maximized-changed', false)
+
+      window.isMaximized.mockReturnValue(true)
+      window.events.get('maximize')!()
+      expect(window.webContents.send).toHaveBeenLastCalledWith('window-maximized-changed', true)
+    })
+
+    it('does not send after the window is destroyed', async () => {
+      ipcMainInst.init({ flush: vi.fn() }, {})
+      await vi.waitFor(() => expect(mockBrowserWindows).toHaveLength(1))
+      const window = mockBrowserWindows[0]
+      window.isDestroyed.mockReturnValue(true)
+
+      window.events.get('resize')!()
+
+      expect(window.webContents.send).not.toHaveBeenCalled()
     })
   })
 })
