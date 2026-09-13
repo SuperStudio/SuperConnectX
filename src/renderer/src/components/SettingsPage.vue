@@ -194,12 +194,20 @@
             <template v-if="settings.enableLogStorage">
             <div class="setting-item">
               <div class="setting-label">
+                <span class="label-text">{{ t('logSettings.logSplit') }}</span>
+                <span class="label-desc">{{ t('logSettings.logSplitDesc') }}</span>
+              </div>
+              <el-switch class="terminal-switch" v-model="settings.logSplit" />
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.logSplitSize') }}</span>
                 <span class="label-desc">{{ t('logSettings.logSplitSizeDesc') }}</span>
               </div>
               <div class="slider-control">
                 <el-slider
                   v-model="settings.logSplitSize"
+                  :disabled="!settings.logSplit"
                   :min="1"
                   :max="100"
                   :step="1"
@@ -245,6 +253,60 @@
                 </div>
                 <span class="hint-subtitle">{{ t('logSettings.fileNameHintPad') }}: <code>%MM</code> <code>%DD</code> <code>%hh</code> <code>%mm</code> <code>%ss</code> <code>%fff</code></span>
               </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('logSettings.maxLogAgeDays') }}</span>
+                <span class="label-desc">{{ t('logSettings.maxLogAgeDaysDesc') }}</span>
+              </div>
+              <el-select v-model="settings.maxLogAgeDays" size="small" style="width: 120px">
+                <el-option :label="t('logSettings.noLimit')" :value="0" />
+                <el-option label="7d" :value="7" />
+                <el-option label="30d" :value="30" />
+                <el-option label="90d" :value="90" />
+                <el-option label="180d" :value="180" />
+                <el-option label="365d" :value="365" />
+              </el-select>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('logSettings.maxLogCount') }}</span>
+                <span class="label-desc">{{ t('logSettings.maxLogCountDesc') }}</span>
+              </div>
+              <el-select v-model="settings.maxLogCount" size="small" style="width: 120px">
+                <el-option :label="t('logSettings.noLimit')" :value="0" />
+                <el-option label="50" :value="50" />
+                <el-option label="100" :value="100" />
+                <el-option label="200" :value="200" />
+                <el-option label="500" :value="500" />
+              </el-select>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('logSettings.exportTimeRange') }}</span>
+                <span class="label-desc">{{ t('logSettings.exportTimeRangeDesc') }}</span>
+              </div>
+              <el-select v-model="settings.exportTimeRange" size="small" style="width: 120px">
+                <el-option :label="t('logSettings.exportAll')" :value="0" />
+                <el-option label="1h" :value="1" />
+                <el-option label="6h" :value="6" />
+                <el-option label="24h" :value="24" />
+                <el-option :label="t('logSettings.days').replace('{n}', '7')" :value="168" />
+              </el-select>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('logSettings.cleanupNow') }}</span>
+                <span class="label-desc">{{ t('logSettings.cleanupNowDesc') }}</span>
+              </div>
+              <el-button
+                size="small"
+                @click="handleCleanupLogs"
+                :loading="isCleaningUp || isSavingSettings"
+                :disabled="isCleaningUp || isSavingSettings"
+              >
+                {{ t('logSettings.cleanupButton') }}
+              </el-button>
             </div>
             </template>
           </div>
@@ -382,6 +444,7 @@ import { setLocale } from '../locales'
 import SyntaxHighlightPage from './SyntaxHighlightPage.vue'
 import SettingsLayout from '../foundation/settings/SettingsLayout.vue'
 import { SettingsRegistry } from '../foundation/settings/SettingsRegistry'
+import { useSerializedSettingsSave } from '../composables/app/useSerializedSettingsSave'
 
 const { t } = useI18n()
 
@@ -450,6 +513,11 @@ const loadSettings = async () => {
     const data = await window.storageApi.getSettings()
     if (data && typeof data === 'object') {
       settings.value = { ...defaultSettings.value, ...data }
+      // 兼容旧版使用 logSplitSize=0 表示“不分片”的配置。
+      if (settings.value.logSplitSize === 0) {
+        settings.value.logSplit = false
+        settings.value.logSplitSize = defaultSettings.value.logSplitSize || 20
+      }
       isLoading = false
     }
   } catch (error) {
@@ -457,15 +525,65 @@ const loadSettings = async () => {
   }
 }
 
-const saveSettings = async () => {
+const serializedSettingsSave = useSerializedSettingsSave((plainSettings) => window.storageApi.saveSettings(plainSettings))
+const isSavingSettings = ref(0)
+
+const saveSettings = async (): Promise<boolean> => {
+  isSavingSettings.value++
   try {
+    const saved = await serializedSettingsSave.save(settings.value)
+    if (!saved) throw new Error('Settings save returned false')
     const plainSettings = JSON.parse(JSON.stringify(settings.value))
-    await window.storageApi.saveSettings(plainSettings)
     window.dispatchEvent(new CustomEvent('settings-updated', { detail: plainSettings }))
     // 通知主进程设置更新（用于防止屏幕息屏功能）
     window.toolApi?.notifySettingsUpdate(plainSettings)
+    return true
   } catch (error) {
     console.error(t('common.saveFailed'), error)
+    return false
+  } finally {
+    isSavingSettings.value--
+  }
+}
+
+// 手动清理日志
+const isCleaningUp = ref(false)
+const handleCleanupLogs = async () => {
+  if (isCleaningUp.value) return
+  isCleaningUp.value = true
+  try {
+    await ElMessageBox.confirm(
+      t('logSettings.cleanupConfirm'),
+      t('logSettings.cleanupNow'),
+      { type: 'warning' }
+    )
+  } catch {
+    isCleaningUp.value = false
+    return
+  }
+
+  try {
+    if (!await serializedSettingsSave.waitForLatest()) {
+      ElMessage.error(t('common.saveFailed'))
+      return
+    }
+    if (!await saveSettings()) {
+      ElMessage.error(t('common.saveFailed'))
+      return
+    }
+    const result = await window.connectApi.cleanupLogs()
+    if (result.success) {
+      ElMessage.success(t('logSettings.cleanupSuccess', { count: result.deletedCount }))
+    } else {
+      ElMessage.warning(t('logSettings.cleanupPartial', {
+        count: result.deletedCount,
+        failed: result.failedCount
+      }))
+    }
+  } catch (error) {
+    ElMessage.error(t('logSettings.cleanupFailed'))
+  } finally {
+    isCleaningUp.value = false
   }
 }
 

@@ -22,11 +22,14 @@ describe('SettingsStorage', () => {
     it('返回日志相关默认设置', () => {
       const settings = storage.getSettings()
       expect(settings.enableLogStorage).toBe(true)
+      expect(settings.logSplit).toBe(true)
       expect(settings.logSplitSize).toBe(20)
       expect(settings.logFileName).toBe('%C-%Y-%M-%D-%hh-%mm-%ss')
       expect(settings.maxLogSize).toBe(50)
       expect(settings.logTimestamp).toBe(true)
       expect(settings.logHex).toBe(false)
+      expect(settings.maxLogAgeDays).toBe(0) // 0 = 不清理
+      expect(settings.maxLogCount).toBe(0) // 0 = 不限制
     })
 
     it('返回串口默认设置', () => {

@@ -31,6 +31,8 @@ export default class IpcConnector {
   private connectionStorage: ConnectionStorage
   private windows!: { mainWindow?: BrowserWindow | null }
   private _logger: ProtocolLogger | null = null
+  private logSplitEnabled = true
+  private logSplitSize = 20
 
   // 是否启用 Worker 模式（可通过设置切换，默认启用）
   private useWorkerMode: boolean = true
@@ -187,8 +189,14 @@ export default class IpcConnector {
       return await _logger.getLogFilePath(sessionId)
     })
 
-    ipcMain.handle('copy-log-file', async (_, { sessionId, destPath }: { sessionId: string; destPath: string }) => {
-      return await _logger.copyLogFile(sessionId, destPath)
+    ipcMain.handle('copy-log-file', async (_event, { sessionId, destPath, hours }: { sessionId: string; destPath: string; hours?: number }) => {
+      // 通过事件发送进度
+      const sendProgress = (percent: number) => {
+        if (this.windows.mainWindow && !this.windows.mainWindow.isDestroyed()) {
+          this.windows.mainWindow.webContents.send('copy-log-progress', { sessionId, percent })
+        }
+      }
+      return await _logger.copyLogFile(sessionId, destPath, sendProgress, { hours })
     })
 
     ipcMain.handle('rotate-log-file', async (_, sessionId: string) => {
@@ -198,6 +206,11 @@ export default class IpcConnector {
     ipcMain.handle('write-to-log', async (_, { sessionId, content }: { sessionId: string; content: string }) => {
       _logger.appendToConnLog(content, sessionId)
       return { success: true }
+    })
+
+    // 手动清理日志
+    ipcMain.handle('cleanup-logs', async () => {
+      return _logger.manualCleanup()
     })
 
     // Worker 模式开关
@@ -281,9 +294,9 @@ export default class IpcConnector {
   private applyLogSettings(): void {
     const _logger = this._logger!
     const settings = this.settingsStorage.getSettings()
-    if (settings.logSplitSize) {
-      _logger.setLogSplitSize(settings.logSplitSize)
-    }
+    this.logSplitEnabled = settings.logSplit !== false
+    this.logSplitSize = settings.logSplitSize ?? 20
+    _logger.setLogSplitSize(this.logSplitEnabled ? this.logSplitSize : 0)
     _logger.setEnableLogStorage(settings.enableLogStorage === true)
 
     if (!settings.logPath) {
@@ -296,13 +309,19 @@ export default class IpcConnector {
     if (settings.logFileName) {
       _logger.setLogFileName(settings.logFileName)
     }
+
+    // 日志清理设置
+    _logger.setMaxLogAgeDays(settings.maxLogAgeDays ?? 0)
+    _logger.setMaxLogCount(settings.maxLogCount ?? 0)
   }
 
   // ============ 对外接口 ============
 
-  applySettings(settings: { logSplitSize?: number; enableLogStorage?: boolean; logPath?: string; logFileName?: string }): void {
-    if (settings.logSplitSize && this._logger) {
-      this._logger.setLogSplitSize(settings.logSplitSize)
+  applySettings(settings: { logSplit?: boolean; logSplitSize?: number; enableLogStorage?: boolean; logPath?: string; logFileName?: string; maxLogAgeDays?: number; maxLogCount?: number }): void {
+    if ((settings.logSplit !== undefined || settings.logSplitSize !== undefined) && this._logger) {
+      if (settings.logSplit !== undefined) this.logSplitEnabled = settings.logSplit
+      if (settings.logSplitSize !== undefined) this.logSplitSize = settings.logSplitSize
+      this._logger.setLogSplitSize(this.logSplitEnabled ? this.logSplitSize : 0)
     }
     if (settings.enableLogStorage !== undefined && this._logger) {
       this._logger.setEnableLogStorage(settings.enableLogStorage)
@@ -312,6 +331,12 @@ export default class IpcConnector {
     }
     if (settings.logFileName !== undefined && this._logger) {
       this._logger.setLogFileName(settings.logFileName)
+    }
+    if (settings.maxLogAgeDays !== undefined && this._logger) {
+      this._logger.setMaxLogAgeDays(settings.maxLogAgeDays)
+    }
+    if (settings.maxLogCount !== undefined && this._logger) {
+      this._logger.setMaxLogCount(settings.maxLogCount)
     }
   }
 

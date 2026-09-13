@@ -30,6 +30,8 @@
           <div class="menu-item" @click="exportData">{{ t('titlebar.exportData') }}</div>
           <div class="menu-item" @click="importFromSuperCom">{{ t('titlebar.importFromSuperCom') }}</div>
           <div class="menu-separator"></div>
+          <div class="menu-item" @click="saveLogAs">{{ t('titlebar.saveLogAs') }}</div>
+          <div class="menu-separator"></div>
           <div class="menu-item" @click="openAppDir">{{ t('titlebar.openAppDir') }}</div>
           <div class="menu-item" @click="openUserDataDir">{{ t('titlebar.openUserDataDir') }}</div>
           <div class="menu-separator"></div>
@@ -272,7 +274,8 @@ const emit = defineEmits([
   'open-plugins',
   'toggle-word-wrap',
   'toggle-line-numbers',
-  'toggle-log-editable'
+  'toggle-log-editable',
+  'save-log-as'
 ])
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps({
@@ -415,6 +418,11 @@ const importFromSuperCom = async () => {
     console.error(t('notification.importFromSuperComFailed'), error)
     emit('notifyImport', { success: false, title: t('notification.importFromSuperComFailed'), message: String(error) })
   }
+}
+
+const saveLogAs = () => {
+  showFileMenu.value = false
+  emit('save-log-as')
 }
 
 const openAppDir = async () => {

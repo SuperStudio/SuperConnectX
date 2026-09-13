@@ -56,6 +56,8 @@ interface AppSettings extends Record<string, any> {
   terminalLogEditable?: boolean // 日志可编辑
   // 每个连接的语法高亮组选择，key为连接标识，value为语法组ID
   terminalSyntaxGroupId?: Record<string, number | undefined>
+  // 上次"另存为"使用的目录
+  lastSaveDir?: string
   // 会话恢复：上次退出时打开的选项卡
   session?: SessionState
   // 可扩展其他全局设置

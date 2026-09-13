@@ -108,9 +108,12 @@ export default class IpcStorage {
     ipcMain.handle(STORAGE_IPC_CHANNELS.getDefaultSettings, () => settingsStorage.getDefaults())
     ipcMain.handle(STORAGE_IPC_CHANNELS.saveSettings, (_, settings: any) => {
       settingsStorage.saveSettings(settings)
-      // 日志分片大小需实时生效，无需重启
-      if (settings.logSplitSize) {
-        IpcConnector.getInstance().applySettings({ logSplitSize: settings.logSplitSize })
+      // 日志分片开关和大小需实时生效，无需重启；0 也必须下发用于关闭分片。
+      if (settings.logSplit !== undefined || settings.logSplitSize !== undefined) {
+        IpcConnector.getInstance().applySettings({
+          logSplit: settings.logSplit,
+          logSplitSize: settings.logSplitSize
+        })
       }
       // 启用日志存储开关需实时生效
       if (settings.enableLogStorage !== undefined) {
@@ -123,6 +126,13 @@ export default class IpcStorage {
       // 日志文件名模板需实时生效
       if (settings.logFileName !== undefined) {
         IpcConnector.getInstance().applySettings({ logFileName: settings.logFileName })
+      }
+      // 日志保留策略需实时生效，0 表示不限制，也必须下发。
+      if (settings.maxLogAgeDays !== undefined || settings.maxLogCount !== undefined) {
+        IpcConnector.getInstance().applySettings({
+          maxLogAgeDays: settings.maxLogAgeDays,
+          maxLogCount: settings.maxLogCount
+        })
       }
       // 命令历史最大数量变更时裁剪历史记录
       if (settings.commandHistoryMaxCount) {
