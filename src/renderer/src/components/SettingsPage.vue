@@ -444,7 +444,7 @@ import { setLocale } from '../locales'
 import SyntaxHighlightPage from './SyntaxHighlightPage.vue'
 import SettingsLayout from '../foundation/settings/SettingsLayout.vue'
 import { SettingsRegistry } from '../foundation/settings/SettingsRegistry'
-import { useSerializedSettingsSave } from '../composables/app/useSerializedSettingsSave'
+import { useSerializedSettingsSave } from '../foundation/settings/useSerializedSettingsSave'
 
 const { t } = useI18n()
 

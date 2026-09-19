@@ -53,7 +53,7 @@ const mockStorageApi = {
   storageApi: mockStorageApi
 }
 
-import { useTabManager, type TabItem } from '../../src/renderer/src/composables/app/useTabManager'
+import { useTabManager, type TabItem } from '../../src/renderer/src/features/tabs/useTabManager'
 
 function makeTab(overrides: Partial<TabItem> = {}): TabItem {
   return {
