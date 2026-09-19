@@ -356,7 +356,9 @@ import {
 import { useConnectionDialog } from './features/connections/useConnectionDialog'
 import { useSessionRestore } from './features/tabs/useSessionRestore'
 import { useSplitPanelActions } from './features/tabs/useSplitPanelActions'
-import type { TabItem } from './features/tabs/useTabManager'
+import { useConnectionStateMonitor } from './features/tabs/useConnectionStateMonitor'
+import { useTerminalToolbarActions } from './features/terminal/useTerminalToolbarActions'
+import { useTerminalEventNotifications } from './features/terminal/useTerminalEventNotifications'
 
 const { t } = useI18n()
 
@@ -366,33 +368,17 @@ const notificationDuration = ref(0)
 const isAboutDialogOpen = ref(false)
 const isUpdateDialogOpen = ref(false)
 const updateDialogRef = ref<InstanceType<typeof UpdateDialog> | null>(null)
-const lastSentCommand = ref('')
 
 const connectedSerialPorts = reactive<Record<string, boolean>>({})
 const comTerminalRefs = reactive<Record<string, any>>({})
 const telnetTerminalRefs = reactive<Record<string, any>>({})
-// 连接状态变化计数器：当任何终端的连接状态变化时 +1，用于驱动 computed 重新计算
-const connectionChangeCounter = ref(0)
 
-// 监听 comTerminalRefs 和 telnetTerminalRefs 中任何终端实例的 isConnected 变化
-// 由于组件实例上的属性不是响应式的，通过轮询方式检测变化并更新 counter
-let _prevConnectedSnapshot = ''
-const _pollConnectionStates = () => {
-  const parts: string[] = []
-  for (const key of Object.keys(comTerminalRefs)) {
-    parts.push(`com:${key}:${comTerminalRefs[key]?.isConnected ?? false}`)
-  }
-  for (const key of Object.keys(telnetTerminalRefs)) {
-    parts.push(`telnet:${key}:${telnetTerminalRefs[key]?.isConnected ?? false}`)
-  }
-  const snapshot = parts.join('|')
-  if (snapshot !== _prevConnectedSnapshot) {
-    _prevConnectedSnapshot = snapshot
-    connectionChangeCounter.value++
-  }
-}
-// 每 500ms 检查一次连接状态变化
-const _pollTimer = setInterval(_pollConnectionStates, 500)
+// ---- 连接状态监测（轮询终端实例 isConnected，驱动派生状态重算） ----
+const {
+  connectionChangeCounter,
+  isConnected: isConnectedForSession,
+  stopPolling: stopConnectionStatePolling
+} = useConnectionStateMonitor({ comTerminalRefs, telnetTerminalRefs })
 
 // SuperSplit & 面板 refs
 // const superSplitRef = ref<InstanceType<typeof SuperSplit> | null>(null)  // 预留，暂未使用
@@ -496,16 +482,6 @@ const {
 })
 
 // ---- Session Restore（会话恢复） ----
-const isConnectedForSession = (tab: TabItem): boolean => {
-  if (tab.connectionType === 'com') {
-    return !!comTerminalRefs[tab.id]?.isConnected
-  }
-  if (tab.connectionType === 'telnet' || tab.connectionType === 'ftp') {
-    return !!telnetTerminalRefs[tab.id]?.isConnected
-  }
-  return false
-}
-
 const sessionRestore = useSessionRestore({
   connectionTabs,
   activeTabId,
@@ -547,6 +523,51 @@ const connectionDialogRef = ref<InstanceType<typeof ConnectionDialog> | null>(nu
 const { openCreateDialog, editCreateDialog, handleConnectionSubmit, deleteConnection } =
   useConnectionDialog(loadConnections, connectionDialogRef)
 
+// ---- Terminal Display ----
+const {
+  terminalWordWrap,
+  terminalLineNumbers,
+  terminalLogEditable,
+  loadTerminalDisplaySettings,
+  saveTerminalDisplaySettings,
+  applyToAllTerminals,
+  applyTerminalDisplaySettingsToTab
+} = useTerminalDisplay()
+
+// ---- Terminal Toolbar Actions（工具栏终端动作编排：显示偏好切换 / 刷新分组命令 / 日志另存为） ----
+const {
+  handleToggleWordWrap,
+  handleToggleLineNumbers,
+  handleToggleLogEditable,
+  refreshHandler,
+  handleSaveLogAs
+} = useTerminalToolbarActions({
+  activeTabId,
+  connectionTabs,
+  comTerminalRefs,
+  telnetTerminalRefs,
+  terminalWordWrap,
+  terminalLineNumbers,
+  terminalLogEditable,
+  applyToAllTerminals,
+  saveTerminalDisplaySettings
+})
+
+// ---- Terminal Event Notifications（终端事件通知编排：命令发送 / 导入通知 / 日志切割 / 文本清空 / 自动滚动停止） ----
+const {
+  lastSentCommand,
+  handleCommandSent,
+  handleImportNotify,
+  handleLogSplit,
+  handleTerminalTextCleared,
+  handleAutoScrollToast
+} = useTerminalEventNotifications({
+  notifyContainerRef,
+  connectionTabs,
+  comTerminalRefs,
+  telnetTerminalRefs
+})
+
 // ---- Shortcuts ----
 const { handleShortcutKeydown, loadShortcutActions, loadShortcuts, handleShortcutsUpdated } =
   useShortcuts(
@@ -576,17 +597,6 @@ const { handleShortcutKeydown, loadShortcutActions, loadShortcuts, handleShortcu
     moveTabToFirst,
     moveTabToLast
   )
-
-// ---- Terminal Display ----
-const {
-  terminalWordWrap,
-  terminalLineNumbers,
-  terminalLogEditable,
-  loadTerminalDisplaySettings,
-  saveTerminalDisplaySettings,
-  applyToAllTerminals,
-  applyTerminalDisplaySettingsToTab
-} = useTerminalDisplay()
 
 // ---- Font Manager ----
 const { currentFont, updateCurrentFont, handleFontChange, handleFontSizeChange } = useFontManager(
@@ -628,106 +638,7 @@ watch(
   { immediate: true }
 )
 
-// ---- 工具栏回调 ----
-const handleImportNotify = (payload: { success: boolean; title: string; message: string }) => {
-  notifyContainerRef.value?.add(payload.title, payload.message)
-}
-
-const handleLogSplit = (data: { connId: string; oldFileName: string; newFileName: string }) => {
-  const tab = connectionTabs.value.find((t) => String(t.sessionId) === String(data.connId))
-  const tabName = tab?.name || tab?.comName || data.connId
-  const message = t('notification.logSplitMessage', { name: tabName, file: data.newFileName })
-  notifyContainerRef.value?.add(t('notification.logSplit'), message)
-  if (tab) {
-    const tabId = tab.id
-    if (tab.connectionType === 'com') {
-      comTerminalRefs[tabId]?.clearTerminal?.()
-    } else if (tab.connectionType === 'telnet') {
-      telnetTerminalRefs[tabId]?.clearTerminal?.()
-    }
-  }
-}
-
-const handleTerminalTextCleared = (e: Event) => {
-  const detail = (e as CustomEvent).detail
-  const name = detail?.connectionName || ''
-  notifyContainerRef.value?.add(
-    t('notification.textCleared'),
-    t('notification.textClearedMessage', { name })
-  )
-}
-
-const handleAutoScrollToast = (e: Event) => {
-  const detail = (e as CustomEvent).detail
-  const name = detail?.connectionName || ''
-  notifyContainerRef.value?.add(
-    t('notification.autoScrollStopped'),
-    t('notification.autoScrollStoppedMessage', { name })
-  )
-}
-
 // ---- 工具栏/设置回调 ----
-const refreshHandler = () => {
-  if (activeTabId.value) {
-    const tabId = activeTabId.value
-    if (comTerminalRefs[tabId]) {
-      comTerminalRefs[tabId]?.refreshGroupsCmds?.()
-    } else {
-      telnetTerminalRefs[tabId]?.refreshGroupsCmds?.()
-    }
-  }
-}
-
-const handleSaveLogAs = async () => {
-  const tabId = activeTabId.value
-  if (!tabId) {
-    ElMessage.warning(t('titlebar.noActiveTerminal'))
-    return
-  }
-  const terminal = comTerminalRefs[tabId] || telnetTerminalRefs[tabId]
-  if (!terminal?.saveLogFileAs) {
-    ElMessage.warning(t('titlebar.noActiveTerminal'))
-    return
-  }
-  await terminal.saveLogFileAs()
-}
-
-async function handleToggleWordWrap() {
-  terminalWordWrap.value = !terminalWordWrap.value
-  applyToAllTerminals(
-    connectionTabs.value,
-    comTerminalRefs,
-    telnetTerminalRefs,
-    'setWordWrap',
-    terminalWordWrap.value
-  )
-  await saveTerminalDisplaySettings()
-}
-
-const handleToggleLineNumbers = async () => {
-  terminalLineNumbers.value = !terminalLineNumbers.value
-  applyToAllTerminals(
-    connectionTabs.value,
-    comTerminalRefs,
-    telnetTerminalRefs,
-    'setLineNumbers',
-    terminalLineNumbers.value
-  )
-  await saveTerminalDisplaySettings()
-}
-
-const handleToggleLogEditable = async () => {
-  terminalLogEditable.value = !terminalLogEditable.value
-  applyToAllTerminals(
-    connectionTabs.value,
-    comTerminalRefs,
-    telnetTerminalRefs,
-    'setLogEditable',
-    terminalLogEditable.value
-  )
-  await saveTerminalDisplaySettings()
-}
-
 const handlePlugins = () => {
   ElMessage.info(t('notification.pluginsDeveloping'))
 }
@@ -775,10 +686,6 @@ const handleSidebarMenuCommand = async (command: string) => {
 }
 
 // ---- 命令/终端回调 ----
-const handleCommandSent = (command: string) => {
-  lastSentCommand.value = command
-}
-
 const handleTerminalClose = (connId: string | number) => {
   const tab = connectionTabs.value.find(
     (t) => String(t.id) === String(connId) || String(t.sessionId) === String(connId)
@@ -905,7 +812,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  clearInterval(_pollTimer)
+  stopConnectionStatePolling()
   stopResize()
   window.removeEventListener('shortcuts-updated', handleShortcutsUpdated)
   window.removeEventListener('settings-updated', handleSettingsUpdated)
