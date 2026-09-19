@@ -291,6 +291,25 @@ export function useTabManager(
     activeTabId.value = newTabId
   }
 
+  /**
+   * 绑定全局点击/右键时自动关闭 Tab 右键菜单的 DOM 监听。
+   * 返回解绑函数；Node 测试环境（无 document）自动跳过。
+   */
+  const bindTabMenuDismiss = (): (() => void) => {
+    if (typeof document === 'undefined') return () => {}
+    const onDocEvent = (e: MouseEvent): void => {
+      const tabEl = (e.target as HTMLElement).closest('.tab-item')
+      if (tabEl) return
+      if (showTabMenu.value) hideTabMenu()
+    }
+    document.addEventListener('contextmenu', onDocEvent)
+    document.addEventListener('click', onDocEvent)
+    return () => {
+      document.removeEventListener('contextmenu', onDocEvent)
+      document.removeEventListener('click', onDocEvent)
+    }
+  }
+
   return {
     connectionTabs,
     activeTabId,
@@ -302,6 +321,7 @@ export function useTabManager(
     handleTabContextMenu,
     handleTabsNavContextMenu,
     hideTabMenu,
+    bindTabMenuDismiss,
     getConnectionStatus,
     hasAnyConnected,
     connectAllTabs,

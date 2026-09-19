@@ -213,16 +213,8 @@
                 class="terminal-component"
                 @on-close="handleTerminalClose(tab.id)"
                 @command-sent="handleCommandSent"
-                @on-connect="
-                  () => {
-                    if (tab.comName) connectedSerialPorts[tab.comName] = true
-                  }
-                "
-                @on-disconnect="
-                  () => {
-                    if (tab.comName) delete connectedSerialPorts[tab.comName]
-                  }
-                "
+                @on-connect="() => markSerialPortOccupied(tab.comName)"
+                @on-disconnect="() => releaseSerialPort(tab.comName)"
                 @open-command-editor="openCommandEditorTab"
                 @open-syntax-highlight="openSettingsAndSwitchToSyntax"
                 @remark-updated="
@@ -357,6 +349,7 @@ import { useConnectionDialog } from './features/connections/useConnectionDialog'
 import { useSessionRestore } from './features/tabs/useSessionRestore'
 import { useSplitPanelActions } from './features/tabs/useSplitPanelActions'
 import { useConnectionStateMonitor } from './features/tabs/useConnectionStateMonitor'
+import { useSerialPortOccupancy } from './features/tabs/useSerialPortOccupancy'
 import { useTerminalToolbarActions } from './features/terminal/useTerminalToolbarActions'
 import { useTerminalEventNotifications } from './features/terminal/useTerminalEventNotifications'
 
@@ -369,7 +362,6 @@ const isAboutDialogOpen = ref(false)
 const isUpdateDialogOpen = ref(false)
 const updateDialogRef = ref<InstanceType<typeof UpdateDialog> | null>(null)
 
-const connectedSerialPorts = reactive<Record<string, boolean>>({})
 const comTerminalRefs = reactive<Record<string, any>>({})
 const telnetTerminalRefs = reactive<Record<string, any>>({})
 
@@ -404,6 +396,7 @@ const {
   loadSidebarState,
   handleSerialPortsChanged,
   toggleConnectionList,
+  applySettings,
   toggleBottomPanel
 } = useConnectionSidebar()
 
@@ -436,7 +429,8 @@ const {
   openCommandEditorTab,
   openShortcutsTab,
   openSettingsTab,
-  openVirtualPortTab
+  openVirtualPortTab,
+  bindTabMenuDismiss
 } = useTabManager(comTerminalRefs, telnetTerminalRefs)
 
 // ---- Split Panel ----
@@ -448,6 +442,24 @@ const {
   updateSplitRatio,
   onTabClosed
 } = useSplitWorkspace()
+
+// ---- 串口占用跟踪与终端关闭编排 ----
+const {
+  markSerialPortOccupied,
+  releaseSerialPort,
+  isSerialPortConnected,
+  disconnectSerialPort,
+  handleTerminalClose,
+  handleConnectClosed
+} = useSerialPortOccupancy({
+  connectionTabs,
+  comTerminalRefs,
+  onTabClosed,
+  closeTab
+})
+
+// 全局点击/右键自动关闭 Tab 右键菜单
+const unbindTabMenuDismiss = bindTabMenuDismiss()
 
 // ---- 分屏面板动作编排（面板限定右键命令 / Tab 归属查询 / 拖拽分屏与移动 / 自动合并） ----
 const {
@@ -686,31 +698,7 @@ const handleSidebarMenuCommand = async (command: string) => {
 }
 
 // ---- 命令/终端回调 ----
-const handleTerminalClose = (connId: string | number) => {
-  const tab = connectionTabs.value.find(
-    (t) => String(t.id) === String(connId) || String(t.sessionId) === String(connId)
-  )
-  if (tab?.connectionType === 'com' && tab.comName) {
-    delete connectedSerialPorts[tab.comName]
-  }
-
-  const tabId = tab?.id?.toString() || connId.toString()
-
-  // 清理分屏面板中的该 tab
-  onTabClosed(tabId)
-
-  closeTab(connId.toString())
-}
-
-const isSerialPortConnected = (path: string) => !!connectedSerialPorts[path]
-
-const disconnectSerialPort = async (path: string) => {
-  const tab = connectionTabs.value.find((t) => t.comName === path && t.connectionType === 'com')
-  if (tab) {
-    comTerminalRefs[tab.id]?.preventAutoReconnect?.()
-    comTerminalRefs[tab.id]?.disconnect?.()
-  }
-}
+// handleTerminalClose / isSerialPortConnected / disconnectSerialPort 由 useSerialPortOccupancy 提供
 
 // ---- F12 DevTools ----
 window.addEventListener(
@@ -731,15 +719,8 @@ const handleSettingsUpdated = (event: Event) => {
   if (settings && 'notificationDuration' in settings) {
     notificationDuration.value = settings.notificationDuration === 5000 ? 5000 : 0
   }
-  if (settings && 'showPortType' in settings) {
-    showPortType.value = settings.showPortType
-  }
-  if (settings && 'showSerialPortFriendlyName' in settings) {
-    showSerialPortFriendlyName.value = settings.showSerialPortFriendlyName
-  }
-  if (settings && 'showSerialPortDetails' in settings) {
-    showSerialPortDetails.value = settings.showSerialPortDetails
-  }
+  // 侧栏展示偏好（showPortType 等）由 useConnectionSidebar.applySettings 应用
+  applySettings(settings)
 }
 
 const loadNotificationDuration = async () => {
@@ -776,12 +757,7 @@ onMounted(async () => {
     updateCurrentFont(activeTabId.value)
   }
 
-  window.connectApi.onConnectClose((sessionId: number | string) => {
-    const tab = connectionTabs.value.find((t) => String(t.sessionId) === String(sessionId))
-    if (tab && tab.connectionType === 'com') {
-      delete connectedSerialPorts[tab.comName!]
-    }
-  })
+  window.connectApi.onConnectClose(handleConnectClosed)
 
   window.connectApi.onLogSplit(
     (data: { connId: string; oldFileName: string; newFileName: string }) => {
@@ -795,18 +771,6 @@ onMounted(async () => {
   window.addEventListener('terminal-text-cleared', handleTerminalTextCleared)
   window.addEventListener('auto-scroll-toast', handleAutoScrollToast)
 
-  document.addEventListener('contextmenu', (e: MouseEvent) => {
-    const tabEl = (e.target as HTMLElement).closest('.tab-item')
-    if (tabEl) return
-    if (showTabMenu.value) hideTabMenu()
-  })
-
-  document.addEventListener('click', (e: MouseEvent) => {
-    const tabEl = (e.target as HTMLElement).closest('.tab-item')
-    if (tabEl) return
-    if (showTabMenu.value) hideTabMenu()
-  })
-
   window.addEventListener('shortcuts-updated', handleShortcutsUpdated)
   window.addEventListener('settings-updated', handleSettingsUpdated)
 })
@@ -814,6 +778,7 @@ onMounted(async () => {
 onUnmounted(() => {
   stopConnectionStatePolling()
   stopResize()
+  unbindTabMenuDismiss()
   window.removeEventListener('shortcuts-updated', handleShortcutsUpdated)
   window.removeEventListener('settings-updated', handleSettingsUpdated)
   window.removeEventListener('terminal-text-cleared', handleTerminalTextCleared)

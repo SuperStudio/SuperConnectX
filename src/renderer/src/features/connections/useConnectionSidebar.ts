@@ -122,5 +122,17 @@ export function useConnectionSidebar() {
   watch([showConnectionList, showBottomPanel, serialPortExpanded, connectionGroupExpanded, sidebarWidth], saveSidebarState, { deep: true })
   watch([connections, searchKeyword], filterList, { immediate: true, deep: true })
 
-  return { connections, searchKeyword, filterConnection, serialPorts, showConnectionList, showBottomPanel, sidebarWidth, serialPortExpanded, showPortType, showSerialPortFriendlyName, showSerialPortDetails, connectionGroupExpanded, filteredSerialPorts, connectionGroups, handleSearch, loadConnections, loadSerialPorts, handleSerialPortsChanged, loadSidebarState, saveSidebarState, toggleConnectionList, toggleBottomPanel, parseSerialPortType }
+  /** 应用设置更新（settings-updated 事件 detail）中与侧栏展示相关的偏好 */
+  const applySettings = (settings: {
+    showPortType?: boolean
+    showSerialPortFriendlyName?: boolean
+    showSerialPortDetails?: boolean
+  } | null | undefined): void => {
+    if (!settings) return
+    if ('showPortType' in settings) showPortType.value = !!settings.showPortType
+    if ('showSerialPortFriendlyName' in settings) showSerialPortFriendlyName.value = !!settings.showSerialPortFriendlyName
+    if ('showSerialPortDetails' in settings) showSerialPortDetails.value = !!settings.showSerialPortDetails
+  }
+
+  return { connections, searchKeyword, filterConnection, serialPorts, showConnectionList, showBottomPanel, sidebarWidth, serialPortExpanded, showPortType, showSerialPortFriendlyName, showSerialPortDetails, connectionGroupExpanded, filteredSerialPorts, connectionGroups, handleSearch, loadConnections, loadSerialPorts, handleSerialPortsChanged, loadSidebarState, saveSidebarState, toggleConnectionList, toggleBottomPanel, parseSerialPortType, applySettings }
 }
