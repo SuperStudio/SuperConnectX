@@ -5,7 +5,7 @@
  */
 import { nextTick, ref, watch, type Ref } from 'vue'
 import type { TabItem } from './useTabManager'
-import type { SplitState, Panel } from '../../foundation/workbench/useSplitWorkspace'
+import type { SplitState, Panel } from '@superx/foundation/workbench/useSplitWorkspace'
 
 const SAVE_DEBOUNCE_MS = 500
 const ENABLED_STORAGE_KEY = 'session-restore-enabled'

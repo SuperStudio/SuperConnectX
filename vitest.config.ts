@@ -3,6 +3,9 @@ import { resolve } from 'path'
 
 const commonAlias = {
   '@': resolve('src'),
+  // workspace 包直接指向源码
+  '@superx/shared': resolve('packages/shared/src'),
+  '@superx/foundation': resolve('packages/foundation/src'),
   // 用 mock 替代 electron 模块
   electron: resolve('tests/__mocks__/electron.ts'),
   // 用 mock 替代 electron-store 模块
@@ -59,8 +62,8 @@ const commonCoverage = {
 
 export default defineConfig({
   test: {
-    // 只跑单元测试（默认 vitest run）
-    include: ['tests/unit/**/*.test.ts'],
+    // 只跑单元测试（默认 vitest run）；workspace 包内测试一并纳入
+    include: ['tests/unit/**/*.test.ts', 'packages/*/tests/**/*.test.ts'],
     environment: 'node',
     coverage: {
       ...commonCoverage,

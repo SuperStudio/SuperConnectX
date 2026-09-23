@@ -229,8 +229,8 @@ import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { getSystemFonts, formatFontName, getDefaultTerminalFont } from '../utils/FontDetector'
 import ExportDialog from './ExportDialog.vue'
-import { useTheme } from '../foundation/theme/useTheme'
-import WindowTitleBar from '../foundation/shell/WindowTitleBar.vue'
+import { useTheme } from '@superx/foundation/theme/useTheme'
+import WindowTitleBar from '@superx/foundation/shell/WindowTitleBar.vue'
 
 const { t } = useI18n()
 

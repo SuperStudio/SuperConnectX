@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SettingsRegistry } from '../../src/renderer/src/foundation/settings/SettingsRegistry'
+import { SettingsRegistry } from '../src/settings/SettingsRegistry'
 
 describe('SettingsRegistry', () => {
   it('returns categories ordered by their declared order', () => {

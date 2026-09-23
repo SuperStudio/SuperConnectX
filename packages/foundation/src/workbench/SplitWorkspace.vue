@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { WORKBENCH_TAB_DRAG_MIME, WORKBENCH_TAB_SOURCE_PANEL_MIME } from '../../../../shared/workbench/types'
+import { WORKBENCH_TAB_DRAG_MIME, WORKBENCH_TAB_SOURCE_PANEL_MIME } from '@superx/shared/workbench/types'
 import { getActiveWorkbenchDragSourcePanelId } from './useWorkbenchTabDrag'
 
 const props = withDefaults(defineProps<{

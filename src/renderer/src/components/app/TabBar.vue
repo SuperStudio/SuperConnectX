@@ -70,9 +70,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { WorkbenchTab } from '../../../../shared/workbench/types'
+import type { WorkbenchTab } from '@superx/shared/workbench/types'
 import { TOOLTIP_SHOW_AFTER } from '../../utils/constants'
-import WorkbenchTabBar from '../../foundation/workbench/WorkbenchTabBar.vue'
+import WorkbenchTabBar from '@superx/foundation/workbench/WorkbenchTabBar.vue'
 
 const props = defineProps<{
   connectionTabs: any[]

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { useSerializedSettingsSave } from '../../src/renderer/src/foundation/settings/useSerializedSettingsSave'
+import { useSerializedSettingsSave } from '../src/settings/useSerializedSettingsSave'
 
 describe('useSerializedSettingsSave', () => {
   it('serializes writes and saves immutable snapshots in order', async () => {

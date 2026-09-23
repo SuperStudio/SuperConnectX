@@ -11,7 +11,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { fromRawConnection } from '../connections/protocol'
-import { useWorkbenchTabs } from '../../foundation/workbench/useWorkbenchTabs'
+import { useWorkbenchTabs } from '@superx/foundation/workbench/useWorkbenchTabs'
 import type { ComTerminalRef, TelnetTerminalRef } from './types'
 
 export interface TabItem {

@@ -45,7 +45,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { WorkbenchTab } from '../../../../shared/workbench/types'
+import type { WorkbenchTab } from '@superx/shared/workbench/types'
 import { useWorkbenchTabDrag } from './useWorkbenchTabDrag'
 
 const props = defineProps<{

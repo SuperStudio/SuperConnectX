@@ -5,7 +5,9 @@
     "src/renderer/src/**/*",
     "src/renderer/src/**/*.vue",
     "src/preload/*.d.ts",
-    "src/shared/**/*"
+    "src/shared/**/*",
+    "packages/shared/src/**/*",
+    "packages/foundation/src/**/*"
   ],
   "compilerOptions": {
     "composite": true,
@@ -13,6 +15,12 @@
     "paths": {
       "@renderer/*": [
         "src/renderer/src/*"
+      ],
+      "@superx/shared/*": [
+        "packages/shared/src/*"
+      ],
+      "@superx/foundation/*": [
+        "packages/foundation/src/*"
       ]
     }
   }

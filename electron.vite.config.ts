@@ -31,7 +31,10 @@ export default defineConfig({
   renderer: {
     resolve: {
       alias: {
-        '@renderer': resolve('src/renderer/src')
+        '@renderer': resolve('src/renderer/src'),
+        // workspace 包直接指向源码（免编译、改即生效）
+        '@superx/shared': resolve('packages/shared/src'),
+        '@superx/foundation': resolve('packages/foundation/src')
       }
     },
     plugins: [vue()],

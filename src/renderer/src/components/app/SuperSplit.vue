@@ -15,7 +15,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import SplitWorkspace from '../../foundation/workbench/SplitWorkspace.vue'
+import SplitWorkspace from '@superx/foundation/workbench/SplitWorkspace.vue'
 
 const { t } = useI18n()
 const props = defineProps<{ isSplit: boolean; splitRatio: number }>()

@@ -442,9 +442,9 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { setLocale } from '../locales'
 import SyntaxHighlightPage from './SyntaxHighlightPage.vue'
-import SettingsLayout from '../foundation/settings/SettingsLayout.vue'
-import { SettingsRegistry } from '../foundation/settings/SettingsRegistry'
-import { useSerializedSettingsSave } from '../foundation/settings/useSerializedSettingsSave'
+import SettingsLayout from '@superx/foundation/settings/SettingsLayout.vue'
+import { SettingsRegistry } from '@superx/foundation/settings/SettingsRegistry'
+import { useSerializedSettingsSave } from '@superx/foundation/settings/useSerializedSettingsSave'
 
 const { t } = useI18n()
 

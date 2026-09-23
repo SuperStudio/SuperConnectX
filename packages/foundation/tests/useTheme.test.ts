@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useTheme } from '../../src/renderer/src/foundation/theme/useTheme'
+import { useTheme } from '../src/theme/useTheme'
 
 /**
  * useTheme 是少数直接访问浏览器 API 的 composable。

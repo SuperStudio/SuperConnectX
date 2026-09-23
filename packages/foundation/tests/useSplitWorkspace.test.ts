@@ -3,7 +3,7 @@
  * 测试：面板拆分、合并、tab 管理、比例调整
  */
 import { describe, it, expect } from 'vitest'
-import { useSplitWorkspace } from '../../src/renderer/src/foundation/workbench/useSplitWorkspace'
+import { useSplitWorkspace } from '../src/workbench/useSplitWorkspace'
 
 describe('splitPanel', () => {
   it('should create a new panel next to the reference panel', () => {

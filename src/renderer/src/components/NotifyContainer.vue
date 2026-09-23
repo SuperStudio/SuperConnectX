@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import NotificationCenter from '../foundation/shell/NotificationCenter.vue'
+import NotificationCenter from '@superx/foundation/shell/NotificationCenter.vue'
 
 const { t } = useI18n()
 const props = withDefaults(defineProps<{ defaultDuration?: number }>(), { defaultDuration: 0 })

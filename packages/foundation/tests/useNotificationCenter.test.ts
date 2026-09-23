@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
-import { useNotificationCenter } from '../../src/renderer/src/foundation/shell/useNotificationCenter'
+import { useNotificationCenter } from '../src/shell/useNotificationCenter'
 
 describe('useNotificationCenter', () => {
   beforeEach(() => vi.useFakeTimers())

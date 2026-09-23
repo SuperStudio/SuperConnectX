@@ -1,0 +1,11 @@
+{
+  "name": "@superx/shared",
+  "version": "0.1.0",
+  "description": "Cross-process contracts (types & constants) shared by main, preload and renderer. Zero runtime dependencies.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    "./workbench/*": "./src/workbench/*",
+    "./workbench": "./src/workbench/index.ts"
+  }
+}

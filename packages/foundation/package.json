@@ -1,0 +1,20 @@
+{
+  "name": "@superx/foundation",
+  "version": "0.1.0",
+  "description": "Framework-grade renderer primitives for SuperStudio desktop apps: app shell chrome, workbench tabs/split, settings layout, theme controller. Zero business knowledge.",
+  "type": "module",
+  "license": "MIT",
+  "peerDependencies": {
+    "vue": "^3.4.0"
+  },
+  "dependencies": {
+    "@superx/shared": "workspace:*"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./shell/*": "./src/shell/*",
+    "./workbench/*": "./src/workbench/*",
+    "./settings/*": "./src/settings/*",
+    "./theme/*": "./src/theme/*"
+  }
+}

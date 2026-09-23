@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { useWorkbenchTabs } from '../../src/renderer/src/foundation/workbench/useWorkbenchTabs'
+import { useWorkbenchTabs } from '../src/workbench/useWorkbenchTabs'
 
 interface FakeTab {
   id: string

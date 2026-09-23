@@ -1,0 +1,21 @@
+packages:
+  - packages/*
+  - apps/*
+
+# 允许执行构建脚本的依赖白名单（pnpm v10+ 安全策略：未列出的依赖构建脚本被拦截）
+# 注意：cpu-features、dtrace-provider 是 optional 依赖且在 Windows 上必然编译失败，故不列入；
+# ssh2 使用预编译 binding，无需本地构建，列在此处仅放行其 install 脚本。
+allowBuilds:
+  '@serialport/bindings-cpp': set this to true or false
+  cpu-features: set this to true or false
+  dtrace-provider: set this to true or false
+  electron: set this to true or false
+  esbuild: set this to true or false
+  ssh2: set this to true or false
+
+onlyBuiltDependencies:
+  - '@electron/rebuild'
+  - '@serialport/bindings-cpp'
+  - electron
+  - esbuild
+  - ssh2

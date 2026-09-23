@@ -2,7 +2,7 @@ import { reactive } from 'vue'
 import {
   WORKBENCH_TAB_DRAG_MIME,
   WORKBENCH_TAB_SOURCE_PANEL_MIME
-} from '../../../../shared/workbench/types'
+} from '@superx/shared/workbench/types'
 
 export type TabDropPosition = 'before' | 'after'
 

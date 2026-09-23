@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
-import { useSidebarResize } from '../../src/renderer/src/foundation/shell/useSidebarResize'
+import { useSidebarResize } from '../src/shell/useSidebarResize'
 
 const listeners = new Map<string, EventListener>()
 

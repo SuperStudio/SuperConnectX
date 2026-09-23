@@ -2,11 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   getActiveWorkbenchDragSourcePanelId,
   useWorkbenchTabDrag
-} from '../../src/renderer/src/foundation/workbench/useWorkbenchTabDrag'
+} from '../src/workbench/useWorkbenchTabDrag'
 import {
   WORKBENCH_TAB_DRAG_MIME,
   WORKBENCH_TAB_SOURCE_PANEL_MIME
-} from '../../src/shared/workbench/types'
+} from '@superx/shared/workbench/types'
 
 function createDataTransfer() {
   const values = new Map<string, string>()

@@ -12,7 +12,7 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 import type { TabItem } from './useTabManager'
 import type { ComTerminalRef, TelnetTerminalRef } from './types'
-import type { Panel, SplitState } from '../../foundation/workbench/useSplitWorkspace'
+import type { Panel, SplitState } from '@superx/foundation/workbench/useSplitWorkspace'
 
 export interface SplitPanelActionsOptions {
   connectionTabs: Ref<TabItem[]>

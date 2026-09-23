@@ -1,5 +1,5 @@
 import { computed, reactive } from 'vue'
-import type { WorkbenchPanel, WorkbenchSplitState } from '../../../../shared/workbench/types'
+import type { WorkbenchPanel, WorkbenchSplitState } from '@superx/shared/workbench/types'
 
 export type Panel = WorkbenchPanel
 export type SplitState = WorkbenchSplitState

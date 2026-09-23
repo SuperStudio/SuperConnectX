@@ -193,7 +193,7 @@ import { ref, onMounted, onUnmounted, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SearchInput from '../../components/SearchInput.vue'
 import { TOOLTIP_SHOW_AFTER } from '../../utils/constants'
-import SidebarLayout from '../../foundation/shell/SidebarLayout.vue'
+import SidebarLayout from '@superx/foundation/shell/SidebarLayout.vue'
 import { getSerialPortDisplayName } from './useConnectionSidebar'
 
 const { t } = useI18n()
