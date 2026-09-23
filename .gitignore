@@ -8,4 +8,5 @@ release
 ICON.pptx
 tests/coverage
 tests/report
+*.tsbuildinfo
 .txt
