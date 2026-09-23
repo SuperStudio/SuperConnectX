@@ -1,0 +1,173 @@
+/**
+ * Theme variables for data-theme="dark" and data-theme="light".
+ * Switched at runtime by foundation/theme/useTheme.ts.
+ */
+
+:root[data-theme='dark'],
+:root {
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-titlebar: #2d2d30;
+  --bg-tertiary: #2d2d30;
+  --text-white: #d4d4d4;
+  --text-titlebar: #cccccc;
+  --text-secondary: #b5b5b5;
+  --border-primary: #1a1a1a;
+  --border-secondary: #404040;
+  --overlay-hover: #404040;
+  --btn-close-hover: #e81123;
+  --focus-border-color: #007acc;
+  --btn-primary: #0e639c;
+  --btn-primary-hover: #1177bb;
+  --btn-primary-text: #ffffff;
+  --btn-secondary: #3c3c3c;
+  --btn-secondary-hover: #4a4a4a;
+  --btn-danger: #d32f2f;
+  --btn-danger-hover: #e53935;
+  --statusbar-bg-hover: #007acc;
+  --statusbar-text: #ffffff;
+
+  --sidebar-bg: #252526;
+  --sidebar-border: #1a1a1a;
+  --sidebar-item-active: #094771;
+  --sidebar-item-hover: #2a2d2e;
+  --sidebar-item-color: #cccccc;
+  --sidebar-item-active-color: #ffffff;
+  --sidebar-resize-handle-hover: #007acc;
+
+  --settings-nav-bg: #252526;
+  --settings-nav-border: #1a1a1a;
+  --settings-nav-item-color: #cccccc;
+  --settings-nav-item-hover: #2a2d2e;
+  --settings-nav-item-active-bg: #094771;
+  --settings-nav-item-active-color: #ffffff;
+  --settings-nav-footer-border: #404040;
+
+  --notify-bg: #2d2d30;
+  --notify-border: #404040;
+  --notify-text: #ffffff;
+  --notify-close-color: #aaaaaa;
+  --notify-meta: #cccccc;
+  --notify-meta-bg: #404040;
+  --notify-empty: #aaaaaa;
+  --notify-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --notify-focus-shadow: 0 0 0 2px rgba(0, 122, 204, 0.4);
+
+  --tab-bg: #2d2d30;
+  --tab-hover-bg: #1e1e1e;
+  --tab-text: #969696;
+  --tab-active-icon: #ffffff;
+  --tab-border: #1a1a1a;
+  --tab-close: #aaaaaa;
+  --tab-close-hover-bg: #4a4a4a;
+  --tab-drag-indicator: #007acc;
+
+  --split-resizer-bg: #1a1a1a;
+  --split-resizer-hover: #007acc;
+  --split-drop-zone-bg: rgba(0, 122, 204, 0.15);
+  --split-drop-zone-border: #007acc;
+  --split-drop-zone-text: #cccccc;
+
+  --scrollbar-thumb-dark: #424242;
+  --scrollbar-thumb-dark-hover: #525252;
+
+  --input-bg: #3c3c3c;
+  --input-border: #1a1a1a;
+  --input-text: #d4d4d4;
+  --input-focus-border: #007acc;
+  --input-disabled-bg: #2d2d30;
+  --input-placeholder: #888888;
+
+  --panel-bg: #1e1e1e;
+  --panel-border: #404040;
+  --panel-heading: #ffffff;
+  --panel-meta: #aaaaaa;
+  --counter-card-bg: #252526;
+  --counter-card-border: #007acc;
+  --counter-display-bg: #1a1a1a;
+  --counter-display-text: #4ec9b0;
+}
+
+:root[data-theme='light'] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f3f3;
+  --bg-titlebar: #dddddd;
+  --bg-tertiary: #f5f5f5;
+  --text-white: #1f1f1f;
+  --text-titlebar: #333333;
+  --text-secondary: #555555;
+  --border-primary: #cccccc;
+  --border-secondary: #d4d4d4;
+  --overlay-hover: #dcdcdc;
+  --btn-close-hover: #e81123;
+  --focus-border-color: #005fb8;
+  --btn-primary: #005fb8;
+  --btn-primary-hover: #1f78d1;
+  --btn-primary-text: #ffffff;
+  --btn-secondary: #e5e5e5;
+  --btn-secondary-hover: #d4d4d4;
+  --btn-danger: #d32f2f;
+  --btn-danger-hover: #e53935;
+  --statusbar-bg-hover: #005fb8;
+  --statusbar-text: #ffffff;
+
+  --sidebar-bg: #f3f3f3;
+  --sidebar-border: #cccccc;
+  --sidebar-item-active: #cce4f7;
+  --sidebar-item-hover: #e8e8e8;
+  --sidebar-item-color: #1f1f1f;
+  --sidebar-item-active-color: #005fb8;
+  --sidebar-resize-handle-hover: #005fb8;
+
+  --settings-nav-bg: #f3f3f3;
+  --settings-nav-border: #cccccc;
+  --settings-nav-item-color: #1f1f1f;
+  --settings-nav-item-hover: #e8e8e8;
+  --settings-nav-item-active-bg: #cce4f7;
+  --settings-nav-item-active-color: #005fb8;
+  --settings-nav-footer-border: #d4d4d4;
+
+  --notify-bg: #ffffff;
+  --notify-border: #cccccc;
+  --notify-text: #1f1f1f;
+  --notify-close-color: #666666;
+  --notify-meta: #555555;
+  --notify-meta-bg: #eeeeee;
+  --notify-empty: #777777;
+  --notify-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --notify-focus-shadow: 0 0 0 2px rgba(0, 95, 184, 0.3);
+
+  --tab-bg: #f3f3f3;
+  --tab-hover-bg: #e1e1e1;
+  --tab-text: #555555;
+  --tab-active-icon: #1f1f1f;
+  --tab-border: #cccccc;
+  --tab-close: #888888;
+  --tab-close-hover-bg: #d4d4d4;
+  --tab-drag-indicator: #005fb8;
+
+  --split-resizer-bg: #cccccc;
+  --split-resizer-hover: #005fb8;
+  --split-drop-zone-bg: rgba(0, 95, 184, 0.12);
+  --split-drop-zone-border: #005fb8;
+  --split-drop-zone-text: #555555;
+
+  --scrollbar-thumb-dark: #c0c0c0;
+  --scrollbar-thumb-dark-hover: #a0a0a0;
+
+  --input-bg: #ffffff;
+  --input-border: #cccccc;
+  --input-text: #1f1f1f;
+  --input-focus-border: #005fb8;
+  --input-disabled-bg: #f3f3f3;
+  --input-placeholder: #888888;
+
+  --panel-bg: #ffffff;
+  --panel-border: #d4d4d4;
+  --panel-heading: #1f1f1f;
+  --panel-meta: #666666;
+  --counter-card-bg: #ffffff;
+  --counter-card-border: #005fb8;
+  --counter-display-bg: #f3f3f3;
+  --counter-display-text: #1f8f6f;
+}
