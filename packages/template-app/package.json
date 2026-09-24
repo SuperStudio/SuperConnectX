@@ -1,7 +1,7 @@
 {
-  "name": "base-desktop-app",
+  "name": "@superx/template-app",
   "version": "0.1.0",
-  "description": "A minimal Electron + Vue 3 desktop app template demonstrating the SuperConnectX foundation layering (foundation / features / components).",
+  "description": "A minimal Electron + Vue 3 desktop app template consuming @superx/foundation via pnpm workspace (no copied sources).",
   "main": "out/main/index.js",
   "author": "SuperStudio",
   "license": "MIT",
@@ -10,11 +10,14 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
+    "check:paths": "node _check_paths.cjs",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web"
   },
   "dependencies": {
+    "@superx/foundation": "workspace:*",
+    "@superx/shared": "workspace:*",
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^3.0.0",
     "element-plus": "^2.7.0",

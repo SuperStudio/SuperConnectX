@@ -4,7 +4,7 @@
       <WindowTitleBar :is-maximized="false" />
     </template>
 
-    <SidebarLayout>
+    <SidebarLayout :visible="sidebarVisible" :width="sidebarWidth" :min-width="160" :max-width="360">
       <nav class="sidebar">
         <button
           v-for="item in navItems"
@@ -17,6 +17,9 @@
           {{ item.label }}
         </button>
       </nav>
+      <template #footer>
+        <SidebarResizeHandle :resizing="sidebar.isResizing.value" @resize-start="sidebar.startResize" />
+      </template>
     </SidebarLayout>
 
     <main class="main-area">
@@ -27,9 +30,26 @@
         @select-tab="activate"
         @close-tab="onCloseTab"
         @hide-tab-menu="hideTabMenu"
-        @reorder-tabs="(from, to, pos) => reorderTabs(from, to, pos, false)"
+        @reorder-tabs="reorderTabs"
       >
         <template #title="{ tab }">{{ tab.title }}</template>
+        <template #action="{ tab }">
+          <button
+            class="tab-action-btn"
+            :class="{ pinned: tab.pinned }"
+            type="button"
+            :aria-label="tab.pinned ? 'Unpin tab' : 'Pin tab'"
+            @click.stop="onTogglePin(tab.id)"
+          />
+          <button
+            class="tab-action-btn tab-action-close"
+            type="button"
+            aria-label="Close tab"
+            @click.stop="onCloseTab(tab.id)"
+          >
+            ×
+          </button>
+        </template>
       </WorkbenchTabBar>
 
       <div class="main-content">
@@ -56,21 +76,34 @@
 
 <script setup lang="ts">
 import { markRaw, onMounted, ref } from 'vue'
-import AppShell from './foundation/shell/AppShell.vue'
-import WindowTitleBar from './foundation/shell/WindowTitleBar.vue'
-import StatusBar from './foundation/shell/StatusBar.vue'
-import NotificationCenter from './foundation/shell/NotificationCenter.vue'
-import SidebarLayout from './foundation/shell/SidebarLayout.vue'
-import WorkbenchTabBar from './foundation/workbench/WorkbenchTabBar.vue'
-import { useTheme } from './foundation/theme/useTheme'
-import { useWorkbenchTabs } from './foundation/workbench/useWorkbenchTabs'
-import type { WorkbenchTab } from '../../shared/workbench/types'
+// workspace 包消费：@superx/foundation / @superx/shared（无需复制源码，改包即全局生效）
+import AppShell from '@superx/foundation/shell/AppShell.vue'
+import WindowTitleBar from '@superx/foundation/shell/WindowTitleBar.vue'
+import StatusBar from '@superx/foundation/shell/StatusBar.vue'
+import NotificationCenter from '@superx/foundation/shell/NotificationCenter.vue'
+import SidebarLayout from '@superx/foundation/shell/SidebarLayout.vue'
+import SidebarResizeHandle from '@superx/foundation/shell/SidebarResizeHandle.vue'
+import { useSidebarResize } from '@superx/foundation/shell/useSidebarResize'
+import WorkbenchTabBar from '@superx/foundation/workbench/WorkbenchTabBar.vue'
+import { useTheme } from '@superx/foundation/theme/useTheme'
+import { useWorkbenchTabs } from '@superx/foundation/workbench/useWorkbenchTabs'
+import type { WorkbenchTab } from '@superx/shared/workbench/types'
 import CounterPanel from './features/counter/CounterPanel.vue'
 import SettingsTab from './components/SettingsTab.vue'
 import AboutPanel from './components/AboutPanel.vue'
 
 const appName = 'Base Desktop App'
 const theme = useTheme({ storageKey: 'app-theme', defaultTheme: 'dark' })
+
+// ----- sidebar (controlled: host owns width/visible, package owns gesture) -----
+const sidebarWidth = ref(220)
+const sidebarVisible = ref(true)
+const sidebar = useSidebarResize({
+  width: sidebarWidth,
+  visible: sidebarVisible,
+  minWidth: 160,
+  maxWidth: 360
+})
 
 const navItems = [
   { id: 'counter', label: 'Counter' },
@@ -94,6 +127,12 @@ const seedTabs = (): void => {
 const onCloseTab = (tabId: string): void => {
   if (tabs.value.length <= 1) return
   removeTab(tabId)
+}
+
+const onTogglePin = (tabId: string): void => {
+  const tab = tabs.value.find((t) => t.id === tabId)
+  if (tab) tab.pinned = !tab.pinned
+  tabsController.togglePin(tabId)
 }
 
 onMounted(() => {

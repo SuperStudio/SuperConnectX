@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { useSerializedSettingsSave } from '../foundation/settings/useSerializedSettingsSave'
+import { useSerializedSettingsSave } from '@superx/foundation/settings/useSerializedSettingsSave'
 
 interface SettingsForm {
   displayName: string

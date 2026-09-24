@@ -2,20 +2,22 @@ packages:
   - packages/*
   - apps/*
 
-# 允许执行构建脚本的依赖白名单（pnpm v10+ 安全策略：未列出的依赖构建脚本被拦截）
-# 注意：cpu-features、dtrace-provider 是 optional 依赖且在 Windows 上必然编译失败，故不列入；
-# ssh2 使用预编译 binding，无需本地构建，列在此处仅放行其 install 脚本。
+# 允许执行构建脚本的依赖白名单（pnpm 安全策略：未列出的依赖构建脚本被拦截）
+# 注意：pnpm 11.23+ 中 allowBuilds（布尔值）已取代 onlyBuiltDependencies —— allowBuilds 字段
+# 一旦存在，旧的 onlyBuiltDependencies/neverBuiltDependencies 等字段全部失效。
+# pnpm 曾自动插入值为 "set this to true or false" 的模板块，导致白名单静默失效，
+# 产物全靠历史 node_modules 复用 + 根 postinstall 的 @electron/rebuild 兜底 —— 引以为戒。
+# cpu-features、dtrace-provider 是 optional 依赖且在 Windows 上必然编译失败，故意不列入（默认拒绝）。
+# （若缺失下方 ignoredBuiltDependencies 声明，pnpm 会在每次 install 后向 allowBuilds 插入
+#   "set this to true or false" 模板行 —— 这是它的提示行为，删除即可，语义不变。）
 allowBuilds:
-  '@serialport/bindings-cpp': set this to true or false
-  cpu-features: set this to true or false
-  dtrace-provider: set this to true or false
-  electron: set this to true or false
-  esbuild: set this to true or false
-  ssh2: set this to true or false
+  '@electron/rebuild': true
+  '@serialport/bindings-cpp': true
+  electron: true
+  esbuild: true
+  ssh2: true
 
-onlyBuiltDependencies:
-  - '@electron/rebuild'
-  - '@serialport/bindings-cpp'
-  - electron
-  - esbuild
-  - ssh2
+# 故意静默忽略的 optional 原生依赖（Windows 上必然编译失败，且运行时无此依赖也能正常工作）
+ignoredBuiltDependencies:
+  - cpu-features
+  - dtrace-provider

@@ -1,6 +1,6 @@
 # 公共代码组件化与 Monorepo 实施计划
 
-> 状态：**阶段 1 实施中** —— Step 1.1 ✅ / 1.2 ✅ / 1.3 ✅（CI 门禁已验证通过）→ 下一步 Step 1.4
+> 状态：**阶段 1 实施中** —— Step 1.1 ✅ / 1.2 ✅ / 1.3 ✅ / 1.4 ✅（两次 CI 门禁全平台通过）→ 下一步 Step 1.5
 > 前置完成：《基础项目拆分实施计划》六步重构 ✅、`examples/base-desktop-app` 模板 ✅
 > 关联文档：`docs/template-guide.md`（模板使用指南）
 > 创建日期：2026-09-23 ｜ 实施记录见 §11
@@ -8,6 +8,35 @@
 ---
 
 ## 11. 实施记录（阶段 1）
+
+### 2026-09-24：Step 1.4 完成，CI 验证通过
+
+**已落地提交**：`2636852` 主应用归位 apps/superconnectx（233 文件，CI 零改动方案）
+
+**改动规模**：233 文件（+380 / -330），150 个 rename 被 git 正确识别（100% 相似度）
+
+**迁移内容**：
+- `git mv`：`src/`（147 文件）、`build/`、`resources/`、`electron.vite.config.ts` → `apps/superconnectx/`
+- 新建 `apps/superconnectx/package.json`（app 占位声明，依赖宿主仍在根，延续偏差 2）
+- 重写 app 版 `electron.vite.config.ts`：全部路径 `resolve(__dirname, ...)` 锚定，与执行 cwd 无关；preload/renderer 补显式入口（electron-vite 的 html 入口检查是 cwd 硬编码，显式 input 绕过）
+
+**根配置联动修正（CI 最小适配方案）**：
+- 根 `package.json`：`main` → `./apps/superconnectx/out/main/index.js`（E2E 的 `launch('.')` 自动跟随）；所有 dev/build scripts 加 `--config`
+- tsconfig 三件套、vitest 两配置、electron-builder.yml（files/buildResources/extraResources/icon/entitlements/deb 钩子全部前缀化，`release/` 输出留根）、`scripts/build-icon.py`
+- **CI workflow 4 处** `npx electron-vite build` 裸调用补 `--config apps/superconnectx/electron.vite.config.ts`（ci.yml ×2 + release.yml ×2，共 10 个 job 实例）—— 推送前审计发现：CI 不走 npm scripts 而是 npx 直调，躲开了根 scripts 的保护，若不修必挂
+- **测试批量修复**：61 个测试文件中混用的 `'../../src/'` 相对导入统一重写为 `'@/'` alias（此前搜索统计误判为 0，实际单测挂 173 用例后定位）
+- **意外捕获**：`PrintAppInfo.ts` 的 `import package.json` 相对层级 +1（typecheck 抓住）；`vueVersion: unknown` 为 rollup 对 JSON property 级 tree-shaking 的既有行为（vite 探针实证解析到根 package.json 无误），非本次回归
+
+**验证结果**：
+- 本地：typecheck 双侧全绿；单测 1308 用例全过；集成测试 38 用例全过；electron-vite build 三段真实构建成功；dev 冒烟（Electron 4 进程 + 窗口创建 + 5173 加载 + PrintAppInfo 输出正常）
+- 远程：推送 master 后 **GitHub Actions CI 全平台构建成功**（4 平台矩阵 + ubuntu24 兼容包，两次推送均通过）
+
+**实施坑记录**：
+- IDE 文件 watcher 锁住 `src/core`、`src/shared` 目录导致 `git mv` Permission denied → 改用 robocopy 逐文件搬运（git 靠 100% 相似度仍识别 rename）；根 `src/` 空目录壳待 IDE 重启后手动删除
+- `.modules.yaml` 状态缓存问题第 4 次复现，老办法（删状态文件重装）解决
+
+**遗留事项（并入 Step 1.6 清单）**：
+- 根 `src/` 空目录壳删除（IDE watcher 锁，重启后处理）
 
 ### 2026-09-23：Step 1.1 ~ 1.3 完成，CI 验证通过
 
@@ -201,14 +230,15 @@ SuperConnectX/                          # monorepo 根
 - [x] 主应用 `src/renderer/src/foundation/` 目录删除，11 个文件 import 重写为 `@superx/foundation/xxx`
 - ✅ 验证通过：typecheck 双侧全绿；1308 单测全过；dev 冒烟（主题/标签栏/串口）正常
 
-### Step 1.4 主应用归位为 workspace app（2h）
+### Step 1.4 主应用归位为 workspace app（2h）✅ 已完成（2026-09-24）
 
-- [ ] 根 `src/` → `apps/superconnectx/src/`（`git mv` 保留历史）
-- [ ] 迁移 `electron.vite.config.ts`、`tsconfig.*.json`、`electron-builder.yml`、`index.html` 等 app 级配置
-- [ ] 根 `package.json` 业务依赖（vue 除外，vue 保留在根或提升 peer）→ `apps/superconnectx/package.json`；app 的 `dependencies` 增加两个 workspace 包
-- [ ] 根 scripts 迁移到 app（dev/build/typecheck/test），根 scripts 改为 `pnpm -r` 编排形式（阶段 2 换 turbo）
-- [ ] `electron-vite.config.ts` 调整：`externalizeDepsPlugin` 保持；workspace 包无需额外 externalize（pnpm 软链指向源码，vite 直接编译）
-- **验证**：`pnpm --filter @superx/superconnectx build:win` 完整打包成功，产物 `apps/superconnectx/dist/` 可安装运行
+- [x] 根 `src/` → `apps/superconnectx/src/`（`git mv` 保历史；IDE watcher 锁目录时用 robocopy 绕行，git 仍识别 rename）+ `build/` + `resources/` + `electron.vite.config.ts`
+- [x] app 级配置：新建 `apps/superconnectx/package.json`（占位声明）+ app 版 vite 配置（`__dirname` 锚定）；tsconfig 三件套/vitest 两配置/electron-builder.yml **留根修路径**（CI 最小适配方案，release/ 输出位置不变）
+- [x] ~~根业务依赖迁 app~~ → **未执行**：依赖宿主仍在根（延续 §11 偏差 2 的 alias 直连方案，避免 CI 大改）；根 scripts 通过 `--config` 转发，保持根为统一入口
+- [x] vite 配置：`externalizeDepsPlugin` 保持；workspace 包经 alias 编译进 bundle，无需 externalize；preload/renderer 补显式入口（electron-vite html 入口检查为 cwd 硬编码）
+- [x] CI workflow 4 处 `npx electron-vite build` 裸调用补 `--config`（推送前审计发现，npx 直调绕过根 scripts 保护，不修必挂，共 10 个 job 实例）
+- [x] 61 个测试文件 `'../../src/'` 相对导入统一重写为 `'@/'` alias
+- ✅ 验证通过：typecheck 双侧全绿；1308 单测 + 38 集成全过；electron-vite 三段真实构建成功；dev 冒烟正常；**CI 4 平台矩阵 + ubuntu24 全部通过（两次推送）**
 
 ### Step 1.5 模板项目改造为包消费者（2h）
 
@@ -279,7 +309,7 @@ SuperConnectX/                          # monorepo 根
 | D1 | 包管理器 | pnpm / npm workspaces / yarn(berry) | **已决策：pnpm**（12.5.1 已落地，`packageManager` 字段锁定） |
 | D2 | 是否保留 `package-lock.json` 双锁文件 | 迁移后删 / 并存 | **已决策：删**（commit `2efe66f`，CI 已在无锁状态下验证通过；发版前需完成 CI pnpm 迁移） |
 | D3 | 根目录 `tests/`（86 文件）是否随包上提 | 全留根 / 按归属拆到包内 | foundation/shared 相关**上提**（8 个单测已迁 `packages/foundation/tests/`），业务测试随 app |
-| D4 | 主应用目录是否物理移动到 `apps/` | 移动 / 原位保留只改 package 归属 | **移动**（一次性成本换取结构清晰），`git mv` 保历史；回滚锚点 tag `pre-monorepo` |
+| D4 | 主应用目录是否物理移动到 `apps/` | 移动 / 原位保留只改 package 归属 | **已决策并落地：移动**（commit `2636852`，233 文件，git 识别 150 rename；CI 全平台验证通过，无需回滚） |
 | D5 | template-app 放 `packages/` 还是 `apps/` | 二者皆可 | `packages/`（它不发布但被作为孵化模板引用） |
 
 ### 7.3 回滚策略

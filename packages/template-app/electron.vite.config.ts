@@ -37,9 +37,11 @@ export default defineConfig({
       alias: {
         '@renderer': resolve(__dirname, 'src/renderer/src'),
         '@shared': resolve(__dirname, 'src/shared'),
-        '@foundation': resolve(__dirname, 'src/renderer/src/foundation'),
         '@features': resolve(__dirname, 'src/renderer/src/features'),
-        '@components': resolve(__dirname, 'src/renderer/src/components')
+        '@components': resolve(__dirname, 'src/renderer/src/components'),
+        // workspace 包直连源码（与主应用 apps/superconnectx 同构：免编译、改即生效）
+        '@superx/shared': resolve(__dirname, '../shared/src'),
+        '@superx/foundation': resolve(__dirname, '../foundation/src')
       }
     },
     plugins: [vue()],

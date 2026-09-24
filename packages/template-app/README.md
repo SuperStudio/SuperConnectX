@@ -1,18 +1,20 @@
-# base-desktop-app — A Vue 3 + Electron desktop template
+# @superx/template-app — A Vue 3 + Electron desktop template
 
 A **minimal, fully-runnable** Electron + Vue 3 + TypeScript template that
 demonstrates the three-layer architecture defined in
 [`docs/template-guide.md`](../../docs/template-guide.md):
 
 ```
-foundation/   ←  framework-grade primitives (no business knowledge)
+foundation/   ←  framework-grade primitives (no business knowledge)  → @superx/foundation
 features/     ←  business logic, one folder per product capability
 components/   ←  visual building blocks, consumed by features
 ```
 
-This project is **standalone**: it has its own `package.json`, its own
-`electron.vite.config.ts`, and its own dependency tree. Clone it, run
-`npm install`, and `npm run dev` to see the demo counter app launch.
+This project is a **workspace package consumer**: it declares
+`@superx/foundation` and `@superx/shared` as `workspace:*` dependencies and
+imports them by package name — **no copied sources**. Any fix or feature
+landed in the foundation packages is picked up by this template (and the
+main app) immediately, from a single source of truth.
 
 ---
 
@@ -22,8 +24,8 @@ This project is **standalone**: it has its own `package.json`, its own
 |-------------|---------------------------------------------------|-------------------------------------------------------------------------------------|
 | `foundation/theme` | `useTheme()`                             | Runtime theme switching with localStorage persistence                              |
 | `foundation/settings` | `useSerializedSettingsSave` + `SettingsRegistry` | Safe, ordered writes that never get overwritten by stale snapshots                |
-| `foundation/shell` | `AppShell`, `WindowTitleBar`, `StatusBar`, `SidebarLayout`, `NotificationCenter` | The visual chrome that wraps any app                                            |
-| `foundation/workbench` | `WorkbenchTabBar`, `useWorkbenchTabs`, `useSplitWorkspace`, `useWorkbenchTabDrag` | Domain-neutral tab strip and split-layout engine                                 |
+| `foundation/shell` | `AppShell`, `WindowTitleBar`, `StatusBar`, `SidebarLayout` (+ controlled `useSidebarResize`) | The visual chrome that wraps any app |
+| `foundation/workbench` | `WorkbenchTabBar`, `useWorkbenchTabs` | Domain-neutral tab strip with pin/drag-reorder/close actions                       |
 | `shared/ipc` | `counter.ts`                                       | One source of truth for channel names + payload types (renderer / preload / main)  |
 | `features/counter` | `useCounter` + `CounterPanel`             | The full IPC choreography with `JSON.parse(JSON.stringify(...))` Proxy-safe writes |
 | `components` | `SettingsTab`, `AboutPanel`                       | Pure UI panels that compose `features/` controllers                                |
@@ -33,72 +35,63 @@ This project is **standalone**: it has its own `package.json`, its own
 
 ## Quick start
 
-```bash
-cd examples/base-desktop-app
-npm install
-npm run dev          # starts the Electron app with hot-reload
-```
-
-Other scripts:
+Run from the **repository root** (the workspace owns the dependency tree):
 
 ```bash
-npm run build           # bundles main, preload, renderer into ./out
-npm run typecheck       # typechecks both node and web sides
-npm run typecheck:node  # main / preload / shared only
-npm run typecheck:web   # renderer only
+pnpm install
+pnpm --filter @superx/template-app dev     # starts the Electron app with hot-reload
 ```
 
-> **Tip:** the first `npm install` pulls Electron (~250 MB). If you already have
-> the parent project installed, you can speed things up by pointing the install
-> at a local cache via `npm config set cache ../node_modules/.npm-cache`.
+Other scripts (per-package):
+
+```bash
+pnpm --filter @superx/template-app build           # bundles main, preload, renderer into ./out
+pnpm --filter @superx/template-app typecheck       # typechecks both node and web sides
+pnpm --filter @superx/template-app check:paths     # static relative-import sanity check
+```
+
+---
+
+## How the workspace packages are wired
+
+Three places point the `@superx/*` names at package sources (no build step,
+edits to the packages are hot-reloaded here instantly):
+
+1. `package.json` — `"@superx/foundation": "workspace:*"` declares the
+   dependency (pnpm links it into `node_modules`).
+2. `electron.vite.config.ts` — renderer alias
+   `'@superx/shared': resolve(__dirname, '../shared/src')` etc., so Vite
+   compiles the TypeScript sources directly.
+3. `tsconfig.web.json` — `paths` entries so `tsc` resolves the same names.
+
+> This mirrors exactly how the main app (`apps/superconnectx`) consumes the
+> packages — the template is a faithful miniature of the real thing.
 
 ---
 
 ## Project layout
 
 ```
-examples/base-desktop-app/
+packages/template-app/
 ├── electron.vite.config.ts          # 3-segment build (main / preload / renderer)
 ├── tsconfig.node.json               # main / preload / shared (Node + DOM)
-├── tsconfig.web.json                # renderer (DOM + Vue)
-├── package.json                     # standalone deps + scripts
+├── tsconfig.web.json                # renderer (DOM + Vue) + @superx/* paths
+├── package.json                     # workspace deps + scripts
+├── _check_paths.cjs                 # static relative-import sanity check
 └── src/
     ├── main/index.ts                # main-process entry + IPC handlers
     ├── preload/index.ts             # contextBridge surface (the only renderer-facing API)
     ├── preload/index.d.ts           # window.api typing
     ├── shared/
-    │   ├── ipc/counter.ts           # channel constants + payload types (single source of truth)
-    │   └── workbench/types.ts       # domain-neutral tab/split types
+    │   └── ipc/counter.ts           # channel constants + payload types (this app's own contracts)
     └── renderer/
         ├── index.html
         └── src/
             ├── main.ts              # Vue mount
-            ├── App.vue              # composition layer — wires foundation + features + components
+            ├── App.vue              # composition layer — wires @superx/foundation + features + components
             ├── assets/
             │   ├── main.css         # global reset
             │   └── themes.css       # data-theme="dark"/"light" CSS variables
-            ├── foundation/
-            │   ├── theme/useTheme.ts
-            │   ├── settings/
-            │   │   ├── SettingsLayout.vue
-            │   │   ├── SettingsRegistry.ts
-            │   │   ├── types.ts
-            │   │   └── useSerializedSettingsSave.ts
-            │   ├── shell/
-            │   │   ├── AppShell.vue
-            │   │   ├── NotificationCenter.vue
-            │   │   ├── SidebarLayout.vue
-            │   │   ├── SidebarResizeHandle.vue
-            │   │   ├── StatusBar.vue
-            │   │   ├── WindowTitleBar.vue
-            │   │   ├── useNotificationCenter.ts
-            │   │   └── useSidebarResize.ts
-            │   └── workbench/
-            │       ├── SplitWorkspace.vue
-            │       ├── WorkbenchTabBar.vue
-            │       ├── useSplitWorkspace.ts
-            │       ├── useWorkbenchTabDrag.ts
-            │       └── useWorkbenchTabs.ts
             ├── components/
             │   ├── AboutPanel.vue
             │   └── SettingsTab.vue
@@ -106,6 +99,10 @@ examples/base-desktop-app/
                 └── counter/
                     ├── CounterPanel.vue
                     └── useCounter.ts
+
+# framework-grade primitives now live in workspace packages (single source of truth):
+packages/shared/src/workbench/       # cross-process types (tabs, split)
+packages/foundation/src/             # theme/ settings/ shell/ workbench/
 ```
 
 ---
