@@ -21,3 +21,11 @@ allowBuilds:
 ignoredBuiltDependencies:
   - cpu-features
   - dtrace-provider
+
+# 根本不安装这些 optional 依赖（ssh2 的可选加速模块，缺失不影响功能）。
+# ignoredBuiltDependencies 只拦截 pnpm 安装期脚本，包仍会进入 node_modules/.pnpm/，
+# 导致 CI 中 electron-builder install-app-deps（@electron/rebuild 扫描）依然尝试构建并失败
+# （cpu-features@0.0.10 缺 buildcheck.gypi，node-gyp 必然报错）。不安装 = rebuild 扫不到。
+ignoredOptionalDependencies:
+  - cpu-features
+  - dtrace-provider

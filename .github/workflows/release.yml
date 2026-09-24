@@ -94,28 +94,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Remove problematic cpu-features (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          if (Test-Path node_modules\cpu-features) {
-            Remove-Item -Recurse -Force node_modules\cpu-features
-          }
-          if (Test-Path node_modules\ssh2\node_modules\cpu-features) {
-            Remove-Item -Recurse -Force node_modules\ssh2\node_modules\cpu-features
-          }
-
-      - name: Remove problematic cpu-features (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          rm -rf node_modules/cpu-features
-          rm -rf node_modules/ssh2/node_modules/cpu-features
-
-      - name: Remove problematic cpu-features (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          rm -rf node_modules/cpu-features
-          rm -rf node_modules/ssh2/node_modules/cpu-features
+      # cpu-features / dtrace-provider（ssh2 的 optional 加速依赖）已通过 pnpm-workspace.yaml 的
+      # ignoredOptionalDependencies 根本不安装 —— electron-builder install-app-deps 扫描不到，
+      # 无需再在 CI 里手动删除（旧删除步骤写的是 npm 布局路径，pnpm 布局下本来就是无效操作）。
 
       - name: Run tests
         run: npm test
@@ -209,11 +190,7 @@ jobs:
           restore-keys: |
             electron-ubuntu24-
 
-      - name: Remove problematic cpu-features
-        run: |
-          rm -rf node_modules/cpu-features
-          rm -rf node_modules/ssh2/node_modules/cpu-features
-
+      # cpu-features 已通过 pnpm-workspace.yaml 的 ignoredOptionalDependencies 不安装，无需删除
       - name: Run tests
         run: npm test
 
