@@ -55,38 +55,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 使用 Node 24：lock 文件缺少非 Windows 平台 optional 依赖实体条目，
-      # node 20 自带 npm 10 会触发 npm/cli#4828（丢失 @rollup/rollup-* 平台包），npm 11+ 可正确安装
+      # pnpm 版本从根 package.json 的 packageManager 字段读取（pnpm@12.5.1），本地与 CI 单一真相
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      # 使用 Node 24：Electron 38 等原生依赖在低版本 Node 下工具链兼容性欠佳
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-
-      # ---- CI 缓存优化：npm 依赖下载缓存（按平台 + lock 文件区分）----
-      - name: Cache npm (Linux/macOS)
-        if: runner.os != 'Windows'
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            npm-${{ runner.os }}-
-
-      - name: Cache npm (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/cache@v4
-        with:
-          path: ~\AppData\Local\npm-cache
-          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            npm-${{ runner.os }}-
+          cache: 'pnpm' # pnpm store 缓存由 setup-node 原生接管
 
       # Electron 二进制缓存：install.js 下载的解压产物（Electron 体积大，命中可省大量时间）
       - name: Cache Electron binary
         uses: actions/cache@v4
         with:
           path: node_modules/electron/dist
-          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: electron-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-${{ runner.os }}-
 
@@ -104,10 +89,10 @@ jobs:
         if: runner.os == 'macOS'
         run: python3 -m pip install setuptools --break-system-packages
 
-      # 统一用 npm install 而非 npm ci：lock 文件缺少部分平台相关依赖的实体条目
-      #（dmg-license、@rollup/rollup-* 等），npm ci 严格校验会报错或丢包（npm/cli#4828）
+      # pnpm + frozen-lockfile：依赖版本与 pnpm-lock.yaml 严格一致，构建可复现
+      # --ignore-scripts：跳过原生模块构建，由后续 install-app-deps 兜底（与原流水线语义一致）
       - name: Install dependencies
-        run: npm install --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Remove problematic cpu-features (Windows)
         if: runner.os == 'Windows'
@@ -192,19 +177,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-
-      # ---- CI 缓存优化：npm 依赖下载缓存（build-ubuntu24 为纯 Linux）----
-      - name: Cache npm
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: npm-ubuntu24-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            npm-ubuntu24-
+          cache: 'pnpm'
 
       - name: Install Linux build dependencies
         run: |
@@ -215,17 +195,17 @@ jobs:
         run: python3 -m pip install setuptools
 
       - name: Install dependencies
-        run: npm install --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Downgrade Electron to 35 for Ubuntu 24 compatibility
-        run: npm install electron@35.7.5 --save-dev
+        run: pnpm add electron@35.7.5 --save-dev
 
       # Electron 35 二进制缓存：与 build job 的 Electron 38 缓存 key 区分，避免互串
       - name: Cache Electron binary (Electron 35)
         uses: actions/cache@v4
         with:
           path: node_modules/electron/dist
-          key: electron-ubuntu24-${{ hashFiles('package-lock.json') }}
+          key: electron-ubuntu24-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-ubuntu24-
 

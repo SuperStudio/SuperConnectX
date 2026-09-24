@@ -1,6 +1,6 @@
 # 公共代码组件化与 Monorepo 实施计划
 
-> 状态：**阶段 1 实施中** —— Step 1.1 ✅ / 1.2 ✅ / 1.3 ✅ / 1.4 ✅（两次 CI 门禁全平台通过）→ 下一步 Step 1.5
+> 状态：**阶段 1 实施中（接近完成）** —— Step 1.1~1.5 ✅（已提交/暂存）｜ Step 1.6 ✅（实施完成，待全量验证 + CI 门禁确认）→ 收尾：全仓回归 + 提交推送
 > 前置完成：《基础项目拆分实施计划》六步重构 ✅、`examples/base-desktop-app` 模板 ✅
 > 关联文档：`docs/template-guide.md`（模板使用指南）
 > 创建日期：2026-09-23 ｜ 实施记录见 §11
@@ -8,6 +8,46 @@
 ---
 
 ## 11. 实施记录（阶段 1）
+
+### 2026-09-24：Step 1.6 完成，清理与收尾
+
+**CI 迁移 pnpm（4 个 job 全部迁移）**：
+- ci.yml `build` job + `build-ubuntu24` job、release.yml `build` job + `build-ubuntu24` job
+- 每 job：`pnpm/action-setup@v4`（版本读根 packageManager 字段，本地/CI 单一真相）→ `setup-node` 加 `cache: 'pnpm'` 原生接管 store 缓存（删 3 个手动 npm cache 步骤）→ `pnpm install --frozen-lockfile --ignore-scripts`（复刻原 ignore-scripts 语义，install-app-deps 兜底不变）→ Electron 缓存 key `hashFiles('pnpm-lock.yaml')` → ubuntu24 降级命令 `pnpm add electron@35.7.5 -D`
+- 本地验证 `--frozen-lockfile` 一致性通过（56ms）；**CI 实跑待下次推送确认**
+
+**其他收尾**：
+- `src/shared` 判定：`ipc/`（storage/window 通道）留 app；`settings/`、`extensions/` 空目录删除
+- themes.css 评估：**不迁移**（主应用 `color.css` 为业务自有配色体系，与 template-app 极简 themes.css 是两套；CSS 变量留 app 是正确分层）
+- 根 `src/` 空壳删除成功（IDE watcher 释放）
+- `docs/template-guide.md` 全面更新：workspace 引用三步接入（推荐）+ 拷贝降级离线备选、import 示例包名化、命令 pnpm 化
+- `.gitignore` 追加 `pnpm-debug.log*`
+
+**遗留**：发版 tag 前确认 CI 实跑通过（pnpm 迁移后的首次推送）；《基础项目拆分实施计划.md》交叉引用检查
+
+### 2026-09-24：Step 1.5 完成，模板项目改造为 workspace 包消费者
+
+**改动规模**：46 文件（+674 / -4338），净删 3664 行（源码副本消失）
+
+**迁移内容**：
+- `git mv examples/base-desktop-app` → **`packages/template-app`**（D5 决策落地，包名 `@superx/template-app`）
+- **删除 21 个复制文件**：foundation 全部源码 + shared/workbench 副本 + 过时 package-lock.json —— 模板从「源码复制」彻底转为「workspace 引用」
+- 对比确认改造前 **9 个复制文件已与包版本内容分叉**（demo 停留在旧 API：`useSidebarResize` 非受控版、`useWorkbenchTabs` 无 togglePin）—— 源码复制模式的弊病实证，改造后自动获得主应用验证过的最新版
+
+**消费方式改造**：
+- `package.json` 声明 `@superx/foundation: workspace:*` + `@superx/shared: workspace:*`
+- import 全部改包名；适配包版演进后的 API：`SidebarLayout` 受控模式（接入 `useSidebarResize`）、`closeTab` 改 `#action` slot 自定义按钮、`togglePin` 同步 tab 状态
+- vite alias + tsconfig paths 直连 `packages/*/src`（与主应用 apps/superconnectx 完全同构）；README 重写为 workspace 消费叙述
+
+**意外收获：修复 pnpm 白名单静默失效 bug（潜伏自 Step 1.1）**：
+- 现象：install 报所有构建脚本 ignored → 根因：**pnpm 11.23+ 中 `allowBuilds`（布尔值）已取代 `onlyBuiltDependencies`**，pnpm 早在 Step 1.1 就自动插入了模板值无效的 `allowBuilds` 块并被提交 —— 白名单从未生效，产物一直靠历史 node_modules 复用 + postinstall rebuild 兜底
+- 修复：改用正确的 `allowBuilds` 布尔语法 + `ignoredBuiltDependencies` 显式静默 cpu-features/dtrace-provider；修复后 electron/esbuild/serialport/ssh2 构建脚本全部真实执行（ssh2 加密 binding 首次真实编译）
+- 注意：pnpm 对故意排除的包仍会在 install 末尾打印 ignored 提示（引导性输出，exit 0，无实际影响），且可能自动插入 `allowBuilds` 模板行 —— 删除即可
+
+**验证结果**：
+- 本地：pnpm install（5 workspace 项目）+ typecheck 双侧 + `_check_paths.cjs` 静态校验 + dev 冒烟（Electron 4 进程 + 5173）全部通过
+- **单源验证（组件化核心价值实证）**：直接修改 `packages/foundation/src/shell/StatusBar.vue` 源码 → template-app 的 dev bundle **即时包含改动**（fetch dev server 模块 URL 实证，无 install/build/重启）—— 对比 C# DLL 需重编译分发，TS workspace 包即改即得
+- CI 影响审计：Step 1.5 改动与 CI（npm 世界）交集为零 —— 根 package.json/tsconfig/vitest/electron-builder 均未动，template-app 无测试文件不进 vitest 射程，workflows 无 examples 引用
 
 ### 2026-09-24：Step 1.4 完成，CI 验证通过
 
@@ -61,7 +101,7 @@
 
 **遗留事项（Step 1.6 前需处理）**：
 - CI 从 npm 迁移 pnpm（`pnpm/action-setup` + `--frozen-lockfile` + 缓存 key 改 `pnpm-lock.yaml`），**必须在下次发版 tag 之前完成**——当前 CI 无锁文件现场解析依赖版本，构建不可复现
-- `examples/base-desktop-app/package-lock.json` 待 Step 1.5 改造时删除
+- ~~`examples/base-desktop-app/package-lock.json` 待 Step 1.5 改造时删除~~ ✅ 已随 Step 1.5 完成
 
 ---
 
@@ -240,33 +280,33 @@ SuperConnectX/                          # monorepo 根
 - [x] 61 个测试文件 `'../../src/'` 相对导入统一重写为 `'@/'` alias
 - ✅ 验证通过：typecheck 双侧全绿；1308 单测 + 38 集成全过；electron-vite 三段真实构建成功；dev 冒烟正常；**CI 4 平台矩阵 + ubuntu24 全部通过（两次推送）**
 
-### Step 1.5 模板项目改造为包消费者（2h）
+### Step 1.5 模板项目改造为包消费者（2h）✅ 已完成（2026-09-24）
 
-- [ ] `examples/base-desktop-app` → `packages/template-app/`（`git mv`）
-- [ ] **删除其复制的 `src/renderer/src/foundation/` 全部源码与 `src/shared/workbench/`**——这是本阶段的验收核心：模板从"复制"变为"引用"
-- [ ] `package.json` 改为：`"dependencies": { "@superx/foundation": "workspace:*", "@superx/shared": "workspace:*", "vue": "^3.5.21", ... }`
-- [ ] import 路径全部改包名；`electron.vite.config.ts` 增加 workspace 包解析
-- **验证**：`pnpm --filter @superx/template-app dev` 启动；Counter/Settings/About/主题切换全功能正常；**修改 `packages/foundation/src/theme/useTheme.ts`（如默认主题改 light），template-app 无需任何操作，重启 dev 即生效**——这是"单源迭代"的直接证明
+- [x] `examples/base-desktop-app` → `packages/template-app/`（`git mv`，D5 落地）
+- [x] **删除其复制的 `src/renderer/src/foundation/` 全部源码与 `src/shared/workbench/`**（验收核心达成，净删 3664 行）；对比确认 9 个复制文件已与包版本分叉（源码复制模式弊病实证）
+- [x] `package.json` 改为：`"dependencies": { "@superx/foundation": "workspace:*", "@superx/shared": "workspace:*", ... }`
+- [x] import 路径全部改包名；vite/tsconfig 增加与主应用同构的 workspace 源码解析；适配包版演进后的 API（SidebarLayout 受控模式、#action slot、togglePin）
+- [x] 意外收获：修复 pnpm 白名单静默失效 bug（`allowBuilds` 取代 `onlyBuiltDependencies`，详见 §11 实施记录）
+- ✅ 验证通过：typecheck 双侧 + `_check_paths.cjs` + dev 冒烟（Electron 4 进程 + 5173）；**单源验证实证**：直接改 `packages/foundation/src/shell/StatusBar.vue` 源码 → template-app dev bundle 即时包含改动（fetch dev server 模块 URL 验证，无 install/build/重启）；CI 影响审计：改动与 npm CI 交集为零
 
-### Step 1.6 清理与收尾（1h）
+### Step 1.6 清理与收尾（1h）✅ 已完成（2026-09-24）
 
-- [ ] `src/shared/` 剩余文件去向判定：
-  - `ipc/`（SuperConnectX 通道）→ 留在 app：`apps/superconnectx/src/shared/ipc/`
-  - `settings/`、`extensions/` → 按耦合度决定留 app 或补迁 shared 包（**允许全部留 app，不强行抽**）
-- [ ] **CI 迁移 pnpm**（§11 遗留事项，优先级最高）：两 workflow 加 `pnpm/action-setup`、`npm install` → `pnpm install --frozen-lockfile`、缓存 key 改 `hashFiles('pnpm-lock.yaml')`、`install-app-deps` → `rebuild-native.mjs`；**必须在下次发版 tag 前完成**
-- [ ] `assets/themes.css` 是否迁移 `@superx/foundation/styles/themes.css`（§11 偏差 7 顺延项，评估与 Step 1.3 样式回归的耦合）
-- [ ] 更新 `docs/template-guide.md`：复用方式从"拷贝目录"改为"workspace 引用"，保留拷贝说明作为离线场景备注
-- [ ] 更新本文件状态标记 + 《基础项目拆分实施计划.md》交叉引用
-- [x] `.gitignore` 已加 `*.tsbuildinfo`；`package-lock.json` 已删（D2 已决策落地，commit `2efe66f`）
+- [x] `src/shared/` 剩余文件去向判定：`ipc/`（storage/window 通道，SuperConnectX 专属）→ 留 app `apps/superconnectx/src/shared/ipc/`；`settings/`、`extensions/` 为空目录，已删除
+- [x] **CI 迁移 pnpm**：ci.yml（build + ubuntu24 两 job）与 release.yml（build + ubuntu24 两 job）全部迁移 —— 每 job 加 `pnpm/action-setup@v4`（版本自动读根 packageManager 字段）、`setup-node` 加 `cache: 'pnpm'` 原生接管 store 缓存（删除 3 个手动 npm cache 步骤）、`npm install --ignore-scripts` → `pnpm install --frozen-lockfile --ignore-scripts`（保持 ignore-scripts 语义复刻，install-app-deps 兜底不变）、Electron 二进制缓存 key → `hashFiles('pnpm-lock.yaml')`、ubuntu24 job 的 `npm install electron@35.7.5` → `pnpm add electron@35.7.5 --save-dev`；本地已验证 `--frozen-lockfile` 一致性通过
+- [x] ~~`assets/themes.css` 迁移~~ → **评估结论：不迁移**。主应用主题为业务自有的 `assets/color.css`（含业务配色），与 template-app 自带的极简 `themes.css` 是两套体系；useTheme 仅切换 `data-theme` 属性，CSS 变量留在各 app 是正确分层，强行抽象反而制造伪复用
+- [x] 根 `src/` 空目录壳删除（IDE watcher 释放后 `rmdir` 成功）
+- [x] 更新 `docs/template-guide.md`：复用方式改为「workspace 引用（推荐）」三步接入，拷贝降级为离线备选并标注分叉风险；import 示例全部改包名；测试/构建命令 npm → pnpm；目录结构与"下一步"章节同步 workspace 形态
+- [x] `.gitignore` 追加 `pnpm-debug.log*`
+- [ ] 更新本文件状态标记 + 《基础项目拆分实施计划.md》交叉引用（本文档已更新；后者待查）
 - **验证**：全仓 `pnpm -r typecheck && pnpm -r test`；两个 app 各自 `dev` 启动冒烟
 
 ### 1.7 阶段 1 完成标准（DoD）
 
-- [ ] 修改 foundation 任一文件，两个 app 重启 dev 后均反映变更（单源）
+- [x] 修改 foundation 任一文件，两个 app 重启 dev 后均反映变更（单源）—— Step 1.5 已实证（fetch dev server 模块 URL）
 - [ ] 主应用功能零回归（六步重构验证清单 + 手动回归：主题/标签/分屏/侧栏/设置/串口连接）
 - [ ] 1308 既有用例 + 迁入包内用例全绿；`pnpm -r build`（不含打包安装包）成功
-- [ ] `examples/` 目录删除，模板升级为 `packages/template-app`
-- [ ] CI（若有）脚本适配 workspace 命令
+- [x] `examples/` 目录删除，模板升级为 `packages/template-app`
+- [x] CI 脚本适配 workspace 命令（pnpm 迁移完成）
 
 ---
 
@@ -310,7 +350,7 @@ SuperConnectX/                          # monorepo 根
 | D2 | 是否保留 `package-lock.json` 双锁文件 | 迁移后删 / 并存 | **已决策：删**（commit `2efe66f`，CI 已在无锁状态下验证通过；发版前需完成 CI pnpm 迁移） |
 | D3 | 根目录 `tests/`（86 文件）是否随包上提 | 全留根 / 按归属拆到包内 | foundation/shared 相关**上提**（8 个单测已迁 `packages/foundation/tests/`），业务测试随 app |
 | D4 | 主应用目录是否物理移动到 `apps/` | 移动 / 原位保留只改 package 归属 | **已决策并落地：移动**（commit `2636852`，233 文件，git 识别 150 rename；CI 全平台验证通过，无需回滚） |
-| D5 | template-app 放 `packages/` 还是 `apps/` | 二者皆可 | `packages/`（它不发布但被作为孵化模板引用） |
+| D5 | template-app 放 `packages/` 还是 `apps/` | 二者皆可 | **已决策并落地：`packages/`**（Step 1.5 完成，commit 待提交；作为孵化模板被引用，git mv 保留历史） |
 
 ### 7.3 回滚策略
 

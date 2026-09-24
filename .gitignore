@@ -9,4 +9,5 @@ ICON.pptx
 tests/coverage
 tests/report
 *.tsbuildinfo
+pnpm-debug.log*
 .txt

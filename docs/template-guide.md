@@ -1,16 +1,16 @@
 # SuperConnectX Foundation Template Guide
 
 > 中文版位于：`基础项目拆分实施计划.md`（步骤 6）。
-> 本指南聚焦**复用方式**——如何基于已沉淀的 `foundation/` 层创建一个新的桌面应用。
+> 本指南聚焦**复用方式**——如何基于已沉淀的 foundation 层创建一个新的桌面应用。
 >
-> **可直接运行的完整示例**：`examples/base-desktop-app/`——一个独立可安装、
-> 可 `npm run dev` 启动、可打包的 Electron + Vue 3 模板项目，
-> 含 foundation 全量源码、IPC 合约演示、防 Proxy 写法与快速启动指南，
+> **可直接运行的完整示例**：`packages/template-app/`——一个 pnpm workspace 包消费者形态的
+> Electron + Vue 3 模板项目，以 `workspace:*` 引用 `@superx/foundation` / `@superx/shared`
+>（**不含复制的框架源码**），含 IPC 合约演示、防 Proxy 写法与快速启动指南，
 > 详见其 `README.md`。
 
 ## 1. 适用场景
 
-`foundation/` 抽象了跨业务共用的桌面应用能力：
+foundation 抽象了跨业务共用的桌面应用能力：
 窗口壳、侧栏与状态栏、主题与国际化、设置中心与序列化保存、
 通知中心、工作台 Tab 与分屏布局。
 
@@ -22,33 +22,46 @@
 
 ## 2. 复用方式
 
-### 2.1 直接拷贝
+### 2.1 workspace 引用（推荐，本仓库形态）
 
-最小起步：把 `src/renderer/src/foundation/` 目录复制到目标项目，
+foundation 已抽取为 workspace 包 `@superx/foundation`（源码位于 `packages/foundation/src/`）。
+在 pnpm workspace 内的新应用只需三步：
+
+1. `package.json` 声明 `"@superx/foundation": "workspace:*"`（及 `"@superx/shared": "workspace:*"`）；
+2. `electron.vite.config.ts` 的 renderer alias 加
+   `'@superx/foundation': resolve(__dirname, '../foundation/src')`（vite 直连源码，免编译、改即生效）；
+3. `tsconfig.web.json` 的 `paths` 加对应 `"@superx/foundation/*": ["../foundation/src/*"]`。
+
+import 即用包名：`import { useTheme } from '@superx/foundation/theme/useTheme'`。
+参考实现：`packages/template-app/`（模板）与 `apps/superconnectx/`（主应用）。
+
+### 2.2 直接拷贝（离线/跨仓库场景备选）
+
+不在本 workspace 的项目，可把 `packages/foundation/src/` 目录复制到目标项目，
 删除与业务耦合的部分（IPC 调用、连接相关 types）。
-
-### 2.2 独立包（推荐前提）
-
-当出现第二个复用项目时再拆分为 npm 包或独立仓库——
-见实施计划步骤 6 的"根据至少一个新应用的复用情况，再决定拆分为独立仓库或 npm 包"。
+**注意**：拷贝后即与上游分叉（无法自动获得修复与演进），仅作离线场景的备选。
 
 ## 3. 目录结构与边界
 
 ```
-src/renderer/src/
-├── foundation/   # 跨业务可复用（不要 import features/）
-│   ├── workbench/    # Tab、分屏、拖拽
-│   ├── shell/        # AppShell、SidebarLayout、NotificationCenter、WindowTitleBar
-│   ├── settings/     # SettingsRegistry、SettingsLayout、useSerializedSettingsSave
-│   ├── theme/        # useTheme
-│   └── i18n/         # 初始化与语言切换
-├── features/     # 业务域（不可被 foundation import）
-├── components/   # 跨业务 UI 组件（可被 features 引用）
-└── App.vue       # 仅做装配：组合子装配 + 模板绑定 + 生命周期接线
+packages/                  # 跨业务复用层（workspace 包，单一真相源）
+├── shared/src/            # 三进程共享类型（workbench 等，零依赖）
+├── foundation/src/        # 框架级原语（不得 import 业务代码）
+│   ├── workbench/         # Tab、分屏、拖拽
+│   ├── shell/             # AppShell、SidebarLayout、NotificationCenter、WindowTitleBar
+│   ├── settings/          # SettingsRegistry、SettingsLayout、useSerializedSettingsSave
+│   └── theme/             # useTheme
+└── template-app/          # 模板项目（workspace 消费者示范）
+
+apps/superconnectx/        # 主应用
+└── src/renderer/src/
+    ├── features/          # 业务域（不可被 foundation import）
+    ├── components/        # 跨业务 UI 组件（可被 features 引用）
+    └── App.vue            # 仅做装配：组合子装配 + 模板绑定 + 生命周期接线
 ```
 
 **硬性边界**：
-- `foundation/` 不得 import `features/` 或 `components/`；
+- `packages/foundation` 不得 import 任何 `apps/*/src`（业务代码）；
 - `features/` 之间通过**配置/接口/事件**协作，避免直接相互 import。
 
 ## 4. 启动一个新页面（5 步）
@@ -57,7 +70,7 @@ src/renderer/src/
 
 ```ts
 // features/demo/useDemoFeature.ts
-import { useWorkbenchTabs, type TabItem } from '../../foundation/workbench/useWorkbenchTabs'
+import { useWorkbenchTabs, type TabItem } from '@superx/foundation/workbench/useWorkbenchTabs'
 
 export function useDemoFeature(comRefs: Record<string, any>, telRefs: Record<string, any>) {
   return useWorkbenchTabs(comRefs, telRefs)
@@ -76,7 +89,7 @@ openTab({
 ### 4.2 把页面接入分屏（可选）
 
 ```ts
-import { useSplitWorkspace } from '../../foundation/workbench/useSplitWorkspace'
+import { useSplitWorkspace } from '@superx/foundation/workbench/useSplitWorkspace'
 
 const { splitState, splitPanel, removePanel, onTabClosed } = useSplitWorkspace()
 // 把当前 tab 从单面板拖入新面板：
@@ -87,7 +100,7 @@ splitPanel('panel-0', 'horizontal')
 
 ```ts
 // features/demo/settings.ts
-import { SettingsRegistry } from '../../foundation/settings/SettingsRegistry'
+import { SettingsRegistry } from '@superx/foundation/settings/SettingsRegistry'
 
 export function registerDemoSettings(registry: SettingsRegistry) {
   registry.register({
@@ -104,7 +117,7 @@ const categories = settingsRegistry.getCategories()
 ### 4.4 发送通知
 
 ```ts
-import { useNotificationCenter } from '../../foundation/shell/useNotificationCenter'
+import { useNotificationCenter } from '@superx/foundation/shell/useNotificationCenter'
 const { add } = useNotificationCenter()
 add('导入完成', '成功导入 12 条连接', 3000)
 ```
@@ -112,7 +125,7 @@ add('导入完成', '成功导入 12 条连接', 3000)
 ### 4.5 集成主题与国际化
 
 ```ts
-import { useTheme } from '../../foundation/theme/useTheme'
+import { useTheme } from '@superx/foundation/theme/useTheme'
 const { theme, toggleTheme } = useTheme()
 ```
 
@@ -122,7 +135,7 @@ const { theme, toggleTheme } = useTheme()
 > 避免快速连续保存时较晚的旧快照覆盖较新的数据。
 
 ```ts
-import { useSerializedSettingsSave } from '../../foundation/settings/useSerializedSettingsSave'
+import { useSerializedSettingsSave } from '@superx/foundation/settings/useSerializedSettingsSave'
 
 const { save } = useSerializedSettingsSave(async (snapshot) => {
   return window.api.saveSettings(snapshot) // 返回 boolean
@@ -188,13 +201,15 @@ await window.demoApi.saveSettings(JSON.parse(JSON.stringify(settings)))
 ### 7.1 单元测试（Vitest）
 
 ```bash
-npm test                  # 单元测试
-npm run test:coverage     # 覆盖率
-npm run test:integration  # 集成测试
-npm run test:e2e          # Playwright 端到端
+pnpm test                  # 单元测试
+pnpm test:coverage         # 覆盖率
+pnpm test:integration      # 集成测试
+pnpm test:e2e              # Playwright 端到端
 ```
 
-测试位置约定：`tests/unit/<composable>.test.ts` 对应 `src/.../<composable>.ts`。
+测试位置约定：
+- 业务测试：`tests/unit/<composable>.test.ts` 对应 `apps/superconnectx/src/.../<composable>.ts`；
+- foundation 包测试：`packages/foundation/tests/<composable>.test.ts`（根 vitest 配置统一收集）。
 
 ### 7.2 Foundation 单测应覆盖
 
@@ -213,15 +228,15 @@ npm run test:e2e          # Playwright 端到端
 ## 8. 构建与发布
 
 ```
-npm run build          # 全平台（typecheck + electron-vite build + electron-builder）
-npm run build:win      # Windows
-npm run build:mac      # macOS
-npm run build:linux    # Linux
-npm run build:unpack   # 仅打包，不制作安装包
+pnpm build             # 全平台（typecheck + electron-vite build + electron-builder）
+pnpm build:win         # Windows
+pnpm build:mac         # macOS
+pnpm build:linux       # Linux
+pnpm build:unpack      # 仅打包，不制作安装包
 ```
 
-`electron-builder.yml` / `electron.vite.config.ts` 控制具体行为，
-跨平台图标位于 `resources/`、`Image/`、`doc/icon/`。
+`electron-builder.yml`（根） / `apps/superconnectx/electron.vite.config.ts` 控制具体行为，
+跨平台图标位于 `apps/superconnectx/resources/`、`apps/superconnectx/build/`、`Image/`、`doc/icon/`。
 
 ## 9. 风格与硬约束速查
 
@@ -243,9 +258,9 @@ npm run build:unpack   # 仅打包，不制作安装包
 
 ## 11. 下一步
 
-- 第二个复用项目出现时，把 `foundation/` 拆为独立 npm 包（`@superstudio/foundation`）；
+- ~~第二个复用项目出现时，把 `foundation/` 拆为独立 npm 包~~ —— **已完成**（Monorepo 阶段 1：`@superx/foundation` + `@superx/shared` workspace 包，见 `doc/公共代码组件化与Monorepo实施计划.md`）；后续如需对外发布，可在此基础上加 `pnpm pack`/changesets 发布流程；
 - 给 workbench/shell 补 e2e 测试（Playwright 已有配置，见 `playwright.config.ts`）；
-- 将 `useSerializedSettingsSave` 等小工具沉淀为 `@superstudio/util-*` 系列。
+- 将 `useSerializedSettingsSave` 等小工具沉淀为 `@superx/util-*` 系列。
 
 ---
 
