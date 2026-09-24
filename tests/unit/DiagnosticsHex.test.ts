@@ -7,7 +7,7 @@ import {
   hexToSpacedHex,
   uint8ArrayToBinaryString,
   hexToBinaryString
-} from '../../src/renderer/src/features/diagnostics/hex'
+} from '@/renderer/src/features/diagnostics/hex'
 
 describe('diagnostics/hex 纯工具', () => {
   it('stripWhitespace 去除空格与换行', () => {

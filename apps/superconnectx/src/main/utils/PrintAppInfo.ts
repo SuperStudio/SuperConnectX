@@ -2,7 +2,7 @@ import { app, BrowserWindow, screen } from 'electron'
 import os from 'os'
 import path from 'path'
 import logger from '../ipc/IpcAppLogger'
-import packageJson from '../../../package.json'
+import packageJson from '../../../../../package.json'
 import { getAppDataDir } from './AppDir'
 
 /**

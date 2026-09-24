@@ -3,7 +3,7 @@ import {
   formatFontName,
   getSystemFonts,
   getDefaultTerminalFont
-} from '../../src/renderer/src/utils/FontDetector'
+} from '@/renderer/src/utils/FontDetector'
 
 describe('FontDetector', () => {
   describe('getDefaultTerminalFont', () => {

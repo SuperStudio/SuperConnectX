@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatReceivedData } from '../../src/renderer/src/features/terminal/useTerminalDisplayText'
+import { formatReceivedData } from '@/renderer/src/features/terminal/useTerminalDisplayText'
 
 describe('formatReceivedData', () => {
   it.each([

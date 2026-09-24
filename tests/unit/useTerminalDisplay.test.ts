@@ -10,7 +10,7 @@ const mockStorageApi = {
 }
 ;(globalThis as any).window = { storageApi: mockStorageApi }
 
-import { useTerminalDisplay } from '../../src/renderer/src/features/terminal/useTerminalDisplay'
+import { useTerminalDisplay } from '@/renderer/src/features/terminal/useTerminalDisplay'
 
 describe('useTerminalDisplay', () => {
   beforeEach(() => {

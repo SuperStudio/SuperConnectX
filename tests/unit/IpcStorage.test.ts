@@ -19,19 +19,19 @@ const { mockHandlers, mockIpcMain } = vi.hoisted(() => {
 
 vi.mock('electron', () => ({ ipcMain: mockIpcMain }))
 
-vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
+vi.mock('@/main/ipc/IpcAppLogger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 }))
 
-vi.mock('../../src/main/ipc/IpcConnector', () => ({
+vi.mock('@/main/ipc/IpcConnector', () => ({
   default: { getInstance() { return { applySettings: vi.fn(), cleanup: vi.fn() } } }
 }))
 
-vi.mock('../../src/main/utils/BackupManager', () => ({
+vi.mock('@/main/utils/BackupManager', () => ({
   default: { getInstance() { return { getBackupList: vi.fn(() => []), restoreBackup: vi.fn(), getNextBackupDate: vi.fn(() => null) } } }
 }))
 
-vi.mock('../../src/main/storage/ConnectionStorage', () => ({
+vi.mock('@/main/storage/ConnectionStorage', () => ({
   default: class {
     getAll() { return [] }
     add(_c: any) { return {} }
@@ -41,7 +41,7 @@ vi.mock('../../src/main/storage/ConnectionStorage', () => ({
   }
 }))
 
-vi.mock('../../src/main/storage/PreSetCommandStorage', () => ({
+vi.mock('@/main/storage/PreSetCommandStorage', () => ({
   default: class {
     getAll() { return [] }
     add(_c: any) { return '' }
@@ -54,7 +54,7 @@ vi.mock('../../src/main/storage/PreSetCommandStorage', () => ({
   }
 }))
 
-vi.mock('../../src/main/storage/CommandGroupStorage', () => ({
+vi.mock('@/main/storage/CommandGroupStorage', () => ({
   default: class {
     getAll() { return [] }
     add(_g: any) { return {} }
@@ -63,7 +63,7 @@ vi.mock('../../src/main/storage/CommandGroupStorage', () => ({
   }
 }))
 
-vi.mock('../../src/main/storage/ComSettingsStorage', () => ({
+vi.mock('@/main/storage/ComSettingsStorage', () => ({
   default: class {
     getSettings(_n: string) { return null }
     saveSettings(..._a: any[]) {}
@@ -72,14 +72,14 @@ vi.mock('../../src/main/storage/ComSettingsStorage', () => ({
   }
 }))
 
-vi.mock('../../src/main/storage/AppSettingsStorage', () => ({
+vi.mock('@/main/storage/AppSettingsStorage', () => ({
   default: class {
     getSettings() { return {} }
     saveSettings(_s: any) {}
   }
 }))
 
-vi.mock('../../src/main/storage/SettingsStorage', () => ({
+vi.mock('@/main/storage/SettingsStorage', () => ({
   default: class {
     getSettings() { return { syntaxRuleGroups: [] } }
     getDefaults() { return {} }
@@ -87,7 +87,7 @@ vi.mock('../../src/main/storage/SettingsStorage', () => ({
   }
 }))
 
-vi.mock('../../src/main/storage/CommandHistoryStorage', () => ({
+vi.mock('@/main/storage/CommandHistoryStorage', () => ({
   default: class {
     getHistory(_p: string) { return [] }
     addCommand(..._a: any[]) {}
@@ -97,7 +97,7 @@ vi.mock('../../src/main/storage/CommandHistoryStorage', () => ({
   }
 }))
 
-vi.mock('../../src/main/storage/ShortcutsStorage', () => ({
+vi.mock('@/main/storage/ShortcutsStorage', () => ({
   default: class {
     getAll() { return [] }
     getDefaults() { return [] }
@@ -106,7 +106,7 @@ vi.mock('../../src/main/storage/ShortcutsStorage', () => ({
   SHORTCUT_ACTIONS: [{ action: 'connect', description: '连接' }, { action: 'disconnect', description: '断开' }]
 }))
 
-vi.mock('../../src/main/storage/LogFilterStorage', () => ({
+vi.mock('@/main/storage/LogFilterStorage', () => ({
   default: class {
     getSettings() { return {} }
     saveSettings(_s: any) {}
@@ -123,7 +123,7 @@ vi.mock('adm-zip', () => ({
   default: class { getEntries() { return [] } }
 }))
 
-import IpcStorage from '../../src/main/ipc/IpcStorage'
+import IpcStorage from '@/main/ipc/IpcStorage'
 
 describe('IpcStorage', () => {
   let ipcStorage: IpcStorage

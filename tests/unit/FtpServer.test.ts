@@ -16,11 +16,11 @@ vi.mock('ftp-srv', () => ({
   default: vi.fn().mockImplementation(() => mockFtpSrvInstance)
 }))
 
-vi.mock('../../src/main/utils/AppDir', () => ({
+vi.mock('@/main/utils/AppDir', () => ({
   getAppDataDir: () => '/mock/appdata'
 }))
 
-import FtpServer from '../../src/main/protocol/FtpServer'
+import FtpServer from '@/main/protocol/FtpServer'
 
 describe('FtpServer', () => {
   let ftpServer: FtpServer

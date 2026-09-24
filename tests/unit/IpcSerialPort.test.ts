@@ -92,7 +92,7 @@ describe('IpcSerialPort', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks()
-    const mod = await import('../../src/main/ipc/IpcSerialPort')
+    const mod = await import('@/main/ipc/IpcSerialPort')
     IpcSerialPort = mod.default
   })
 

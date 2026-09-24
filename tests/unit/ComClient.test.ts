@@ -62,7 +62,7 @@ vi.mock('serialport', () => {
   return { SerialPort: MockSerialPort }
 })
 
-import ComClient from '../../src/main/protocol/ComClient'
+import ComClient from '@/main/protocol/ComClient'
 
 describe('ComClient', () => {
   let client: ComClient

@@ -20,7 +20,7 @@ const {
   }
 })
 
-vi.mock('../../src/main/protocol/FtpServer', () => ({
+vi.mock('@/main/protocol/FtpServer', () => ({
   default: class {
     start = mockFtpServerStart
     stop = mockFtpServerStop
@@ -28,7 +28,7 @@ vi.mock('../../src/main/protocol/FtpServer', () => ({
   }
 }))
 
-vi.mock('../../src/main/protocol/FtpClient', () => ({
+vi.mock('@/main/protocol/FtpClient', () => ({
   default: class {
     start = mockFtpClientStart
     disconnect = mockFtpClientDisconnect
@@ -38,16 +38,16 @@ vi.mock('../../src/main/protocol/FtpClient', () => ({
   }
 }))
 
-vi.mock('../../src/main/utils/ProtocolLogger', () => ({
+vi.mock('@/main/utils/ProtocolLogger', () => ({
   default: class {
     appendToConnLog = vi.fn()
     flushConnLog = vi.fn()
   }
 }))
 
-import FtpConnector from '../../src/main/ipc/connectors/FtpConnector'
-import ConnectionStateManager from '../../src/main/ipc/connectors/ConnectionStateManager'
-import ProtocolLogger from '../../src/main/utils/ProtocolLogger'
+import FtpConnector from '@/main/ipc/connectors/FtpConnector'
+import ConnectionStateManager from '@/main/ipc/connectors/ConnectionStateManager'
+import ProtocolLogger from '@/main/utils/ProtocolLogger'
 
 function makeConn(overrides: Partial<{ connectionType: string; sessionId: string; ftpMode: string; host: string; port: number; username: string; password: string }> = {}): any {
   return {

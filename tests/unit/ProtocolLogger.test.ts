@@ -30,7 +30,7 @@ describe('ProtocolLogger', () => {
   })
 
   async function createLogger(): Promise<any> {
-    const mod = await import('../../src/main/utils/ProtocolLogger')
+    const mod = await import('@/main/utils/ProtocolLogger')
     return new mod.default()
   }
 

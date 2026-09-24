@@ -1,25 +1,25 @@
 appId: superconnectx.superstudio
 productName: superconnectx
 directories:
-  buildResources: build
+  buildResources: apps/superconnectx/build
   output: release
 files:
-  - 'out/**/*'
-  - '!out/**/*.map'
+  - 'apps/superconnectx/out/**/*'
+  - '!apps/superconnectx/out/**/*.map'
   - '!**/.vscode/*'
-  - '!src/*'
-  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!apps/superconnectx/src/*'
+  - '!apps/superconnectx/electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   - '!**/node_modules/{CHANGELOG.md,README.md,readme.md,test,__tests__,tests,powered-test,example,examples}'
   - '!**/node_modules/.bin'
 extraResources:
-  - from: build/icon.ico
+  - from: apps/superconnectx/build/icon.ico
     to: icon.ico
-  - from: build/icon.png
+  - from: apps/superconnectx/build/icon.png
     to: icon.png
-  - from: resources/exe/setup.exe
+  - from: apps/superconnectx/resources/exe/setup.exe
     to: exe/setup.exe
 asarUnpack:
   - node_modules/serialport/**
@@ -38,13 +38,13 @@ nsis:
   deleteAppDataOnUninstall: false
 mac:
   target: dmg
-  icon: build/icon.icns
+  icon: apps/superconnectx/build/icon.icns
   extraResources:
-    - from: build/iconTemplate.png
+    - from: apps/superconnectx/build/iconTemplate.png
       to: iconTemplate.png
-    - from: build/iconTemplate@2x.png
+    - from: apps/superconnectx/build/iconTemplate@2x.png
       to: iconTemplate@2x.png
-  entitlementsInherit: build/entitlements.mac.plist
+  entitlementsInherit: apps/superconnectx/build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
@@ -62,14 +62,14 @@ linux:
   category: Utility
   # AppImage 无安装钩子，串口权限通过运行时 pkexec 执行该脚本修复（见 IpcSerialPort）
   extraResources:
-    - from: build/installer/linux-fix-serial-permissions.sh
+    - from: apps/superconnectx/build/installer/linux-fix-serial-permissions.sh
       to: installer/linux-fix-serial-permissions.sh
 appImage:
   artifactName: ${name}-${version}-linux-x64.${ext}
 deb:
   artifactName: ${name}-${version}-linux-x64.${ext}
-  afterInstall: build/installer/linux-after-install.sh
-  afterRemove: build/installer/linux-after-remove.sh
+  afterInstall: apps/superconnectx/build/installer/linux-after-install.sh
+  afterRemove: apps/superconnectx/build/installer/linux-after-remove.sh
 snap:
   artifactName: ${name}-${version}-linux-x64.${ext}
   # "default" 展开为 electron-builder 内置 plugs（desktop/network/browser-support 等），

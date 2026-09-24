@@ -2,7 +2,7 @@
   "name": "superconnectx",
   "version": "1.2.9",
   "description": "SuperConnectX - 超级连接",
-  "main": "./out/main/index.js",
+  "main": "./apps/superconnectx/out/main/index.js",
   "author": "SuperStudio",
   "homepage": "https://github.com/SuperStudio/SuperConnectX",
   "scripts": {
@@ -20,13 +20,13 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:install": "playwright install",
-    "start": "electron-vite preview",
-    "dev": "electron-vite dev",
-    "build": "npm run typecheck && electron-vite build && electron-builder",
+    "start": "electron-vite preview --config apps/superconnectx/electron.vite.config.ts",
+    "dev": "electron-vite dev --config apps/superconnectx/electron.vite.config.ts",
+    "build": "npm run typecheck && electron-vite build --config apps/superconnectx/electron.vite.config.ts && electron-builder",
     "postinstall": "node scripts/rebuild-native.mjs",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run typecheck && electron-vite build && electron-builder --win",
-    "build:mac": "electron-vite build && electron-builder --mac",
+    "build:win": "npm run typecheck && electron-vite build --config apps/superconnectx/electron.vite.config.ts && electron-builder --win",
+    "build:mac": "electron-vite build --config apps/superconnectx/electron.vite.config.ts && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {

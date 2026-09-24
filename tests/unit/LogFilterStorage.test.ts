@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import LogFilterStorage from '../../src/main/storage/LogFilterStorage'
+import LogFilterStorage from '@/main/storage/LogFilterStorage'
 
 describe('LogFilterStorage', () => {
   let storage: LogFilterStorage

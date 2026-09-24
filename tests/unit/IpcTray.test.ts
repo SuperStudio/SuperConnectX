@@ -30,11 +30,11 @@ vi.mock('electron', () => ({
   BrowserWindow: class {}
 }))
 
-vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
+vi.mock('@/main/ipc/IpcAppLogger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 }))
 
-import IpcTray, { getTrayIconFileName } from '../../src/main/ipc/IpcTray'
+import IpcTray, { getTrayIconFileName } from '@/main/ipc/IpcTray'
 
 describe('IpcTray', () => {
   let ipcTray: IpcTray

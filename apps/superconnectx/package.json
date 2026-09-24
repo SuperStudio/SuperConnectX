@@ -1,0 +1,9 @@
+{
+  "name": "@superx/superconnectx",
+  "version": "1.2.9",
+  "description": "SuperConnectX - 超级连接（Electron 应用宿主）",
+  "private": true,
+  "main": "./out/main/index.js",
+  "author": "SuperStudio",
+  "homepage": "https://github.com/SuperStudio/SuperConnectX"
+}

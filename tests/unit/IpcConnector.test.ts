@@ -22,11 +22,11 @@ vi.mock('electron', () => ({
   BrowserWindow: class {}
 }))
 
-vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
+vi.mock('@/main/ipc/IpcAppLogger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 }))
 
-vi.mock('../../src/main/utils/ProtocolLogger', () => ({
+vi.mock('@/main/utils/ProtocolLogger', () => ({
   default: class {
     createConnLogFile() {}
     appendToConnLog() {}
@@ -47,20 +47,20 @@ vi.mock('../../src/main/utils/ProtocolLogger', () => ({
   }
 }))
 
-vi.mock('../../src/main/storage/SettingsStorage', () => ({
+vi.mock('@/main/storage/SettingsStorage', () => ({
   default: class {
     getSettings() { return { enableLogStorage: true, logSplitSize: 10 } }
     saveSettings() {}
   }
 }))
 
-vi.mock('../../src/main/storage/ConnectionStorage', () => ({
+vi.mock('@/main/storage/ConnectionStorage', () => ({
   default: class {
     getByIdWithPassword() { return null }
   }
 }))
 
-vi.mock('../../src/main/pool/WorkerPool', () => ({
+vi.mock('@/main/pool/WorkerPool', () => ({
   default: {
     getInstance() {
       return {
@@ -76,14 +76,14 @@ vi.mock('../../src/main/pool/WorkerPool', () => ({
   }
 }))
 
-vi.mock('../../src/main/utils/AppDir', () => ({
+vi.mock('@/main/utils/AppDir', () => ({
   getAppDataDir: vi.fn(() => '/mock/userData'),
   getChromiumDataDir: vi.fn(() => '/mock/userData'),
   getInstanceIndex: vi.fn(() => 0)
 }))
 
-import IpcConnector from '../../src/main/ipc/IpcConnector'
-import ConnectionStateManager from '../../src/main/ipc/connectors/ConnectionStateManager'
+import IpcConnector from '@/main/ipc/IpcConnector'
+import ConnectionStateManager from '@/main/ipc/connectors/ConnectionStateManager'
 
 function makeLogger(): any {
   return {

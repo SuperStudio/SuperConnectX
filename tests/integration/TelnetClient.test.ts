@@ -47,7 +47,7 @@ vi.mock('telnet-client', () => {
   return { Telnet: MockTelnet }
 })
 
-vi.mock('../../src/main/protocol/BufferLineSplitter', () => ({
+vi.mock('@/main/protocol/BufferLineSplitter', () => ({
   BufferLineSplitter: class {
     split(buffer: Buffer) {
       const str = buffer.toString('utf8')
@@ -66,7 +66,7 @@ vi.mock('../../src/main/protocol/BufferLineSplitter', () => ({
   }
 }))
 
-import TelnetClient from '../../src/main/protocol/TelnetClient'
+import TelnetClient from '@/main/protocol/TelnetClient'
 
 describe('TelnetClient Integration', () => {
   let client: TelnetClient

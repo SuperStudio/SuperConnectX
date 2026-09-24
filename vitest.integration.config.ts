@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
 
 const commonAlias = {
-  '@': resolve('src'),
+  '@': resolve('apps/superconnectx/src'),
   electron: resolve('tests/__mocks__/electron.ts'),
   'electron-store': resolve('tests/__mocks__/electron-store.ts'),
   '../ipc/IpcAppLogger': resolve('tests/__mocks__/IpcAppLogger.ts'),
@@ -23,13 +23,13 @@ export default defineConfig({
       // all: false 仅统计被测文件（import 到且命中 include），避免 v8 全局扫描稀释覆盖率
       all: false,
       include: [
-        'src/main/protocol/ComClient.ts',
-        'src/main/protocol/TelnetClient.ts',
-        'src/main/protocol/FtpClient.ts',
-        'src/main/protocol/BaseClient.ts',
-        'src/main/protocol/ConnectionInfo.ts'
+        'apps/superconnectx/src/main/protocol/ComClient.ts',
+        'apps/superconnectx/src/main/protocol/TelnetClient.ts',
+        'apps/superconnectx/src/main/protocol/FtpClient.ts',
+        'apps/superconnectx/src/main/protocol/BaseClient.ts',
+        'apps/superconnectx/src/main/protocol/ConnectionInfo.ts'
       ],
-      exclude: ['out/**', 'node_modules/**', 'tests/**', '**/*.test.ts', '**/__mocks__/**']
+      exclude: ['apps/superconnectx/out/**', 'node_modules/**', 'tests/**', '**/*.test.ts', '**/__mocks__/**']
       // 注意：集成测试聚焦协议真实交互（需真实硬件/网络），覆盖率天然偏低，
       // 故不设 thresholds，避免误伤；覆盖率仅作观察用途。
     },

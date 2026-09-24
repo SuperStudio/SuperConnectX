@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import ComClient from '../../src/main/protocol/ComClient'
-import ConnectionInfo from '../../src/main/protocol/ConnectionInfo'
+import ComClient from '@/main/protocol/ComClient'
+import ConnectionInfo from '@/main/protocol/ConnectionInfo'
 import { MockSerialPort } from '../__mocks__/serialport'
 
 function makeComInfo(overrides: Partial<ConnectionInfo> = {}): ConnectionInfo {

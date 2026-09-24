@@ -61,7 +61,7 @@ vi.mock('worker_threads', () => ({
 }))
 
 // Mock logger
-vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
+vi.mock('@/main/ipc/IpcAppLogger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -70,7 +70,7 @@ vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
   }
 }))
 
-import WorkerPool from '../../src/main/pool/WorkerPool'
+import WorkerPool from '@/main/pool/WorkerPool'
 
 async function flushPromises(): Promise<void> {
   await Promise.resolve()

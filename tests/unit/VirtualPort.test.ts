@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import VirtualPort from '../../src/main/entity/VirtualPort'
+import VirtualPort from '@/main/entity/VirtualPort'
 
 describe('VirtualPort', () => {
   describe('构造', () => {

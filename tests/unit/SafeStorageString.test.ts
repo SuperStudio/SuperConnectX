@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import crypto from 'crypto'
-import SafeStorageString, { MASKED_PASSWORD } from '../../src/main/utils/SafeStorageString'
+import SafeStorageString, { MASKED_PASSWORD } from '@/main/utils/SafeStorageString'
 
 describe('SafeStorageString (APP 模式 - 注入密钥)', () => {
   const testKey = crypto.randomBytes(32)

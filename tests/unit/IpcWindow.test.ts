@@ -25,17 +25,17 @@ vi.mock('electron', () => ({
   }
 }))
 
-vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
+vi.mock('@/main/ipc/IpcAppLogger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 }))
 
-vi.mock('../../src/main/storage/SettingsStorage', () => ({
+vi.mock('@/main/storage/SettingsStorage', () => ({
   default: class {
     getSettings() { return { minimizeToTray: false } }
   }
 }))
 
-vi.mock('../../src/main/ipc/IpcTray', () => ({
+vi.mock('@/main/ipc/IpcTray', () => ({
   default: {
     getInstance() {
       return { hideToTray: vi.fn(), createTray: vi.fn(), destroyTray: vi.fn() }
@@ -43,7 +43,7 @@ vi.mock('../../src/main/ipc/IpcTray', () => ({
   }
 }))
 
-import IpcWindow from '../../src/main/ipc/IpcWindow'
+import IpcWindow from '@/main/ipc/IpcWindow'
 
 describe('IpcWindow', () => {
   let ipcWindow: IpcWindow

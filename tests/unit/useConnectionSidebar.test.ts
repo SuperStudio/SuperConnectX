@@ -3,7 +3,7 @@
  * 测试：串口类型解析、搜索过滤、连接分组
  */
 import { describe, it, expect } from 'vitest'
-import { getSerialPortDisplayName } from '../../src/renderer/src/features/connections/useConnectionSidebar'
+import { getSerialPortDisplayName } from '@/renderer/src/features/connections/useConnectionSidebar'
 
 // Extract pure functions from useConnectionSidebar for testing
 function parseSerialPortType(port: { path: string; friendlyName?: string; manufacturer?: string; pnpId?: string }): 'virtual' | 'usb' | 'bluetooth' | 'none' {

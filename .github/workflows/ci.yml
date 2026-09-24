@@ -134,7 +134,7 @@ jobs:
         run: npm run typecheck
 
       - name: Build renderer and main
-        run: npx electron-vite build
+        run: npx electron-vite build --config apps/superconnectx/electron.vite.config.ts
 
       # CI 用 --ignore-scripts 安装，跳过了 electron 的 postinstall，导致二进制未下载。
       # 这里显式触发 electron 安装脚本下载二进制（会读取 .npmrc 的 electron_mirror 镜像）。
@@ -344,7 +344,7 @@ jobs:
         run: npm run typecheck
 
       - name: Build renderer and main
-        run: npx electron-vite build
+        run: npx electron-vite build --config apps/superconnectx/electron.vite.config.ts
 
       # 确保 Electron 35 二进制已就绪（--ignore-scripts 可能跳过了下载）
       - name: Install Electron binary

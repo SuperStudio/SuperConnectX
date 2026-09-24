@@ -39,7 +39,7 @@ const mockStorageApi = {
 }
 ;(globalThis as any).window = { storageApi: mockStorageApi }
 
-import { useConnectionDialog } from '../../src/renderer/src/features/connections/useConnectionDialog'
+import { useConnectionDialog } from '@/renderer/src/features/connections/useConnectionDialog'
 
 describe('useConnectionDialog', () => {
   let onConnectionsChanged: ReturnType<typeof vi.fn>

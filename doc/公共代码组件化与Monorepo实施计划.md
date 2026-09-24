@@ -1,9 +1,38 @@
 # 公共代码组件化与 Monorepo 实施计划
 
-> 状态：规划中（未开始实施）
+> 状态：**阶段 1 实施中** —— Step 1.1 ✅ / 1.2 ✅ / 1.3 ✅（CI 门禁已验证通过）→ 下一步 Step 1.4
 > 前置完成：《基础项目拆分实施计划》六步重构 ✅、`examples/base-desktop-app` 模板 ✅
 > 关联文档：`docs/template-guide.md`（模板使用指南）
-> 创建日期：2026-09-23
+> 创建日期：2026-09-23 ｜ 实施记录见 §11
+
+---
+
+## 11. 实施记录（阶段 1）
+
+### 2026-09-23：Step 1.1 ~ 1.3 完成，CI 验证通过
+
+**已落地提交**（master 分支）：
+- `2efe66f` 清理仓库：移除 tsbuildinfo 构建缓存追踪与过时的 npm 锁文件（决策 D2 落地：`package-lock.json` 已删）
+- `949445d` 组件模块化：抽取 shared/foundation 包为 pnpm workspace（50 文件，git 正确识别 31 处 rename）
+- 回滚锚点：tag `pre-monorepo`（改造前完整状态）
+
+**验证结果**：
+- 本地：typecheck 双侧全绿；单测 74 文件 / 1308 用例全过；dev 冒烟（Electron 4 进程 + 串口枚举正常）
+- 远程：推送 master 后 **GitHub Actions CI 全平台构建成功**（4 平台矩阵 + ubuntu24 兼容包）
+
+**与原计划的偏差记录**（实施时按实际情况调整）：
+1. 根 `package.json` 未加 `workspaces` 数组 —— 直接切 pnpm 单一真相，不再兼容 npm 双协议
+2. workspace 包解析采用 **alias 直连源码**（tsconfig paths + vite/vitest alias 三处同步），根 package.json 不声明 `workspace:*` 依赖 —— 因此现有 npm 流水线 CI 无需改动即通过；副作用是 CI 的 `hashFiles('package-lock.json')` 缓存 key 失效为常量（不失败，仅缓存退化）
+3. `postinstall` 由 `electron-builder install-app-deps` 改为 `node scripts/rebuild-native.mjs`（@electron/rebuild 只构建 serialport，绕开永久损坏的 cpu-features）；CI 用 `--ignore-scripts` 不受影响
+4. pnpm 构建脚本白名单（`onlyBuiltDependencies`）配置在 `pnpm-workspace.yaml`（pnpm 12 要求）；`.npmrc` 开启 `node-linker=hoisted` 规避 electron-builder symlink 兼容风险（R7 落地）
+5. `.npmrc` 移除了 npmmirror 镜像行、新增 `electron_skip_binary_download`（本地复用已有二进制；CI 直接 `node install.js` 调用读不到该配置，二进制正常下载，互不干扰）
+6. 包内测试未建独立 `vitest.config.ts`，改为根 `vitest.config.ts` 的 include 追加 `packages/*/tests/**/*.test.ts`（R8 简化方案）
+7. `assets/themes.css` → 包内 `styles/themes.css` 的迁移**未执行**，顺延至 Step 1.6 评估（避免 Step 1.3 与样式回归耦合）
+8. 已知坑（复现 3 次的统一处理方式）：新增 workspace 包后 `pnpm install` 失败时，删除 `node_modules/.modules.yaml` 状态缓存后重装即可
+
+**遗留事项（Step 1.6 前需处理）**：
+- CI 从 npm 迁移 pnpm（`pnpm/action-setup` + `--frozen-lockfile` + 缓存 key 改 `pnpm-lock.yaml`），**必须在下次发版 tag 之前完成**——当前 CI 无锁文件现场解析依赖版本，构建不可复现
+- `examples/base-desktop-app/package-lock.json` 待 Step 1.5 改造时删除
 
 ---
 
@@ -147,45 +176,30 @@ SuperConnectX/                          # monorepo 根
 > 预计工作量：1.5 ~ 2 天（含全量回归）
 > 原则：**先建包、再迁移、后清理**；每步可独立验证、可回滚
 
-### Step 1.1 工作区初始化（0.5h）
+### Step 1.1 工作区初始化（0.5h）✅ 已完成（2026-09-23）
 
-- [ ] 根目录新增 `pnpm-workspace.yaml`：
+- [x] 根目录新增 `pnpm-workspace.yaml`：`packages/*` + `apps/*` + pnpm 12 构建脚本白名单（`onlyBuiltDependencies`：electron/esbuild/ssh2/@electron/rebuild/@serialport/bindings-cpp；显式排除 cpu-features）
+- [x] 根 `packageManager` 字段（pnpm@12.5.1）；**未加** `workspaces` 数组（见 §11 偏差 1）
+- [x] `postinstall` 改为 `node scripts/rebuild-native.mjs`（@electron/rebuild 只构建 serialport）；新增 devDep `@electron/rebuild`
+- [x] `.npmrc`：`node-linker=hoisted`；生成 `pnpm-lock.yaml`
+- ✅ 验证通过：`pnpm install` 成功；dev 冒烟启动正常
 
-```yaml
-packages:
-  - packages/*
-  - apps/*
-```
+### Step 1.2 抽取 @superx/shared（1h）✅ 已完成（2026-09-23）
 
-- [ ] 根 `package.json` 追加（不破坏现有 scripts）：`"workspaces"` 数组（兼容 npm）+ 根 `packageManager` 字段
-- [ ] 现有 `node_modules` + `package-lock.json` 保留；新增 `pnpm-lock.yaml`（首次 `pnpm install` 生成）
-- **验证**：`pnpm install` 成功；`npm run dev`（根）仍可启动主应用（尚未迁移任何代码）
+- [x] 新建 `packages/shared/package.json`（name: `@superx/shared`，无 deps）
+- [x] 迁移 `src/shared/workbench/types.ts` → `packages/shared/src/workbench/types.ts`
+- [x] `src/shared/` 其余内容（ipc/settings/extensions）**暂留原位**——与业务耦合，Step 1.6 逐文件评估
+- [x] 主应用引用改写 6 处（WorkbenchTabBar.vue、useWorkbenchTabDrag.ts、useSplitWorkspace.ts、SplitWorkspace.vue、TabBar.vue、useWorkbenchTabDrag.test.ts）
+- ✅ 验证通过：typecheck 全绿；1308 单测全过
 
-### Step 1.2 抽取 @superx/shared（1h）
+### Step 1.3 抽取 @superx/foundation（4h，核心步骤）✅ 已完成（2026-09-23）
 
-- [ ] 新建 `packages/shared/package.json`（name: `@superx/shared`，无 deps）
-- [ ] 迁移 `src/shared/workbench/types.ts` → `packages/shared/src/workbench/types.ts`
-- [ ] `src/shared/` 其余内容（ipc/settings/extensions）**暂留原位**——它们与 SuperConnectX 业务耦合，逐文件评估后在 Step 1.6 决定去向
-- [ ] 主应用引用改写：`src/shared/workbench` → `@superx/shared/workbench`（涉及 renderer 与 preload 中约 N 处，用脚本批量替换 + 人工核对）
-- **验证**：`npm run typecheck` 全绿；`pnpm -r --filter @superx/superconnectx test` 单测 1308 用例全过
-
-### Step 1.3 抽取 @superx/foundation（4h，核心步骤）
-
-- [ ] 新建 `packages/foundation/`，按 §3.2 写 `package.json`
-- [ ] 逐模块迁移（每模块迁完跑一次 typecheck）：
-  - `theme/useTheme.ts`
-  - `settings/`（4 文件）
-  - `shell/`（8 文件）
-  - `workbench/`（5 文件）
-  - `assets/themes.css` → `src/styles/themes.css`（**变量文件随包走，主应用的 main.css 改为 `@import '@superx/foundation/styles/themes.css'`**）
-- [ ] 每个模块补 `index.ts` 桶导出，`foundation/src/index.ts` 汇总
-- [ ] 迁移对应单测：`tests/unit/useTheme.test.ts`、`useSplitWorkspace.test.ts`、`useWorkbenchTabs*.test.ts`、`useSerializedSettingsSave.test.ts`、`useNotificationCenter.test.ts`（若有）→ `packages/foundation/tests/`
-- [ ] 包内新增 `vitest.config.ts`（environment: node，继承根配置风格）
-- [ ] 主应用 `src/renderer/src/foundation/` 目录删除，全部 import 改为 `@superx/foundation/xxx`（App.vue、features/、components/ 中约 30+ 处，脚本批量 + 核对）
-- **验证**：
-  - `pnpm --filter @superx/foundation test` 包级单测全绿
-  - `pnpm --filter @superx/superconnectx typecheck` 双侧全绿
-  - `npm run dev` 启动主应用：主题切换 / 标签栏 / 侧栏拖拽 / 设置面板 手动回归
+- [x] 新建 `packages/foundation/`，按 §3.2 写 `package.json`（vue 为 peerDependencies，依赖 @superx/shared）
+- [x] 四模块整体 `git mv`（theme/settings/shell/workbench 共 16 文件 + README），内容零改动
+- [x] ~~`assets/themes.css` 迁移~~ → **顺延至 Step 1.6 评估**（见 §11 偏差 7）
+- [x] 迁移 8 个单测 → `packages/foundation/tests/`；未建包级 vitest.config，改为根配置 include 追加（见 §11 偏差 6）
+- [x] 主应用 `src/renderer/src/foundation/` 目录删除，11 个文件 import 重写为 `@superx/foundation/xxx`
+- ✅ 验证通过：typecheck 双侧全绿；1308 单测全过；dev 冒烟（主题/标签栏/串口）正常
 
 ### Step 1.4 主应用归位为 workspace app（2h）
 
@@ -209,9 +223,11 @@ packages:
 - [ ] `src/shared/` 剩余文件去向判定：
   - `ipc/`（SuperConnectX 通道）→ 留在 app：`apps/superconnectx/src/shared/ipc/`
   - `settings/`、`extensions/` → 按耦合度决定留 app 或补迁 shared 包（**允许全部留 app，不强行抽**）
+- [ ] **CI 迁移 pnpm**（§11 遗留事项，优先级最高）：两 workflow 加 `pnpm/action-setup`、`npm install` → `pnpm install --frozen-lockfile`、缓存 key 改 `hashFiles('pnpm-lock.yaml')`、`install-app-deps` → `rebuild-native.mjs`；**必须在下次发版 tag 前完成**
+- [ ] `assets/themes.css` 是否迁移 `@superx/foundation/styles/themes.css`（§11 偏差 7 顺延项，评估与 Step 1.3 样式回归的耦合）
 - [ ] 更新 `docs/template-guide.md`：复用方式从"拷贝目录"改为"workspace 引用"，保留拷贝说明作为离线场景备注
 - [ ] 更新本文件状态标记 + 《基础项目拆分实施计划.md》交叉引用
-- [ ] `.gitignore` 追加 pnpm 相关（`pnpm-debug.log`）；是否移除 `package-lock.json` 待决策（见 §7-D2）
+- [x] `.gitignore` 已加 `*.tsbuildinfo`；`package-lock.json` 已删（D2 已决策落地，commit `2efe66f`）
 - **验证**：全仓 `pnpm -r typecheck && pnpm -r test`；两个 app 各自 `dev` 启动冒烟
 
 ### 1.7 阶段 1 完成标准（DoD）
@@ -260,10 +276,10 @@ packages:
 
 | # | 问题 | 选项 | 倾向 |
 |---|---|---|---|
-| D1 | 包管理器 | pnpm / npm workspaces / yarn(berry) | **pnpm**（symlink 严格、磁盘省、生态主流） |
-| D2 | 是否保留 `package-lock.json` 双锁文件 | 迁移后删 / 并存 | 迁移完成验证后**删**，避免双真相 |
-| D3 | 根目录 `tests/`（86 文件）是否随包上提 | 全留根 / 按归属拆到包内 | foundation/shared 相关**上提**，业务测试随 app |
-| D4 | 主应用目录是否物理移动到 `apps/` | 移动 / 原位保留只改 package 归属 | **移动**（一次性成本换取结构清晰），`git mv` 保历史 |
+| D1 | 包管理器 | pnpm / npm workspaces / yarn(berry) | **已决策：pnpm**（12.5.1 已落地，`packageManager` 字段锁定） |
+| D2 | 是否保留 `package-lock.json` 双锁文件 | 迁移后删 / 并存 | **已决策：删**（commit `2efe66f`，CI 已在无锁状态下验证通过；发版前需完成 CI pnpm 迁移） |
+| D3 | 根目录 `tests/`（86 文件）是否随包上提 | 全留根 / 按归属拆到包内 | foundation/shared 相关**上提**（8 个单测已迁 `packages/foundation/tests/`），业务测试随 app |
+| D4 | 主应用目录是否物理移动到 `apps/` | 移动 / 原位保留只改 package 归属 | **移动**（一次性成本换取结构清晰），`git mv` 保历史；回滚锚点 tag `pre-monorepo` |
 | D5 | template-app 放 `packages/` 还是 `apps/` | 二者皆可 | `packages/`（它不发布但被作为孵化模板引用） |
 
 ### 7.3 回滚策略

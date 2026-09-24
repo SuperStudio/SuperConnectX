@@ -1,11 +1,11 @@
 {
   "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
   "include": [
-    "src/renderer/src/env.d.ts",
-    "src/renderer/src/**/*",
-    "src/renderer/src/**/*.vue",
-    "src/preload/*.d.ts",
-    "src/shared/**/*",
+    "apps/superconnectx/src/renderer/src/env.d.ts",
+    "apps/superconnectx/src/renderer/src/**/*",
+    "apps/superconnectx/src/renderer/src/**/*.vue",
+    "apps/superconnectx/src/preload/*.d.ts",
+    "apps/superconnectx/src/shared/**/*",
     "packages/shared/src/**/*",
     "packages/foundation/src/**/*"
   ],
@@ -14,7 +14,7 @@
     "baseUrl": ".",
     "paths": {
       "@renderer/*": [
-        "src/renderer/src/*"
+        "apps/superconnectx/src/renderer/src/*"
       ],
       "@superx/shared/*": [
         "packages/shared/src/*"

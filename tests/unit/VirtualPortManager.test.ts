@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { exec, execSync } from 'child_process'
-import VirtualPort from '../../src/main/entity/VirtualPort'
-import VirtualPortManager from '../../src/main/entity/VirtualPortManager'
+import VirtualPort from '@/main/entity/VirtualPort'
+import VirtualPortManager from '@/main/entity/VirtualPortManager'
 
 // 保存 callback 队列，支持多次 exec 调用
 const execCallbacks: Array<(error: Error | null, stdout: string, stderr: string) => void> = []

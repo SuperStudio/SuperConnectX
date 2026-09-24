@@ -34,7 +34,7 @@ vi.mock('worker_threads', () => ({
 }))
 
 // Mock BaseClient, ComClient, TelnetClient
-vi.mock('../../src/main/protocol/BaseClient', () => ({
+vi.mock('@/main/protocol/BaseClient', () => ({
   default: class {
     protected logger = console
     async start(_info: any, _onData: any, _onClose: any, _onLog?: any) {
@@ -51,7 +51,7 @@ vi.mock('../../src/main/protocol/BaseClient', () => ({
   ILogger: {}
 }))
 
-vi.mock('../../src/main/protocol/ComClient', () => ({
+vi.mock('@/main/protocol/ComClient', () => ({
   default: class {
     protected logger = console
     async start(_info: any, _onData: any, _onClose: any, _onLog?: any) {
@@ -67,7 +67,7 @@ vi.mock('../../src/main/protocol/ComClient', () => ({
   }
 }))
 
-vi.mock('../../src/main/protocol/TelnetClient', () => ({
+vi.mock('@/main/protocol/TelnetClient', () => ({
   default: class {
     protected logger = console
     async start(_info: any, _onData: any, _onClose: any, _onLog?: any) {
@@ -91,7 +91,7 @@ describe('ConnectionWorker', () => {
   // Import the worker module
   it('should load ConnectionWorker module without errors', async () => {
     await expect(
-      import('../../src/main/workers/ConnectionWorker')
+      import('@/main/workers/ConnectionWorker')
     ).resolves.toBeDefined()
   })
 

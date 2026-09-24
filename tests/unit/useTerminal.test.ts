@@ -29,7 +29,7 @@ vi.mock('element-plus', () => ({
   }
 }))
 
-vi.mock('../../src/renderer/src/utils/FontDetector', () => ({
+vi.mock('@/renderer/src/utils/FontDetector', () => ({
   getDefaultTerminalFont: () => 'Consolas'
 }))
 
@@ -66,7 +66,7 @@ const mockRotateLogFile = vi.fn().mockResolvedValue({
   }
 }
 
-import { useTerminal, type TerminalConnection, type UseTerminalOptions } from '../../src/renderer/src/features/terminal/useTerminal'
+import { useTerminal, type TerminalConnection, type UseTerminalOptions } from '@/renderer/src/features/terminal/useTerminal'
 
 function createOptions(overrides: Partial<UseTerminalOptions> = {}): UseTerminalOptions {
   const conn: TerminalConnection = {

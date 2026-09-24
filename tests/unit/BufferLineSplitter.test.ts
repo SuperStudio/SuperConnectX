@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as iconv from 'iconv-lite'
-import { BufferLineSplitter } from '../../src/main/protocol/BufferLineSplitter'
+import { BufferLineSplitter } from '@/main/protocol/BufferLineSplitter'
 
 describe('BufferLineSplitter', () => {
   describe('split - CRLF (\\r\\n)', () => {

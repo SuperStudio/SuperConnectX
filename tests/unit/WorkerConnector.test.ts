@@ -16,7 +16,7 @@ const { mockSetCallbacks, mockStartConnection, mockSendData, mockStopConnection,
   }
 })
 
-vi.mock('../../src/main/pool/WorkerPool', () => ({
+vi.mock('@/main/pool/WorkerPool', () => ({
   default: {
     getInstance() {
       return {
@@ -32,7 +32,7 @@ vi.mock('../../src/main/pool/WorkerPool', () => ({
   }
 }))
 
-import WorkerConnector from '../../src/main/ipc/connectors/WorkerConnector'
+import WorkerConnector from '@/main/ipc/connectors/WorkerConnector'
 
 function makeConn(overrides: Partial<{ connectionType: string; host: string; port: number; sessionId: string; comName: string; baudRate: number; encoding: string; ftpMode: string }> = {}): any {
   return {

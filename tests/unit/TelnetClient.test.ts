@@ -48,7 +48,7 @@ vi.mock('telnet-client', () => {
 })
 
 // Mock BufferLineSplitter
-vi.mock('../../src/main/protocol/BufferLineSplitter', () => ({
+vi.mock('@/main/protocol/BufferLineSplitter', () => ({
   BufferLineSplitter: class {
     private encoding: string
     private receiveHex: boolean
@@ -94,7 +94,7 @@ vi.mock('../../src/main/protocol/BufferLineSplitter', () => ({
   }
 }))
 
-import TelnetClient from '../../src/main/protocol/TelnetClient'
+import TelnetClient from '@/main/protocol/TelnetClient'
 
 describe('TelnetClient', () => {
   let client: TelnetClient

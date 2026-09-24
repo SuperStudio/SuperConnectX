@@ -4,7 +4,7 @@ import {
   loadCrcPlugins,
   requestCrcHex,
   requestCrcBinary
-} from '../../src/renderer/src/features/diagnostics/dataCheck'
+} from '@/renderer/src/features/diagnostics/dataCheck'
 
 describe('diagnostics/dataCheck 客户端封装', () => {
   const originalWindow = globalThis.window

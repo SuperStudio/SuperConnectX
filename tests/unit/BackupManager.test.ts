@@ -4,7 +4,7 @@ import os from 'os'
 import fs from 'fs'
 
 // Mock the logger
-vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
+vi.mock('@/main/ipc/IpcAppLogger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -63,7 +63,7 @@ describe('BackupManager', () => {
     setupTestDir()
     // Re-import to get fresh singleton each test
     vi.resetModules()
-    BackupManagerModule = await import('../../src/main/utils/BackupManager')
+    BackupManagerModule = await import('@/main/utils/BackupManager')
   })
 
   afterEach(() => {

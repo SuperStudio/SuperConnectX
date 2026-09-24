@@ -29,7 +29,7 @@ describe('AppDir - pure logic', () => {
     beforeEach(async () => {
       vi.resetModules()
       // Clear cache before each test to reset _instanceIndex
-      mod = await import('../../src/main/utils/AppDir')
+      mod = await import('@/main/utils/AppDir')
     })
 
     it('should default to 0 when no args or env', () => {
@@ -108,7 +108,7 @@ describe('AppDir - pure logic', () => {
 
     it('should return userData when instance index is 0', async () => {
       vi.spyOn(process, 'argv', 'get').mockReturnValue(['node', 'app.js'])
-      const { getChromiumDataDir } = await import('../../src/main/utils/AppDir')
+      const { getChromiumDataDir } = await import('@/main/utils/AppDir')
       const result = getChromiumDataDir()
       // userData in test = process.env.APPDATA or fallback
       expect(result).not.toContain('_instance_')
@@ -120,7 +120,7 @@ describe('AppDir - pure logic', () => {
         'app.js',
         '--instance-index=2'
       ])
-      const { getChromiumDataDir } = await import('../../src/main/utils/AppDir')
+      const { getChromiumDataDir } = await import('@/main/utils/AppDir')
       const result = getChromiumDataDir()
       expect(result).toContain('_instance_2')
     })

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mapUpdateErrorToFriendlyMessage } from '../../src/core/updater/UpdateSupport'
+import { mapUpdateErrorToFriendlyMessage } from '@/core/updater/UpdateSupport'
 
 describe('AppUpdater - mapErrorToFriendly', () => {
   describe('network errors', () => {

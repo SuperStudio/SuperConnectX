@@ -12,7 +12,7 @@ vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
 vi.mock('element-plus', () => ({ ElMessage: { error: errorMessage } }))
 vi.stubGlobal('window', { storageApi })
 
-import { useSerialRemarks } from '../../src/renderer/src/features/connections/useSerialRemarks'
+import { useSerialRemarks } from '@/renderer/src/features/connections/useSerialRemarks'
 
 describe('useSerialRemarks', () => {
   beforeEach(() => {

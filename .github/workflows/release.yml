@@ -145,7 +145,7 @@ jobs:
         run: npm run typecheck
 
       - name: Build renderer and main
-        run: npx electron-vite build
+        run: npx electron-vite build --config apps/superconnectx/electron.vite.config.ts
 
       - name: Build package (Windows)
         if: runner.os == 'Windows'
@@ -247,7 +247,7 @@ jobs:
         run: npm run typecheck
 
       - name: Build renderer and main
-        run: npx electron-vite build
+        run: npx electron-vite build --config apps/superconnectx/electron.vite.config.ts
 
       - name: Build package (Linux Ubuntu 24)
         run: npx electron-builder --linux AppImage deb --config electron-builder.yml --publish never

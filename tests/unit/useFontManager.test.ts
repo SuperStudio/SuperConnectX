@@ -12,11 +12,11 @@ vi.mock('vue', async () => {
   }
 })
 
-vi.mock('../../src/renderer/src/utils/FontDetector', () => ({
+vi.mock('@/renderer/src/utils/FontDetector', () => ({
   getDefaultTerminalFont: () => 'Consolas'
 }))
 
-import { useFontManager } from '../../src/renderer/src/features/terminal/useFontManager'
+import { useFontManager } from '@/renderer/src/features/terminal/useFontManager'
 
 describe('useFontManager', () => {
   let activeTabId: any

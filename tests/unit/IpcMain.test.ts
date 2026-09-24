@@ -74,29 +74,29 @@ vi.mock('@electron-toolkit/utils', () => ({
   is: { dev: true }
 }))
 
-vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
+vi.mock('@/main/ipc/IpcAppLogger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 }))
 
-vi.mock('../../src/main/ipc/IpcTray', () => ({
+vi.mock('@/main/ipc/IpcTray', () => ({
   default: { getInstance() { return { createTray: vi.fn(), destroyTray: vi.fn(), hideToTray: vi.fn() } } }
 }))
 
-vi.mock('../../src/main/ipc/IpcConnector', () => ({
+vi.mock('@/main/ipc/IpcConnector', () => ({
   default: { getInstance() { return { init: vi.fn(), cleanup: mockConnectorCleanup, applySettings: vi.fn() } } }
 }))
 
-vi.mock('../../src/main/storage/SettingsStorage', () => ({
+vi.mock('@/main/storage/SettingsStorage', () => ({
   default: class {
     getSettings() { return { minimizeToTray: false, autoBackup: false, backupInterval: 0, preventSleep: false } }
   }
 }))
 
-vi.mock('../../src/main/utils/BackupManager', () => ({
+vi.mock('@/main/utils/BackupManager', () => ({
   default: { getInstance() { return { performBackup: vi.fn(), getBackupList: vi.fn(() => []) } } }
 }))
 
-vi.mock('../../src/main/updater/AppUpdater', () => ({
+vi.mock('@/main/updater/AppUpdater', () => ({
   default: {
     getInstance() {
       return { checkForUpdates: vi.fn(), startDownload: vi.fn(), quitAndInstall: vi.fn(), cancelDownload: vi.fn(), cachedUpdateInfo: null }
@@ -104,7 +104,7 @@ vi.mock('../../src/main/updater/AppUpdater', () => ({
   }
 }))
 
-vi.mock('../../src/main/utils/PrintAppInfo', () => ({ printAppInfo: vi.fn() }))
+vi.mock('@/main/utils/PrintAppInfo', () => ({ printAppInfo: vi.fn() }))
 
 vi.mock('fs', () => ({
   default: {
@@ -118,7 +118,7 @@ vi.mock('fs', () => ({
   }
 }))
 
-import IpcMain, { getWindowCloseAction, getWindowFrameOptions } from '../../src/main/ipc/IpcMain'
+import IpcMain, { getWindowCloseAction, getWindowFrameOptions } from '@/main/ipc/IpcMain'
 
 describe('IpcMain', () => {
   let ipcMainInst: IpcMain

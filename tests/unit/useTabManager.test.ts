@@ -34,7 +34,7 @@ vi.mock('element-plus', () => ({
   }
 }))
 
-vi.mock('../../src/renderer/src/features/connections/protocol', () => ({
+vi.mock('@/renderer/src/features/connections/protocol', () => ({
   fromRawConnection: (conn: any) => ({ ...conn })
 }))
 
@@ -53,7 +53,7 @@ const mockStorageApi = {
   storageApi: mockStorageApi
 }
 
-import { useTabManager, type TabItem } from '../../src/renderer/src/features/tabs/useTabManager'
+import { useTabManager, type TabItem } from '@/renderer/src/features/tabs/useTabManager'
 
 function makeTab(overrides: Partial<TabItem> = {}): TabItem {
   return {

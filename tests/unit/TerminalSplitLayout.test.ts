@@ -3,7 +3,7 @@ import {
   MIN_TERMINAL_OUTPUT_HEIGHT,
   TERMINAL_SPLITTER_HEIGHT,
   calculateTerminalSplitRatio
-} from '../../src/renderer/src/utils/TerminalSplitLayout'
+} from '@/renderer/src/utils/TerminalSplitLayout'
 
 describe('calculateTerminalSplitRatio', () => {
   it('uses the pointer position as a ratio of the current container', () => {

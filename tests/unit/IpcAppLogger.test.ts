@@ -45,7 +45,7 @@ vi.mock('winston-daily-rotate-file', () => ({
   default: vi.fn().mockImplementation((opts) => ({ ...opts, name: 'DailyRotateFile' }))
 }))
 
-vi.mock('../../src/main/utils/AppDir', () => ({
+vi.mock('@/main/utils/AppDir', () => ({
   getAppDataDir: () => '/mock/appdata'
 }))
 
@@ -79,7 +79,7 @@ describe('IpcAppLogger', () => {
   describe('log export', () => {
     it('should export log object with debug, info, warn, error methods', async () => {
       // Need to re-import because module-level code runs once
-      const { log } = await vi.importActual('../../src/main/ipc/IpcAppLogger') as any
+      const { log } = await vi.importActual('@/main/ipc/IpcAppLogger') as any
 
       expect(log).toBeDefined()
       expect(typeof log.debug).toBe('function')
@@ -89,43 +89,43 @@ describe('IpcAppLogger', () => {
     })
 
     it('should export logDir', async () => {
-      const { log } = await vi.importActual('../../src/main/ipc/IpcAppLogger') as any
+      const { log } = await vi.importActual('@/main/ipc/IpcAppLogger') as any
       expect(log.logDir).toBeDefined()
     })
 
     it('should export default logger', async () => {
-      const module = await vi.importActual('../../src/main/ipc/IpcAppLogger') as any
+      const module = await vi.importActual('@/main/ipc/IpcAppLogger') as any
       expect(module.default).toBeDefined()
     })
   })
 
   describe('log methods', () => {
     it('log.debug should call logger.debug', async () => {
-      const { log } = await vi.importActual('../../src/main/ipc/IpcAppLogger') as any
+      const { log } = await vi.importActual('@/main/ipc/IpcAppLogger') as any
       log.debug('test debug')
       expect(mockLogger.debug).toHaveBeenCalledWith('test debug', undefined)
     })
 
     it('log.info should call logger.info', async () => {
-      const { log } = await vi.importActual('../../src/main/ipc/IpcAppLogger') as any
+      const { log } = await vi.importActual('@/main/ipc/IpcAppLogger') as any
       log.info('test info')
       expect(mockLogger.info).toHaveBeenCalledWith('test info', undefined)
     })
 
     it('log.warn should call logger.warn', async () => {
-      const { log } = await vi.importActual('../../src/main/ipc/IpcAppLogger') as any
+      const { log } = await vi.importActual('@/main/ipc/IpcAppLogger') as any
       log.warn('test warn')
       expect(mockLogger.warn).toHaveBeenCalledWith('test warn', undefined)
     })
 
     it('log.error should call logger.error', async () => {
-      const { log } = await vi.importActual('../../src/main/ipc/IpcAppLogger') as any
+      const { log } = await vi.importActual('@/main/ipc/IpcAppLogger') as any
       log.error('test error')
       expect(mockLogger.error).toHaveBeenCalledWith('test error', undefined)
     })
 
     it('log methods should pass meta object', async () => {
-      const { log } = await vi.importActual('../../src/main/ipc/IpcAppLogger') as any
+      const { log } = await vi.importActual('@/main/ipc/IpcAppLogger') as any
       log.info('with meta', { key: 'value' })
       expect(mockLogger.info).toHaveBeenCalledWith('with meta', { key: 'value' })
     })

@@ -1,6 +1,12 @@
 {
   "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
-  "include": ["electron.vite.config.*", "src/main/**/*", "src/preload/**/*", "src/core/**/*", "src/shared/**/*"],
+  "include": [
+    "apps/superconnectx/electron.vite.config.*",
+    "apps/superconnectx/src/main/**/*",
+    "apps/superconnectx/src/preload/**/*",
+    "apps/superconnectx/src/core/**/*",
+    "apps/superconnectx/src/shared/**/*"
+  ],
   "compilerOptions": {
     "composite": true,
     "types": ["electron-vite/node"]

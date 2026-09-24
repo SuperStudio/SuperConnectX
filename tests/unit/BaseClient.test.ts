@@ -12,7 +12,7 @@ describe('BaseClient', () => {
 
   beforeEach(async () => {
     // 动态导入，使用 mock alias
-    const mod = await import('../../src/main/protocol/BaseClient')
+    const mod = await import('@/main/protocol/BaseClient')
     BaseClient = mod.default
   })
 

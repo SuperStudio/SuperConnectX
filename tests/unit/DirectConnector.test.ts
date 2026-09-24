@@ -14,7 +14,7 @@ const { mockComStart, mockComSend, mockComDisconnect, mockComUpdateConfig } = vi
 })
 
 // Mock protocol clients (ComClient/TelnetClient)
-vi.mock('../../src/main/protocol/ComClient', () => ({
+vi.mock('@/main/protocol/ComClient', () => ({
   default: class {
     start = mockComStart
     send = mockComSend
@@ -23,7 +23,7 @@ vi.mock('../../src/main/protocol/ComClient', () => ({
   }
 }))
 
-vi.mock('../../src/main/protocol/TelnetClient', () => ({
+vi.mock('@/main/protocol/TelnetClient', () => ({
   default: class {
     start = mockComStart
     send = mockComSend
@@ -32,16 +32,16 @@ vi.mock('../../src/main/protocol/TelnetClient', () => ({
   }
 }))
 
-vi.mock('../../src/main/utils/ProtocolLogger', () => ({
+vi.mock('@/main/utils/ProtocolLogger', () => ({
   default: class {
     appendToConnLog = vi.fn()
     flushConnLog = vi.fn()
   }
 }))
 
-import DirectConnector from '../../src/main/ipc/connectors/DirectConnector'
-import ConnectionStateManager from '../../src/main/ipc/connectors/ConnectionStateManager'
-import ProtocolLogger from '../../src/main/utils/ProtocolLogger'
+import DirectConnector from '@/main/ipc/connectors/DirectConnector'
+import ConnectionStateManager from '@/main/ipc/connectors/ConnectionStateManager'
+import ProtocolLogger from '@/main/utils/ProtocolLogger'
 
 function makeConn(overrides: Partial<{ connectionType: string; sessionId: string; host: string; port: number; comName: string; receiveHex: boolean }> = {}): any {
   return {

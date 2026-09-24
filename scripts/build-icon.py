@@ -12,9 +12,10 @@ import struct
 from pathlib import Path
 from PIL import Image
 
-ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "resources" / "icon.png"
-BUILD_DIR = ROOT / "build"
+ROOT = Path(__file__).resolve().parent.parent  # 仓库根
+APP = ROOT / "apps" / "superconnectx"  # 应用宿主目录（build/ 与 resources/ 已归位至此）
+SRC = APP / "resources" / "icon.png"
+BUILD_DIR = APP / "build"
 
 # macOS ICNS type codes and sizes (width in px)
 # ic10 (1024x1024) is required for Apple Silicon / Retina app icons.

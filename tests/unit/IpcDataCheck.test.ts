@@ -17,11 +17,11 @@ vi.mock('electron', () => ({
   }
 }))
 
-vi.mock('../../src/main/ipc/IpcAppLogger', () => ({
+vi.mock('@/main/ipc/IpcAppLogger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 }))
 
-import IpcDataCheck from '../../src/main/ipc/IpcDataCheck'
+import IpcDataCheck from '@/main/ipc/IpcDataCheck'
 
 describe('IpcDataCheck', () => {
   beforeEach(() => {

@@ -3,7 +3,7 @@
  * 测试连接状态管理的 4 个 Map、清理逻辑、HEX 转换等
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import ConnectionStateManager from '../../src/main/ipc/connectors/ConnectionStateManager'
+import ConnectionStateManager from '@/main/ipc/connectors/ConnectionStateManager'
 
 const { mockSend, mockIsDestroyed } = vi.hoisted(() => {
   return {
@@ -16,7 +16,7 @@ vi.mock('electron', () => ({
   BrowserWindow: class {}
 }))
 
-vi.mock('../../src/main/utils/ProtocolLogger', () => ({
+vi.mock('@/main/utils/ProtocolLogger', () => ({
   default: class {
     appendToConnLog() {}
     flushConnLog() {}
@@ -24,7 +24,7 @@ vi.mock('../../src/main/utils/ProtocolLogger', () => ({
   }
 }))
 
-import ProtocolLogger from '../../src/main/utils/ProtocolLogger'
+import ProtocolLogger from '@/main/utils/ProtocolLogger'
 
 function createStateManager(
   opts: { mainWindow?: { webContents: { send: Function; isDestroyed: Function } } | null } = {}
