@@ -1,6 +1,6 @@
 # 公共代码组件化与 Monorepo 实施计划
 
-> 状态：**阶段 1 实施中（接近完成）** —— Step 1.1~1.5 ✅（已提交/暂存）｜ Step 1.6 ✅（实施完成，待全量验证 + CI 门禁确认）→ 收尾：全仓回归 + 提交推送
+> 状态：**阶段 1 已完成** ✅ —— Step 1.1~1.6 全部落地，GitHub Actions 全平台流水线（4 job 矩阵 + ubuntu24 兼容包）在 pnpm 工作区下全绿（2026-09-25）
 > 前置完成：《基础项目拆分实施计划》六步重构 ✅、`examples/base-desktop-app` 模板 ✅
 > 关联文档：`docs/template-guide.md`（模板使用指南）
 > 创建日期：2026-09-23 ｜ 实施记录见 §11
@@ -8,6 +8,16 @@
 ---
 
 ## 11. 实施记录（阶段 1）
+
+### 2026-09-25：阶段 1 收官 —— CI 全绿（三次迭代修复）
+
+CI 迁移 pnpm 后首次实跑暴露三个 npm→pnpm 语义差异，逐一修复后全平台流水线全绿：
+
+1. **cpu-features 原生构建失败（rebuild 步骤）**：`ignoredBuiltDependencies` 只拦 pnpm 安装期脚本，包本身仍进 `node_modules/.pnpm/`，`electron-builder install-app-deps` 扫描照样构建并 gyp 失败；且 CI 旧删除步骤写的是 npm 布局路径（`node_modules\cpu-features`），pnpm 布局下是无效操作。**根治**：`pnpm-workspace.yaml` 新增 `ignoredOptionalDependencies: [cpu-features, dtrace-provider]` 让这两个 optional 加速依赖根本不安装（ssh2 自带 crypto binding 正常构建，功能无损），并删除 4 处失效的 CI 删除步骤。
+2. **typecheck 幽灵依赖失败**：`AppUpdater.ts` 直接 import `builder-util-runtime`（electron-updater 的传递依赖），npm 扁平 hoisting 时代蹭到、pnpm 严格布局不可见。**根治**：根 package.json 显式声明 `"builder-util-runtime": "^9.7.0"`（主进程运行时真实使用）。随后全量扫描 apps/ + packages/ 裸导入确认无其他幽灵依赖。
+3. **Ubuntu24 job `pnpm add` 失败**：workspace 根目录执行 `pnpm add` 必须带 `-w` 标志（pnpm 防误写根 package.json 的安全策略）。ci.yml + release.yml 两处命令统一加 `-w`。
+
+**结论**：阶段 1 目标全部达成 —— pnpm workspace 单一真相（lockfile 锁定、`--frozen-lockfile` 可复现构建）、公共代码进 `packages/`、主应用归位 `apps/`、模板应用以 workspace 消费者形态验证单源复用、CI 缓存体系升级（`setup-node cache: 'pnpm'`）。
 
 ### 2026-09-24：Step 1.6 完成，清理与收尾
 
