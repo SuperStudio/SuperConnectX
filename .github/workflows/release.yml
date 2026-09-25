@@ -36,8 +36,10 @@ jobs:
               release/*.deb
               release/*.yml
               release/*.blockmap
+          # macos-14 is deprecated; use macos-15 for Apple Silicon.
+          # Keep macos-15-intel for dedicated x64 packages.
           - name: macOS (Apple Silicon)
-            os: macos-14
+            os: macos-15
             builder-target: --mac --arm64
             mac-arch: arm64
             artifact-name: macos-arm64
