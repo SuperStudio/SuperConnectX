@@ -3,7 +3,7 @@
 > 中文版位于：`基础项目拆分实施计划.md`（步骤 6）。
 > 本指南聚焦**复用方式**——如何基于已沉淀的 foundation 层创建一个新的桌面应用。
 >
-> **可直接运行的完整示例**：`packages/template-app/`——一个 pnpm workspace 包消费者形态的
+> **可直接运行的完整示例**：`apps/template-app/`——一个 pnpm workspace 包消费者形态的
 > Electron + Vue 3 模板项目，以 `workspace:*` 引用 `@superx/foundation` / `@superx/shared`
 >（**不含复制的框架源码**），含 IPC 合约演示、防 Proxy 写法与快速启动指南，
 > 详见其 `README.md`。
@@ -33,7 +33,7 @@ foundation 已抽取为 workspace 包 `@superx/foundation`（源码位于 `packa
 3. `tsconfig.web.json` 的 `paths` 加对应 `"@superx/foundation/*": ["../foundation/src/*"]`。
 
 import 即用包名：`import { useTheme } from '@superx/foundation/theme/useTheme'`。
-参考实现：`packages/template-app/`（模板）与 `apps/superconnectx/`（主应用）。
+参考实现：`apps/template-app/`（模板）与 `apps/superconnectx/`（主应用）。
 
 ### 2.2 直接拷贝（离线/跨仓库场景备选）
 

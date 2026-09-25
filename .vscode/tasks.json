@@ -14,6 +14,11 @@
             "command": "npm run dev"
         },
         {
+            "label": "demo: 启动模板应用 (template-app)",
+            "type": "shell",
+            "command": "pnpm --filter @superx/template-app dev"
+        },
+        {
             "label": "运行实例1",
             "type": "shell",
             "command": "set SCX_INSTANCE_INDEX=1 && npm run dev"

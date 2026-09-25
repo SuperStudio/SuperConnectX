@@ -60,7 +60,7 @@ edits to the packages are hot-reloaded here instantly):
 1. `package.json` — `"@superx/foundation": "workspace:*"` declares the
    dependency (pnpm links it into `node_modules`).
 2. `electron.vite.config.ts` — renderer alias
-   `'@superx/shared': resolve(__dirname, '../shared/src')` etc., so Vite
+   `'@superx/shared': resolve(__dirname, '../../packages/shared/src')` etc., so Vite
    compiles the TypeScript sources directly.
 3. `tsconfig.web.json` — `paths` entries so `tsc` resolves the same names.
 

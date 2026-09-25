@@ -14,8 +14,8 @@
       "@shared/*": ["src/shared/*"],
       "@features/*": ["src/renderer/src/features/*"],
       "@components/*": ["src/renderer/src/components/*"],
-      "@superx/shared/*": ["../shared/src/*"],
-      "@superx/foundation/*": ["../foundation/src/*"]
+      "@superx/shared/*": ["../../packages/shared/src/*"],
+      "@superx/foundation/*": ["../../packages/foundation/src/*"]
     }
   }
 }

@@ -9,6 +9,10 @@
 
 ## 11. 实施记录（阶段 1）
 
+### 2026-09-25（追加）：template-app 迁至 apps/
+
+模板应用从 `packages/template-app/` 迁至 `apps/template-app/`（workspace glob 本就含 `apps/*`，语义上它是"应用"而非"公共包"）。同步改动：`electron.vite.config.ts` 别名相对路径加一层并顺手改为绝对 outDir（与主应用同构）、`tsconfig.web.json` paths、tasks.json 新增 `pnpm --filter @superx/template-app dev` 启动任务、相关文档路径引用。验证：check:paths + typecheck 双过、build 产物齐全落位 `apps/template-app/out/`。§11 中其余历史记录中的 `packages/template-app` 均为当时路径，以本条为准。
+
 ### 2026-09-25：阶段 1 收官 —— CI 全绿（三次迭代修复）
 
 CI 迁移 pnpm 后首次实跑暴露三个 npm→pnpm 语义差异，逐一修复后全平台流水线全绿：

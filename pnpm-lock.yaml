@@ -314,18 +314,7 @@ importers:
 
   apps/superconnectx: {}
 
-  packages/foundation:
-    dependencies:
-      '@superx/shared':
-        specifier: workspace:*
-        version: link:../shared
-      vue:
-        specifier: ^3.4.0
-        version: 3.5.43(typescript@5.9.3)
-
-  packages/shared: {}
-
-  packages/template-app:
+  apps/template-app:
     dependencies:
       '@electron-toolkit/preload':
         specifier: ^3.0.1
@@ -335,10 +324,10 @@ importers:
         version: 3.0.0(electron@38.8.6(supports-color@7.2.0))
       '@superx/foundation':
         specifier: workspace:*
-        version: link:../foundation
+        version: link:../../packages/foundation
       '@superx/shared':
         specifier: workspace:*
-        version: link:../shared
+        version: link:../../packages/shared
       element-plus:
         specifier: ^2.7.0
         version: 2.14.6(vue@3.5.43(typescript@5.9.3))
@@ -373,6 +362,17 @@ importers:
       vue-tsc:
         specifier: ^2.1.0
         version: 2.2.12(typescript@5.9.3)
+
+  packages/foundation:
+    dependencies:
+      '@superx/shared':
+        specifier: workspace:*
+        version: link:../shared
+      vue:
+        specifier: ^3.4.0
+        version: 3.5.43(typescript@5.9.3)
+
+  packages/shared: {}
 
 packages:
 
