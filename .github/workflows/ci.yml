@@ -268,7 +268,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Downgrade Electron to 35 for Ubuntu 24 compatibility
-        run: pnpm add electron@35.7.5 --save-dev
+        run: pnpm add -w electron@35.7.5 --save-dev
 
       # Electron 35 二进制缓存：与 build job 的 Electron 38 缓存 key 区分，避免互串
       - name: Cache Electron binary (Electron 35)
