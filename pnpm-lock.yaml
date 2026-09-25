@@ -187,6 +187,9 @@ importers:
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
+      builder-util-runtime:
+        specifier: ^9.7.0
+        version: 9.7.0(supports-color@7.2.0)
       crc:
         specifier: ^4.3.2
         version: 4.3.2(buffer@6.0.3)

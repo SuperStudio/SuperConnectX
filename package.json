@@ -37,6 +37,7 @@
     "adm-zip": "^0.5.18",
     "archiver": "^7.0.1",
     "buffer": "^6.0.3",
+    "builder-util-runtime": "^9.7.0",
     "crc": "^4.3.2",
     "electron-store": "^3.3.0",
     "electron-updater": "^6.6.2",
