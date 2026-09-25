@@ -1,6 +1,6 @@
 {
   "name": "superconnectx",
-  "version": "1.2.9",
+  "version": "1.2.10",
   "description": "SuperConnectX - 超级连接",
   "main": "./apps/superconnectx/out/main/index.js",
   "author": "SuperStudio",
