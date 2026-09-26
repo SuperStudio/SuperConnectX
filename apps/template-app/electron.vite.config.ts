@@ -4,7 +4,8 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    // @superx/shared 是 workspace 源码直出（TS），必须打包进产物而不是外置 require
+    plugins: [externalizeDepsPlugin({ exclude: ['@superx/shared'] })],
     build: {
       outDir: resolve(__dirname, 'out/main'),
       rollupOptions: {
@@ -18,7 +19,7 @@ export default defineConfig({
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ['@superx/shared'] })],
     build: {
       outDir: resolve(__dirname, 'out/preload'),
       rollupOptions: {

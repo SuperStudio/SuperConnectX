@@ -6,6 +6,8 @@
   "license": "MIT",
   "exports": {
     "./workbench/*": "./src/workbench/*",
-    "./workbench": "./src/workbench/index.ts"
+    "./workbench": "./src/workbench/index.ts",
+    "./window": "./src/window/index.ts",
+    "./window/*": "./src/window/*"
   }
 }

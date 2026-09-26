@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { COUNTER_CHANNEL, type CounterPayload } from '../shared/ipc/counter'
+import { createWindowControlApi } from '@superx/shared/window'
 
 /**
  * The single API surface exposed to the renderer.
@@ -30,7 +31,8 @@ const counterApi = {
   reset: (): Promise<CounterPayload> => ipcRenderer.invoke(COUNTER_CHANNEL.RESET)
 }
 
-const api = { counter: counterApi }
+// 窗口控制桥接：实现全部在 @superx/shared/window 的工厂里，这里只注入 ipcRenderer
+const api = { counter: counterApi, window: createWindowControlApi(ipcRenderer) }
 
 try {
   contextBridge.exposeInMainWorld('api', api)

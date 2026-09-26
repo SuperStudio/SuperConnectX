@@ -10,7 +10,8 @@
     "composite": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["src/shared/*"]
+      "@shared/*": ["src/shared/*"],
+      "@superx/shared/*": ["../../packages/shared/src/*"]
     }
   }
 }

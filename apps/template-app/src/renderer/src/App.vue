@@ -1,7 +1,12 @@
 <template>
   <AppShell>
     <template #titlebar>
-      <WindowTitleBar :is-maximized="false" />
+      <WindowTitleBar
+        :is-maximized="isMaximized"
+        @minimize="minimizeWindow"
+        @toggle-maximize="toggleMaximizeWindow"
+        @close="closeWindow"
+      />
     </template>
 
     <SidebarLayout :visible="sidebarVisible" :width="sidebarWidth" :min-width="160" :max-width="360">
@@ -84,6 +89,7 @@ import NotificationCenter from '@superx/foundation/shell/NotificationCenter.vue'
 import SidebarLayout from '@superx/foundation/shell/SidebarLayout.vue'
 import SidebarResizeHandle from '@superx/foundation/shell/SidebarResizeHandle.vue'
 import { useSidebarResize } from '@superx/foundation/shell/useSidebarResize'
+import { useWindowControls } from '@superx/foundation/shell/useWindowControls'
 import WorkbenchTabBar from '@superx/foundation/workbench/WorkbenchTabBar.vue'
 import { useTheme } from '@superx/foundation/theme/useTheme'
 import { useWorkbenchTabs } from '@superx/foundation/workbench/useWorkbenchTabs'
@@ -134,6 +140,11 @@ const onTogglePin = (tabId: string): void => {
   if (tab) tab.pinned = !tab.pinned
   tabsController.togglePin(tabId)
 }
+
+// ----- window controls (custom titlebar buttons → IPC → main) -----
+// 逻辑在 @superx/foundation 的 useWindowControls，这里只注入 preload 桥接
+const { isMaximized, minimize: minimizeWindow, toggleMaximize: toggleMaximizeWindow, close: closeWindow } =
+  useWindowControls(window.api.window)
 
 onMounted(() => {
   seedTabs()

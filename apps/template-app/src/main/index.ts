@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { COUNTER_CHANNEL, type CounterPayload } from '../shared/ipc/counter'
+import { registerWindowControlHandlers } from '@superx/shared/window'
 
 /**
  * Module-level state — a single counter persisted in memory for the demo.
@@ -31,6 +32,9 @@ function createWindow(): void {
     mainWindow.show()
   })
 
+  // 自定义标题栏（titleBarStyle: 'hidden'）的窗口控制 IPC，实现见 @superx/shared/window
+  windowControls.bind(mainWindow)
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -42,6 +46,13 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
+
+// 窗口控制 handler 实现（最小化/关闭/最大化切换 + 状态广播）在 @superx/shared/window，
+// 这里只声明"控制哪个窗口"这一应用策略
+const windowControls = registerWindowControlHandlers({
+  ipc: ipcMain,
+  getWindow: () => BrowserWindow.getAllWindows()[0] ?? null
+})
 
 function registerCounterIpc(): void {
   ipcMain.handle(COUNTER_CHANNEL.GET, (): CounterPayload => ({ value: counterValue }))

@@ -16,7 +16,18 @@
         {
             "label": "demo: 启动模板应用 (template-app)",
             "type": "shell",
-            "command": "pnpm --filter @superx/template-app dev"
+            "command": "pnpm --filter @superx/template-app dev",
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "template-app: 安装依赖",
+            "type": "shell",
+            "command": "pnpm install --filter @superx/template-app..."
         },
         {
             "label": "运行实例1",
