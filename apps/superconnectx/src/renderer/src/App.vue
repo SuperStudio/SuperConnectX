@@ -734,9 +734,7 @@ const loadNotificationDuration = async () => {
 
 // ---- Lifecycle ----
 onMounted(async () => {
-  // 初始化主题
-  const savedTheme = localStorage.getItem('app-theme') || 'dark'
-  document.documentElement.setAttribute('data-theme', savedTheme)
+  // 主题初始化已下沉至基础层 ThemeSwitcher（内部 useTheme 在创建时应用持久化主题）
 
   await loadNotificationDuration()
 

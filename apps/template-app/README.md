@@ -22,7 +22,7 @@ main app) immediately, from a single source of truth.
 
 | Layer       | Demo piece                                        | What it illustrates                                                                 |
 |-------------|---------------------------------------------------|-------------------------------------------------------------------------------------|
-| `foundation/theme` | `useTheme()`                             | Runtime theme switching with localStorage persistence                              |
+| `foundation/theme` | `useTheme()` + `ThemeSwitcher` | Runtime theme switching with localStorage persistence, plus a titlebar skin-switcher component (labels injected via props) |
 | `foundation/settings` | `useSerializedSettingsSave` + `SettingsRegistry` | Safe, ordered writes that never get overwritten by stale snapshots                |
 | `foundation/shell` | `AppShell`, `WindowTitleBar`, `StatusBar`, `SidebarLayout` (+ controlled `useSidebarResize`) | The visual chrome that wraps any app |
 | `foundation/workbench` | `WorkbenchTabBar`, `useWorkbenchTabs` | Domain-neutral tab strip with pin/drag-reorder/close actions                       |

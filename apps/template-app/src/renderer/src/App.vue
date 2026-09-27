@@ -6,7 +6,12 @@
         @minimize="minimizeWindow"
         @toggle-maximize="toggleMaximizeWindow"
         @close="closeWindow"
-      />
+      >
+        <template #right>
+          <!-- 换肤：基础层 ThemeSwitcher，注入宿主已有控制器 -->
+          <ThemeSwitcher :controller="theme" />
+        </template>
+      </WindowTitleBar>
     </template>
 
     <SidebarLayout :visible="sidebarVisible" :width="sidebarWidth" :min-width="160" :max-width="360">
@@ -92,6 +97,7 @@ import { useSidebarResize } from '@superx/foundation/shell/useSidebarResize'
 import { useWindowControls } from '@superx/foundation/shell/useWindowControls'
 import WorkbenchTabBar from '@superx/foundation/workbench/WorkbenchTabBar.vue'
 import { useTheme } from '@superx/foundation/theme/useTheme'
+import ThemeSwitcher from '@superx/foundation/theme/ThemeSwitcher.vue'
 import { useWorkbenchTabs } from '@superx/foundation/workbench/useWorkbenchTabs'
 import type { WorkbenchTab } from '@superx/shared/workbench/types'
 import CounterPanel from './features/counter/CounterPanel.vue'
