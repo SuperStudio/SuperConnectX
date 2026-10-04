@@ -210,7 +210,7 @@ test.describe('选项卡管理', () => {
         .filter({ hasText: 'TAB-右键' })
         .first()
         .click({ button: 'right' })
-      const contextMenu = page.locator('.context-menu')
+      const contextMenu = page.locator('.workbench-tab-menu')
       await expect(contextMenu).toBeVisible()
 
       // 点击"关闭"
