@@ -164,36 +164,24 @@
     </div>
 
     <template #footer>
-      <!-- 侧边栏底部工具栏 -->
-      <div class="sidebar-footer">
-      <span class="sidebar-brand">SuperStudio</span>
-      <div class="sidebar-menu-wrapper">
-        <div class="sidebar-menu-btn" @click.stop="showSidebarMenu = !showSidebarMenu" :class="{ active: showSidebarMenu }">
-          <svg viewBox="0 0 1024 1024" fill="currentColor" width="16" height="16">
-            <path d="M919.6 405.6l-57.2-8c-12.7-1.8-23-10.4-28-22.1-11.3-26.7-25.7-51.7-42.9-74.5-7.7-10.2-10-23.5-5.2-35.3l21.7-53.5c6.7-16.4 0.2-35.3-15.2-44.1L669.1 96.6c-15.4-8.9-34.9-5.1-45.8 8.9l-35.4 45.3c-7.9 10.2-20.7 14.9-33.5 13.3-14-1.8-28.3-2.8-42.8-2.8-14.5 0-28.8 1-42.8 2.8-12.8 1.6-25.6-3.1-33.5-13.3l-35.4-45.3c-10.9-14-30.4-17.8-45.8-8.9L230.4 168c-15.4 8.9-21.8 27.7-15.2 44.1l21.7 53.5c4.8 11.9 2.5 25.1-5.2 35.3-17.2 22.8-31.7 47.8-42.9 74.5-5 11.8-15.3 20.4-28 22.1l-57.2 8C86 408 72.9 423 72.9 440.8v142.9c0 17.7 13.1 32.7 30.6 35.2l57.2 8c12.7 1.8 23 10.4 28 22.1 11.3 26.7 25.7 51.7 42.9 74.5 7.7 10.2 10 23.5 5.2 35.3l-21.7 53.5c-6.7 16.4-0.2 35.3 15.2 44.1L354 927.8c15.4 8.9 34.9 5.1 45.8-8.9l35.4-45.3c7.9-10.2 20.7-14.9 33.5-13.3 14 1.8 28.3 2.8 42.8 2.8 14.5 0 28.8-1 42.8-2.8 12.8-1.6 25.6 3.1 33.5 13.3l35.4 45.3c10.9 14 30.4 17.8 45.8 8.9l123.7-71.4c15.4-8.9 21.8-27.7 15.2-44.1l-21.7-53.5c-4.8-11.8-2.5-25.1 5.2-35.3 17.2-22.8 31.7-47.8 42.9-74.5 5-11.8 15.3-20.4 28-22.1l57.2-8c17.6-2.5 30.6-17.5 30.6-35.2V440.8c0.2-17.8-12.9-32.8-30.5-35.2z m-408 245.5c-76.7 0-138.9-62.2-138.9-138.9s62.2-138.9 138.9-138.9 138.9 62.2 138.9 138.9-62.2 138.9-138.9 138.9z"/>
-          </svg>
-        </div>
-        <div class="dropdown-menu" ref="sidebarMenuRef" v-if="showSidebarMenu" @click.stop>
-          <div class="menu-item" @click="handleMenuClick('settings')">{{ t('sidebar.settings') }}</div>
-          <div class="menu-item" @click="handleMenuClick('shortcuts')">{{ t('sidebar.shortcuts') }}</div>
-          <div class="menu-divider"></div>
-          <div class="menu-item" @click="handleMenuClick('plugins')">{{ t('sidebar.plugins') }}</div>
-          <div class="menu-item" @click="handleMenuClick('checkUpdate')">{{ t('sidebar.checkUpdate') }}</div>
-          <div class="menu-divider"></div>
-          <div class="menu-item" @click="handleMenuClick('about')">{{ t('titlebar.about') }}</div>
-        </div>
-      </div>
-      </div>
+      <!-- 侧边栏底部工具栏：基础层 SidebarFooter（品牌 + 设置菜单，菜单项经 i18n 注入） -->
+      <SidebarFooter
+        brand="SuperStudio"
+        :menu-title="t('sidebar.settings')"
+        :items="sidebarMenuItems"
+        @command="handleSidebarMenuCommand"
+      />
     </template>
   </SidebarLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, type Ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SearchInput from '../../components/SearchInput.vue'
 import { TOOLTIP_SHOW_AFTER } from '../../utils/constants'
 import SidebarLayout from '@superx/foundation/shell/SidebarLayout.vue'
+import SidebarFooter from '@superx/foundation/shell/SidebarFooter.vue'
 import { getSerialPortDisplayName } from './useConnectionSidebar'
 
 const { t } = useI18n()
@@ -228,13 +216,18 @@ const emit = defineEmits<{
   serialPortContextMenu: [data: { event: MouseEvent; port: SerialPortInfo }]
 }>()
 
-const showSidebarMenu = ref(false)
-const sidebarMenuRef = ref(null) as Ref<HTMLElement | null>
+const sidebarMenuItems = computed(() => [
+  { id: 'settings', label: t('sidebar.settings') },
+  { id: 'shortcuts', label: t('sidebar.shortcuts') },
+  { divider: true },
+  { id: 'plugins', label: t('sidebar.plugins') },
+  { id: 'checkUpdate', label: t('sidebar.checkUpdate') },
+  { divider: true },
+  { id: 'about', label: t('titlebar.about') }
+])
 
-const handleClickOutside = (e: MouseEvent) => {
-  if (sidebarMenuRef.value && !sidebarMenuRef.value.contains(e.target as Node)) {
-    showSidebarMenu.value = false
-  }
+const handleSidebarMenuCommand = (command: string) => {
+  emit('sidebarMenuCommand', command)
 }
 
 const getPortFriendlyName = (port: SerialPortInfo): string => {
@@ -256,21 +249,8 @@ const hasPortDetails = (port: SerialPortInfo): boolean => {
   )
 }
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside, true)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside, true)
-})
-
 const toggleGroupExpanded = (type: string) => {
   emit('sidebarMenuCommand', '__toggleGroup__' + type)
-}
-
-const handleMenuClick = (command: string) => {
-  showSidebarMenu.value = false
-  emit('sidebarMenuCommand', command)
 }
 </script>
 
@@ -632,60 +612,4 @@ const handleMenuClick = (command: string) => {
 }
 
 /* 侧边栏底部工具栏 */
-.sidebar-footer {
-  flex-shrink: 0;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  border-top: 1px solid var(--sidebar-footer-border);
-  background: var(--sidebar-footer-bg);
-}
-
-.sidebar-brand {
-  color: var(--text-sidebar-brand);
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.sidebar-menu-wrapper {
-  position: relative;
-}
-
-.sidebar-menu-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  color: var(--sidebar-menu-btn);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.sidebar-menu-btn:hover,
-.sidebar-menu-btn.active {
-  background-color: var(--sidebar-menu-btn-hover-bg);
-  color: var(--sidebar-menu-btn-hover-color);
-}
-
-.dropdown-menu {
-  position: absolute;
-  bottom: 100%;
-  right: 0;
-  margin-bottom: 4px;
-}
-
-.dropdown-menu .menu-item {
-  font-size: 12px;
-  color: var(--menu-item-color);
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.dropdown-menu .menu-item:hover {
-  background-color: var(--menu-item-hover-bg);
-  color: var(--menu-item-hover-color);
-}
 </style>

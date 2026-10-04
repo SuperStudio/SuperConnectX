@@ -33,6 +33,19 @@
   --monitor-bar-bg: #e0e0e055;
   --monitor-text: #fff;
 
+  --text-sidebar-brand: #ffc107;
+  --menu-bg-color: #2d2d2d;
+  --menu-border-color: #3a3a3a;
+  --menu-border-radius: 6px;
+  --menu-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --menu-item-padding: 8px 16px;
+  --menu-item-color: #e0e0e0;
+  --menu-item-font-size: 13px;
+  --menu-item-hover-bg: #094771;
+  --menu-item-hover-color: #fff;
+  --menu-divider-color: #3a3a3a;
+  --menu-divider-margin: 4px 0;
+
   --sidebar-bg: #252526;
   --sidebar-border: #1a1a1a;
   --sidebar-item-active: #094771;
@@ -40,6 +53,12 @@
   --sidebar-item-color: #cccccc;
   --sidebar-item-active-color: #ffffff;
   --sidebar-resize-handle-hover: #007acc;
+  --sidebar-resizer-hover: #007acc;
+  --sidebar-footer-bg: #252526;
+  --sidebar-footer-border: #333333;
+  --sidebar-menu-btn: #888888;
+  --sidebar-menu-btn-hover-bg: rgba(255, 255, 255, 0.1);
+  --sidebar-menu-btn-hover-color: #e0e0e0;
 
   --settings-nav-bg: #252526;
   --settings-nav-border: #1a1a1a;
@@ -110,6 +129,15 @@
   --monitor-bar-bg: #33333322;
   --monitor-text: #333333;
 
+  --text-sidebar-brand: #e6a817;
+  --menu-bg-color: #ffffff;
+  --menu-border-color: #d0d0d0;
+  --menu-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --menu-item-color: #333333;
+  --menu-item-hover-bg: #e8f4fd;
+  --menu-item-hover-color: #1a1a1a;
+  --menu-divider-color: #e0e0e0;
+
   --sidebar-bg: #f3f3f3;
   --sidebar-border: #cccccc;
   --sidebar-item-active: #cce4f7;
@@ -117,6 +145,12 @@
   --sidebar-item-color: #1f1f1f;
   --sidebar-item-active-color: #005fb8;
   --sidebar-resize-handle-hover: #005fb8;
+  --sidebar-resizer-hover: #005fb8;
+  --sidebar-footer-bg: #e8e8e8;
+  --sidebar-footer-border: #d0d0d0;
+  --sidebar-menu-btn: #999999;
+  --sidebar-menu-btn-hover-bg: rgba(0, 0, 0, 0.05);
+  --sidebar-menu-btn-hover-color: #333333;
 
   --settings-nav-bg: #f3f3f3;
   --settings-nav-border: #cccccc;

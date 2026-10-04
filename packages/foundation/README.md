@@ -8,6 +8,6 @@
 - `i18n`：国际化初始化与语言偏好。
 - `settings`：设置注册表、基础设置中心及表单模型。
 - `workbench`：通用 Tab、分屏、会话布局和状态管理。
-- `shell`：标题栏、侧栏布局、主工作区、状态栏、通知容器，以及状态栏 CPU/内存占用率监视组件 `ResourceMonitor`（数据源经 `fetcher` prop 注入，零 IPC 耦合）。
+- `shell`：标题栏、侧栏布局、主工作区、状态栏、通知容器，状态栏 CPU/内存占用率监视组件 `ResourceMonitor`（数据源经 `fetcher` prop 注入，零 IPC 耦合），标题栏布局开关 `LayoutToggle`（主侧边栏/底部面板变体），以及侧边栏底部工具栏 `SidebarFooter`（品牌名 + 设置齿轮下拉菜单，菜单项经 props 注入）。
 
 业务模块位于 `src/renderer/src/features`（后续迁移），通过配置和插槽接入这些基础能力。

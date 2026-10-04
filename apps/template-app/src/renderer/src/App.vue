@@ -8,6 +8,13 @@
         @close="closeWindow"
       >
         <template #right>
+          <!-- 侧边栏开关：基础层 LayoutToggle -->
+          <LayoutToggle
+            variant="sidebar"
+            :visible="sidebarVisible"
+            title="Toggle sidebar"
+            @toggle="sidebarVisible = !sidebarVisible"
+          />
           <!-- 换肤：基础层 ThemeSwitcher，注入宿主已有控制器 -->
           <ThemeSwitcher :controller="theme" />
         </template>
@@ -28,9 +35,21 @@
         </button>
       </nav>
       <template #footer>
-        <SidebarResizeHandle :resizing="sidebar.isResizing.value" @resize-start="sidebar.startResize" />
+        <SidebarFooter
+          brand="SuperStudio"
+          menu-title="Settings"
+          :items="sidebarMenuItems"
+          @command="handleSidebarCommand"
+        />
       </template>
     </SidebarLayout>
+
+    <!-- 侧边栏分隔条：通栏全高，与 SuperConnectX 一致；折叠时隐藏 -->
+    <SidebarResizeHandle
+      v-if="sidebarVisible"
+      :resizing="sidebar.isResizing.value"
+      @resize-start="sidebar.startResize"
+    />
 
     <main class="main-area">
       <WorkbenchTabBar
@@ -94,7 +113,9 @@ import StatusBar from '@superx/foundation/shell/StatusBar.vue'
 import ResourceMonitor from '@superx/foundation/shell/ResourceMonitor.vue'
 import NotificationCenter from '@superx/foundation/shell/NotificationCenter.vue'
 import SidebarLayout from '@superx/foundation/shell/SidebarLayout.vue'
+import SidebarFooter from '@superx/foundation/shell/SidebarFooter.vue'
 import SidebarResizeHandle from '@superx/foundation/shell/SidebarResizeHandle.vue'
+import LayoutToggle from '@superx/foundation/shell/LayoutToggle.vue'
 import { useSidebarResize } from '@superx/foundation/shell/useSidebarResize'
 import { useWindowControls } from '@superx/foundation/shell/useWindowControls'
 import WorkbenchTabBar from '@superx/foundation/workbench/WorkbenchTabBar.vue'
@@ -132,6 +153,16 @@ const navItems = [
 ] as const
 type ViewId = typeof navItems[number]['id']
 const activeView = ref<ViewId>('counter')
+
+// ----- sidebar footer menu (foundation SidebarFooter) -----
+const sidebarMenuItems = [
+  { id: 'settings', label: 'Settings' },
+  { id: 'about', label: 'About' }
+]
+
+const handleSidebarCommand = (command: string): void => {
+  if (command === 'settings' || command === 'about') activeView.value = command
+}
 
 // ----- tab strip -----
 const tabsController = useWorkbenchTabs<WorkbenchTab>()
