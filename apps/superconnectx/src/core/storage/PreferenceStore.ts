@@ -15,7 +15,12 @@ export default class PreferenceStore<TPreferences extends Record<string, any>> e
 
   savePreferences(preferences: Partial<TPreferences>): void {
     for (const [key, value] of Object.entries(preferences)) {
-      this.setValue(key, value)
+      // conf 不允许 set(key, undefined)，值为 undefined 表示清除该键
+      if (value === undefined) {
+        this.deleteValue(key)
+      } else {
+        this.setValue(key, value)
+      }
     }
   }
 }

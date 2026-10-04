@@ -120,10 +120,22 @@ export function useSessionRestore(options: {
   let saveTimer: ReturnType<typeof setTimeout> | null = null
   const scheduleSave = (): void => {
     if (!isSessionRestoreEnabled() || !hasLoaded.value) return
+    // 所有选项卡已关闭：立即清除持久化会话（不走防抖，
+    // 避免关掉最后一个选项卡后残留旧会话，或退出软件时防抖定时器未触发）
+    if (connectionTabs.value.length === 0) {
+      if (saveTimer) {
+        clearTimeout(saveTimer)
+        saveTimer = null
+      }
+      void clearSession()
+      return
+    }
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(async () => {
-      // 只有用户主动打开过选项卡才保存
-      if (connectionTabs.value.length === 0) return
+      if (connectionTabs.value.length === 0) {
+        void clearSession()
+        return
+      }
       const snapshot = JSON.parse(JSON.stringify(buildSessionSnapshot()))
       const current = await window.storageApi.getAppSettings()
       await window.storageApi.saveAppSettings({ ...current, session: snapshot })

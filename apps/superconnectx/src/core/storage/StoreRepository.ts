@@ -32,6 +32,10 @@ export default class StoreRepository<TDefaults extends Record<string, any> = Rec
     this.storageData.set(key, value)
   }
 
+  deleteValue(key: string): void {
+    this.storageData.delete(key)
+  }
+
   getStore(): Record<string, unknown> {
     return this.storageData.store as Record<string, unknown>
   }
