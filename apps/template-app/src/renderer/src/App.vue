@@ -72,11 +72,12 @@
     <template #statusbar>
       <StatusBar>
         <template #left>
-          <span class="statusbar-section">theme: {{ theme.theme.value }}</span>
+          <!-- 资源监视：基础层 ResourceMonitor，数据源经 fetcher 注入（此处为模拟数据） -->
+          <div class="resource-monitor">
+            <ResourceMonitor :fetcher="mockResourceFetcher" mem-label="内存" />
+          </div>
         </template>
-        <template #right>
-          <button class="statusbar-action" type="button" @click="theme.toggleTheme">Toggle theme</button>
-        </template>
+        <template #right></template>
       </StatusBar>
     </template>
 
@@ -90,6 +91,7 @@ import { markRaw, onMounted, ref } from 'vue'
 import AppShell from '@superx/foundation/shell/AppShell.vue'
 import WindowTitleBar from '@superx/foundation/shell/WindowTitleBar.vue'
 import StatusBar from '@superx/foundation/shell/StatusBar.vue'
+import ResourceMonitor from '@superx/foundation/shell/ResourceMonitor.vue'
 import NotificationCenter from '@superx/foundation/shell/NotificationCenter.vue'
 import SidebarLayout from '@superx/foundation/shell/SidebarLayout.vue'
 import SidebarResizeHandle from '@superx/foundation/shell/SidebarResizeHandle.vue'
@@ -106,6 +108,12 @@ import AboutPanel from './components/AboutPanel.vue'
 
 const appName = 'Base Desktop App'
 const theme = useTheme({ storageKey: 'app-theme', defaultTheme: 'dark' })
+
+// ----- resource monitor (demo data source; host normally bridges to its own IPC) -----
+const mockResourceFetcher = () => ({
+  cpu: (10 + Math.random() * 30).toFixed(2),
+  memRate: (30 + Math.random() * 40).toFixed(2)
+})
 
 // ----- sidebar (controlled: host owns width/visible, package owns gesture) -----
 const sidebarWidth = ref(220)
@@ -208,6 +216,17 @@ defineExpose({ notify: (title: string, message: string) => notifierRef.value?.ad
   padding: 0 12px;
   font-size: 12px;
   color: var(--statusbar-text);
+}
+
+/* 资源监视条包裹：与 SuperConnectX 状态栏保持一致 */
+.resource-monitor {
+  height: 100%;
+  background-color: transparent;
+  color: var(--statusbar-text);
+  font-size: 11px;
+  padding: 0px 10px 0px 5px;
+  display: flex;
+  align-items: center;
 }
 
 .statusbar-action {

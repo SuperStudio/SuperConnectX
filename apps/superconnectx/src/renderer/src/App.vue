@@ -280,9 +280,11 @@
     <!-- 状态栏 -->
     <template #statusbar>
       <StatusBar>
-        <template #left
-          ><div class="resource-monitor"><ResourceMonitor /></div
-        ></template>
+        <template #left>
+          <div class="resource-monitor">
+            <ResourceMonitor mem-label="内存" :fetcher="fetchAppResource" />
+          </div>
+        </template>
         <template #right
           ><div v-if="lastSentCommand" class="command-status">
             {{ t('notification.commandSent', { command: lastSentCommand }) }}
@@ -313,7 +315,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import CustomTitleBar from './components/CustomTitleBar.vue'
 import NotifyContainer from './components/NotifyContainer.vue'
-import ResourceMonitor from './components/ResourceMonitor.vue'
+import ResourceMonitor from '@superx/foundation/shell/ResourceMonitor.vue'
 import AboutDialog from './components/AboutDialog.vue'
 import UpdateDialog from './components/UpdateDialog.vue'
 import ConnectionDialog from './features/connections/ConnectionDialog.vue'
@@ -733,6 +735,9 @@ const loadNotificationDuration = async () => {
 }
 
 // ---- Lifecycle ----
+// 资源监视数据源：桥接基础层 ResourceMonitor 到 toolApi（主进程 CPU/内存采样）
+const fetchAppResource = () => window.toolApi.getAppResource()
+
 onMounted(async () => {
   // 主题初始化已下沉至基础层 ThemeSwitcher（内部 useTheme 在创建时应用持久化主题）
 
@@ -813,11 +818,10 @@ onUnmounted(() => {
 
 .resource-monitor {
   height: 100%;
-  margin-left: 5px;
   background-color: transparent;
   color: var(--statusbar-text);
   font-size: 11px;
-  padding: 0px 10px;
+  padding: 0px 10px 0px 5px;
   display: flex;
   align-items: center;
   width: fit-content;
