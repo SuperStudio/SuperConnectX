@@ -765,6 +765,7 @@ defineExpose({
   reconnect,
   disconnect: handleClose,
   isConnected: isConnectedValue,
+  isConnecting: computed(() => isConnecting.value),
   preventAutoReconnect: () => { preventAutoReconnect.value = true },
   getComName: () => props.connection.comName,
   getRemark: () => remark.value,

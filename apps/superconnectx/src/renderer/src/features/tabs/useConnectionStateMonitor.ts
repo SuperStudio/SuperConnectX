@@ -18,6 +18,8 @@ export interface ConnectionStateMonitorController {
   connectionChangeCounter: Ref<number>
   /** 判断指定 Tab 当前是否处于已连接状态（COM / Telnet / FTP） */
   isConnected: (tab: TabItem) => boolean
+  /** 判断指定 Tab 当前是否处于正在连接状态（COM / Telnet / FTP） */
+  isConnecting: (tab: TabItem) => boolean
   /** 停止轮询（宿主组件卸载时调用） */
   stopPolling: () => void
 }
@@ -43,14 +45,26 @@ export function useConnectionStateMonitor(
     return false
   }
 
+  const isConnecting = (tab: TabItem): boolean => {
+    if (tab.connectionType === 'com') {
+      return !!comTerminalRefs[tab.id]?.isConnecting
+    }
+    if (tab.connectionType === 'telnet' || tab.connectionType === 'ftp') {
+      return !!telnetTerminalRefs[tab.id]?.isConnecting
+    }
+    return false
+  }
+
   let prevConnectedSnapshot = ''
   const pollConnectionStates = (): void => {
     const parts: string[] = []
     for (const key of Object.keys(comTerminalRefs)) {
-      parts.push(`com:${key}:${comTerminalRefs[key]?.isConnected ?? false}`)
+      const ref = comTerminalRefs[key]
+      parts.push(`com:${key}:${ref?.isConnected ?? false}:${ref?.isConnecting ?? false}`)
     }
     for (const key of Object.keys(telnetTerminalRefs)) {
-      parts.push(`telnet:${key}:${telnetTerminalRefs[key]?.isConnected ?? false}`)
+      const ref = telnetTerminalRefs[key]
+      parts.push(`telnet:${key}:${ref?.isConnected ?? false}:${ref?.isConnecting ?? false}`)
     }
     const snapshot = parts.join('|')
     if (snapshot !== prevConnectedSnapshot) {
@@ -64,6 +78,7 @@ export function useConnectionStateMonitor(
   return {
     connectionChangeCounter,
     isConnected,
+    isConnecting,
     stopPolling: () => clearInterval(pollTimer)
   }
 }

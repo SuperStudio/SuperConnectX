@@ -337,7 +337,7 @@ import logoImage from './assets/icon.png'
 
 // Composables
 import { useConnectionSidebar } from './features/connections/useConnectionSidebar'
-import { useTabManager } from './features/tabs/useTabManager'
+import { useTabManager, type TabItem } from './features/tabs/useTabManager'
 import { useSplitWorkspace } from '@superx/foundation/workbench/useSplitWorkspace'
 import { useSerialRemarks } from './features/connections/useSerialRemarks'
 import { useShortcuts } from './features/shortcuts/useShortcuts'
@@ -371,6 +371,7 @@ const telnetTerminalRefs = reactive<Record<string, any>>({})
 const {
   connectionChangeCounter,
   isConnected: isConnectedForSession,
+  isConnecting: isConnectingForSession,
   stopPolling: stopConnectionStatePolling
 } = useConnectionStateMonitor({ comTerminalRefs, telnetTerminalRefs })
 
@@ -496,12 +497,15 @@ const {
 })
 
 // ---- Session Restore（会话恢复） ----
+// 会话快照时：已连接或正在连接中的选项卡，恢复后都应自动重连
+const wasConnectedForSession = (tab: TabItem): boolean =>
+  isConnectedForSession(tab) || isConnectingForSession(tab)
 const sessionRestore = useSessionRestore({
   connectionTabs,
   activeTabId,
   pinnedTabs,
   splitState,
-  isConnected: isConnectedForSession,
+  isConnected: wasConnectedForSession,
   connectionStateDependency: connectionChangeCounter
 })
 

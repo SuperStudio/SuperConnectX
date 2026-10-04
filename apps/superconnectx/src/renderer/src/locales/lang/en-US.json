@@ -331,6 +331,9 @@
     "pleaseEnterUsername": "Please enter username",
     "pleaseEnterPassword": "Please enter password"
   },
+  "telnetTerminal": {
+    "waiting": "Waiting for connection {host}:{port}..."
+  },
   "comTerminal": {
     "waiting": "Waiting for connection {port}...",
     "placeholder": "Enter command and press Enter to send...",

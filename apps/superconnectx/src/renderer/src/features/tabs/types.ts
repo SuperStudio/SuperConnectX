@@ -5,6 +5,7 @@
 /** 串口终端（features/terminal/ComTerminal.vue）对外暴露的实例句柄描述 */
 export interface ComTerminalRef {
   isConnected?: boolean
+  isConnecting?: boolean
   reconnect?: () => void
   preventAutoReconnect?: () => void
   disconnect?: () => void
@@ -25,6 +26,7 @@ export interface ComTerminalRef {
 /** Telnet/FTP 终端（features/terminal/TelnetTerminal.vue）对外暴露的实例句柄描述 */
 export interface TelnetTerminalRef {
   isConnected?: boolean
+  isConnecting?: boolean
   reconnect?: () => void
   preventAutoReconnect?: () => void
   disconnect?: () => void

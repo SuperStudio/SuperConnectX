@@ -5,7 +5,7 @@
       :connection="connection"
       :is-connected="isConnected"
       :is-connecting="isConnecting"
-      :init-message="connection.ftpMode === 'server' ? `create server ${connection.port}` : `try to connect ${connection.host}:${connection.port}`"
+      :init-message="initMessage"
       :placeholder="t('terminal.inputPrompt')"
       :show-bottom-panel="showBottomPanel"
       session-id-prefix="telnet"
@@ -58,6 +58,17 @@ const props = withDefaults(defineProps<{
 })
 
 const isConnected = ref(false)
+
+// 会话恢复且未自动连接时，不显示 "try to connect"，改为等待连接提示
+const initMessage = computed(() => {
+  if (!props.autoConnect) {
+    return t('telnetTerminal.waiting', { host: props.connection.host, port: props.connection.port })
+  }
+  return props.connection.ftpMode === 'server'
+    ? `create server ${props.connection.port}`
+    : `try to connect ${props.connection.host}:${props.connection.port}`
+})
+
 const isConnecting = ref(false)
 const unifiedTerminalRef = ref<InstanceType<typeof UnifiedTerminal>>()
 
@@ -452,6 +463,7 @@ defineExpose({
   refreshGroupsCmds,
   handleFontChange,
   isConnected: computed(() => isConnected.value),
+  isConnecting: computed(() => isConnecting.value),
   disconnect: handleClose,
   reconnect,
   cleanup: () => {
