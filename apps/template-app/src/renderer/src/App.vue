@@ -53,33 +53,31 @@
 
     <main class="main-area">
       <WorkbenchTabBar
-        :tabs="tabs"
+        :tabs="displayTabs"
         :active-tab-id="activeTabId"
         :panel-id="''"
         @select-tab="activate"
-        @close-tab="onCloseTab"
         @hide-tab-menu="hideTabMenu"
         @reorder-tabs="reorderTabs"
-      >
-        <template #title="{ tab }">{{ tab.title }}</template>
-        <template #action="{ tab }">
-          <button
-            class="tab-action-btn"
-            :class="{ pinned: tab.pinned }"
-            type="button"
-            :aria-label="tab.pinned ? 'Unpin tab' : 'Pin tab'"
-            @click.stop="onTogglePin(tab.id)"
-          />
-          <button
-            class="tab-action-btn tab-action-close"
-            type="button"
-            aria-label="Close tab"
-            @click.stop="onCloseTab(tab.id)"
-          >
-            ×
-          </button>
-        </template>
-      </WorkbenchTabBar>
+        @toggle-pin="onActionPinToggle"
+        @tab-context-menu="onTabContextMenu"
+      />
+
+      <!-- 选项卡右键菜单：基础层 WorkbenchTabMenu（通用项，默认英文文案） -->
+      <WorkbenchTabMenu
+        :visible="showTabMenu"
+        :position="tabMenuPosition"
+        :pinned="rightClickedTab ? isPinned(rightClickedTab.id) : false"
+        @close="onMenuClose"
+        @close-other="onCloseOthers"
+        @close-left="onCloseToLeft"
+        @close-right="onCloseToRight"
+        @close-all="onCloseAllTabs"
+        @move-to-first="moveTabToFirst"
+        @move-to-last="moveTabToLast"
+        @toggle-pin="togglePinContext"
+        @hide="hideTabMenu"
+      />
 
       <div class="main-content">
         <CounterPanel v-if="activeTabId === 'counter'" />
@@ -105,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { markRaw, onMounted, ref } from 'vue'
+import { computed, markRaw, onMounted, ref } from 'vue'
 // workspace 包消费：@superx/foundation / @superx/shared（无需复制源码，改包即全局生效）
 import AppShell from '@superx/foundation/shell/AppShell.vue'
 import WindowTitleBar from '@superx/foundation/shell/WindowTitleBar.vue'
@@ -119,6 +117,7 @@ import LayoutToggle from '@superx/foundation/shell/LayoutToggle.vue'
 import { useSidebarResize } from '@superx/foundation/shell/useSidebarResize'
 import { useWindowControls } from '@superx/foundation/shell/useWindowControls'
 import WorkbenchTabBar from '@superx/foundation/workbench/WorkbenchTabBar.vue'
+import WorkbenchTabMenu from '@superx/foundation/workbench/WorkbenchTabMenu.vue'
 import { useTheme } from '@superx/foundation/theme/useTheme'
 import ThemeSwitcher from '@superx/foundation/theme/ThemeSwitcher.vue'
 import { useWorkbenchTabs } from '@superx/foundation/workbench/useWorkbenchTabs'
@@ -166,7 +165,28 @@ const handleSidebarCommand = (command: string): void => {
 
 // ----- tab strip -----
 const tabsController = useWorkbenchTabs<WorkbenchTab>()
-const { tabs, activeTabId, activate, removeTab, reorderTabs, hideTabMenu } = tabsController
+const {
+  tabs,
+  activeTabId,
+  activate,
+  removeTab,
+  reorderTabs,
+  hideTabMenu,
+  showTabMenu,
+  tabMenuPosition,
+  rightClickedTab,
+  openTabContextMenu,
+  moveTabToFirst,
+  moveTabToLast,
+  togglePinContext,
+  isPinned
+} = tabsController
+
+// 控制器的固定状态存于 pinnedTabs Set；WorkbenchTabBar 读取 tab.pinned 属性，
+// 此处做与 SuperConnectX 相同的映射（含引用副本，避免直接改动控制器数据）
+const displayTabs = computed(() =>
+  tabs.value.map((t) => ({ ...t, pinned: isPinned(t.id) }))
+)
 
 const seedTabs = (): void => {
   for (const item of navItems) {
@@ -180,10 +200,74 @@ const onCloseTab = (tabId: string): void => {
   removeTab(tabId)
 }
 
-const onTogglePin = (tabId: string): void => {
+// 与 SuperConnectX 一致的单按钮语义：已固定 → 取消固定；未固定 → 关闭
+const onActionPinToggle = (tabId: string): void => {
+  if (isPinned(tabId)) {
+    tabsController.togglePin(tabId)
+  } else {
+    onCloseTab(tabId)
+  }
+}
+
+// WorkbenchTabBar 上抛的是 tabId，需自行解析为 tab 对象再交给控制器
+const onTabContextMenu = (event: MouseEvent, tabId: string): void => {
   const tab = tabs.value.find((t) => t.id === tabId)
-  if (tab) tab.pinned = !tab.pinned
-  tabsController.togglePin(tabId)
+  if (tab) openTabContextMenu(event, tab)
+}
+
+// ----- tab context menu actions -----
+const onMenuClose = (): void => {
+  const id = rightClickedTab.value?.id
+  if (id !== undefined) onCloseTab(String(id))
+  hideTabMenu()
+}
+
+const closeMany = (ids: string[]): void => {
+  for (const id of ids) removeTab(id)
+}
+
+const onCloseOthers = (): void => {
+  const keep = rightClickedTab.value?.id
+  if (keep === undefined) return
+  closeMany(
+    tabs.value
+      .filter((t) => t.id !== keep && !t.pinned)
+      .map((t) => String(t.id))
+  )
+  hideTabMenu()
+}
+
+const onCloseToLeft = (): void => {
+  const idx = tabs.value.findIndex((t) => t.id === rightClickedTab.value?.id)
+  if (idx <= 0) return
+  closeMany(
+    tabs.value
+      .slice(0, idx)
+      .filter((t) => !t.pinned)
+      .map((t) => String(t.id))
+  )
+  hideTabMenu()
+}
+
+const onCloseToRight = (): void => {
+  const idx = tabs.value.findIndex((t) => t.id === rightClickedTab.value?.id)
+  if (idx < 0) return
+  closeMany(
+    tabs.value
+      .slice(idx + 1)
+      .filter((t) => !t.pinned)
+      .map((t) => String(t.id))
+  )
+  hideTabMenu()
+}
+
+const onCloseAllTabs = (): void => {
+  closeMany(
+    tabs.value
+      .filter((t) => !t.pinned)
+      .map((t) => String(t.id))
+  )
+  hideTabMenu()
 }
 
 // ----- window controls (custom titlebar buttons → IPC → main) -----

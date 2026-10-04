@@ -43,36 +43,44 @@
     </template>
   </WorkbenchTabBar>
 
-  <Teleport to="body">
-    <div v-if="showTabMenu" class="context-menu" :style="{ left: tabMenuPosition.x + 'px', top: tabMenuPosition.y + 'px' }" @click.stop>
+  <WorkbenchTabMenu
+    :visible="showTabMenu"
+    :position="tabMenuPosition"
+    :pinned="!!rightClickedTab && pinnedTabs.has(rightClickedTab.id)"
+    :labels="tabMenuLabels"
+    @close="$emit('closeSingle', rightClickedTab)"
+    @close-other="$emit('closeOther')"
+    @close-left="$emit('closeLeft')"
+    @close-right="$emit('closeRight')"
+    @close-all="$emit('closeAll')"
+    @move-to-first="$emit('moveToFirst')"
+    @move-to-last="$emit('moveToLast')"
+    @toggle-pin="$emit('togglePin')"
+    @hide="$emit('hideTabMenu')"
+  >
+    <template #prepend>
       <div v-if="hasAnyConnected" class="menu-item" @click="$emit('disconnectAll')">{{ $t('tabs.disconnectAll') }}</div>
       <div v-else class="menu-item" @click="$emit('connectAll')">{{ $t('tabs.connectAll') }}</div>
       <div class="menu-divider" />
-      <div class="menu-item" @click="$emit('closeSingle', rightClickedTab)">{{ $t('tabs.close') }}</div>
-      <div class="menu-item" @click="$emit('closeOther')">{{ $t('tabs.closeOther') }}</div>
-      <div class="menu-item" @click="$emit('closeLeft')">{{ $t('tabs.closeLeft') }}</div>
-      <div class="menu-item" @click="$emit('closeRight')">{{ $t('tabs.closeRight') }}</div>
-      <div class="menu-item danger" @click="$emit('closeAll')">{{ $t('tabs.closeAll') }}</div>
-      <div class="menu-divider" />
-      <div class="menu-item" @click="$emit('moveToFirst')">{{ $t('tabs.moveToFirst') }}</div>
-      <div class="menu-item" @click="$emit('moveToLast')">{{ $t('tabs.moveToLast') }}</div>
-      <div class="menu-divider" />
+    </template>
+    <template #middle>
       <div class="menu-item" @click="$emit('splitToNewPanel')">{{ $t('tabs.splitToNewPanel') }}</div>
       <div class="menu-divider" />
-      <div class="menu-item" @click="$emit('togglePin')">{{ pinnedTabs.has(rightClickedTab?.id) ? $t('tabs.unpin') : $t('tabs.pin') }}</div>
-      <template v-if="rightClickedTab?.connectionType === 'com'">
-        <div class="menu-divider" />
-        <div class="menu-item" @click="$emit('openRemarkDialog')">{{ $t('tabs.editRemark') }}</div>
-      </template>
-    </div>
-  </Teleport>
+    </template>
+    <template v-if="rightClickedTab?.connectionType === 'com'" #append>
+      <div class="menu-divider" />
+      <div class="menu-item" @click="$emit('openRemarkDialog')">{{ $t('tabs.editRemark') }}</div>
+    </template>
+  </WorkbenchTabMenu>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { WorkbenchTab } from '@superx/shared/workbench/types'
 import { TOOLTIP_SHOW_AFTER } from '../../utils/constants'
 import WorkbenchTabBar from '@superx/foundation/workbench/WorkbenchTabBar.vue'
+import WorkbenchTabMenu from '@superx/foundation/workbench/WorkbenchTabMenu.vue'
 
 const props = defineProps<{
   connectionTabs: any[]
@@ -110,6 +118,20 @@ defineEmits<{
 
 const getConnectionTab = (id: string): any => props.connectionTabs.find(tab => tab.id.toString() === id)
 const getTitle = (tab: any): string => tab.name || `${tab.host || tab.comName}:${tab.port || ''}`
+
+// 基础层右键菜单文案（经 i18n 注入）
+const { t } = useI18n()
+const tabMenuLabels = computed(() => ({
+  close: t('tabs.close'),
+  closeOther: t('tabs.closeOther'),
+  closeLeft: t('tabs.closeLeft'),
+  closeRight: t('tabs.closeRight'),
+  closeAll: t('tabs.closeAll'),
+  moveToFirst: t('tabs.moveToFirst'),
+  moveToLast: t('tabs.moveToLast'),
+  pin: t('tabs.pin'),
+  unpin: t('tabs.unpin')
+}))
 const workbenchTabs = computed<WorkbenchTab[]>(() => props.connectionTabs.map(tab => ({
   id: tab.id.toString(),
   title: getTitle(tab),

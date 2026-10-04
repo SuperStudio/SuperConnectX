@@ -45,6 +45,8 @@
   --menu-item-hover-color: #fff;
   --menu-divider-color: #3a3a3a;
   --menu-divider-margin: 4px 0;
+  --menu-danger-color: #f56c6c;
+  --menu-danger-hover-bg: #f56c6c;
 
   --sidebar-bg: #252526;
   --sidebar-border: #1a1a1a;
@@ -137,6 +139,8 @@
   --menu-item-hover-bg: #e8f4fd;
   --menu-item-hover-color: #1a1a1a;
   --menu-divider-color: #e0e0e0;
+  --menu-danger-color: #d46060;
+  --menu-danger-hover-bg: #fde8e8;
 
   --sidebar-bg: #f3f3f3;
   --sidebar-border: #cccccc;

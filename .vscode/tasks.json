@@ -25,7 +25,7 @@
             }
         },
         {
-            "label": "template-app: 安装依赖",
+            "label": "demo: 安装依赖 (template-app)",
             "type": "shell",
             "command": "pnpm install --filter @superx/template-app..."
         },
