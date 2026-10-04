@@ -578,9 +578,24 @@ const initEditor = async () => {
     return false // 没有 \0，走默认复制
   }
 
+  // 检查焦点是否在 Find Widget 中
+  const isFocusInFindWidget = () => {
+    if (!editor) return false
+    const editorDomNode = editor.getDomNode()
+    if (!editorDomNode) return false
+    const activeElement = document.activeElement
+    // 检查焦点是否在 Find Widget 的输入框中
+    const findWidget = editorDomNode.querySelector('.find-widget')
+    return findWidget && findWidget.contains(activeElement)
+  }
+
   // 拦截 Ctrl+C / Cmd+C 键盘事件
   editor.onKeyDown((e) => {
     if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.keyCode === monaco.KeyCode.KeyC) {
+      // 如果焦点在 Find Widget 中，不拦截，让 Monaco 默认处理
+      if (isFocusInFindWidget()) {
+        return
+      }
       if (customCopy()) {
         e.preventDefault()
         e.stopPropagation()
@@ -588,12 +603,12 @@ const initEditor = async () => {
     }
   })
 
-  // 覆盖 Monaco 默认的 Copy action（处理右键菜单 "Copy"）
-  // 注意：addAction 的 id 与内置 action 冲突时，高优先级者胜出
+  // 添加右键菜单的 Copy 选项（不绑定快捷键，避免与 Find Widget 冲突）
   editor.addAction({
     id: 'editor.action.clipboardCopyWithNullReplacement',
     label: 'Copy',
-    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC],
+    // 不绑定快捷键，避免拦截 Find Widget 的 Ctrl+C
+    keybindings: [],
     precondition: undefined,
     run: () => {
       if (!customCopy()) {
