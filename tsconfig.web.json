@@ -9,6 +9,9 @@
     "packages/shared/src/**/*",
     "packages/foundation/src/**/*"
   ],
+  "exclude": [
+    "packages/foundation/src/main"
+  ],
   "compilerOptions": {
     "composite": true,
     "baseUrl": ".",

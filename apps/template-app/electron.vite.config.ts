@@ -4,8 +4,8 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   main: {
-    // @superx/shared 是 workspace 源码直出（TS），必须打包进产物而不是外置 require
-    plugins: [externalizeDepsPlugin({ exclude: ['@superx/shared'] })],
+    // @superx/shared 与 @superx/foundation 是 workspace 源码直出（TS），必须打包进产物而不是外置 require
+    plugins: [externalizeDepsPlugin({ exclude: ['@superx/shared', '@superx/foundation'] })],
     build: {
       outDir: resolve(__dirname, 'out/main'),
       rollupOptions: {
@@ -14,7 +14,9 @@ export default defineConfig({
     },
     resolve: {
       alias: {
-        '@shared': resolve(__dirname, 'src/shared')
+        '@shared': resolve(__dirname, 'src/shared'),
+        // 主进程引用 foundation/main 子树（托盘运行时 TrayManager）
+        '@superx/foundation': resolve(__dirname, '../../packages/foundation/src')
       }
     }
   },

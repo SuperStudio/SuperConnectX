@@ -5,10 +5,17 @@
     "apps/superconnectx/src/main/**/*",
     "apps/superconnectx/src/preload/**/*",
     "apps/superconnectx/src/core/**/*",
-    "apps/superconnectx/src/shared/**/*"
+    "apps/superconnectx/src/shared/**/*",
+    "packages/foundation/src/main/**/*"
   ],
   "compilerOptions": {
     "composite": true,
-    "types": ["electron-vite/node"]
+    "types": ["electron-vite/node"],
+    "baseUrl": ".",
+    "paths": {
+      "@superx/foundation/*": [
+        "packages/foundation/src/*"
+      ]
+    }
   }
 }

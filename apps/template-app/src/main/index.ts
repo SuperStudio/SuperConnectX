@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { COUNTER_CHANNEL, type CounterPayload } from '../shared/ipc/counter'
 import { registerWindowControlHandlers } from '@superx/shared/window'
+import { createTray, destroyTray, isQuitting } from './tray'
 
 /**
  * Module-level state — a single counter persisted in memory for the demo.
@@ -30,6 +31,17 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+  })
+
+  // 启动即创建托盘（与主应用 SuperConnectX 行为一致）
+  createTray(mainWindow)
+
+  // 关闭策略：默认隐藏到托盘（托盘菜单「退出」或 Cmd+Q 才真正退出）
+  mainWindow.on('close', (event) => {
+    if (!isQuitting()) {
+      event.preventDefault()
+      createTray(mainWindow).hideToTray(mainWindow)
+    }
   })
 
   // 自定义标题栏（titleBarStyle: 'hidden'）的窗口控制 IPC，实现见 @superx/shared/window
@@ -85,6 +97,10 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+app.on('before-quit', () => {
+  destroyTray()
 })
 
 app.on('window-all-closed', () => {

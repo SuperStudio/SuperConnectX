@@ -11,6 +11,12 @@ const repoRoot = resolve(here, '../..')
 
 export default defineConfig({
   main: {
+    resolve: {
+      alias: {
+        // workspace 包源码（免编译、改即生效）；主进程目前仅使用 foundation/main 子树（托盘运行时）
+        '@superx/foundation': resolve(repoRoot, 'packages/foundation/src')
+      }
+    },
     plugins: [externalizeDepsPlugin()],
     build: {
       outDir: resolve(here, 'out/main'), // 明确主进程输出到 out/main

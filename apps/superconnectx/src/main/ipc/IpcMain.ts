@@ -287,21 +287,8 @@ export default class IpcMain {
       return AppUpdater.getInstance().cachedUpdateInfo
     })
 
-    // 托盘菜单操作 IPC
-    ipcMain.on('tray-menu-action', (_event, action: string) => {
-      if (action === 'show-window') {
-        if (windows.mainWindow) {
-          if (windows.mainWindow.isMinimized()) {
-            windows.mainWindow.restore()
-          }
-          windows.mainWindow.show()
-          windows.mainWindow.focus()
-        }
-      } else if (action === 'quit-app') {
-        (app as any).isQuitting = true
-        app.quit()
-      }
-    })
+    // 托盘菜单操作 IPC（tray-menu-action）由基础层 TrayManager 统一分发，
+    // 见 @superx/foundation/main/tray/TrayManager；应用侧经 IpcTray 注入退出语义
 
     logger.info(`init IpcMain done`)
   }

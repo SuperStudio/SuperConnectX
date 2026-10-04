@@ -11,7 +11,8 @@
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["src/shared/*"],
-      "@superx/shared/*": ["../../packages/shared/src/*"]
+      "@superx/shared/*": ["../../packages/shared/src/*"],
+      "@superx/foundation/*": ["../../packages/foundation/src/*"]
     }
   }
 }

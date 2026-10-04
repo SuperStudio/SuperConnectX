@@ -10,6 +10,13 @@ const { mockApp } = vi.hoisted(() => ({
 
 vi.mock('electron', () => ({
   app: mockApp,
+  ipcMain: {
+    on: vi.fn(),
+    removeAllListeners: vi.fn()
+  },
+  screen: {
+    getPrimaryDisplay: vi.fn(() => ({ workAreaSize: { width: 1920, height: 1080 } }))
+  },
   Tray: class {
     _toolTip: string = ''
     setToolTip(tip: string) { this._toolTip = tip }
