@@ -52,16 +52,52 @@
     />
 
     <main class="main-area">
-      <WorkbenchTabBar
-        :tabs="displayTabs"
-        :active-tab-id="activeTabId"
-        :panel-id="''"
-        @select-tab="activate"
-        @hide-tab-menu="hideTabMenu"
-        @reorder-tabs="reorderTabs"
-        @toggle-pin="onActionPinToggle"
-        @tab-context-menu="onTabContextMenu"
-      />
+      <!-- 分屏工作区：基础层 SplitWorkspace（左右面板 + 拖拽分屏 + 分隔条拖拽） -->
+      <SplitWorkspace
+        :is-split="isSplit"
+        :split-ratio="splitRatio"
+        drop-hint="Drop tab to split"
+        @update-split-ratio="updateSplitRatio"
+        @tab-drop-to-pane="handleTabDropToPane"
+      >
+        <!-- 左面板：panel-0 -->
+        <template #left>
+          <div class="panel">
+            <WorkbenchTabBar
+              :tabs="panel0DisplayTabs"
+              :active-tab-id="splitState.panels[0]?.activeTabId || activeTabId"
+              :panel-id="'panel-0'"
+              @select-tab="(id: string) => selectInPanel('panel-0', id)"
+              @hide-tab-menu="hideTabMenu"
+              @reorder-tabs="reorderTabs"
+              @toggle-pin="onActionPinToggle"
+              @tab-context-menu="(e: MouseEvent, id: string) => onTabContextMenuInPanel('panel-0', e, id)"
+            />
+            <div :id="contentDomId('panel-0')" class="panel-content">
+              <div v-if="tabs.length === 0" class="empty-state">
+                Select a view from the sidebar to open a tab
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- 右面板：分屏时渲染 -->
+        <template #right>
+          <div v-for="panel in splitState.panels.slice(1)" :key="panel.id" class="panel">
+            <WorkbenchTabBar
+              :tabs="panelDisplayTabs(panel)"
+              :active-tab-id="panel.activeTabId"
+              :panel-id="panel.id"
+              @select-tab="(id: string) => selectInPanel(panel.id, id)"
+              @hide-tab-menu="hideTabMenu"
+              @reorder-tabs="reorderTabs"
+              @toggle-pin="onActionPinToggle"
+              @tab-context-menu="(e: MouseEvent, id: string) => onTabContextMenuInPanel(panel.id, e, id)"
+            />
+            <div :id="contentDomId(panel.id)" class="panel-content" />
+          </div>
+        </template>
+      </SplitWorkspace>
 
       <!-- 选项卡右键菜单：基础层 WorkbenchTabMenu（通用项，默认英文文案） -->
       <WorkbenchTabMenu
@@ -69,24 +105,33 @@
         :position="tabMenuPosition"
         :pinned="rightClickedTab ? isPinned(rightClickedTab.id) : false"
         @close="onMenuClose"
-        @close-other="onCloseOthers"
-        @close-left="onCloseToLeft"
-        @close-right="onCloseToRight"
-        @close-all="onCloseAllTabs"
+        @close-other="closeOtherTabsForPanel"
+        @close-left="closeLeftTabsForPanel"
+        @close-right="closeRightTabsForPanel"
+        @close-all="closeAllTabsForPanel"
         @move-to-first="moveTabToFirst"
         @move-to-last="moveTabToLast"
         @toggle-pin="togglePinContext"
         @hide="hideTabMenu"
-      />
+      >
+        <!-- 分屏入口：拖拽标签到右侧区域也可触发分屏 -->
+        <template #middle>
+          <div v-if="canSplit" class="menu-item" @click="handleSplitToNewPanel">
+            Split to New Panel
+          </div>
+        </template>
+      </WorkbenchTabMenu>
 
-      <div class="main-content">
-        <div v-if="displayTabs.length === 0" class="empty-state">
-          Select a view from the sidebar to open a tab
-        </div>
-        <CounterPanel v-else-if="activeTabId === 'counter'" />
-        <SettingsTab v-else-if="activeTabId === 'settings'" />
-        <AboutPanel v-else-if="activeTabId === 'about'" :app-name="appName" />
-      </div>
+      <!-- 内容池：所有视图组件在此渲染，通过 Teleport 分发到所属面板（实例不销毁） -->
+      <template v-for="tab in tabs" :key="tab.id">
+        <Teleport :to="`#${contentDomId(getTabPanelId(tab.id))}`">
+          <div v-show="isTabActiveInItsPanel(tab.id)" class="tab-content">
+            <CounterPanel v-if="tab.id === 'counter'" />
+            <SettingsTab v-else-if="tab.id === 'settings'" />
+            <AboutPanel v-else-if="tab.id === 'about'" :app-name="appName" />
+          </div>
+        </Teleport>
+      </template>
     </main>
 
     <template #statusbar>
@@ -123,6 +168,9 @@ import WorkbenchTabBar from '@superx/foundation/workbench/WorkbenchTabBar.vue'
 import WorkbenchTabMenu from '@superx/foundation/workbench/WorkbenchTabMenu.vue'
 import { useTheme } from '@superx/foundation/theme/useTheme'
 import ThemeSwitcher from '@superx/foundation/theme/ThemeSwitcher.vue'
+import SplitWorkspace from '@superx/foundation/workbench/SplitWorkspace.vue'
+import { useSplitWorkspace } from '@superx/foundation/workbench/useSplitWorkspace'
+import { useSplitPanelController } from '@superx/foundation/workbench/useSplitPanelController'
 import { useWorkbenchTabs } from '@superx/foundation/workbench/useWorkbenchTabs'
 import type { WorkbenchTab } from '@superx/shared/workbench/types'
 import CounterPanel from './features/counter/CounterPanel.vue'
@@ -186,9 +234,61 @@ const {
 
 // 控制器的固定状态存于 pinnedTabs Set；WorkbenchTabBar 读取 tab.pinned 属性，
 // 此处做与 SuperConnectX 相同的映射（含引用副本，避免直接改动控制器数据）
-const displayTabs = computed(() =>
-  tabs.value.map((t) => ({ ...t, pinned: isPinned(t.id) }))
-)
+const withPinState = (list: WorkbenchTab[]): WorkbenchTab[] =>
+  list.map((t) => ({ ...t, pinned: isPinned(t.id) }))
+
+// ----- 分屏工作区（基础层 useSplitWorkspace + useSplitPanelController） -----
+const { splitState, splitPanel, switchPanelTab, updateSplitRatio } = useSplitWorkspace()
+const splitRatio = computed(() => splitState.splitRatio)
+
+const splitPanelCtrl = useSplitPanelController<WorkbenchTab>({
+  tabs,
+  getTabId: (t) => t.id,
+  activeTabId,
+  splitState,
+  splitPanel,
+  showTabMenu,
+  rightClickedTab,
+  hideTabMenu,
+  closeTab: (tabId: string) => {
+    // 面板限定的批量关闭经此回调，保持「固定标签不被批量关闭」的语义
+    if (!isPinned(tabId)) removeTab(tabId)
+  }
+})
+const {
+  isSplit,
+  getTabPanelId,
+  isTabActiveInItsPanel,
+  handleSplitToNewPanel,
+  handleTabDropToPane,
+  closeOtherTabsForPanel,
+  closeLeftTabsForPanel,
+  closeRightTabsForPanel,
+  closeAllTabsForPanel
+} = splitPanelCtrl
+
+const contentDomId = (panelId: string): string => `content-${panelId}`
+
+// 各面板显示用的 tab 列表（panel-0 排除已分屏到其他面板的 tab）
+const panel0DisplayTabs = computed(() => withPinState(splitPanelCtrl.getPanel0Tabs()))
+const panelDisplayTabs = (panel: { id: string; tabIds: string[] }): WorkbenchTab[] =>
+  withPinState(splitPanelCtrl.getPanelTabs(panel))
+
+// 右键菜单的「分屏」入口：已分屏或 tab 不足时隐藏
+const canSplit = computed(() => !isSplit.value && tabs.value.length > 1)
+
+// 面板内选中 tab：同步面板激活项与全局激活项
+const selectInPanel = (panelId: string, tabId: string): void => {
+  switchPanelTab(panelId, tabId)
+  activate(tabId)
+}
+
+// 右键菜单：记录所在面板后打开基础层菜单
+const onTabContextMenuInPanel = (panelId: string, event: MouseEvent, tabId: string): void => {
+  splitPanelCtrl.rightClickedPanelId.value = panelId
+  const tab = tabs.value.find((t) => t.id === tabId)
+  if (tab) openTabContextMenu(event, tab)
+}
 
 /** 打开（或激活）指定视图对应的选项卡：侧边栏 / 页脚菜单的统一入口 */
 const openView = (id: string): void => {
@@ -222,64 +322,10 @@ const onActionPinToggle = (tabId: string): void => {
   }
 }
 
-// WorkbenchTabBar 上抛的是 tabId，需自行解析为 tab 对象再交给控制器
-const onTabContextMenu = (event: MouseEvent, tabId: string): void => {
-  const tab = tabs.value.find((t) => t.id === tabId)
-  if (tab) openTabContextMenu(event, tab)
-}
-
 // ----- tab context menu actions -----
 const onMenuClose = (): void => {
   const id = rightClickedTab.value?.id
   if (id !== undefined) onCloseTab(String(id))
-  hideTabMenu()
-}
-
-const closeMany = (ids: string[]): void => {
-  for (const id of ids) removeTab(id)
-}
-
-const onCloseOthers = (): void => {
-  const keep = rightClickedTab.value?.id
-  if (keep === undefined) return
-  closeMany(
-    tabs.value
-      .filter((t) => t.id !== keep && !t.pinned)
-      .map((t) => String(t.id))
-  )
-  hideTabMenu()
-}
-
-const onCloseToLeft = (): void => {
-  const idx = tabs.value.findIndex((t) => t.id === rightClickedTab.value?.id)
-  if (idx <= 0) return
-  closeMany(
-    tabs.value
-      .slice(0, idx)
-      .filter((t) => !t.pinned)
-      .map((t) => String(t.id))
-  )
-  hideTabMenu()
-}
-
-const onCloseToRight = (): void => {
-  const idx = tabs.value.findIndex((t) => t.id === rightClickedTab.value?.id)
-  if (idx < 0) return
-  closeMany(
-    tabs.value
-      .slice(idx + 1)
-      .filter((t) => !t.pinned)
-      .map((t) => String(t.id))
-  )
-  hideTabMenu()
-}
-
-const onCloseAllTabs = (): void => {
-  closeMany(
-    tabs.value
-      .filter((t) => !t.pinned)
-      .map((t) => String(t.id))
-  )
   hideTabMenu()
 }
 
@@ -324,6 +370,7 @@ defineExpose({ notify: (title: string, message: string) => notifierRef.value?.ad
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   background: var(--bg-primary);
   overflow: hidden;
 }
@@ -334,6 +381,30 @@ defineExpose({ notify: (title: string, message: string) => notifierRef.value?.ad
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.panel {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-content {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.tab-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
 }
 
 .empty-state {
