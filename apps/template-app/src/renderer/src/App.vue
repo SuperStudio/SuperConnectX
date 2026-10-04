@@ -28,8 +28,8 @@
           :key="item.id"
           type="button"
           class="sidebar-item"
-          :class="{ active: activeView === item.id }"
-          @click="activeView = item.id"
+          :class="{ active: activeTabId === item.id }"
+          @click="openView(item.id)"
         >
           {{ item.label }}
         </button>
@@ -80,7 +80,10 @@
       />
 
       <div class="main-content">
-        <CounterPanel v-if="activeTabId === 'counter'" />
+        <div v-if="displayTabs.length === 0" class="empty-state">
+          Select a view from the sidebar to open a tab
+        </div>
+        <CounterPanel v-else-if="activeTabId === 'counter'" />
         <SettingsTab v-else-if="activeTabId === 'settings'" />
         <AboutPanel v-else-if="activeTabId === 'about'" :app-name="appName" />
       </div>
@@ -150,8 +153,7 @@ const navItems = [
   { id: 'settings', label: 'Settings' },
   { id: 'about', label: 'About' }
 ] as const
-type ViewId = typeof navItems[number]['id']
-const activeView = ref<ViewId>('counter')
+type ViewId = (typeof navItems)[number]['id']
 
 // ----- sidebar footer menu (foundation SidebarFooter) -----
 const sidebarMenuItems = [
@@ -160,7 +162,7 @@ const sidebarMenuItems = [
 ]
 
 const handleSidebarCommand = (command: string): void => {
-  if (command === 'settings' || command === 'about') activeView.value = command
+  openView(command)
 }
 
 // ----- tab strip -----
@@ -188,15 +190,26 @@ const displayTabs = computed(() =>
   tabs.value.map((t) => ({ ...t, pinned: isPinned(t.id) }))
 )
 
-const seedTabs = (): void => {
+/** 打开（或激活）指定视图对应的选项卡：侧边栏 / 页脚菜单的统一入口 */
+const openView = (id: string): void => {
+  const existing = tabs.value.find((t) => t.id === id)
+  if (existing) {
+    activate(id)
+    return
+  }
+  const label = navItems.find((item) => item.id === id)?.label ?? id
+  tabsController.addTab(markRaw<WorkbenchTab>({ id, title: label }))
+}
+
+// 默认打开全部视图选项卡，激活第一个
+onMounted(() => {
   for (const item of navItems) {
     tabsController.addTab(markRaw<WorkbenchTab>({ id: item.id, title: item.label }))
   }
-  tabsController.activate('counter')
-}
+  activate(navItems[0].id)
+})
 
 const onCloseTab = (tabId: string): void => {
-  if (tabs.value.length <= 1) return
   removeTab(tabId)
 }
 
@@ -275,10 +288,6 @@ const onCloseAllTabs = (): void => {
 const { isMaximized, minimize: minimizeWindow, toggleMaximize: toggleMaximizeWindow, close: closeWindow } =
   useWindowControls(window.api.window)
 
-onMounted(() => {
-  seedTabs()
-})
-
 // ----- notifier (forwarded through ref) -----
 const notifierRef = ref<InstanceType<typeof NotificationCenter> | null>(null)
 defineExpose({ notify: (title: string, message: string) => notifierRef.value?.add(title, message) })
@@ -325,6 +334,16 @@ defineExpose({ notify: (title: string, message: string) => notifierRef.value?.ad
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #888);
+  font-size: 13px;
+  user-select: none;
 }
 
 .statusbar-section {
