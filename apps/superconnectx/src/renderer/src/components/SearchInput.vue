@@ -7,6 +7,7 @@
         v-model="searchText"
         @input="handleSearch"
         class="search-input"
+        spellcheck="false"
       />
       <button class="clear-btn" @click="clearSearch" v-if="searchText">×</button>
     </div>

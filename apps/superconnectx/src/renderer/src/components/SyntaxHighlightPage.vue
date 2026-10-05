@@ -84,6 +84,7 @@
                       v-model="rule.pattern"
                       size="small"
                       :placeholder="t('syntaxSettings.patternPlaceholder')"
+                      :spellcheck="false"
                       @input="onPatternChanged"
                     />
                   </td>

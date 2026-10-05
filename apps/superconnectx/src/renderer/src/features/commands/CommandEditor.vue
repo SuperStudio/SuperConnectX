@@ -12,7 +12,7 @@
 
       <!-- 搜索框 -->
       <div class="sidebar-search">
-        <el-input v-model="searchKeyword" size="small" :placeholder="t('commandEditor.searchPlaceholder')" prefix-icon="Search" clearable />
+        <el-input v-model="searchKeyword" size="small" :placeholder="t('commandEditor.searchPlaceholder')" prefix-icon="Search" clearable :spellcheck="false" />
       </div>
 
       <!-- 分组列表 -->
@@ -96,6 +96,7 @@
                 v-model="row.name"
                 size="small"
                 class="cell-input"
+                :spellcheck="false"
                 @change="updateCommand(row)"
                 @blur="updateCommand(row)"
               />
@@ -120,6 +121,7 @@
                 v-model="row.command"
                 size="small"
                 class="cell-command"
+                :spellcheck="false"
                 @change="updateCommand(row)"
                 @blur="updateCommand(row)"
               />
@@ -133,7 +135,7 @@
     <el-dialog v-model="showGroupDialog" :title="isEditingGroup ? t('commandEditor.editGroupTitle') : t('commandEditor.newGroupTitle')" width="400px" @opened="onGroupDialogOpened">
       <el-form :model="groupForm" label-width="80px" @submit.prevent @keydown.enter="saveGroup">
         <el-form-item :label="t('commandEditor.groupName')">
-          <el-input ref="groupNameInputRef" v-model="groupForm.name" :placeholder="t('commandEditor.groupNamePlaceholder')" />
+          <el-input ref="groupNameInputRef" v-model="groupForm.name" :placeholder="t('commandEditor.groupNamePlaceholder')" :spellcheck="false" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -704,13 +706,13 @@ onBeforeUnmount(() => {
 
 .command-table .el-table::before,
 .command-table .el-table::after,
-.command-table .el-table .el-table__body-wrapper::before,
-.command-table .el-table .el-table__header-wrapper::before,
-.command-table .el-table .el-table__header-wrapper::after,
-.command-table .el-table .el-table__header th::before,
-.command-table .el-table .el-table__header th::after,
-.command-table .el-table td::before,
-.command-table .el-table td::after,
+.command-table .el-table__body-wrapper::before,
+.command-table .el-table__header-wrapper::before,
+.command-table .el-table__header-wrapper::after,
+.command-table .el-table__header th::before,
+.command-table .el-table__header th::after,
+.command-table td::before,
+.command-table td::after,
 .command-table .el-table__row::before,
 .command-table .el-table__row::after,
 .command-table .el-table .el-table__body .el-table__row:last-child td {

@@ -107,6 +107,7 @@
                 size="small"
                 style="width: 200px"
                 :placeholder="defaultSettings.sendDisplayText || 'SEND>>>>>>>>>>>>>'"
+                :spellcheck="false"
               />
             </div>
             <div class="setting-item">
@@ -119,6 +120,7 @@
                 size="small"
                 style="width: 200px"
                 :placeholder="defaultSettings.recvDisplayText || ''"
+                :spellcheck="false"
               />
             </div>
           </div>
@@ -151,6 +153,7 @@
                   v-model="newBaudRate"
                   size="small"
                   style="width: 80px"
+                  :spellcheck="false"
                   @keyup.enter="confirmAddBaudRate"
                   @blur="confirmAddBaudRate"
                 />
@@ -222,7 +225,7 @@
                 <span class="label-text">{{ t('logSettings.logPath') }}</span>
               </div>
               <div class="path-input-wrapper">
-                <el-input v-model="settings.logPath" size="small" :placeholder="t('logSettings.logPathPlaceholder')" class="path-input" />
+                <el-input v-model="settings.logPath" size="small" :placeholder="t('logSettings.logPathPlaceholder')" class="path-input" :spellcheck="false" />
                 <el-button size="small" @click="selectLogDir" class="btn-primary path-btn">{{ t('logSettings.selectDir') }}</el-button>
               </div>
             </div>
@@ -235,7 +238,7 @@
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.logFileName') }}</span>
               </div>
-              <el-input v-model="settings.logFileName" size="small" :placeholder="t('logSettings.logFileNamePlaceholder')" style="width: 280px" />
+              <el-input v-model="settings.logFileName" size="small" :placeholder="t('logSettings.logFileNamePlaceholder')" style="width: 280px" :spellcheck="false" />
             </div>
             <div class="setting-item filename-hint-item">
               <div class="filename-hint">

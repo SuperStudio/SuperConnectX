@@ -17,6 +17,7 @@
           :model-value="remark"
           :placeholder="$t('dialog.remarkPlaceholder')"
           maxlength="50"
+          :spellcheck="false"
           @update:model-value="$emit('update:remark', $event)"
           @keydown.enter="$emit('save')"
         />

@@ -117,6 +117,7 @@
             @focus="onInputFocus"
             @blur="onInputBlur"
             rows="1"
+            spellcheck="false"
           ></textarea>
           <!-- 历史命令弹窗 -->
           <div v-if="showHistoryPopup && filteredHistory.length > 0" class="history-popup">

@@ -20,6 +20,7 @@ textarea,
   -webkit-user-select: text !important;
   -moz-user-select: text !important;
   -ms-user-select: text !important;
+  spellcheck: none !important;
 }
 
 /* 允许下拉选择框中的文本被选中 */
