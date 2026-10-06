@@ -11,9 +11,9 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "vue-tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "test": "vitest run",
+    "test": "npm run test:mcp && vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "npm run test:mcp && vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:integration:coverage": "vitest run --config vitest.integration.config.ts --coverage",
     "test:all": "npm test && npm run test:integration",
@@ -27,10 +27,20 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run typecheck && electron-vite build --config apps/superconnectx/electron.vite.config.ts && electron-builder --win",
     "build:mac": "electron-vite build --config apps/superconnectx/electron.vite.config.ts && electron-builder --mac",
-    "build:linux": "npm run build && electron-builder --linux"
+    "build:linux": "npm run build && electron-builder --linux",
+    "pretypecheck": "npm run build:mcp",
+    "pretest": "npm run build:mcp",
+    "pretest:coverage": "npm run build:mcp",
+    "pretest:integration": "npm run build:mcp",
+    "pretest:integration:coverage": "npm run build:mcp",
+    "build:mcp": "pnpm --dir packages/superconnectx-mcp run build && pnpm --dir packages/superconnectx-mcp-cli run build",
+    "test:mcp": "pnpm run build:mcp && pnpm --dir packages/superconnectx-mcp run test && pnpm exec vitest run tests/unit/McpServer.test.ts tests/unit/McpHttpServer.test.ts tests/unit/McpStdioServer.test.ts tests/unit/McpTemplateRegistry.test.ts tests/unit/McpWriteLeaseManager.test.ts tests/unit/SuperConnectXMcpFacade.test.ts",
+    "typecheck:mcp": "pnpm --dir packages/superconnectx-mcp run typecheck && pnpm --dir packages/superconnectx-mcp-cli run typecheck",
+    "sync:mcp-skill": "rm -rf skills/superconnectx-mcp resources/mcp/skill && mkdir -p skills/superconnectx-mcp resources/mcp/skill && rsync -a --exclude package.json packages/superconnectx-mcp-skill/ skills/superconnectx-mcp/ && rsync -a --exclude package.json packages/superconnectx-mcp-skill/ resources/mcp/skill/"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
+    "@superconnectx/mcp": "workspace:*",
     "@electron-toolkit/utils": "^4.0.0",
     "@element-plus/icons-vue": "^2.3.2",
     "@serialport/parser-readline": "^13.0.0",
@@ -51,7 +61,8 @@
     "telnet-client": "^2.2.9",
     "vue-i18n": "^11.4.4",
     "winston": "^3.19.0",
-    "winston-daily-rotate-file": "^5.0.0"
+    "winston-daily-rotate-file": "^5.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "3.0.0",

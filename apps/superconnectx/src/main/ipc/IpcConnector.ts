@@ -17,7 +17,10 @@ import DirectConnector from './connectors/DirectConnector'
 import FtpConnector from './connectors/FtpConnector'
 import ConnectionStateManager from './connectors/ConnectionStateManager'
 import path from 'path'
+import { randomUUID } from 'node:crypto'
 import { getAppDataDir } from '../utils/AppDir'
+import IpcSerialPort from './IpcSerialPort'
+import type { SessionSummary } from '../../shared/mcp/McpTypes'
 
 export default class IpcConnector {
   private static sInstance: IpcConnector
@@ -33,6 +36,7 @@ export default class IpcConnector {
   private _logger: ProtocolLogger | null = null
   private logSplitEnabled = true
   private logSplitSize = 20
+  private readonly mcpConnections = new Map<string, any>()
 
   // 是否启用 Worker 模式（可通过设置切换，默认启用）
   private useWorkerMode: boolean = true
@@ -109,7 +113,10 @@ export default class IpcConnector {
       logger.debug(JSON.stringify(debugConn))
       _logger.createConnLogFile(String(conn.sessionId), conn.name, conn.remark || '')
       this.initConnectionState(conn)
-      return this.routeStart(conn)
+      this.mcpConnections.set(String(conn.sessionId), conn)
+      const result = await this.routeStart(conn)
+      this.updateSessionStateFromResult(conn.sessionId, result)
+      return result
     })
 
     // start-connect-by-id（从存储中解密密码）
@@ -131,7 +138,10 @@ export default class IpcConnector {
       logger.debug(`start-connect-by-id conn: ${JSON.stringify(debugConn)}`)
       _logger.createConnLogFile(normalizedSessionId, conn.name, conn.remark || '')
       this.initConnectionState(conn)
-      return this.routeStart(conn)
+      this.mcpConnections.set(normalizedSessionId, conn)
+      const result = await this.routeStart(conn)
+      this.updateSessionStateFromResult(normalizedSessionId, result)
+      return result
     })
 
     // send-data
@@ -149,7 +159,9 @@ export default class IpcConnector {
 
     // stop-connect
     ipcMain.handle('stop-connect', async (_, conn: any) => {
-      return this.routeStop(conn)
+      const result = await this.routeStop(conn)
+      this.mcpConnections.delete(String(conn?.sessionId))
+      return result
     })
 
     // update-connect
@@ -284,9 +296,96 @@ export default class IpcConnector {
       : true
     this.stateManager.setLogTimestamp(sessionId, logTimestamp)
     this.stateManager.setConnectionType(sessionId, conn.connectionType)
+    this.stateManager.setSessionInfo({
+      sessionId: String(sessionId),
+      connectionType: String(conn.connectionType || 'unknown'),
+      name: typeof conn.name === 'string' ? conn.name : undefined,
+      endpoint: this.connectionEndpoint(conn),
+      owner: conn.owner === 'ai' ? 'ai' : 'user',
+      state: 'connecting'
+    })
     if (conn.connectionType === 'ftp' && conn.ftpMode) {
       this.stateManager.setFtpMode(sessionId, conn.ftpMode)
     }
+  }
+
+
+  private connectionEndpoint(conn: any): string | undefined {
+    if (typeof conn.comName === 'string' && conn.comName.length > 0) return conn.comName
+    if (typeof conn.host === 'string' && conn.host.length > 0) {
+      return conn.port ? `${conn.host}:${conn.port}` : conn.host
+    }
+    return undefined
+  }
+
+  private updateSessionStateFromResult(sessionId: string, result: object): void {
+    const success = (result as { success?: boolean } | undefined)?.success
+    if (success !== false) this.stateManager.updateSessionState(String(sessionId), 'connected')
+  }
+
+  /** Read-only bridge for MCP and other in-process adapters. */
+  listMcpSessions(): SessionSummary[] {
+    return this.stateManager.listSessions()
+  }
+
+  readMcpSession(sessionId: string, maxLines = 500): { sessionId: string; lines: string[]; truncated: boolean } {
+    return this.stateManager.readSession(sessionId, maxLines)
+  }
+
+  async getMcpLogFilePath(sessionId: string): Promise<{ success: boolean; filePath?: string; message?: string }> {
+    if (!this._logger) return { success: false, message: 'Protocol logger is not initialized' }
+    return this._logger.getLogFilePath(sessionId)
+  }
+
+  async sendMcpSession(sessionId: string, command: string): Promise<object> {
+    const conn = this.mcpConnections.get(String(sessionId))
+    if (!conn || !this.stateManager.listSessions().some((session) => session.sessionId === String(sessionId))) {
+      this.mcpConnections.delete(String(sessionId))
+      return { success: false, message: `Session not found: ${sessionId}` }
+    }
+    return await this.routeSend(conn, command)
+  }
+
+  async stopMcpSession(sessionId: string): Promise<object> {
+    const conn = this.mcpConnections.get(String(sessionId))
+    if (!conn) return { success: false, message: `Session not found: ${sessionId}` }
+    const result = await this.routeStop(conn)
+    this.mcpConnections.delete(String(sessionId))
+    return result
+  }
+
+  async uploadMcpSessionFile(sessionId: string, localFilePath: string, remoteFileName: string): Promise<object> {
+    const conn = this.mcpConnections.get(String(sessionId))
+    if (!conn) return { success: false, message: `Session not found: ${sessionId}` }
+    if (conn.connectionType !== 'ftp') return { success: false, message: 'File upload only supported for FTP sessions' }
+    return this.ftpConnector.uploadFile(conn, localFilePath, remoteFileName)
+  }
+
+  async startMcpSerialSession(port: string, baudRate = 115200, ownerId = 'mcp'): Promise<object> {
+    const available = await IpcSerialPort.getInstance().listSerialPorts(false) as Array<{ path?: string }>
+    if (!available.some((item) => item.path === port)) return { success: false, message: `Serial port is not available: ${port}` }
+    if (!Number.isInteger(baudRate) || baudRate < 1 || baudRate > 4_000_000) return { success: false, message: 'Invalid baud rate' }
+    const sessionId = `mcp-${randomUUID()}`
+    const conn = { sessionId, owner: 'ai', ownerId, name: `MCP ${port}`, connectionType: 'com', comName: port, baudRate, dataBits: 8, stopBits: 1, parity: 'none', encoding: 'utf8', receiveHex: false, logTimestamp: true }
+    this._logger?.createConnLogFile(sessionId, conn.name, '')
+    this.initConnectionState(conn)
+    this.mcpConnections.set(sessionId, conn)
+    const result = await this.routeStart(conn)
+    this.updateSessionStateFromResult(sessionId, result)
+    return { ...result, sessionId }
+  }
+
+  async startMcpSavedSession(connectionId: number, ownerId = 'mcp'): Promise<object> {
+    const storedConn = this.connectionStorage.getByIdWithPassword(connectionId)
+    if (!storedConn) return { success: false, message: `Connection not found: ${connectionId}` }
+    const sessionId = `mcp-${randomUUID()}`
+    const conn = { ...storedConn, sessionId, owner: 'ai', ownerId }
+    this._logger?.createConnLogFile(sessionId, conn.name || String(connectionId), conn.remark || '')
+    this.initConnectionState(conn)
+    this.mcpConnections.set(sessionId, conn)
+    const result = await this.routeStart(conn)
+    this.updateSessionStateFromResult(sessionId, result)
+    return { ...result, sessionId }
   }
 
   // ============ 日志设置应用 ============

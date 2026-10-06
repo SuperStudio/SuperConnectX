@@ -17,7 +17,7 @@ export default defineConfig({
         '@superx/foundation': resolve(repoRoot, 'packages/foundation/src')
       }
     },
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ['@superconnectx/mcp'] })],
     build: {
       outDir: resolve(here, 'out/main'), // 明确主进程输出到 out/main
       rollupOptions: {

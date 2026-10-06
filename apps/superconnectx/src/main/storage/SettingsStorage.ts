@@ -26,6 +26,10 @@ interface SyntaxRuleGroup {
 }
 
 interface Settings extends Record<string, any> {
+  mcpEnabled?: boolean
+  mcpPort?: number
+  mcpAccessMode?: 'read-only' | 'read-write' | 'full'
+  mcpAllowExport?: boolean
   // 基本设置
   minimizeToTray?: boolean
   notificationDuration?: number
@@ -74,6 +78,10 @@ interface Settings extends Record<string, any> {
 }
 
 const defaultSettings: Settings = {
+  mcpEnabled: false,
+  mcpPort: 32180,
+  mcpAccessMode: 'read-only',
+  mcpAllowExport: false,
   // 基本设置
   minimizeToTray: false,
   notificationDuration: 0,

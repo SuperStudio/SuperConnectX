@@ -432,6 +432,133 @@
               </el-button>
             </div>
           </div>
+
+        </div>
+
+        <!-- MCP -->
+        <div v-else-if="activeCategory === 'mcp'" class="settings-group">
+          <div class="group-section">
+            <div class="group-title">{{ t('mcpSettings.serviceTitle') }}</div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('mcpSettings.enable') }}</span>
+                <span class="label-desc">{{ t('mcpSettings.enableDesc') }}</span>
+              </div>
+              <el-switch class="terminal-switch" v-model="mcpSettings.enabled" @change="saveMcpSettings" />
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('mcpSettings.port') }}</span>
+                <span class="label-desc">{{ t('mcpSettings.portDesc') }}</span>
+              </div>
+              <el-input-number v-model="mcpSettings.port" :min="1024" :max="65535" size="small" @change="saveMcpSettings" />
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('mcpSettings.accessMode') }}</span>
+                <span class="label-desc">{{ t('mcpSettings.accessModeDesc') }}</span>
+              </div>
+              <el-radio-group class="mode-radio-group" v-model="mcpSettings.accessMode" size="small" @change="saveMcpSettings">
+                <el-radio-button label="read-only">{{ t('mcpSettings.modeReadOnly') }}</el-radio-button>
+                <el-radio-button label="read-write">{{ t('mcpSettings.modeReadWrite') }}</el-radio-button>
+                <el-radio-button label="full">{{ t('mcpSettings.modeFull') }}</el-radio-button>
+              </el-radio-group>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('mcpSettings.allowExport') }}</span>
+                <span class="label-desc">{{ t('mcpSettings.allowExportDesc') }}</span>
+              </div>
+              <el-switch
+                class="terminal-switch"
+                v-model="mcpSettings.allowExport"
+                :disabled="mcpSettings.accessMode !== 'full'"
+                @change="saveMcpSettings"
+              />
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('mcpSettings.status') }}</span>
+              </div>
+              <el-tag size="small" effect="dark" class="mcp-status-tag" :class="{ 'is-enabled': mcpStatus.enabled }">
+                {{ mcpStatus.enabled ? t('mcpSettings.statusRunning') : t('mcpSettings.statusDisabled') }}
+              </el-tag>
+            </div>
+          </div>
+
+          <div class="group-section">
+            <div class="group-title">{{ t('mcpSettings.accessTitle') }}</div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('mcpSettings.endpoint') }}</span>
+                <span class="label-desc">{{ t('mcpSettings.endpointDesc') }}</span>
+              </div>
+              <div class="path-input-wrapper">
+                <el-input :model-value="mcpConfig.endpoint || t('mcpSettings.endpointDisabled')" readonly size="small" class="path-input mcp-path-input" />
+                <el-button size="small" class="btn-primary path-btn" :disabled="!mcpConfig.endpoint" @click="copyMcpConfig">{{ t('mcpSettings.copy') }}</el-button>
+              </div>
+            </div>
+            <div class="setting-item" v-if="mcpConfig.token">
+              <div class="setting-label">
+                <span class="label-text">{{ t('mcpSettings.token') }}</span>
+                <span class="label-desc">{{ t('mcpSettings.tokenDesc') }}</span>
+              </div>
+              <div class="path-input-wrapper">
+                <el-input :model-value="mcpConfig.token" readonly size="small" show-password class="path-input mcp-path-input" />
+                <el-button size="small" class="btn-primary path-btn" @click="copyMcpConfig">{{ t('mcpSettings.copy') }}</el-button>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('mcpSettings.rotateToken') }}</span>
+                <span class="label-desc">{{ t('mcpSettings.rotateTokenDesc') }}</span>
+              </div>
+              <el-button size="small" class="btn-primary" style="width: auto !important" :disabled="!mcpStatus.enabled" @click="rotateMcpToken">
+                {{ t('mcpSettings.rotateTokenButton') }}
+              </el-button>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('mcpSettings.refresh') }}</span>
+                <span class="label-desc">{{ t('mcpSettings.refreshDesc') }}</span>
+              </div>
+              <el-button size="small" class="btn-primary" style="width: auto !important" @click="loadMcpConfig">{{ t('mcpSettings.refreshButton') }}</el-button>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('mcpSettings.importTemplate') }}</span>
+                <span class="label-desc">{{ t('mcpSettings.importTemplateDesc') }}</span>
+              </div>
+              <el-button size="small" class="btn-primary" style="width: auto !important" @click="importMcpTemplate">{{ t('mcpSettings.importTemplateButton') }}</el-button>
+            </div>
+          </div>
+
+          <div class="group-section">
+            <div class="group-title">{{ t('mcpSettings.skillTitle') }}</div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <span class="label-text">{{ t('mcpSettings.installSkill') }}</span>
+                <span class="label-desc">{{ t('mcpSettings.installSkillDesc') }}</span>
+              </div>
+              <div class="path-input-wrapper">
+                <el-button size="small" class="btn-primary path-btn" @click="installMcpSkill">{{ t('mcpSettings.installSkillButton') }}</el-button>
+                <el-button size="small" class="btn-primary path-btn" @click="copySkillGitCommand">{{ t('mcpSettings.copyGitCommand') }}</el-button>
+                <el-button size="small" class="btn-primary path-btn" @click="copyCliInstallCommand">{{ t('mcpSettings.copyCliCommand') }}</el-button>
+              </div>
+            </div>
+            <div class="setting-item" v-if="mcpSkillInfo.targets.length">
+              <div class="setting-label">
+                <span class="label-text">{{ t('mcpSettings.installTargets') }}</span>
+                <span class="label-desc">{{ t('mcpSettings.installTargetsDesc') }}</span>
+              </div>
+              <el-input
+                :model-value="mcpSkillInfo.targets.map((item) => item.path).join(' | ')"
+                readonly
+                size="small"
+                class="mcp-path-input mcp-path-input-wide"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </SettingsLayout>
@@ -492,6 +619,7 @@ settingsRegistry.register({ key: 'log', getLabel: () => t('settingsNav.log'), or
 settingsRegistry.register({ key: 'syntax', getLabel: () => t('settingsNav.syntax'), order: 30 })
 settingsRegistry.register({ key: 'history', getLabel: () => t('settingsNav.history'), order: 40 })
 settingsRegistry.register({ key: 'backup', getLabel: () => t('settingsNav.backup'), order: 50 })
+settingsRegistry.register({ key: 'mcp', getLabel: () => t('settingsNav.mcp'), order: 60 })
 const categories = computed(() => settingsRegistry.getCategories())
 
 // 默认配置从后端获取
@@ -499,6 +627,81 @@ const defaultSettings = ref<Record<string, any>>({})
 
 const settings = ref<Record<string, any>>({})
 let isLoading = true
+const mcpStatus = ref({ enabled: false, port: null as number | null, endpoint: null as string | null })
+const mcpConfig = ref({ endpoint: null as string | null, token: null as string | null })
+const mcpSettings = ref({ enabled: false, port: 32180, accessMode: 'read-only' as 'read-only' | 'read-write' | 'full', allowExport: false })
+const mcpSkillInfo = ref({
+  targets: [] as Array<{ id: string; path: string }>,
+  commands: { gitClone: '', cliInstall: '', symlink: '' }
+})
+
+const loadMcpConfig = async () => {
+  try {
+    mcpSettings.value = await window.mcpApi.getSettings()
+    mcpStatus.value = await window.mcpApi.getStatus()
+    mcpConfig.value = await window.mcpApi.getClientConfig()
+    mcpSkillInfo.value = await window.mcpApi.getSkillInstallInfo()
+  } catch { /* MCP may be unavailable in tests */ }
+}
+const saveMcpSettings = async () => {
+  try {
+    // Vue ref values are reactive proxies and cannot cross Electron's structured-clone IPC boundary.
+    const payload = {
+      enabled: Boolean(mcpSettings.value.enabled),
+      port: Number(mcpSettings.value.port),
+      accessMode: mcpSettings.value.accessMode,
+      allowExport: Boolean(mcpSettings.value.allowExport)
+    }
+    await window.mcpApi.saveSettings(payload)
+    await loadMcpConfig()
+    ElMessage.success(t('mcpSettings.saved'))
+  } catch (error) { ElMessage.error(error instanceof Error ? error.message : t('mcpSettings.saveFailed')) }
+}
+const importMcpTemplate = async () => {
+  try {
+    const result = await window.dialogApi.openFileDialog({ properties: ['openFile'], filters: [{ name: 'MCP Template', extensions: ['json'] }] })
+    const filePath = result?.filePaths?.[0]
+    if (!filePath) return
+    const template = await window.mcpApi.importTemplate(filePath)
+    ElMessage.success(t('mcpSettings.templateImported', { name: template.name, version: template.version }))
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : t('mcpSettings.templateImportFailed'))
+  }
+}
+const copyMcpConfig = async () => {
+  if (!mcpConfig.value.endpoint || !mcpConfig.value.token) return
+  await navigator.clipboard.writeText(JSON.stringify({ endpoint: mcpConfig.value.endpoint, token: mcpConfig.value.token }, null, 2))
+  ElMessage.success(t('mcpSettings.configCopied'))
+}
+const rotateMcpToken = async () => {
+  try {
+    await ElMessageBox.confirm(t('mcpSettings.rotateConfirm'), t('mcpSettings.rotateTitle'), { type: 'warning' })
+    const token = await window.mcpApi.rotateToken()
+    if (token) {
+      mcpConfig.value.token = token
+      ElMessage.success(t('mcpSettings.rotateSuccess'))
+    }
+  } catch { /* cancelled */ }
+}
+const installMcpSkill = async () => {
+  try {
+    const result = await window.mcpApi.installSkill()
+    mcpSkillInfo.value = await window.mcpApi.getSkillInstallInfo()
+    ElMessage.success(t('mcpSettings.skillInstalled', { paths: result.installed.map((item) => item.path).join(' , ') }))
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : t('mcpSettings.skillInstallFailed'))
+  }
+}
+const copySkillGitCommand = async () => {
+  if (!mcpSkillInfo.value.commands.gitClone) mcpSkillInfo.value = await window.mcpApi.getSkillInstallInfo()
+  await navigator.clipboard.writeText(mcpSkillInfo.value.commands.gitClone)
+  ElMessage.success(t('mcpSettings.gitCopied'))
+}
+const copyCliInstallCommand = async () => {
+  if (!mcpSkillInfo.value.commands.cliInstall) mcpSkillInfo.value = await window.mcpApi.getSkillInstallInfo()
+  await navigator.clipboard.writeText(mcpSkillInfo.value.commands.cliInstall)
+  ElMessage.success(t('mcpSettings.cliCopied'))
+}
 
 const loadDefaultSettings = async () => {
   try {
@@ -790,6 +993,7 @@ onMounted(async () => {
   await loadDefaultSettings()
   await loadSettings()
   await loadActiveCategory()
+  await loadMcpConfig()
 })
 
 onUnmounted(() => {
@@ -1278,4 +1482,24 @@ const handleSettingsUpdated = (event: Event) => {
 }
 
 
+.mcp-status-tag {
+  background: var(--settings-baudrate-tag-bg);
+  border-color: var(--settings-baudrate-tag-border);
+  color: var(--settings-baudrate-tag-color);
+}
+
+.mcp-status-tag.is-enabled {
+  background: color-mix(in srgb, var(--focus-border-color) 28%, var(--settings-baudrate-tag-bg));
+  border-color: var(--focus-border-color);
+  color: var(--settings-label-text);
+}
+
+.mcp-path-input {
+  width: 280px;
+}
+
+.mcp-path-input-wide {
+  width: 420px;
+  max-width: 100%;
+}
 </style>

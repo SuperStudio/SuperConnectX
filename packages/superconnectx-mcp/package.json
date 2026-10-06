@@ -1,0 +1,26 @@
+{
+  "name": "@superconnectx/mcp",
+  "version": "0.1.0",
+  "description": "Standalone SuperConnectX MCP tool core and transports",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./cli": { "types": "./dist/cli.d.ts", "import": "./dist/cli.js" },
+    "./server": { "types": "./dist/server.d.ts", "import": "./dist/server.js" },
+    "./transports": { "types": "./dist/transports.d.ts", "import": "./dist/transports.js" },
+    "./templates": { "types": "./dist/templates.d.ts", "import": "./dist/templates.js" },
+    "./leases": { "types": "./dist/leases.d.ts", "import": "./dist/leases.js" },
+    "./log-analysis": { "types": "./dist/log-analysis.d.ts", "import": "./dist/log-analysis.js" },
+    "./result": { "types": "./dist/result.d.ts", "import": "./dist/result.js" },
+    "./audit": { "types": "./dist/audit.d.ts", "import": "./dist/audit.js" },
+    "./types": { "types": "./dist/types.d.ts", "import": "./dist/types.js" },
+    "./developer-profile": { "types": "./dist/developer-profile.d.ts", "import": "./dist/developer-profile.js" }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": { "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit", "test": "node --test", "pack:check": "npm pack --dry-run" },
+  "dependencies": { "@modelcontextprotocol/sdk": "^1.30.0", "serialport": "^13.0.0", "zod": "^4.4.3" },
+  "devDependencies": { "@types/node": "^22.18.6", "typescript": "^5.9.2" },
+  "engines": { "node": ">=20" }
+}

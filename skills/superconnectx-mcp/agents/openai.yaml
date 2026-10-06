@@ -1,0 +1,4 @@
+interface:
+  display_name: "SuperConnectX MCP（中文）"
+  short_description: "通过 MCP 诊断 SuperConnectX 设备和日志"
+  default_prompt: "使用 $superconnectx-mcp 检查 SuperConnectX 会话，用中文解释证据和结论。"
