@@ -21,7 +21,7 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --experimental-strip-types --test test/smoke.test.mjs"
+    "test": "tsc -p tsconfig.json && node --test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
