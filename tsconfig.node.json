@@ -6,7 +6,8 @@
     "apps/superconnectx/src/preload/**/*",
     "apps/superconnectx/src/core/**/*",
     "apps/superconnectx/src/shared/**/*",
-    "packages/foundation/src/main/**/*"
+    "packages/foundation/src/main/**/*",
+    "packages/superconnectx-mcp/src/**/*"
   ],
   "compilerOptions": {
     "composite": true,
@@ -15,7 +16,9 @@
     "paths": {
       "@superx/foundation/*": [
         "packages/foundation/src/*"
-      ]
+      ],
+      "@superx/mcp": ["packages/superconnectx-mcp/src/index.ts"],
+      "@superx/mcp/*": ["packages/superconnectx-mcp/src/*"]
     }
   }
 }

@@ -1,0 +1,24 @@
+{
+  "name": "@superx/mcp-skill",
+  "version": "0.1.0",
+  "description": "Git-friendly Codex/Agent skill for SuperConnectX MCP (docs only, no runtime)",
+  "private": false,
+  "files": [
+    "SKILL.md",
+    "INSTALL.md",
+    "references",
+    "agents"
+  ],
+  "keywords": [
+    "superconnectx",
+    "mcp",
+    "skill",
+    "codex",
+    "serial"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SuperStudio/SuperConnectX.git",
+    "directory": "packages/superconnectx-mcp-skill"
+  }
+}

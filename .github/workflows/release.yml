@@ -97,6 +97,9 @@ jobs:
       # cpu-features / dtrace-provider（ssh2 的 optional 加速依赖）已通过 pnpm-workspace.yaml 的
       # ignoredOptionalDependencies 根本不安装 —— electron-builder install-app-deps 扫描不到，
       # 无需再在 CI 里手动删除（旧删除步骤写的是 npm 布局路径，pnpm 布局下本来就是无效操作）。
+      - name: Build and test MCP packages
+        run: npm run test:mcp
+
 
       - name: Run tests
         run: npm test

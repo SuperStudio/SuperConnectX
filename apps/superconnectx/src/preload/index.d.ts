@@ -109,6 +109,21 @@ declare global {
       toggleFullscreenWindow: () => Promise<void>
       onMaximizedChanged: (callback: (maximized: boolean) => void) => () => void
     }
+    mcpApi: {
+      getStatus: () => Promise<{ enabled: boolean; port: number | null; endpoint: string | null }>
+      getClientConfig: () => Promise<{ endpoint: string | null; token: string | null }>
+      rotateToken: () => Promise<string | null>
+      importTemplate: (filePath: string) => Promise<{ id: string; version: number; name: string }>
+      getSettings: () => Promise<{ enabled: boolean; port: number; accessMode: 'read-only' | 'read-write' | 'full'; allowExport: boolean }>
+      saveSettings: (settings: { enabled: boolean; port: number; accessMode: 'read-only' | 'read-write' | 'full'; allowExport: boolean }) => Promise<boolean>
+      start: () => Promise<boolean>
+      stop: () => Promise<boolean>
+      installSkill: () => Promise<{ source: string; installed: Array<{ id: string; path: string }> }>
+      getSkillInstallInfo: () => Promise<{
+        targets: Array<{ id: string; path: string }>
+        commands: { gitClone: string; cliInstall: string; symlink: string }
+      }>
+    }
     toolApi: {
       openDevtools: () => Promise<void>
       getAppResource: () => Promise<any>

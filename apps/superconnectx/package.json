@@ -5,5 +5,8 @@
   "private": true,
   "main": "./out/main/index.js",
   "author": "SuperStudio",
-  "homepage": "https://github.com/SuperStudio/SuperConnectX"
+  "homepage": "https://github.com/SuperStudio/SuperConnectX",
+  "dependencies": {
+    "@superx/mcp": "workspace:*"
+  }
 }

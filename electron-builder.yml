@@ -21,6 +21,8 @@ extraResources:
     to: icon.png
   - from: apps/superconnectx/resources/exe/setup.exe
     to: exe/setup.exe
+  - from: resources/mcp
+    to: mcp
 asarUnpack:
   - node_modules/serialport/**
   - node_modules/@serialport/**

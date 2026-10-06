@@ -1,0 +1,16 @@
+{
+  "id": "generic.serial",
+  "version": 1,
+  "name": "通用串口设备",
+  "description": "适用于 AT/文本命令型设备的安全只读模板。",
+  "connectionTypes": ["serial"],
+  "permissions": { "defaultMode": "read-only", "allowWrite": false },
+  "commands": [
+    { "id": "help", "label": "帮助", "text": "help", "lineEnding": "CRLF", "risk": "read" },
+    { "id": "version", "label": "版本", "text": "version", "lineEnding": "CRLF", "risk": "read" }
+  ],
+  "logEvents": [
+    { "id": "error", "level": "error", "pattern": "\\b(error|fail(ed)?)\\b", "summary": "设备报告错误" },
+    { "id": "timeout", "level": "warning", "pattern": "\\btimeout\\b", "summary": "设备或网络超时" }
+  ]
+}

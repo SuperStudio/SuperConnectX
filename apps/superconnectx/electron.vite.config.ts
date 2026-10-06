@@ -13,11 +13,11 @@ export default defineConfig({
   main: {
     resolve: {
       alias: {
-        // workspace 包源码（免编译、改即生效）；主进程目前仅使用 foundation/main 子树（托盘运行时）
-        '@superx/foundation': resolve(repoRoot, 'packages/foundation/src')
+        '@superx/foundation': resolve(repoRoot, 'packages/foundation/src'),
+        '@superx/mcp': resolve(repoRoot, 'packages/superconnectx-mcp/src')
       }
     },
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ['@superx/mcp'] })],
     build: {
       outDir: resolve(here, 'out/main'), // 明确主进程输出到 out/main
       rollupOptions: {

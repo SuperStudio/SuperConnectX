@@ -7,12 +7,15 @@
  */
 import { BrowserWindow } from 'electron'
 import ProtocolLogger from '../../utils/ProtocolLogger'
+import type { SessionSummary } from '../../../shared/mcp/McpTypes'
 
 export default class ConnectionStateManager {
   private receiveHexMap = new Map<string, boolean>()
   private logTimestampMap = new Map<string, boolean>()
   private connectionTypeMap = new Map<string, string>()
   private ftpModeMap = new Map<string, string>()
+  private sessionInfoMap = new Map<string, SessionSummary>()
+  private receiveBufferMap = new Map<string, string[]>()
 
   // 外部依赖（由 IpcConnector 注入）
   private windows: { mainWindow?: BrowserWindow | null } = { mainWindow: undefined }
@@ -52,6 +55,20 @@ export default class ConnectionStateManager {
     return this.connectionTypeMap.get(sessionId)
   }
 
+  setSessionInfo(info: SessionSummary): void {
+    this.sessionInfoMap.set(info.sessionId, { ...info })
+    if (!this.receiveBufferMap.has(info.sessionId)) this.receiveBufferMap.set(info.sessionId, [])
+  }
+
+  updateSessionState(sessionId: string, state: SessionSummary['state']): void {
+    const current = this.sessionInfoMap.get(sessionId)
+    if (current) this.sessionInfoMap.set(sessionId, { ...current, state })
+  }
+
+  listSessions(): SessionSummary[] {
+    return Array.from(this.sessionInfoMap.values(), (session) => ({ ...session }))
+  }
+
   setFtpMode(sessionId: string, value: string): void {
     this.ftpModeMap.set(sessionId, value)
   }
@@ -75,6 +92,8 @@ export default class ConnectionStateManager {
     this.logTimestampMap.delete(sessionId)
     this.connectionTypeMap.delete(sessionId)
     this.ftpModeMap.delete(sessionId)
+    this.sessionInfoMap.delete(sessionId)
+    this.receiveBufferMap.delete(sessionId)
 
     // 通知渲染进程
     const wc = this.windows.mainWindow?.webContents
@@ -95,6 +114,10 @@ export default class ConnectionStateManager {
    * 发送数据到渲染进程
    */
   sendDataToRenderer(sessionId: string, data: string, timestamp: string, isHex: boolean): void {
+    const buffer = this.receiveBufferMap.get(sessionId) ?? []
+    buffer.push(data)
+    if (buffer.length > 2_000) buffer.splice(0, buffer.length - 2_000)
+    this.receiveBufferMap.set(sessionId, buffer)
     const wc = this.windows.mainWindow?.webContents
     if (!wc || wc.isDestroyed()) return
     wc.send('on-recv-data', {
@@ -103,6 +126,13 @@ export default class ConnectionStateManager {
       timestamp,
       isHex
     })
+  }
+
+  readSession(sessionId: string, maxLines = 500): { sessionId: string; lines: string[]; truncated: boolean } {
+    const buffer = this.receiveBufferMap.get(sessionId)
+    if (!buffer) throw new Error(`Session not found: ${sessionId}`)
+    const lines = buffer.slice(-Math.min(Math.max(maxLines, 1), 2_000))
+    return { sessionId, lines, truncated: lines.length < buffer.length }
   }
 
 }

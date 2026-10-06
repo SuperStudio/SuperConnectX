@@ -1,0 +1,36 @@
+{
+  "name": "@superx/mcp",
+  "version": "0.1.0",
+  "description": "Framework-grade MCP runtime for SuperStudio desktop apps. No device or GUI knowledge.",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./cli": "./src/cli.ts",
+    "./cli.js": "./src/cli.ts",
+    "./server": "./src/server.ts",
+    "./transports": "./src/transports.ts",
+    "./templates": "./src/templates.ts",
+    "./leases": "./src/leases.ts",
+    "./log-analysis": "./src/log-analysis.ts",
+    "./result": "./src/result.ts",
+    "./audit": "./src/audit.ts",
+    "./types": "./src/types.ts",
+    "./developer-profile": "./src/developer-profile.ts",
+    "./native-facade": "./src/native-facade.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsc -p tsconfig.json && node --test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "serialport": "^13.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.6",
+    "typescript": "^5.9.2"
+  },
+  "engines": { "node": ">=20" }
+}
