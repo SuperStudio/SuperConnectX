@@ -84,23 +84,23 @@ export class NativeMcpFacade implements McpFacade {
     })
   }
 
-  async analyzeLog(sessionId: string, templateId: string, options: { maxBytes?: number } = {}) {
+  async analyzeLog(sessionId: string, templateId: string, _options: { maxBytes?: number } = {}) {
     const template = this.requireTemplate(templateId)
     const tail = await this.readLogTail(sessionId, { maxLines: 10_000 })
     return analyzeLogLines(sessionId, templateId, tail.lines, template, tail.truncated)
   }
 
-  async summarizeLog(sessionId: string, options: { maxBytes?: number } = {}) {
+  async summarizeLog(sessionId: string, _options: { maxBytes?: number } = {}) {
     const tail = await this.readLogTail(sessionId, { maxLines: 10_000 })
     return summarizeLogLines(sessionId, tail.lines, tail.truncated)
   }
 
-  async findLogAnomalies(sessionId: string, options: { maxBytes?: number } = {}) {
+  async findLogAnomalies(sessionId: string, _options: { maxBytes?: number } = {}) {
     const tail = await this.readLogTail(sessionId, { maxLines: 10_000 })
     return findLogAnomalies(sessionId, tail.lines, tail.truncated)
   }
 
-  async compareLogs(leftSessionId: string, rightSessionId: string, options: { maxBytes?: number } = {}) {
+  async compareLogs(leftSessionId: string, rightSessionId: string, _options: { maxBytes?: number } = {}) {
     const [left, right] = await Promise.all([
       this.readLogTail(leftSessionId, { maxLines: 10_000 }),
       this.readLogTail(rightSessionId, { maxLines: 10_000 })
