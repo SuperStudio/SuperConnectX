@@ -6,9 +6,9 @@ MCP 跟随主应用发布，不单独建发布仓库或发布流水线。
 
 | 组件 | 位置 | 作用 |
 | --- | --- | --- |
-| MCP 核心 | `packages/superconnectx-mcp` | 工具契约、权限、STDIO/HTTP、模板和写租约 |
-| CLI | `packages/superconnectx-mcp-cli` | 不打开桌面端时使用的 `scx-mcp` |
-| Skill | `packages/superconnectx-mcp-skill` | AI 调用说明，不含运行时 |
+| MCP 核心 | `packages/superconnectx-mcp`（`@superx/mcp`） | 工具契约、权限、STDIO/HTTP、模板和写租约。源码直连，不预编译 |
+| CLI | `packages/superconnectx-mcp-cli`（`@superx/mcp-cli`） | 应用侧启动器，消费 `@superx/mcp` |
+| Skill | `packages/superconnectx-mcp-skill`（`@superx/mcp-skill`） | AI 调用说明，不含运行时 |
 | 桌面接入 | `apps/superconnectx/src/main/mcp` | 复用 GUI 已有连接和日志 |
 
 ## 本地验证

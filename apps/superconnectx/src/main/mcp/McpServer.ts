@@ -1,1 +1,1 @@
-export { createMcpServer } from '@superconnectx/mcp/server'
+export { createMcpServer } from '@superx/mcp/server'

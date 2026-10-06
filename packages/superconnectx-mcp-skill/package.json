@@ -1,5 +1,5 @@
 {
-  "name": "@superconnectx/mcp-skill",
+  "name": "@superx/mcp-skill",
   "version": "0.1.0",
   "description": "Git-friendly Codex/Agent skill for SuperConnectX MCP (docs only, no runtime)",
   "private": false,

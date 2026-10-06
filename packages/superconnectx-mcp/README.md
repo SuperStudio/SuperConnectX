@@ -1,4 +1,4 @@
-# @superconnectx/mcp
+# @superx/mcp
 
 SuperConnectX MCP **核心库**：工具契约、权限策略、STDIO/HTTP Transport、NativeFacade、模板与写租约。
 
@@ -14,7 +14,7 @@ bash scripts/install-mcp.sh
 ## 库用法
 
 ```ts
-import { createMcpServer, McpLoopbackServer, startMcpStdio, runMcpCli } from '@superconnectx/mcp'
+import { createMcpServer, McpLoopbackServer, startMcpStdio, runMcpCli } from '@superx/mcp'
 
 await startMcpStdio(facade)
 const server = new McpLoopbackServer(facade, process.env.SCX_MCP_TOKEN)

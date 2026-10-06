@@ -13,8 +13,8 @@ import {
   redactSensitiveText,
   searchLogLines,
   summarizeLogLines
-} from '@superconnectx/mcp/log-analysis'
-import type { DeviceTemplate } from '@superconnectx/mcp/types'
+} from '@superx/mcp/log-analysis'
+import type { DeviceTemplate } from '@superx/mcp/types'
 
 const DEFAULT_MAX_BYTES = 64 * 1024
 const DEFAULT_MAX_LINES = 500

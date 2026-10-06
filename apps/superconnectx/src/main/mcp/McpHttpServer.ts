@@ -1,1 +1,1 @@
-export { McpLoopbackServer as default } from '@superconnectx/mcp/transports'
+export { McpLoopbackServer as default } from '@superx/mcp/transports'

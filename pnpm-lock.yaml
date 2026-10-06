@@ -178,9 +178,6 @@ importers:
       '@serialport/parser-readline':
         specifier: ^13.0.0
         version: 13.0.0
-      '@superconnectx/mcp':
-        specifier: workspace:*
-        version: link:packages/superconnectx-mcp
       adm-zip:
         specifier: ^0.5.18
         version: 0.5.18
@@ -318,7 +315,11 @@ importers:
         specifier: ^3.0.7
         version: 3.3.11(typescript@5.9.3)
 
-  apps/superconnectx: {}
+  apps/superconnectx:
+    dependencies:
+      '@superx/mcp':
+        specifier: workspace:*
+        version: link:../../packages/superconnectx-mcp
 
   apps/template-app:
     dependencies:
@@ -401,7 +402,7 @@ importers:
 
   packages/superconnectx-mcp-cli:
     dependencies:
-      '@superconnectx/mcp':
+      '@superx/mcp':
         specifier: workspace:*
         version: link:../superconnectx-mcp
     devDependencies:

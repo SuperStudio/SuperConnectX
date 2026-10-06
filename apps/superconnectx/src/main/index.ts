@@ -1,7 +1,7 @@
 import { BrowserWindow, app, ipcMain } from 'electron'
 import { join } from 'node:path'
 import { copyFile, mkdir, readFile } from 'node:fs/promises'
-import { CallbackAuditSink } from '@superconnectx/mcp/audit'
+import { CallbackAuditSink } from '@superx/mcp/audit'
 import ProtocolLogger from './utils/ProtocolLogger'
 import IpcStorage from './ipc/IpcStorage'
 import IpcConnector from './ipc/IpcConnector'
@@ -19,7 +19,7 @@ import { McpTemplateRegistry } from './mcp/McpTemplateRegistry'
 import { getSkillInstallCommands, getSkillInstallTargets, installBundledMcpSkill } from './mcp/McpSkillInstaller'
 import SettingsStorage from './storage/SettingsStorage'
 import { DEFAULT_MCP_PERMISSION_POLICY, type McpPermissionPolicy } from '../shared/mcp/McpTypes'
-import { expandDirectoryComponents, loadDeveloperProfile } from '@superconnectx/mcp/developer-profile'
+import { expandDirectoryComponents, loadDeveloperProfile } from '@superx/mcp/developer-profile'
 
 // 禁用 Chromium 自动网络请求，避免公司内网代理环境触发安全告警
 // Chromium 启动时会连接 Google 服务（组件更新、网络检测等），在代理环境下可能被拦截

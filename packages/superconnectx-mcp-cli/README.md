@@ -1,4 +1,4 @@
-# @superconnectx/mcp-cli
+# @superx/mcp-cli
 
 独立运行的 SuperConnectX MCP CLI。它留在仓库目录里，不发布到 npm，也不打进桌面安装包。
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { pathToFileURL } from 'node:url'
-import { runMcpCli } from '@superconnectx/mcp'
+import { runMcpCli } from '@superx/mcp/cli.js'
 
 export async function main(argv = process.argv.slice(2)): Promise<void> {
   await runMcpCli(argv)

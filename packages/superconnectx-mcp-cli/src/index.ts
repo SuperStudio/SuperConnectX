@@ -1,2 +1,2 @@
 export { main } from './cli.js'
-export { runMcpCli } from '@superconnectx/mcp'
+export { runMcpCli } from '@superx/mcp/cli.js'

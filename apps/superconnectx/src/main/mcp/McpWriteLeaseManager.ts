@@ -1,1 +1,1 @@
-export { WriteLeaseManager as default } from '@superconnectx/mcp/leases'
+export { WriteLeaseManager as default } from '@superx/mcp/leases'
