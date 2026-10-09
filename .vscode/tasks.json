@@ -14,6 +14,11 @@
             "command": "npm run dev"
         },
         {
+            "label": "pnpm install (安装/恢复依赖)",
+            "type": "shell",
+            "command": "pnpm install"
+        },
+        {
             "label": "demo: 启动模板应用 (template-app)",
             "type": "shell",
             "command": "pnpm --filter @superx/template-app dev",
