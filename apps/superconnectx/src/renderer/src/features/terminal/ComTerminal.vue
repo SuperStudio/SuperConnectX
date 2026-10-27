@@ -250,6 +250,7 @@ let removeDataListener: (() => void) | null = null
 let connectGeneration = 0
 let isDisposed = false
 let retryTimer: ReturnType<typeof setTimeout> | null = null
+let isLoadingComSettings = false
 
 const cancelPendingConnect = () => {
   connectGeneration++
@@ -456,6 +457,7 @@ const updateReceiveHexMode = async (isHex: boolean) => {
 
 // 加载保存的串口设置
 const loadComSettings = async () => {
+  isLoadingComSettings = true
   try {
     if (!props.connection.comName) return
     const settings = await window.storageApi.getComSettings(props.connection.comName)
@@ -497,6 +499,8 @@ const loadComSettings = async () => {
     }
   } catch (error) {
     console.error(t('comTerminal.loadSettingsFailed'), error)
+  } finally {
+    isLoadingComSettings = false
   }
 }
 
@@ -533,6 +537,12 @@ const saveComSettings = async () => {
     console.error(t('comTerminal.saveSettingsFailed'), error)
   }
 }
+
+// 时间戳显示开关变化时持久化到串口设置，保证下次连接/重启后与 GUI 一致
+watch(terminal.showTimestamp, () => {
+  if (isLoadingComSettings) return
+  saveComSettings()
+})
 
 // 更新备注并通知父组件
 const updateRemark = async (newRemark: string) => {
@@ -646,7 +656,9 @@ const handleConnect = async () => {
     readTimeout: readTimeout.value,
     writeTimeout: writeTimeout.value,
     packetTimeout: packetTimeout.value,
-    receiveHex: hexDisplayMode.value
+    receiveHex: hexDisplayMode.value,
+    // 连接建立前就带上时间戳开关状态，避免设备立即回传的头部数据在开关关闭时仍被写入时间戳
+    logTimestamp: terminal.showTimestamp.value
   }
   isConnecting.value = true
   unifiedTerminalRef.value?.appendToTerminal(`\n${t('comTerminal.connecting', { port: props.connection.comName })}\n`)

@@ -395,7 +395,8 @@ export default class FtpClient extends BaseClient {
       const ftpCmd = parts[0].toUpperCase()
       const args = parts.slice(1).join(' ')
 
-      const logPrefix = `[${this.timestamp()}] FTP >>>>>>>>>>>`
+      // 日志时间戳由主线程按 GUI 开关统一添加/省略
+      const logPrefix = 'FTP >>>>>>>>>>>'
       onComplete?.(`${logPrefix} ${command}`)
 
       // 处理需要数据连接的命令

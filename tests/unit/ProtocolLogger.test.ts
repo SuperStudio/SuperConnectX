@@ -220,6 +220,17 @@ describe('ProtocolLogger', () => {
       expect(content).toContain('[2026-07-06 12:00:00.000] line1')
       expect(content).toContain('[2026-07-06 12:00:00.000] line2')
     })
+
+    it('withTimestamp=false 时原样写入，不再补时间戳', async () => {
+      const logger = await createLogger()
+      const fileName = logger.createConnLogFile('conn-no-ts', 'NoTs')
+      logger.appendToConnLog('line1\nline2', 'conn-no-ts', false)
+      logger.flushConnLog('conn-no-ts')
+
+      const logFile = path.join(logger.getLogDir(), fileName)
+      const content = fs.readFileSync(logFile, 'utf8')
+      expect(content.trim().split(/\r?\n/)).toEqual(['line1', 'line2'])
+    })
   })
 
   describe('flushConnLog', () => {

@@ -74,8 +74,12 @@ export default class IpcConnector {
       },
       (sessionId: string, logStr: string, timestamp: string) => {
         if (!this._logger) return
-        const finalLog = this.stateManager.buildLogContent(sessionId, logStr, timestamp)
-        this._logger.appendToConnLog(finalLog, sessionId)
+        // 跟随 GUI 的日志时间戳开关：关闭时不再由日志器补时间戳。
+        // Worker 模式下发送日志可能不带 timestamp，需要时在这里补本地时间。
+        const showTimestamp = this.stateManager.getLogTimestamp(sessionId)
+        const effectiveTimestamp = timestamp || (showTimestamp ? this._logger.getTimeStamp() : '')
+        const finalLog = this.stateManager.buildLogContent(sessionId, logStr, effectiveTimestamp)
+        this._logger.appendToConnLog(finalLog, sessionId, showTimestamp)
       },
       (sessionId: string) => {
         this.stateManager.cleanupOnClose(sessionId)
@@ -216,7 +220,8 @@ export default class IpcConnector {
     })
 
     ipcMain.handle('write-to-log', async (_, { sessionId, content }: { sessionId: string; content: string }) => {
-      _logger.appendToConnLog(content, sessionId)
+      const showTimestamp = this.stateManager.getLogTimestamp(String(sessionId))
+      _logger.appendToConnLog(content, sessionId, showTimestamp)
       return { success: true }
     })
 

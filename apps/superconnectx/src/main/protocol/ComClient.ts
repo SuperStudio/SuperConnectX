@@ -321,7 +321,8 @@ export default class ComClient extends BaseClient {
       const logCommand = isBinary
         ? Array.from({ length: command.length }, (_, i) => command.charCodeAt(i).toString(16).padStart(2, '0')).join(' ').toUpperCase()
         : command
-      const dataStr = `[${new Date().toISOString()}] SEND >>>>>>>>>> ${logCommand}`
+      // 日志时间戳由主线程按 GUI 开关统一添加/省略，这里不再写死（旧实现带 UTC 时间，易误解）
+      const dataStr = `SEND >>>>>>>>>> ${logCommand}`
 
       // 检测是否为 HEX 模式发送的二进制数据（包含 0x80-0xFF 范围的字节）
       // 这类数据不能经过 UTF-8 等文本编码，必须作为原始字节直接写入串口

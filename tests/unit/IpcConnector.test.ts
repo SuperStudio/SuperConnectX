@@ -39,7 +39,9 @@ vi.mock('@/main/utils/ProtocolLogger', () => ({
     setLogFileName() {}
     setMaxLogAgeDays() {}
     setMaxLogCount() {}
+    setBatchWriteIntervalMs() {}
     setLogSplitCallback() {}
+    getTimeStamp() { return '2026-01-01 00:00:00.000' }
     openConnLog() { return { success: true } }
     getLogFilePath() { return { success: true, path: '/mock' } }
     copyLogFile() { return { success: true } }
@@ -90,7 +92,9 @@ function makeLogger(): any {
     createConnLogFile: vi.fn(), appendToConnLog: vi.fn(), flushConnLog: vi.fn(),
     clearConnLogFile: vi.fn(), markConnLogRotate: vi.fn(),
     setLogSplitSize: vi.fn(), setEnableLogStorage: vi.fn(), setLogDir: vi.fn(),
-    setLogFileName: vi.fn(), setMaxLogAgeDays: vi.fn(), setMaxLogCount: vi.fn(), setLogSplitCallback: vi.fn(),
+    setLogFileName: vi.fn(), setMaxLogAgeDays: vi.fn(), setMaxLogCount: vi.fn(),
+    setBatchWriteIntervalMs: vi.fn(), getTimeStamp: vi.fn(() => '2026-01-01 00:00:00.000'),
+    setLogSplitCallback: vi.fn(),
     openConnLog: vi.fn(async () => ({ success: true })),
     getLogFilePath: vi.fn(async () => ({ success: true, path: '/mock' })),
     copyLogFile: vi.fn(async () => ({ success: true })),

@@ -56,8 +56,9 @@ export default class FtpConnector {
   private createOnLog(sessionId: string) {
     return (logStr: string, timestamp: string) => {
       if (!this.logger) return
+      const showTimestamp = this.stateManager.getLogTimestamp(sessionId)
       const finalLog = this.stateManager.buildLogContent(sessionId, logStr, timestamp)
-      this.logger.appendToConnLog(finalLog, sessionId)
+      this.logger.appendToConnLog(finalLog, sessionId, showTimestamp)
     }
   }
 
@@ -119,7 +120,12 @@ export default class FtpConnector {
     const client = this.ftpClients.get(conn.sessionId)
     if (client) {
       return await client.send(conn.sessionId, command,
-        (dataStr: string) => this.logger?.appendToConnLog(dataStr, conn.sessionId))
+        (dataStr: string) => {
+          if (!this.logger) return
+          const showTimestamp = this.stateManager.getLogTimestamp(conn.sessionId)
+          const finalLog = this.stateManager.buildLogContent(conn.sessionId, dataStr, this.logger.getTimeStamp())
+          this.logger.appendToConnLog(finalLog, conn.sessionId, showTimestamp)
+        })
     }
     return { success: false, message: 'FTP client not connected' }
   }

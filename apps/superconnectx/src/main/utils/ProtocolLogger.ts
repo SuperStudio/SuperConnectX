@@ -589,19 +589,30 @@ export default class ProtocolLogger {
     this.logCache.set(connId, currentLogs)
   }
 
-  // 直接追加日志文本。若传入内容只在整段开头带时间戳，拆行后为每一行补同一个时间戳。
-  appendToConnLog(content: string, connId: string): void {
+  /**
+   * 直接追加日志文本。
+   * @param withTimestamp 是否由日志器补时间戳。调用方（GUI 时间戳开关关闭时）传 false，
+   * 原样写入，不再自动补时间戳；为 true 时保持旧行为：若传入内容只在整段开头带时间戳，
+   * 拆行后为每一行补同一个时间戳。
+   */
+  appendToConnLog(content: string, connId: string, withTimestamp: boolean = true): void {
     if (!this.enableLogStorage) return
     const fileName = this.connLogFiles.get(connId)
     if (!fileName) return
 
     const currentLogs = this.logCache.get(connId) || []
-    const timestampMatch = content.match(/^(\[\d{4}-\d{2}-\d{2}\s[^\]]+\]\s*)/)
-    const timestampPrefix = timestampMatch ? timestampMatch[1] : `[${this.getTimeStamp()}] `
+    const timestampMatch = withTimestamp ? content.match(/^(\[\d{4}-\d{2}-\d{2}\s[^\]]+\]\s*)/) : null
+    const timestampPrefix = withTimestamp
+      ? (timestampMatch ? timestampMatch[1] : `[${this.getTimeStamp()}] `)
+      : ''
     const logContent = timestampMatch ? content.slice(timestampPrefix.length) : content
     const lines = logContent.split(/\r?\n/).filter((line) => line.trim() !== '')
     for (const line of lines) {
-      currentLogs.push(/^\[\d{4}-\d{2}-\d{2}\s/.test(line) ? line : `${timestampPrefix}${line}`)
+      if (!withTimestamp) {
+        currentLogs.push(line)
+      } else {
+        currentLogs.push(/^\[\d{4}-\d{2}-\d{2}\s/.test(line) ? line : `${timestampPrefix}${line}`)
+      }
     }
     this.logCache.set(connId, currentLogs)
   }
