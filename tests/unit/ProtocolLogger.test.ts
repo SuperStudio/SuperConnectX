@@ -74,6 +74,45 @@ describe('ProtocolLogger', () => {
     })
   })
 
+  describe('setBatchWriteIntervalMs / getBatchWriteIntervalMs', () => {
+    it('默认 10 秒落盘一次', async () => {
+      const logger = await createLogger()
+      expect(logger.getBatchWriteIntervalMs()).toBe(10 * 1000)
+    })
+
+    it('可以设置为立即写入（0）', async () => {
+      const logger = await createLogger()
+      logger.setBatchWriteIntervalMs(0)
+      expect(logger.getBatchWriteIntervalMs()).toBe(0)
+      logger.flush()
+    })
+
+    it('非法值收敛到有效范围', async () => {
+      const logger = await createLogger()
+      logger.setBatchWriteIntervalMs(-5)
+      expect(logger.getBatchWriteIntervalMs()).toBe(0)
+      logger.setBatchWriteIntervalMs(Number.NaN)
+      expect(logger.getBatchWriteIntervalMs()).toBe(10 * 1000)
+      logger.setBatchWriteIntervalMs(999999)
+      expect(logger.getBatchWriteIntervalMs()).toBe(60 * 1000)
+      logger.flush()
+    })
+  })
+
+  describe('立即写入模式', () => {
+    it('追加后无需等待定时器，在下一个 tick 落盘', async () => {
+      const logger = await createLogger()
+      logger.setBatchWriteIntervalMs(0)
+      const fileName = logger.createConnLogFile('conn-immediate', 'Immediate')
+      logger.appendToConnLog('hello immediate', 'conn-immediate', false)
+      await new Promise((resolve) => setImmediate(resolve))
+      const logFile = path.join(logger.getLogDir(), fileName)
+      const content = fs.readFileSync(logFile, 'utf8')
+      expect(content).toContain('hello immediate')
+      logger.flush()
+    })
+  })
+
   describe('setLogSplitSize', () => {
     it('可以设置分片大小', async () => {
       const logger = await createLogger()

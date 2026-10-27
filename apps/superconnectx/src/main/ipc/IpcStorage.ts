@@ -134,6 +134,10 @@ export default class IpcStorage {
           maxLogCount: settings.maxLogCount
         })
       }
+      // 日志落盘间隔需实时生效，0 表示立即写入，也必须下发。
+      if (settings.logWriteInterval !== undefined) {
+        IpcConnector.getInstance().applySettings({ logWriteInterval: settings.logWriteInterval })
+      }
       // 命令历史最大数量变更时裁剪历史记录
       if (settings.commandHistoryMaxCount) {
         commandHistoryStorage.applyMaxCount(settings.commandHistoryMaxCount)

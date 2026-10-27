@@ -417,11 +417,14 @@ export default class IpcConnector {
     // 日志清理设置
     _logger.setMaxLogAgeDays(settings.maxLogAgeDays ?? 0)
     _logger.setMaxLogCount(settings.maxLogCount ?? 0)
+
+    // 日志落盘间隔（0 = 立即写入，默认 10s）
+    _logger.setBatchWriteIntervalMs(settings.logWriteInterval ?? 10 * 1000)
   }
 
   // ============ 对外接口 ============
 
-  applySettings(settings: { logSplit?: boolean; logSplitSize?: number; enableLogStorage?: boolean; logPath?: string; logFileName?: string; maxLogAgeDays?: number; maxLogCount?: number }): void {
+  applySettings(settings: { logSplit?: boolean; logSplitSize?: number; enableLogStorage?: boolean; logPath?: string; logFileName?: string; maxLogAgeDays?: number; maxLogCount?: number; logWriteInterval?: number }): void {
     if ((settings.logSplit !== undefined || settings.logSplitSize !== undefined) && this._logger) {
       if (settings.logSplit !== undefined) this.logSplitEnabled = settings.logSplit
       if (settings.logSplitSize !== undefined) this.logSplitSize = settings.logSplitSize
@@ -441,6 +444,9 @@ export default class IpcConnector {
     }
     if (settings.maxLogCount !== undefined && this._logger) {
       this._logger.setMaxLogCount(settings.maxLogCount)
+    }
+    if (settings.logWriteInterval !== undefined && this._logger) {
+      this._logger.setBatchWriteIntervalMs(settings.logWriteInterval)
     }
   }
 

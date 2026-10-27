@@ -243,6 +243,21 @@
             </div>
             <div class="setting-item">
               <div class="setting-label">
+                <span class="label-text">{{ t('logSettings.logWriteInterval') }}</span>
+                <span class="label-desc">{{ t('logSettings.logWriteIntervalDesc') }}</span>
+              </div>
+              <el-select v-model="logWriteIntervalSelection" size="small" style="width: 140px" @change="handleLogWriteIntervalChange">
+                <el-option :label="t('logSettings.writeIntervalImmediate')" :value="0" />
+                <el-option label="100 ms" :value="100" />
+                <el-option label="500 ms" :value="500" />
+                <el-option label="1 s" :value="1000" />
+                <el-option label="2 s" :value="2000" />
+                <el-option label="5 s" :value="5000" />
+                <el-option label="10 s" :value="10000" />
+              </el-select>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.logPath') }}</span>
               </div>
               <div class="path-input-wrapper">
@@ -592,7 +607,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick, computed, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { setLocale } from '../locales'
@@ -652,6 +667,8 @@ const defaultSettings = ref<Record<string, any>>({})
 
 const settings = ref<Record<string, any>>({})
 let isLoading = true
+// 日志落盘间隔下拉的本地值：“立即写入”需要二次确认后才写回 settings
+const logWriteIntervalSelection = ref<number>(10 * 1000)
 const mcpStatus = ref({ enabled: false, port: null as number | null, endpoint: null as string | null })
 const mcpConfig = ref({ endpoint: null as string | null, token: null as string | null })
 const mcpSettings = ref({ enabled: false, port: 32180, accessMode: 'read-only' as 'read-only' | 'read-write' | 'full', allowExport: false })
@@ -777,6 +794,44 @@ const saveSettings = async (): Promise<boolean> => {
   }
 }
 
+// 日志落盘间隔选择：选中“立即写入”时必须二次确认
+const buildLogWriteIntervalWarningMessage = () => h('div', { class: 'log-write-interval-warning' }, [
+  h('p', { class: 'log-write-interval-warning-intro' }, t('logSettings.logWriteIntervalImmediateIntro')),
+  h('ul', { class: 'log-write-interval-warning-points' }, [
+    h('li', t('logSettings.logWriteIntervalImmediatePoint1')),
+    h('li', t('logSettings.logWriteIntervalImmediatePoint2'))
+  ]),
+  h('p', { class: 'log-write-interval-warning-tip' }, t('logSettings.logWriteIntervalImmediateTip'))
+])
+
+const handleLogWriteIntervalChange = async (value: number): Promise<void> => {
+  if (value !== 0) {
+    settings.value.logWriteInterval = value
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      buildLogWriteIntervalWarningMessage(),
+      t('logSettings.logWriteIntervalImmediateTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('logSettings.logWriteIntervalImmediateConfirm'),
+        cancelButtonText: t('settings.cancel'),
+        customClass: 'log-write-interval-warning-dialog'
+      }
+    )
+  } catch {
+    // 取消或关闭弹窗：恢复上一次的选择，不落库“立即写入”
+    logWriteIntervalSelection.value = typeof settings.value.logWriteInterval === 'number'
+      ? settings.value.logWriteInterval
+      : 10 * 1000
+    return
+  }
+
+  settings.value.logWriteInterval = 0
+}
+
 // 手动清理日志
 const isCleaningUp = ref(false)
 const handleCleanupLogs = async () => {
@@ -824,6 +879,11 @@ watch(settings, () => {
     saveSettings()
   }
 }, { deep: true })
+
+// 设置加载/重置/外部更新时同步下拉的本地显示值
+watch(() => settings.value.logWriteInterval, (value) => {
+  if (typeof value === 'number') logWriteIntervalSelection.value = value
+}, { immediate: true })
 
 // 监听语言设置变化，实时切换界面语言
 watch(() => settings.value.language, (newLocale) => {

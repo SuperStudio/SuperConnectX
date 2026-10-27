@@ -28,6 +28,7 @@ describe('SettingsStorage', () => {
       expect(settings.maxLogSize).toBe(50)
       expect(settings.logTimestamp).toBe(true)
       expect(settings.logHex).toBe(false)
+      expect(settings.logWriteInterval).toBe(10 * 1000) // 默认 10s 批量落盘
       expect(settings.maxLogAgeDays).toBe(0) // 0 = 不清理
       expect(settings.maxLogCount).toBe(0) // 0 = 不限制
     })

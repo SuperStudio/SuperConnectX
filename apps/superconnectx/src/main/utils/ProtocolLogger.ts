@@ -39,7 +39,10 @@ export default class ProtocolLogger {
   private writeTimer: NodeJS.Timeout | null = null
   private cleanupTimer: NodeJS.Timeout | null = null
   private retryTimer: NodeJS.Timeout | null = null // 失败重试定时器
-  private readonly BATCH_WRITE_INTERVAL_MS = 10 * 1000
+  // 批量写入间隔（毫秒）：0 表示立即写入（每个事件循环批次合并后落盘）
+  private batchWriteIntervalMs = 10 * 1000
+  // 立即模式下，每个连接最多保留一个待执行刷盘句柄，用于合并同一事件循环内的多次写入
+  private immediateFlushHandles = new Map<string, NodeJS.Immediate>()
   private readonly CLEANUP_INTERVAL_MS = 60 * 60 * 1000 // 每小时检查一次
   private readonly RETRY_INTERVAL_MS = 60 * 1000 // 1分钟重试一次
   private logSplitSizeMB: number = 20 // 默认 20MB
@@ -77,6 +80,20 @@ export default class ProtocolLogger {
   // 设置是否启用日志存储（运行时生效）
   setEnableLogStorage(enabled: boolean): void {
     this.enableLogStorage = enabled
+  }
+
+  // 设置日志批量写入间隔（运行时生效）：0 = 立即写入，其余为毫秒
+  setBatchWriteIntervalMs(intervalMs: number): void {
+    const next = Number.isFinite(intervalMs) ? Math.floor(intervalMs) : 10 * 1000
+    this.batchWriteIntervalMs = Math.min(Math.max(next, 0), 60 * 1000)
+    this.restartWriteTimer()
+    // 切换到立即模式时，把定时模式下尚未落盘的数据先刷掉
+    if (this.batchWriteIntervalMs === 0) this.flushAllLogs(false)
+  }
+
+  // 获取当前日志批量写入间隔（0 = 立即写入）
+  getBatchWriteIntervalMs(): number {
+    return this.batchWriteIntervalMs
   }
 
   // 获取日志存储启用状态
@@ -199,10 +216,34 @@ export default class ProtocolLogger {
 
   // 启动定时写入
   private startWriteTimer(): void {
+    // 0 = 立即写入模式，不使用定时器
+    if (this.batchWriteIntervalMs <= 0) return
     this.writeTimer = setInterval(() => {
       this.flushAllLogs(false) // 正常运行时异步写入，不阻塞事件循环
-    }, this.BATCH_WRITE_INTERVAL_MS)
+    }, this.batchWriteIntervalMs)
     if (this.writeTimer.unref) this.writeTimer.unref()
+  }
+
+  // 写入间隔变更后重启定时器（0 = 停止定时器，改为立即写入）
+  private restartWriteTimer(): void {
+    if (this.writeTimer) {
+      clearInterval(this.writeTimer)
+      this.writeTimer = null
+    }
+    this.startWriteTimer()
+  }
+
+  // 立即写入模式：合并同一事件循环内的多次追加，下一个 tick 再统一刷盘。
+  // 这样既保证日志尽快可见，又避免每个串口数据包都触发一次磁盘同步写。
+  private scheduleImmediateFlush(connId: string): void {
+    if (this.batchWriteIntervalMs > 0) return
+    if (this.immediateFlushHandles.has(connId)) return
+    const handle = setImmediate(() => {
+      this.immediateFlushHandles.delete(connId)
+      this.flushConnCache(connId)
+    })
+    if (handle.unref) handle.unref()
+    this.immediateFlushHandles.set(connId, handle)
   }
 
   // 启动定时清理旧日志
@@ -438,40 +479,51 @@ export default class ProtocolLogger {
 
   // 批量写入日志（默认异步，isSync=true 时同步写入）
   private flushAllLogs(_isSync: boolean = false): void {
-    this.logCache.forEach((logEntries, connId) => {
-      if (logEntries.length <= 0) {
-        return
-      }
+    for (const connId of Array.from(this.logCache.keys())) {
+      this.flushConnCache(connId)
+    }
+  }
 
-      const logData = logEntries.join('\n') + '\n'
-      // Include the pending batch in the split decision, not only the old file size.
-      const fileName = this.checkAndSplitLog(connId, Buffer.byteLength(logData, 'utf8'))
-      if (!fileName) return
-      const logFile = join(this.getConnLogDir(connId), fileName)
+  // 写入单个连接缓存的日志（保留原有分片/磁盘空间/失败重试逻辑）
+  private flushConnCache(connId: string): void {
+    const logEntries = this.logCache.get(connId)
+    if (!logEntries || logEntries.length <= 0) {
+      return
+    }
 
-      try {
-        this.ensureDir(dirname(logFile))
-        if (!this.checkDiskSpace(connId)) throw new Error('Insufficient disk space for log write')
-        // Synchronous, ordered writes avoid concurrent append callbacks racing on split files.
-        appendFileSync(logFile, logData, 'utf-8')
-        this.currentFileSizes.set(connId, statSync(logFile).size)
-        this.logCache.set(connId, [])
-      } catch (err) {
-        console.error(`Write log failed [connId:${connId}]:`, err)
-        const failed = this.failedCache.get(connId) || []
-        const available = Math.max(0, this.MAX_FAILED_CACHE_ENTRIES - this.failedCacheEntries)
-        const retained = logEntries.slice(0, available)
-        this.failedCache.set(connId, [...failed, ...retained])
-        this.failedCacheEntries += retained.length
-        if (retained.length < logEntries.length) {
-          console.error(`[ProtocolLogger] Failed log cache full; dropped ${logEntries.length - retained.length} entries`)
-        }
-        this.logCache.delete(connId)
+    const logData = logEntries.join('\n') + '\n'
+    // Include the pending batch in the split decision, not only the old file size.
+    const fileName = this.checkAndSplitLog(connId, Buffer.byteLength(logData, 'utf8'))
+    if (!fileName) return
+    const logFile = join(this.getConnLogDir(connId), fileName)
+
+    try {
+      this.ensureDir(dirname(logFile))
+      if (!this.checkDiskSpace(connId)) throw new Error('Insufficient disk space for log write')
+      // Synchronous, ordered writes avoid concurrent append callbacks racing on split files.
+      appendFileSync(logFile, logData, 'utf-8')
+      this.currentFileSizes.set(connId, statSync(logFile).size)
+      this.logCache.set(connId, [])
+    } catch (err) {
+      console.error(`Write log failed [connId:${connId}]:`, err)
+      const failed = this.failedCache.get(connId) || []
+      const available = Math.max(0, this.MAX_FAILED_CACHE_ENTRIES - this.failedCacheEntries)
+      const retained = logEntries.slice(0, available)
+      this.failedCache.set(connId, [...failed, ...retained])
+      this.failedCacheEntries += retained.length
+      if (retained.length < logEntries.length) {
+        console.error(`[ProtocolLogger] Failed log cache full; dropped ${logEntries.length - retained.length} entries`)
       }
-    })
+      this.logCache.delete(connId)
+    }
   }
 
   flush(): void {
+    // 退出前取消待执行的立即刷盘任务，改为下面统一同步刷写，避免重复写
+    for (const handle of this.immediateFlushHandles.values()) {
+      clearImmediate(handle)
+    }
+    this.immediateFlushHandles.clear()
     if (this.writeTimer) {
       clearInterval(this.writeTimer)
       this.writeTimer = null
@@ -587,6 +639,7 @@ export default class ProtocolLogger {
     }
 
     this.logCache.set(connId, currentLogs)
+    this.scheduleImmediateFlush(connId)
   }
 
   /**
@@ -615,10 +668,17 @@ export default class ProtocolLogger {
       }
     }
     this.logCache.set(connId, currentLogs)
+    this.scheduleImmediateFlush(connId)
   }
 
   // 连接关闭时刷入日志（保留记录以便后续打开日志）
   flushConnLog(connId: string): boolean {
+    // 立即模式下可能有排队中的刷盘任务，这里主动接管，避免任务执行时缓存已被清空
+    const pendingImmediate = this.immediateFlushHandles.get(connId)
+    if (pendingImmediate) {
+      clearImmediate(pendingImmediate)
+      this.immediateFlushHandles.delete(connId)
+    }
     const remainingLogs = [
       ...(this.failedCache.get(connId) || []),
       ...(this.logCache.get(connId) || [])

@@ -219,6 +219,39 @@ body {
   font-size: 13px;
 }
 
+/* 日志落盘间隔“立即写入”确认框：与其他 MessageBox 保持同一套主题变量 */
+.el-message-box.log-write-interval-warning-dialog {
+  width: 440px !important;
+}
+
+.log-write-interval-warning-dialog .el-message-box__message {
+  line-height: 1.65;
+}
+
+.log-write-interval-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.log-write-interval-warning p {
+  margin: 0;
+}
+
+.log-write-interval-warning ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: disc;
+}
+
+.log-write-interval-warning li {
+  margin: 2px 0;
+}
+
+.log-write-interval-warning .log-write-interval-warning-tip {
+  color: var(--color-warning-light) !important;
+}
+
 .el-message-box__btns {
   padding: 12px 20px !important;
 }
