@@ -1,21 +1,24 @@
 <template>
   <div class="settings-layout">
-    <nav class="settings-nav" :aria-label="navigationLabel">
-      <button
-        v-for="category in categories"
-        :key="category.key"
-        type="button"
-        class="nav-item"
-        :class="{ active: modelValue === category.key }"
-        @click="$emit('update:modelValue', category.key)"
-      >
-        <slot name="category" :category="category">{{ category.label }}</slot>
-      </button>
-      <div v-if="$slots.footer" class="nav-footer"><slot name="footer" /></div>
-    </nav>
-    <section class="settings-panel" :class="{ 'fill-panel': fillPanel }">
-      <slot />
-    </section>
+    <div v-if="$slots.header" class="settings-header"><slot name="header" /></div>
+    <div class="settings-body">
+      <nav class="settings-nav" :aria-label="navigationLabel">
+        <button
+          v-for="category in categories"
+          :key="category.key"
+          type="button"
+          class="nav-item"
+          :class="{ active: modelValue === category.key }"
+          @click="$emit('update:modelValue', category.key)"
+        >
+          <slot name="category" :category="category">{{ category.label }}</slot>
+        </button>
+        <div v-if="$slots.footer" class="nav-footer"><slot name="footer" /></div>
+      </nav>
+      <section class="settings-panel" :class="{ 'fill-panel': fillPanel }">
+        <slot />
+      </section>
+    </div>
   </div>
 </template>
 
@@ -36,11 +39,15 @@ defineEmits<{ 'update:modelValue': [key: string] }>()
 </script>
 
 <style scoped>
-.settings-layout { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+.settings-layout { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.settings-header { flex-shrink: 0; border-bottom: 1px solid var(--settings-nav-border); background: var(--settings-nav-bg); }
+.settings-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .settings-nav { width: 140px; background: var(--settings-nav-bg); border-right: 1px solid var(--settings-nav-border); padding: 8px 0; flex-shrink: 0; display: flex; flex-direction: column; }
-.nav-item { padding: 8px 16px; border: 0; background: transparent; color: var(--settings-nav-item-color); font-size: 13px; text-align: left; cursor: pointer; transition: background 0.2s; }
+.nav-item { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 16px; border: 0; background: transparent; color: var(--settings-nav-item-color); font-size: 13px; text-align: left; cursor: pointer; transition: background 0.2s; }
 .nav-item:hover { background: var(--settings-nav-item-hover); }
 .nav-item.active { background: var(--settings-nav-item-active-bg); color: var(--settings-nav-item-active-color); }
+.nav-badge { flex-shrink: 0; min-width: 18px; padding: 0 6px; border-radius: 9px; background: var(--settings-nav-item-hover); color: var(--settings-nav-item-color); font-size: 11px; line-height: 18px; text-align: center; box-sizing: border-box; }
+.nav-item.active .nav-badge { background: var(--settings-nav-item-active-color); color: var(--settings-nav-item-active-bg); }
 .nav-footer { margin-top: auto; padding: 16px 8px; border-top: 1px solid var(--settings-nav-footer-border); }
 .settings-panel { flex: 1; min-width: 0; overflow-y: auto; padding: 16px; }
 .settings-panel.fill-panel { padding: 0; overflow: hidden; display: flex; flex-direction: column; }

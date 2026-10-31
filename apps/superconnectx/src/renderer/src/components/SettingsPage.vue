@@ -1,7 +1,21 @@
 <template>
   <div class="settings-page">
     <!-- 设置内容区 -->
-    <SettingsLayout v-model="activeCategory" :categories="categories" :fill-panel="activeCategory === 'syntax'">
+    <SettingsLayout v-model="activeCategory" :categories="visibleCategories" :fill-panel="activeCategory === 'syntax'">
+      <template #header>
+        <div class="settings-search-bar" @keydown.esc.stop="clearSettingsSearch">
+          <SearchInput :placeholder="t('settings.search')" @search="onSettingsSearch" />
+          <span v-if="isFiltering" class="settings-search-count">
+            {{ t('settings.resultCount', { count: searchResultCount }) }}
+          </span>
+        </div>
+      </template>
+
+      <template #category="{ category }">
+        <span class="nav-item-label">{{ category.label }}</span>
+        <span v-if="isFiltering" class="nav-badge">{{ settingsFilter.countByCategory(category.key) }}</span>
+      </template>
+
       <template #footer>
           <el-button class="btn-primary" size="small" @click="resetSettings">{{ t('settings.reset') }}</el-button>
       </template>
@@ -10,9 +24,8 @@
         <!-- 基本设置 -->
         <div v-if="activeCategory === 'basic'" class="settings-group">
           <!-- 基本配置 -->
-          <div class="group-section">
-            <div class="group-title">{{ t('basicSettings.title') }}</div>
-            <div class="setting-item">
+          <SettingGroup id="basic.config" :title="t('basicSettings.title')">
+            <SettingItem id="basic.language">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.language') }}</span>
               </div>
@@ -20,20 +33,20 @@
                 <el-option :label="t('languages.zh-CN')" value="zh-CN" />
                 <el-option :label="t('languages.en-US')" value="en-US" />
               </el-select>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="basic.minimizeToTray">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.minimizeToTray') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.minimizeToTray" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="basic.preventSleep">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.preventSleep') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.preventSleep" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="basic.maxDisplayText">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.maxDisplayText') }}</span>
                 <span class="label-desc">{{ t('basicSettings.maxDisplayTextDesc') }}</span>
@@ -49,26 +62,25 @@
                 />
                 <span class="slider-value">{{ settings.maxDisplayText }} MB</span>
               </div>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="basic.autoCheckUpdate">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.autoCheckUpdate') }}</span>
                 <span class="label-desc">{{ t('basicSettings.autoCheckUpdateDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoCheckUpdate" />
-            </div>
-          </div>
+            </SettingItem>
+          </SettingGroup>
 
           <!-- 显示 -->
-          <div class="group-section">
-            <div class="group-title">{{ t('basicSettings.display') }}</div>
-            <div class="setting-item">
+          <SettingGroup id="basic.display" :title="t('basicSettings.display')">
+            <SettingItem id="basic.autoScrollToast">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.autoScrollToast') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoScrollToast" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="basic.notificationDuration">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.notificationDuration') }}</span>
                 <span class="label-desc">{{ t('basicSettings.notificationDurationDesc') }}</span>
@@ -79,34 +91,34 @@
                 <el-option :label="t('basicSettings.notificationThreeSeconds')" :value="3000" />
                 <el-option :label="t('basicSettings.notificationFiveSeconds')" :value="5000" />
               </el-select>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="basic.autoScrollOnFocus">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.autoScrollOnFocus') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoScrollOnFocus" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="basic.autoScrollAfterSend">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.autoScrollAfterSend') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoScrollAfterSend" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="basic.autoScrollOnWheel">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.autoScrollOnWheel') }}</span>
                 <span class="label-desc">{{ t('basicSettings.autoScrollOnWheelDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoScrollOnWheel" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="basic.clearInputAfterSend">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.clearInputAfterSend') }}</span>
                 <span class="label-desc">{{ t('basicSettings.clearInputAfterSendDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.clearInputAfterSend" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="basic.sendDisplayText">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.sendDisplayText') }}</span>
                 <span class="label-desc">{{ t('basicSettings.sendDisplayTextDesc') }}</span>
@@ -118,8 +130,8 @@
                 :placeholder="defaultSettings.sendDisplayText || 'SEND>>>>>>>>>>>>>'"
                 :spellcheck="false"
               />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="basic.recvDisplayText">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.recvDisplayText') }}</span>
                 <span class="label-desc">{{ t('basicSettings.recvDisplayTextDesc') }}</span>
@@ -131,8 +143,8 @@
                 :placeholder="defaultSettings.recvDisplayText || ''"
                 :spellcheck="false"
               />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="basic.confirmCloseWithActiveConnections">
               <div class="setting-label">
                 <span class="label-text">{{
                   t('basicSettings.confirmCloseWithActiveConnections')
@@ -145,16 +157,15 @@
                 class="terminal-switch"
                 v-model="settings.confirmCloseWithActiveConnections"
               />
-            </div>
-          </div>
+            </SettingItem>
+          </SettingGroup>
 
         </div>
 
         <!-- 串口设置 -->
         <div v-else-if="activeCategory === 'serial'" class="settings-group">
-          <div class="group-section">
-            <div class="group-title">{{ t('serialSettings.title') }}</div>
-            <div class="setting-item">
+          <SettingGroup id="serial.general" :title="t('serialSettings.title')">
+            <SettingItem id="serial.supportedBaudRates">
               <div class="setting-label">
                 <span class="label-text">{{ t('serialSettings.supportedBaudRates') }}</span>
               </div>
@@ -182,50 +193,49 @@
                 />
                 <el-button v-else size="small" text type="primary" @click="startAddBaudRate">+ {{ t('serialSettings.addNew') }}</el-button>
               </div>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="serial.showPortType">
               <div class="setting-label">
                 <span class="label-text">{{ t('serialSettings.showPortType') }}</span>
                 <span class="label-desc">{{ t('serialSettings.showPortTypeDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.showPortType" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="serial.showFriendlyName">
               <div class="setting-label">
                 <span class="label-text">{{ t('serialSettings.showFriendlyName') }}</span>
                 <span class="label-desc">{{ t('serialSettings.showFriendlyNameDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.showSerialPortFriendlyName" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="serial.showPortDetails">
               <div class="setting-label">
                 <span class="label-text">{{ t('serialSettings.showPortDetails') }}</span>
                 <span class="label-desc">{{ t('serialSettings.showPortDetailsDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.showSerialPortDetails" />
-            </div>
-          </div>
+            </SettingItem>
+          </SettingGroup>
         </div>
 
         <!-- 日志 -->
         <div v-else-if="activeCategory === 'log'" class="settings-group">
-          <div class="group-section">
-            <div class="group-title">{{ t('logSettings.title') }}</div>
-            <div class="setting-item">
+          <SettingGroup id="log.general" :title="t('logSettings.title')">
+            <SettingItem id="log.enableLogStorage">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.enableLogStorage') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.enableLogStorage" />
-            </div>
+            </SettingItem>
             <template v-if="settings.enableLogStorage">
-            <div class="setting-item">
+            <SettingItem id="log.logSplit">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.logSplit') }}</span>
                 <span class="label-desc">{{ t('logSettings.logSplitDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.logSplit" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="log.logSplitSize">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.logSplitSize') }}</span>
                 <span class="label-desc">{{ t('logSettings.logSplitSizeDesc') }}</span>
@@ -242,8 +252,8 @@
                 />
                 <span class="slider-value">{{ settings.logSplitSize }} MB</span>
               </div>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="log.logWriteInterval">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.logWriteInterval') }}</span>
                 <span class="label-desc">{{ t('logSettings.logWriteIntervalDesc') }}</span>
@@ -257,8 +267,8 @@
                 <el-option label="5 s" :value="5000" />
                 <el-option label="10 s" :value="10000" />
               </el-select>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="log.logPath">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.logPath') }}</span>
               </div>
@@ -266,18 +276,18 @@
                 <el-input v-model="settings.logPath" size="small" :placeholder="t('logSettings.logPathPlaceholder')" class="path-input" :spellcheck="false" />
                 <el-button size="small" @click="selectLogDir" class="btn-primary path-btn">{{ t('logSettings.selectDir') }}</el-button>
               </div>
-            </div>
+            </SettingItem>
             <div class="setting-item filename-hint-item">
               <div class="filename-hint">
                 <span class="hint-title">{{ t('logSettings.dirNameHint') }}</span>
               </div>
             </div>
-            <div class="setting-item">
+            <SettingItem id="log.logFileName">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.logFileName') }}</span>
               </div>
               <el-input v-model="settings.logFileName" size="small" :placeholder="t('logSettings.logFileNamePlaceholder')" style="width: 280px" :spellcheck="false" />
-            </div>
+            </SettingItem>
             <div class="setting-item filename-hint-item">
               <div class="filename-hint">
                 <span class="hint-title">{{ t('logSettings.fileNameHint') }}:</span>
@@ -295,7 +305,7 @@
                 <span class="hint-subtitle">{{ t('logSettings.fileNameHintPad') }}: <code>%MM</code> <code>%DD</code> <code>%hh</code> <code>%mm</code> <code>%ss</code> <code>%fff</code></span>
               </div>
             </div>
-            <div class="setting-item">
+            <SettingItem id="log.maxLogAgeDays">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.maxLogAgeDays') }}</span>
                 <span class="label-desc">{{ t('logSettings.maxLogAgeDaysDesc') }}</span>
@@ -308,8 +318,8 @@
                 <el-option label="180d" :value="180" />
                 <el-option label="365d" :value="365" />
               </el-select>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="log.maxLogCount">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.maxLogCount') }}</span>
                 <span class="label-desc">{{ t('logSettings.maxLogCountDesc') }}</span>
@@ -321,8 +331,8 @@
                 <el-option label="200" :value="200" />
                 <el-option label="500" :value="500" />
               </el-select>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="log.exportTimeRange">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.exportTimeRange') }}</span>
                 <span class="label-desc">{{ t('logSettings.exportTimeRangeDesc') }}</span>
@@ -334,8 +344,8 @@
                 <el-option label="24h" :value="24" />
                 <el-option :label="t('logSettings.days').replace('{n}', '7')" :value="168" />
               </el-select>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="log.cleanupNow">
               <div class="setting-label">
                 <span class="label-text">{{ t('logSettings.cleanupNow') }}</span>
                 <span class="label-desc">{{ t('logSettings.cleanupNowDesc') }}</span>
@@ -349,28 +359,31 @@
               >
                 {{ t('logSettings.cleanupButton') }}
               </el-button>
-            </div>
+            </SettingItem>
             </template>
-          </div>
+          </SettingGroup>
         </div>
 
         <!-- 语法高亮 -->
-        <div v-else-if="activeCategory === 'syntax'" class="settings-group syntax-embed-group">
+        <div
+          v-else-if="activeCategory === 'syntax'"
+          v-show="isSettingVisible('syntax.rules')"
+          class="settings-group syntax-embed-group"
+        >
           <SyntaxHighlightPage />
         </div>
 
         <!-- 命令历史 -->
         <div v-else-if="activeCategory === 'history'" class="settings-group">
-          <div class="group-section">
-            <div class="group-title">{{ t('historySettings.title') }}</div>
-            <div class="setting-item">
+          <SettingGroup id="history.general" :title="t('historySettings.title')">
+            <SettingItem id="history.showCommandHistory">
               <div class="setting-label">
                 <span class="label-text">{{ t('historySettings.showCommandHistory') }}</span>
                 <span class="label-desc">{{ t('historySettings.showCommandHistoryDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.showCommandHistory" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="history.commandHistoryMaxCount">
               <div class="setting-label">
                 <span class="label-text">{{ t('historySettings.commandHistoryMaxCount') }}</span>
                 <span class="label-desc">{{ t('historySettings.commandHistoryMaxCountDesc') }}</span>
@@ -386,15 +399,14 @@
                 />
                 <span class="slider-value">{{ settings.commandHistoryMaxCount }} {{ t('historySettings.commandHistoryMaxCountUnit') }}</span>
               </div>
-            </div>
-          </div>
+            </SettingItem>
+          </SettingGroup>
         </div>
 
         <!-- 备份与恢复 -->
         <div v-else-if="activeCategory === 'backup'" class="settings-group">
-          <div class="group-section">
-            <div class="group-title">{{ t('basicSettings.backup') }}</div>
-            <div class="setting-item">
+          <SettingGroup id="backup.create" :title="t('basicSettings.backup')">
+            <SettingItem id="backup.manualBackup">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.manualBackup') }}</span>
                 <span class="label-desc">{{ t('basicSettings.manualBackupDesc') }}</span>
@@ -402,14 +414,14 @@
               <el-button size="small" class="btn-primary" style="width: auto !important" @click="handleManualBackup">
                 {{ t('basicSettings.manualBackup') }}
               </el-button>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="backup.autoBackup">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.autoBackup') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="settings.autoBackup" />
-            </div>
-            <div class="setting-item" v-if="settings.autoBackup">
+            </SettingItem>
+            <SettingItem id="backup.backupInterval" v-if="settings.autoBackup">
               <div class="setting-label">
                 <span class="label-text">{{ t('basicSettings.backupInterval') }}</span>
                 <span class="label-desc">
@@ -430,12 +442,11 @@
                 <el-option :label="`60 ${t('basicSettings.day')}`" :value="60" />
                 <el-option :label="`180 ${t('basicSettings.day')}`" :value="180" />
               </el-select>
-            </div>
-          </div>
+            </SettingItem>
+          </SettingGroup>
 
           <!-- 恢复 -->
-          <div class="group-section">
-            <div class="group-title">{{ t('basicSettings.restore') }}</div>
+          <SettingGroup id="backup.restore" :title="t('basicSettings.restore')">
             <div class="setting-item restore-header-item">
               <div class="setting-label">
                 <span class="label-text">
@@ -473,29 +484,28 @@
                 {{ t('basicSettings.restoreBtn') }}
               </el-button>
             </div>
-          </div>
+          </SettingGroup>
 
         </div>
 
         <!-- MCP -->
         <div v-else-if="activeCategory === 'mcp'" class="settings-group">
-          <div class="group-section">
-            <div class="group-title">{{ t('mcpSettings.serviceTitle') }}</div>
-            <div class="setting-item">
+          <SettingGroup id="mcp.service" :title="t('mcpSettings.serviceTitle')">
+            <SettingItem id="mcp.enable">
               <div class="setting-label">
                 <span class="label-text">{{ t('mcpSettings.enable') }}</span>
                 <span class="label-desc">{{ t('mcpSettings.enableDesc') }}</span>
               </div>
               <el-switch class="terminal-switch" v-model="mcpSettings.enabled" @change="saveMcpSettings" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="mcp.port">
               <div class="setting-label">
                 <span class="label-text">{{ t('mcpSettings.port') }}</span>
                 <span class="label-desc">{{ t('mcpSettings.portDesc') }}</span>
               </div>
               <el-input-number v-model="mcpSettings.port" :min="1024" :max="65535" size="small" @change="saveMcpSettings" />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="mcp.accessMode">
               <div class="setting-label">
                 <span class="label-text">{{ t('mcpSettings.accessMode') }}</span>
                 <span class="label-desc">{{ t('mcpSettings.accessModeDesc') }}</span>
@@ -505,8 +515,8 @@
                 <el-radio-button label="read-write">{{ t('mcpSettings.modeReadWrite') }}</el-radio-button>
                 <el-radio-button label="full">{{ t('mcpSettings.modeFull') }}</el-radio-button>
               </el-radio-group>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="mcp.allowExport">
               <div class="setting-label">
                 <span class="label-text">{{ t('mcpSettings.allowExport') }}</span>
                 <span class="label-desc">{{ t('mcpSettings.allowExportDesc') }}</span>
@@ -517,20 +527,19 @@
                 :disabled="mcpSettings.accessMode !== 'full'"
                 @change="saveMcpSettings"
               />
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="mcp.status">
               <div class="setting-label">
                 <span class="label-text">{{ t('mcpSettings.status') }}</span>
               </div>
               <el-tag size="small" effect="dark" class="mcp-status-tag" :class="{ 'is-enabled': mcpStatus.enabled }">
                 {{ mcpStatus.enabled ? t('mcpSettings.statusRunning') : t('mcpSettings.statusDisabled') }}
               </el-tag>
-            </div>
-          </div>
+            </SettingItem>
+          </SettingGroup>
 
-          <div class="group-section">
-            <div class="group-title">{{ t('mcpSettings.accessTitle') }}</div>
-            <div class="setting-item">
+          <SettingGroup id="mcp.access" :title="t('mcpSettings.accessTitle')">
+            <SettingItem id="mcp.endpoint">
               <div class="setting-label">
                 <span class="label-text">{{ t('mcpSettings.endpoint') }}</span>
                 <span class="label-desc">{{ t('mcpSettings.endpointDesc') }}</span>
@@ -539,8 +548,8 @@
                 <el-input :model-value="mcpConfig.endpoint || t('mcpSettings.endpointDisabled')" readonly size="small" class="path-input mcp-path-input" />
                 <el-button size="small" class="btn-primary path-btn" :disabled="!mcpConfig.endpoint" @click="copyMcpConfig">{{ t('mcpSettings.copy') }}</el-button>
               </div>
-            </div>
-            <div class="setting-item" v-if="mcpConfig.token">
+            </SettingItem>
+            <SettingItem id="mcp.token" v-if="mcpConfig.token">
               <div class="setting-label">
                 <span class="label-text">{{ t('mcpSettings.token') }}</span>
                 <span class="label-desc">{{ t('mcpSettings.tokenDesc') }}</span>
@@ -549,8 +558,8 @@
                 <el-input :model-value="mcpConfig.token" readonly size="small" show-password class="path-input mcp-path-input" />
                 <el-button size="small" class="btn-primary path-btn" @click="copyMcpConfig">{{ t('mcpSettings.copy') }}</el-button>
               </div>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="mcp.rotateToken">
               <div class="setting-label">
                 <span class="label-text">{{ t('mcpSettings.rotateToken') }}</span>
                 <span class="label-desc">{{ t('mcpSettings.rotateTokenDesc') }}</span>
@@ -558,26 +567,25 @@
               <el-button size="small" class="btn-primary" style="width: auto !important" :disabled="!mcpStatus.enabled" @click="rotateMcpToken">
                 {{ t('mcpSettings.rotateTokenButton') }}
               </el-button>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="mcp.refresh">
               <div class="setting-label">
                 <span class="label-text">{{ t('mcpSettings.refresh') }}</span>
                 <span class="label-desc">{{ t('mcpSettings.refreshDesc') }}</span>
               </div>
               <el-button size="small" class="btn-primary" style="width: auto !important" @click="loadMcpConfig">{{ t('mcpSettings.refreshButton') }}</el-button>
-            </div>
-            <div class="setting-item">
+            </SettingItem>
+            <SettingItem id="mcp.importTemplate">
               <div class="setting-label">
                 <span class="label-text">{{ t('mcpSettings.importTemplate') }}</span>
                 <span class="label-desc">{{ t('mcpSettings.importTemplateDesc') }}</span>
               </div>
               <el-button size="small" class="btn-primary" style="width: auto !important" @click="importMcpTemplate">{{ t('mcpSettings.importTemplateButton') }}</el-button>
-            </div>
-          </div>
+            </SettingItem>
+          </SettingGroup>
 
-          <div class="group-section">
-            <div class="group-title">{{ t('mcpSettings.skillTitle') }}</div>
-            <div class="setting-item">
+          <SettingGroup id="mcp.skill" :title="t('mcpSettings.skillTitle')">
+            <SettingItem id="mcp.installSkill">
               <div class="setting-label">
                 <span class="label-text">{{ t('mcpSettings.installSkill') }}</span>
                 <span class="label-desc">{{ t('mcpSettings.installSkillDesc') }}</span>
@@ -587,8 +595,8 @@
                 <el-button size="small" class="btn-primary path-btn" @click="copySkillGitCommand">{{ t('mcpSettings.copyGitCommand') }}</el-button>
                 <el-button size="small" class="btn-primary path-btn" @click="copyCliInstallCommand">{{ t('mcpSettings.copyCliCommand') }}</el-button>
               </div>
-            </div>
-            <div class="setting-item" v-if="mcpSkillInfo.targets.length">
+            </SettingItem>
+            <SettingItem id="mcp.installTargets" v-if="mcpSkillInfo.targets.length">
               <div class="setting-label">
                 <span class="label-text">{{ t('mcpSettings.installTargets') }}</span>
                 <span class="label-desc">{{ t('mcpSettings.installTargetsDesc') }}</span>
@@ -599,8 +607,13 @@
                 size="small"
                 class="mcp-path-input mcp-path-input-wide"
               />
-            </div>
-          </div>
+            </SettingItem>
+          </SettingGroup>
+        </div>
+
+        <!-- 搜索态：全部无命中时的空态（无命中的分类已从导航隐藏） -->
+        <div v-if="isFiltering && searchResultCount === 0" class="settings-search-empty">
+          <p class="empty-text">{{ t('settings.noResults') }}</p>
         </div>
       </div>
     </SettingsLayout>
@@ -614,11 +627,22 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { setLocale } from '../locales'
 import SyntaxHighlightPage from './SyntaxHighlightPage.vue'
+import SearchInput from './SearchInput.vue'
+import SettingGroup from './settings/SettingGroup.vue'
+import SettingItem from './settings/SettingItem.vue'
 import SettingsLayout from '@superx/foundation/settings/SettingsLayout.vue'
 import { SettingsRegistry } from '@superx/foundation/settings/SettingsRegistry'
 import { useSerializedSettingsSave } from '@superx/foundation/settings/useSerializedSettingsSave'
+import { provideSettingsFilter } from '../features/settings/settingsFilterContext'
 
 const { t } = useI18n()
+
+// 设置搜索：提供过滤上下文，由 SettingGroup / SettingItem 消费
+const settingsFilter = provideSettingsFilter(t)
+const isFiltering = computed(() => settingsFilter.isFiltering.value)
+const searchResultCount = computed(() => settingsFilter.resultCount.value)
+const isSettingVisible = (id: string) => settingsFilter.isVisible(id)
+const clearSettingsSearch = () => settingsFilter.clear()
 
 const activeCategory = ref('basic')
 
@@ -662,7 +686,21 @@ settingsRegistry.register({ key: 'syntax', getLabel: () => t('settingsNav.syntax
 settingsRegistry.register({ key: 'history', getLabel: () => t('settingsNav.history'), order: 40 })
 settingsRegistry.register({ key: 'backup', getLabel: () => t('settingsNav.backup'), order: 50 })
 settingsRegistry.register({ key: 'mcp', getLabel: () => t('settingsNav.mcp'), order: 60 })
-const categories = computed(() => settingsRegistry.getCategories())
+/** 搜索时左侧导航只保留有命中的分类 */
+const visibleCategories = computed(() => {
+  const all = settingsRegistry.getCategories()
+  if (!isFiltering.value) return all
+  return all.filter((c) => settingsFilter.countByCategory(c.key) > 0)
+})
+
+const onSettingsSearch = (value: string) => {
+  settingsFilter.setQuery(value)
+  // 当前分类无命中时自动切到第一个有命中的分类，避免右侧空白
+  if (settingsFilter.isFiltering.value && settingsFilter.countByCategory(activeCategory.value) === 0) {
+    const first = visibleCategories.value[0]
+    if (first) activeCategory.value = first.key
+  }
+}
 
 // 默认配置从后端获取
 const defaultSettings = ref<Record<string, any>>({})
@@ -1185,6 +1223,47 @@ const handleSettingsUpdated = (event: Event) => {
   border-radius: 6px;
   padding: 12px;
   margin-bottom: 16px;
+}
+
+/* ---- 设置项搜索（过滤模式，横跨顶栏） ---- */
+.settings-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+}
+
+.settings-search-bar :deep(.sidebar-search) {
+  flex: 1;
+  margin-top: 0;
+}
+
+.settings-search-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--settings-search-empty);
+  white-space: nowrap;
+}
+
+.nav-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-search-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 0;
+  font-size: 14px;
+  text-align: center;
+  color: var(--settings-search-empty);
+}
+
+.settings-search-empty .empty-text {
+  margin: 0;
 }
 
 .group-section:last-child {

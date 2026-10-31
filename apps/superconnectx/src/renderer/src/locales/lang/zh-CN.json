@@ -26,6 +26,7 @@
   "settings": {
     "title": "设置",
     "search": "搜索设置...",
+    "resultCount": "找到 {count} 项",
     "reset": "恢复默认",
     "resetConfirm": "确定要恢复默认设置吗？",
     "resetSuccess": "已恢复默认设置",

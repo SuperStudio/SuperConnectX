@@ -74,7 +74,7 @@ watch(searchText, (val) => emit('search', val.trim()))
   height: 20px;
   border: none;
   background: transparent;
-  color: var(--search-clear);
+  color: var(--search-clear-hover);
   font-size: 14px;
   cursor: pointer;
   padding: 0;
@@ -82,6 +82,6 @@ watch(searchText, (val) => emit('search', val.trim()))
 }
 
 .clear-btn:hover {
-  color: var(--search-clear-hover);
+  color: var(--search-clear);
 }
 </style>
