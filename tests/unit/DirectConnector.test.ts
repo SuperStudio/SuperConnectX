@@ -363,7 +363,21 @@ describe('DirectConnector', () => {
       const onLog = mockComStart.mock.calls[0][3]
       onLog('connected', '12:00:00')
 
-      expect(appendSpy).toHaveBeenCalledWith('[12:00:00] connected', 's1')
+      expect(appendSpy).toHaveBeenCalledWith('[12:00:00] connected', 's1', true)
+    })
+
+    it('onLog should not add timestamp when logTimestamp is false', async () => {
+      const { dc, sm, logger } = createDirectConnector()
+      const appendSpy = vi.spyOn(logger, 'appendToConnLog')
+
+      const conn = makeConn({ connectionType: 'com', sessionId: 's2' })
+      sm.setLogTimestamp('s2', false)
+      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's2' })
+
+      const onLog = mockComStart.mock.calls[0][3]
+      onLog('connected', '12:00:00')
+
+      expect(appendSpy).toHaveBeenCalledWith('connected', 's2', false)
     })
   })
 })

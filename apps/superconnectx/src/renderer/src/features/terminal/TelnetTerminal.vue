@@ -106,6 +106,10 @@ const loadFontSettings = async () => {
           unifiedTerminalRef.value?.setFontFamily?.(conn.fontFamily)
           emit('fontLoaded', conn.fontFamily)
         }
+        if (conn.showTimestamp !== undefined) {
+          terminal.showTimestamp.value = conn.showTimestamp
+          unifiedTerminalRef.value?.setShowTimestamp?.(conn.showTimestamp)
+        }
       }
     }
   } catch (error) {
@@ -121,7 +125,8 @@ const saveFontSettings = async () => {
       await window.storageApi.updateConnection({
         id: originalId,
         fontSize: terminal.fontSize.value,
-        fontFamily: terminal.fontFamily.value
+        fontFamily: terminal.fontFamily.value,
+        showTimestamp: terminal.showTimestamp.value
       })
     }
   } catch (error) {
@@ -321,6 +326,8 @@ const connect = async () => {
         // 传递运行时字段（不包含密码，密码由后端从存储中解密）
         JSON.parse(JSON.stringify({
           ...fromRawConnection(props.connection),
+          // 连接建立前就带上日志时间戳开关，避免首批数据落盘时未应用 GUI 状态
+          logTimestamp: terminal.showTimestamp.value,
           // 清除可能存在的掩码密码，避免覆盖后端解密结果
           password: undefined
         }))

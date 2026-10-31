@@ -155,7 +155,8 @@ export default class TelnetClient extends BaseClient {
     }
 
     try {
-      const dataStr = `[${BufferLineSplitter.timestamp()}] SEND >>>>>>>>>> ${command}`
+      // 日志时间戳由主线程按 GUI 开关统一添加/省略
+      const dataStr = `SEND >>>>>>>>>> ${command}`
       const encoding = this.connectionInfos.get(connId)?.encoding || 'utf8'
       await connection.send(iconv.encode(command + '\n', encoding))
       onComplete?.(dataStr)

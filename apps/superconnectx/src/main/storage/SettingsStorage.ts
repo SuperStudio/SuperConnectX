@@ -62,6 +62,8 @@ interface Settings extends Record<string, any> {
   maxLogSize?: number
   logTimestamp?: boolean
   logHex?: boolean
+  /** 日志落盘间隔（毫秒）：0 = 立即写入，默认 10000（10s） */
+  logWriteInterval?: number
   maxLogAgeDays?: number
   maxLogCount?: number
   exportTimeRange?: number
@@ -116,6 +118,7 @@ const defaultSettings: Settings = {
   maxLogSize: 50,
   logTimestamp: true,
   logHex: false,
+  logWriteInterval: 10 * 1000,
   maxLogAgeDays: 0,  // 0 = 不清理
   maxLogCount: 0,    // 0 = 不限制
   exportTimeRange: 0,
