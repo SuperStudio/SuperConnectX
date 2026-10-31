@@ -4,6 +4,7 @@ import { CancellationToken } from 'builder-util-runtime'
 import logger from '../ipc/IpcAppLogger'
 import {
   mapUpdateErrorToFriendlyMessage,
+  normalizeReleaseNotes,
   type UpdateInfo,
   type UpdateStatus
 } from '../../core/updater/UpdateSupport'
@@ -40,6 +41,9 @@ export default class AppUpdater {
     autoUpdater.autoInstallOnAppQuit = process.platform !== 'darwin'
     autoUpdater.allowDowngrade = false
     autoUpdater.allowPrerelease = false
+    // 关闭完整 changelog 模式：保证 releaseNotes 始终是最新的那一份更新说明，
+    // 而不是"比当前版本新"的段落（否则已是最新时会拿到空内容）
+    autoUpdater.fullChangelog = false
     autoUpdater.disableDifferentialDownload = true // 禁用差分下载，避免 ENOENT 错误
 
     // 日志输出
@@ -64,20 +68,20 @@ export default class AppUpdater {
       this._cachedUpdateInfo = {
         version: info.version,
         releaseDate: info.releaseDate,
-        releaseNotes: typeof info.releaseNotes === 'string'
-          ? info.releaseNotes
-          : Array.isArray(info.releaseNotes)
-            ? info.releaseNotes.map((n: any) => n.note || n).join('\n')
-            : '',
+        releaseNotes: normalizeReleaseNotes(info.releaseNotes),
         files: info.files?.map((f) => ({ url: f.url, size: f.size ?? 0 }))
       }
       this.sendStatus('update-available', this._cachedUpdateInfo)
     })
 
-    // 没有新版本
+    // 没有新版本：同样下发最新版本的更新说明，界面据此展示当前版本的更新内容
     autoUpdater.on('update-not-available', (info) => {
       logger.info(`[Updater] Already up to date: ${info.version}`)
-      this.sendStatus('update-not-available', { version: info.version, releaseDate: info.releaseDate })
+      this.sendStatus('update-not-available', {
+        version: info.version,
+        releaseDate: info.releaseDate,
+        releaseNotes: normalizeReleaseNotes(info.releaseNotes)
+      })
     })
 
     // 下载进度（支持断点续传，百分比会反映实际进度）

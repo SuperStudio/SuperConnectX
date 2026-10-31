@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     :title="dialogTitle"
-    width="460px"
+    width="520px"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     @close="handleClose"
@@ -28,12 +28,6 @@
         <p class="status-text">{{ t('update.newVersionAvailable', { version: updateInfo?.version }) }}</p>
         <p class="status-subtext">{{ t('update.currentVersion', { version: currentVersion }) }} → <strong>{{ updateInfo?.version }}</strong></p>
         <p v-if="updateInfo?.releaseDate" class="status-subtext release-date">{{ t('update.releaseDate') }}: {{ formatDate(updateInfo.releaseDate) }}</p>
-
-        <!-- 更新日志 -->
-        <div v-if="updateInfo?.releaseNotes" class="release-notes">
-          <div class="release-notes-title">{{ t('update.releaseNotes') }}</div>
-          <div class="release-notes-content" v-html="formatReleaseNotes(updateInfo.releaseNotes)"></div>
-        </div>
       </div>
 
       <!-- 下载进度 -->
@@ -67,6 +61,12 @@
         <el-icon class="status-icon error" :size="40"><CircleClose /></el-icon>
         <p class="status-text">{{ t('update.error') }}</p>
         <p class="status-subtext">{{ errorMessage }}</p>
+      </div>
+
+      <!-- 更新日志：发现新版本与已是最新版本共用，展示的都是最新版本的更新说明 -->
+      <div v-if="showReleaseNotes" class="release-notes">
+        <div class="release-notes-title">{{ releaseNotesTitle }}</div>
+        <div class="release-notes-content" v-html="formatReleaseNotes(updateInfo?.releaseNotes || '')"></div>
       </div>
     </div>
 
@@ -176,6 +176,18 @@ const canClose = computed(() =>
   status.value === 'update-not-available' ||
   status.value === 'error' ||
   status.value === 'check-error'
+)
+
+// 已是最新版本时同样展示最新版本的更新说明（即当前版本的更新内容）
+const showReleaseNotes = computed(() =>
+  (status.value === 'update-available' || status.value === 'update-not-available') &&
+  !!updateInfo.value?.releaseNotes
+)
+
+const releaseNotesTitle = computed(() =>
+  status.value === 'update-not-available'
+    ? t('update.currentVersionNotes')
+    : t('update.releaseNotes')
 )
 
 const formatReleaseNotes = (notes: string): string => {
@@ -403,7 +415,7 @@ defineExpose({ open })
   border-radius: 6px;
   padding: 10px;
   text-align: left;
-  max-height: 200px;
+  max-height: 280px;
   overflow-y: auto;
 }
 

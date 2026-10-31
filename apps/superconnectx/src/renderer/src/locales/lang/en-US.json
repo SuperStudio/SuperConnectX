@@ -613,6 +613,7 @@
     "currentVersion": "Current version: {version}",
     "newVersionAvailable": "New version {version} available",
     "releaseNotes": "Release Notes",
+    "currentVersionNotes": "What's new in this version",
     "releaseDate": "Release Date",
     "startUpdate": "Update Now",
     "downloading": "Downloading update...",

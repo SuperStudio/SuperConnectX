@@ -21,6 +21,34 @@ export interface ProgressInfo {
   bytesPerSecond: number
 }
 
+/**
+ * Normalizes release notes from electron-updater into a plain string.
+ *
+ * Depending on the provider and the `fullChangelog` flag, electron-updater may
+ * deliver `releaseNotes` as a string, as an array of `{ version, note }`, or not
+ * at all. The dialog needs a single string to render.
+ */
+export function normalizeReleaseNotes(notes: unknown): string {
+  if (typeof notes === 'string') {
+    return notes
+  }
+  if (Array.isArray(notes)) {
+    return notes
+      .map((item) => {
+        if (item == null) return ''
+        if (typeof item === 'string') return item
+        if (typeof item === 'object') {
+          const note = (item as { note?: unknown }).note
+          return typeof note === 'string' ? note : ''
+        }
+        return String(item)
+      })
+      .filter((note) => note.length > 0)
+      .join('\n')
+  }
+  return ''
+}
+
 /** Maps transport and updater errors to display-safe messages. */
 export function mapUpdateErrorToFriendlyMessage(error: Error | string): string {
   const message = typeof error === 'string' ? error : error.message || ''

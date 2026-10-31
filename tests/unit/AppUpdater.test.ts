@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { mapUpdateErrorToFriendlyMessage } from '@/core/updater/UpdateSupport'
+import {
+  mapUpdateErrorToFriendlyMessage,
+  normalizeReleaseNotes
+} from '@/core/updater/UpdateSupport'
 
 describe('AppUpdater - mapErrorToFriendly', () => {
   describe('network errors', () => {
@@ -182,6 +185,38 @@ describe('AppUpdater - mapErrorToFriendly', () => {
         'Update server not found (404)'
       )
     })
+  })
+})
+
+describe('AppUpdater - normalizeReleaseNotes', () => {
+  it('should return string notes as-is', () => {
+    expect(normalizeReleaseNotes('<p>修复串口日志</p>')).toBe('<p>修复串口日志</p>')
+  })
+
+  it('should join array notes with newline', () => {
+    const notes = [
+      { version: '1.2.12', note: '新增排序工具栏' },
+      { version: '1.2.11', note: '修复内存泄露' }
+    ]
+    expect(normalizeReleaseNotes(notes)).toBe('新增排序工具栏\n修复内存泄露')
+  })
+
+  it('should skip entries without a usable note', () => {
+    expect(normalizeReleaseNotes([{ version: '1.2.12' }, { version: '1.2.11', note: '有效说明' }])).toBe(
+      '有效说明'
+    )
+  })
+
+  it('should return empty string when notes are missing', () => {
+    expect(normalizeReleaseNotes(undefined)).toBe('')
+    expect(normalizeReleaseNotes(null)).toBe('')
+    expect(normalizeReleaseNotes(0)).toBe('')
+  })
+
+  it('should keep notes for the up-to-date case (latest release body)', () => {
+    // 已是最新版本时 electron-updater 同样给出最新 release 的正文，不应被过滤
+    const info = { version: '1.2.12', releaseDate: '2026-10-25', releaseNotes: '### 新增功能\n- 排序' }
+    expect(normalizeReleaseNotes(info.releaseNotes)).toBe('### 新增功能\n- 排序')
   })
 })
 
