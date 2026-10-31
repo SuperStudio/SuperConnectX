@@ -32,7 +32,13 @@
     "resetSuccess": "Settings reset to default",
     "confirm": "Confirm",
     "cancel": "Cancel",
-    "noResults": "No matching settings found"
+    "noResults": "No matching settings found",
+    "editJson": "Edit JSON",
+    "viewForm": "Back to Form",
+    "jsonInvalid": "Invalid JSON",
+    "jsonLeaveBlocked": "Fix the invalid JSON before returning to the form view",
+    "jsonApplied": "Applied",
+    "jsonLoading": "Loading editor…"
   },
   "settingsNav": {
     "basic": "General",

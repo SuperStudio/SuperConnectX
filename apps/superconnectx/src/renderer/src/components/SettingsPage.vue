@@ -1,13 +1,31 @@
 <template>
   <div class="settings-page">
+    <!-- JSON 编辑模式：直接编辑 settings.json，再次点击切换回表单 -->
+    <SettingsJsonView
+      v-if="jsonMode"
+      :settings="settings"
+      :defaults="defaultSettings"
+      @leave="jsonMode = false"
+      @apply="applyJsonSettings"
+      @reset="resetSettings"
+    />
+
     <!-- 设置内容区 -->
-    <SettingsLayout v-model="activeCategory" :categories="visibleCategories" :fill-panel="activeCategory === 'syntax'">
+    <SettingsLayout
+      v-else
+      v-model="activeCategory"
+      :categories="visibleCategories"
+      :fill-panel="activeCategory === 'syntax'"
+    >
       <template #header>
         <div class="settings-search-bar" @keydown.esc.stop="clearSettingsSearch">
           <SearchInput :placeholder="t('settings.search')" @search="onSettingsSearch" />
           <span v-if="isFiltering" class="settings-search-count">
             {{ t('settings.resultCount', { count: searchResultCount }) }}
           </span>
+          <el-button class="btn-primary path-btn json-mode-toggle" size="small" @click="jsonMode = true">
+            <el-icon><EditPen /></el-icon>{{ t('settings.editJson') }}
+          </el-button>
         </div>
       </template>
 
@@ -625,11 +643,13 @@
 import { ref, watch, onMounted, onUnmounted, nextTick, computed, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { EditPen } from '@element-plus/icons-vue'
 import { setLocale } from '../locales'
 import SyntaxHighlightPage from './SyntaxHighlightPage.vue'
 import SearchInput from './SearchInput.vue'
 import SettingGroup from './settings/SettingGroup.vue'
 import SettingItem from './settings/SettingItem.vue'
+import SettingsJsonView from './settings/SettingsJsonView.vue'
 import SettingsLayout from '@superx/foundation/settings/SettingsLayout.vue'
 import { SettingsRegistry } from '@superx/foundation/settings/SettingsRegistry'
 import { useSerializedSettingsSave } from '@superx/foundation/settings/useSerializedSettingsSave'
@@ -643,6 +663,9 @@ const isFiltering = computed(() => settingsFilter.isFiltering.value)
 const searchResultCount = computed(() => settingsFilter.resultCount.value)
 const isSettingVisible = (id: string) => settingsFilter.isVisible(id)
 const clearSettingsSearch = () => settingsFilter.clear()
+
+/** false = 表单视图，true = JSON 编辑视图 */
+const jsonMode = ref(false)
 
 const activeCategory = ref('basic')
 
@@ -815,6 +838,11 @@ const loadSettings = async () => {
 
 const serializedSettingsSave = useSerializedSettingsSave((plainSettings) => window.storageApi.saveSettings(plainSettings))
 const isSavingSettings = ref(0)
+
+/** JSON 编辑模式：编辑器内容解析通过后整体替换，由 deep watch 负责落盘与广播 */
+const applyJsonSettings = (value: Record<string, any>) => {
+  settings.value = value
+}
 
 const saveSettings = async (): Promise<boolean> => {
   isSavingSettings.value++
@@ -1242,6 +1270,11 @@ const handleSettingsUpdated = (event: Event) => {
   flex-shrink: 0;
   font-size: 12px;
   color: var(--settings-search-empty);
+  white-space: nowrap;
+}
+
+.json-mode-toggle {
+  flex-shrink: 0;
   white-space: nowrap;
 }
 

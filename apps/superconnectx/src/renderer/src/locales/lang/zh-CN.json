@@ -32,7 +32,13 @@
     "resetSuccess": "已恢复默认设置",
     "confirm": "确认",
     "cancel": "取消",
-    "noResults": "没有找到匹配的设置项"
+    "noResults": "没有找到匹配的设置项",
+    "editJson": "编辑 JSON",
+    "viewForm": "返回表单",
+    "jsonInvalid": "JSON 格式错误",
+    "jsonLeaveBlocked": "JSON 格式有误，请先修正后再返回表单",
+    "jsonApplied": "已应用",
+    "jsonLoading": "编辑器加载中…"
   },
   "settingsNav": {
     "basic": "基本设置",
