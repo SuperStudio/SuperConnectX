@@ -345,6 +345,7 @@ import AppShell from '@superx/foundation/shell/AppShell.vue'
 import StatusBar from '@superx/foundation/shell/StatusBar.vue'
 import SidebarResizeHandle from '@superx/foundation/shell/SidebarResizeHandle.vue'
 import { useSidebarResize } from '@superx/foundation/shell/useSidebarResize'
+import { normalizeNotificationDuration } from '@superx/foundation/shell/notificationDuration'
 import logoImage from './assets/icon.png'
 
 // Composables
@@ -755,7 +756,7 @@ window.addEventListener(
 const handleSettingsUpdated = (event: Event) => {
   const settings = (event as CustomEvent).detail
   if (settings && 'notificationDuration' in settings) {
-    notificationDuration.value = settings.notificationDuration === 5000 ? 5000 : 0
+    notificationDuration.value = normalizeNotificationDuration(settings.notificationDuration)
   }
   // 侧栏展示偏好（showPortType 等）由 useConnectionSidebar.applySettings 应用
   applySettings(settings)
@@ -764,7 +765,7 @@ const handleSettingsUpdated = (event: Event) => {
 const loadNotificationDuration = async () => {
   try {
     const settings = await window.storageApi.getSettings()
-    notificationDuration.value = settings?.notificationDuration === 5000 ? 5000 : 0
+    notificationDuration.value = normalizeNotificationDuration(settings?.notificationDuration)
   } catch (error) {
     console.error('Failed to load notification duration:', error)
   }

@@ -56,6 +56,8 @@
     "notificationDuration": "通知显示时长",
     "notificationDurationDesc": "控制通知常驻或自动关闭",
     "notificationPermanent": "永久显示",
+    "notificationOneSecond": "1 秒",
+    "notificationThreeSeconds": "3 秒",
     "notificationFiveSeconds": "5 秒",
     "display": "显示",
     "autoScroll": "固定滚屏",

@@ -75,6 +75,8 @@
               </div>
               <el-select v-model="settings.notificationDuration" size="small" style="width: 120px">
                 <el-option :label="t('basicSettings.notificationPermanent')" :value="0" />
+                <el-option :label="t('basicSettings.notificationOneSecond')" :value="1000" />
+                <el-option :label="t('basicSettings.notificationThreeSeconds')" :value="3000" />
                 <el-option :label="t('basicSettings.notificationFiveSeconds')" :value="5000" />
               </el-select>
             </div>
