@@ -194,6 +194,37 @@ async function main() {
       await page.keyboard.type(`mysql -uroot -p${TYPED_SECRET}`)
       await page.keyboard.press('Enter')
       await page.waitForTimeout(1500)
+
+      // ---------- 5.6 右键菜单复制 ----------
+      // xterm 不自带右键菜单，选中文本后必须能右键复制
+      const MARK = 'COPY-ME-9527'
+      await page.keyboard.type(`echo ${MARK}`)
+      await page.keyboard.press('Enter')
+      await page.waitForTimeout(1200)
+
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {})
+      await page.locator('.xterm-screen').first().click({ button: 'right' })
+      await page.waitForTimeout(500)
+      const menuVisible = await page.locator('.xterm-context-menu').isVisible().catch(() => false)
+      const copyCls = await page.locator('.xterm-context-menu .menu-item').filter({ hasText: '复制' }).first().getAttribute('class').catch(() => '')
+      const pasteCls = await page.locator('.xterm-context-menu .menu-item').filter({ hasText: '粘贴' }).first().getAttribute('class').catch(() => '')
+      await page.screenshot({ path: path.join(OUT_DIR, 'tm-9-context-menu.png') })
+      log(`右键菜单: 可见=${menuVisible} | 未选中时复制项 class="${copyCls}" (期望含 disabled) | 已连接时粘贴项 class="${pasteCls}" (期望不含 disabled)`)
+
+      // 全选后再复制，校验剪贴板真的拿到了终端内容
+      await page.locator('.xterm-context-menu .menu-item').filter({ hasText: '全选' }).first().click()
+      await page.waitForTimeout(300)
+      await page.locator('.xterm-screen').first().click({ button: 'right' })
+      await page.waitForTimeout(400)
+      await page.locator('.xterm-context-menu .menu-item').filter({ hasText: '复制' }).first().click()
+      await page.waitForTimeout(600)
+      let clip = ''
+      try {
+        clip = await page.evaluate(() => navigator.clipboard.readText())
+      } catch (e) {
+        clip = ''
+      }
+      log(`右键复制: 剪贴板长度=${clip.length} | 含标记=${clip.includes(MARK)} (期望 true)`)
     }
 
     // ---------- 6. 视图菜单：勾选态应反映当前连接 ----------
