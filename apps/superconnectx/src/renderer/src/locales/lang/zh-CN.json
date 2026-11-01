@@ -256,6 +256,7 @@
     "file": "文件",
     "edit": "编辑",
     "tools": "工具",
+    "view": "视图",
     "help": "帮助",
     "font": "字体",
     "importCmd": "导入命令",
@@ -281,6 +282,8 @@
     "wordWrap": "自动换行",
     "lineNumbers": "显示行号",
     "logEditable": "日志可编辑",
+    "terminalMode": "终端模式",
+    "terminalModeTip": "交互式终端：直接按键输入，支持 Ctrl+C 打断",
     "theme": "皮肤设置",
     "darkTheme": "深色模式",
     "lightTheme": "浅色模式"

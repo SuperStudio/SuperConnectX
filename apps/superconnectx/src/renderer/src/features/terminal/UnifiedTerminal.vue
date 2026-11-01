@@ -3,7 +3,8 @@
 
     <!-- 终端输出区域（+ 日志过滤面板） -->
     <div class="output-area" :style="terminalOutputStyle">
-      <div ref="editorContainer" class="terminal-output" :class="{ 'show-scrollbar': showScrollbar }">
+      <!-- 日志视图：Monaco 只读 + 自研 ANSI 着色（原行为） -->
+      <div v-show="!terminalMode" ref="editorContainer" class="terminal-output" :class="{ 'show-scrollbar': showScrollbar }">
         <!-- 滚动按钮 -->
         <div class="scroll-wrapper">
           <el-button icon="ArrowUp" size="mini" circle @click="handleScrollToTop" class="scroll-btn up-btn" />
@@ -15,6 +16,18 @@
           <span class="tx">TX: {{ txBytes }}</span>
         </div>
       </div>
+
+      <!-- 终端模式：xterm 真终端（占据同一输出区） -->
+      <XtermTerminal
+        v-show="terminalMode"
+        ref="xtermRef"
+        class="terminal-xterm"
+        :font-size="fontSize"
+        :font-family="fontFamily"
+        :disabled="!isConnected"
+        @data="handleTerminalInput"
+        @resize="handleTerminalResize"
+      />
       <LogFilterPanel
         v-if="showLogFilter"
         v-model:visible="showLogFilter"
@@ -106,8 +119,9 @@
       />
     </div>
 
-    <!-- 命令输入区域 -->
-    <div class="terminal-input">
+    <!-- 命令输入区域（终端模式下由 xterm 直接接收按键，故整块隐藏；
+         上方的命令组按钮与断开/清空等控件保持原样） -->
+    <div v-if="!terminalMode" class="terminal-input">
       <!-- 第一行：输入栏 -->
       <div class="input-row">
         <div class="input-controls terminal-switch" v-if="connection?.connectionType === 'com'">
@@ -248,6 +262,7 @@ import {
   uint8ArrayToBinaryString
 } from '../diagnostics/hex'
 import { migrateCrcMethod, loadCrcPlugins, requestCrcHex } from '../diagnostics/dataCheck'
+import XtermTerminal from './XtermTerminal.vue'
 
 const maxClearSizeMB = ref(30)
 
@@ -268,13 +283,19 @@ const props = withDefaults(defineProps<{
   placeholder?: string
   sessionIdPrefix?: string
   showBottomPanel?: boolean
+  /**
+   * 终端模式：true 时输出区切换为 xterm 真终端，命令输入框隐藏，
+   * 按键直接上送（支持 Ctrl+C 打断等交互式操作）。
+   */
+  terminalMode?: boolean
 }>(), {
   isConnected: false,
   isConnecting: false,
   initMessage: '', // will be set via t() in script
   placeholder: '', // will be set via t() in script
   sessionIdPrefix: 'terminal',
-  showBottomPanel: true
+  showBottomPanel: true,
+  terminalMode: false
 })
 
 type LineEnding = 'CRLF' | 'CR' | 'LF'
@@ -293,6 +314,8 @@ const emit = defineEmits<{
   onEditSyntaxRules: []
   onFileUpload: [filePath: string, fileName: string]
   lineEndingChange: [value: LineEnding]
+  onTerminalInput: [payload: string]
+  onTerminalResize: [rows: number, cols: number, reason?: string]
 }>()
 
 const currentCommand = ref('')
@@ -1107,6 +1130,14 @@ const handleScrollToTop = () => {
 }
 
 const clearTerminal = () => {
+  // 终端模式下清屏交给 xterm（含回滚区），Monaco 模型不再承载内容
+  if (terminalMode.value) {
+    xtermRef.value?.clear?.()
+    rxBytes.value = '0 B'
+    txBytes.value = '0 B'
+    totalRecvSize = 0
+    return
+  }
   if (editorModel) {
     editorModel.setValue('')
   }
@@ -1498,6 +1529,77 @@ const getEditorContent = (): string => {
 }
 
 // 暴露给父组件的方法
+/** 终端模式（可由父组件 props 指定，也可通过 setTerminalMode 热切换） */
+const terminalMode = ref(props.terminalMode)
+watch(
+  () => props.terminalMode,
+  (val) => {
+    if (terminalMode.value === val) return
+    terminalMode.value = val
+    syncTerminalSizeToServer(`props:${val}`)
+  }
+)
+
+const xtermRef = ref<InstanceType<typeof XtermTerminal> | null>(null)
+
+/**
+ * 把当前可视行列同步给远端 PTY。
+ * 终端模式下 vim/less/top 依赖 SIGWINCH 重排，不同步会出现排版错乱。
+ */
+const syncTerminalSizeToServer = (reason: string): void => {
+  if (!terminalMode.value) return
+  const dims = xtermRef.value?.getDimensions?.()
+  if (!dims || dims.rows <= 0 || dims.cols <= 0) return
+  emit('onTerminalResize', dims.rows, dims.cols, reason)
+}
+
+// xterm 贴合容器后行列变化 -> 通知服务端
+const handleTerminalResize = (rows: number, cols: number): void => {
+  emit('onTerminalResize', rows, cols, 'xterm')
+}
+
+// xterm 按键上送原始字节流（含 Ctrl+C 的 \x03），需以 raw 方式发送
+const handleTerminalInput = (payload: string): void => {
+  if (!payload) return
+  emit('onTerminalInput', payload)
+}
+
+/**
+ * 写入远端原始数据：终端模式交给 xterm 解析 ANSI，日志模式沿用 Monaco 追加。
+ */
+const writeToTerminal = (raw: string): void => {
+  if (terminalMode.value) {
+    xtermRef.value?.write?.(raw)
+    return
+  }
+  appendToTerminal(raw)
+}
+
+/** 切换终端模式，返回true时同步一次 PTY 尺寸让其对新可见宽度重排 */
+const setTerminalMode = (val: boolean): void => {
+  if (terminalMode.value === val) return
+  terminalMode.value = val
+  if (val) {
+    // 等 DOM 切换为可见后再 fit，否则容器尺寸为 0 会算出行列为 0
+    nextTick(() => {
+      xtermRef.value?.fit?.()
+      xtermRef.value?.focus?.()
+      syncTerminalSizeToServer('mode-on')
+    })
+  }
+}
+
+const getTerminalDimensions = (): { rows: number; cols: number } =>
+  xtermRef.value?.getDimensions?.() ?? { rows: 24, cols: 80 }
+
+const focusTerminal = (): void => {
+  if (terminalMode.value) {
+    xtermRef.value?.focus?.()
+    return
+  }
+  focusInput()
+}
+
 defineExpose({
   appendToTerminal,
   updateRxBytes,
@@ -1548,7 +1650,12 @@ defineExpose({
   },
   setLogEditable: (val: boolean) => {
     editor?.updateOptions({ readOnly: !val })
-  }
+  },
+  writeToTerminal,
+  setTerminalMode,
+  getTerminalMode: () => terminalMode.value,
+  getTerminalDimensions,
+  focusTerminal
 })
 
 const getMaxClearSize = () => {

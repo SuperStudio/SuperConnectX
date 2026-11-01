@@ -59,7 +59,10 @@ export default class WorkerConnector {
       ftpPermissions: conn.ftpPermissions,
       authMethod: conn.authMethod,
       privateKeyPath: conn.privateKeyPath,
-      passphrase: conn.passphrase
+      passphrase: conn.passphrase,
+      terminalMode: conn.terminalMode,
+      rows: conn.rows,
+      cols: conn.cols
     }
   }
 
@@ -68,8 +71,13 @@ export default class WorkerConnector {
     return await this.workerPool.startConnection(connInfo, conn.connectionType)
   }
 
-  async sendData(conn: any, command: string): Promise<object> {
-    return await this.workerPool.sendData(conn.sessionId, conn.connectionType, command)
+  async sendData(conn: any, command: string, options?: { raw?: boolean }): Promise<object> {
+    return await this.workerPool.sendData(conn.sessionId, conn.connectionType, command, options)
+  }
+
+  /** 同步终端尺寸到远端 PTY（终端模式下窗口变化时调用） */
+  async resizeTerminal(conn: any, rows: number, cols: number): Promise<object> {
+    return await this.workerPool.resizeTerminal(conn.sessionId, conn.connectionType, rows, cols)
   }
 
   async stopConnection(conn: any): Promise<object> {

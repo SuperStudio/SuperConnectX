@@ -20,7 +20,7 @@ import { getAppDataDir } from '../utils/AppDir'
 // ===================== 消息类型定义 =====================
 
 export interface WorkerToMainMessage {
-  type: 'ready' | 'data' | 'log' | 'close' | 'start-result' | 'send-result' | 'stop-result' | 'update-config-result' | 'error'
+  type: 'ready' | 'data' | 'log' | 'close' | 'start-result' | 'send-result' | 'stop-result' | 'update-config-result' | 'resize-result' | 'error'
   sessionId: string
   requestId?: string
   success?: boolean
@@ -34,13 +34,21 @@ export interface WorkerToMainMessage {
 }
 
 export interface MainToWorkerMessage {
-  type: 'start' | 'send' | 'stop' | 'update-config' | 'shutdown'
+  type: 'start' | 'send' | 'stop' | 'update-config' | 'resize' | 'shutdown'
   sessionId: string
   connInfo?: any
   connectionType?: string
   command?: string
   config?: any
   requestId?: string
+  /** 终端尺寸同步：行数 / 列数（resize 消息使用） */
+  rows?: number
+  cols?: number
+  /**
+   * 原样发送标记（终端模式使用）。
+   * true 时不追加换行等结束符，以便 Ctrl+C 这类控制字符能原样送达服务端 PTY。
+   */
+  raw?: boolean
 }
 
 interface WorkerEntry {
@@ -202,6 +210,7 @@ export default class WorkerPool {
       case 'send-result':
       case 'stop-result':
       case 'update-config-result':
+      case 'resize-result':
         // 处理请求响应
         if (msg.requestId) {
           const pending = entry.pendingRequests.get(msg.requestId)
@@ -435,14 +444,49 @@ export default class WorkerPool {
 
   /**
    * 发送数据到指定连接
+   * @param raw true 表示原样发送（不追加换行），终端模式下由 xterm 直接给出按键字节
    */
-  async sendData(sessionId: string, _connectionType: string, command: string): Promise<{ success: boolean; message?: string }> {
+  async sendData(
+    sessionId: string,
+    _connectionType: string,
+    command: string,
+    options?: { raw?: boolean }
+  ): Promise<{ success: boolean; message?: string }> {
     try {
       const normalizedSessionId = String(sessionId)
       const result = await this.sendToWorker(normalizedSessionId, {
         type: 'send',
         sessionId: normalizedSessionId,
-        command
+        command,
+        raw: options?.raw === true
+      })
+
+      return {
+        success: result.success,
+        message: result.message
+      }
+    } catch (err: any) {
+      return { success: false, message: err.message }
+    }
+  }
+
+  /**
+   * 同步终端窗口尺寸到远端 PTY（SSH/Telnet Shell）
+   * 用于让 vim / top / less 等交互式程序随窗口变化重新排版
+   */
+  async resizeTerminal(
+    sessionId: string,
+    _connectionType: string,
+    rows: number,
+    cols: number
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const normalizedSessionId = String(sessionId)
+      const result = await this.sendToWorker(normalizedSessionId, {
+        type: 'resize',
+        sessionId: normalizedSessionId,
+        rows,
+        cols
       })
 
       return {

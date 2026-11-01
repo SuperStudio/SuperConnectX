@@ -17,7 +17,7 @@
 
       <div
         class="menu-button"
-        @mouseenter="((showFileMenu = true), (showEditMenu = false), (showToolsMenu = false), (showHelpMenu = false))"
+        @mouseenter="((showFileMenu = true), (showEditMenu = false), (showToolsMenu = false), (showViewMenu = false), (showHelpMenu = false))"
       >
         <button class="menu-btn">{{ t('titlebar.file') }}</button>
         <div
@@ -91,7 +91,7 @@
 
       <div
         class="menu-button"
-        @mouseenter="((showFileMenu = false), (showEditMenu = false), (showToolsMenu = true), (showHelpMenu = false))"
+        @mouseenter="((showFileMenu = false), (showEditMenu = false), (showToolsMenu = true), (showViewMenu = false), (showHelpMenu = false))"
       >
         <button class="menu-btn">{{ t('titlebar.tools') }}</button>
         <div
@@ -111,9 +111,31 @@
         </div>
       </div>
 
+      <!-- 视图：终端模式等显示形态开关（作用于当前活动连接） -->
       <div
         class="menu-button"
-        @mouseenter="((showFileMenu = false), (showEditMenu = false), (showToolsMenu = false), (showHelpMenu = true))"
+        @mouseenter="handleMenuMouseEnter('view')"
+        @mouseleave="handleMenuMouseLeave('view')"
+      >
+        <button class="menu-btn">{{ t('titlebar.view') }}</button>
+        <div class="dropdown-menu" v-if="showViewMenu"
+          @mouseenter="handleDropdownMouseEnter('view')"
+          @mouseleave="handleDropdownMouseLeave('view')"
+        >
+          <div
+            class="menu-item checkbox-item"
+            :title="t('titlebar.terminalModeTip')"
+            @click.stop="toggleTerminalMode"
+          >
+            <span class="checkbox-mark">{{ terminalMode ? '✓' : '' }}</span>
+            <span>{{ t('titlebar.terminalMode') }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="menu-button"
+        @mouseenter="((showFileMenu = false), (showEditMenu = false), (showToolsMenu = false), (showHelpMenu = false))"
       >
         <button class="menu-btn">{{ t('titlebar.help') }}</button>
         <div
@@ -183,6 +205,7 @@ const isMac = window.virtualPortApi.getPlatform() === 'darwin'
 const showFileMenu = ref(false)
 const showEditMenu = ref(false)
 const showToolsMenu = ref(false)
+const showViewMenu = ref(false)
 const showHelpMenu = ref(false)
 // 字体子菜单状态
 const showFontSubmenu = ref(false)
@@ -223,6 +246,7 @@ const emit = defineEmits([
   'toggle-word-wrap',
   'toggle-line-numbers',
   'toggle-log-editable',
+  'toggle-terminal-mode',
   'save-log-as'
 ])
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -248,6 +272,11 @@ const props = defineProps({
     default: true
   },
   logEditable: {
+    type: Boolean,
+    default: false
+  },
+  /** 当前活动连接是否处于终端模式（xterm 交互式终端） */
+  terminalMode: {
     type: Boolean,
     default: false
   },
@@ -541,6 +570,7 @@ const handleMenuMouseEnter = async (menuType) => {
   showFileMenu.value = false
   showEditMenu.value = false
   showToolsMenu.value = false
+  showViewMenu.value = false
   showHelpMenu.value = false
   showFontSubmenu.value = false
 
@@ -552,6 +582,7 @@ const handleMenuMouseEnter = async (menuType) => {
   if (menuType === 'file') showFileMenu.value = true
   if (menuType === 'edit') showEditMenu.value = true
   if (menuType === 'tools') showToolsMenu.value = true
+  if (menuType === 'view') showViewMenu.value = true
   if (menuType === 'help') showHelpMenu.value = true
 }
 
@@ -562,6 +593,7 @@ const handleMenuMouseLeave = (menuType) => {
     if (menuType === 'file' && !showFontSubmenu.value) showFileMenu.value = false
     if (menuType === 'edit' && !showFontSubmenu.value) showEditMenu.value = false
     if (menuType === 'tools' && !showFontSubmenu.value) showToolsMenu.value = false
+    if (menuType === 'view' && !showFontSubmenu.value) showViewMenu.value = false
     if (menuType === 'help' && !showFontSubmenu.value) showHelpMenu.value = false
   }, 200)
 }
@@ -601,20 +633,22 @@ const handleFontSubmenuMouseLeave = () => {
 }
 
 /** 鼠标进入下拉菜单时取消 leaveTimer 并保持菜单打开 */
-const handleDropdownMouseEnter = (menu: 'file' | 'edit' | 'tools' | 'help') => {
+const handleDropdownMouseEnter = (menu: 'file' | 'edit' | 'tools' | 'view' | 'help') => {
   if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null }
   showFileMenu.value = menu === 'file'
   showEditMenu.value = menu === 'edit'
   showToolsMenu.value = menu === 'tools'
+  showViewMenu.value = menu === 'view'
   showHelpMenu.value = menu === 'help'
 }
 
 /** 鼠标离开下拉菜单时延迟关闭 */
-const handleDropdownMouseLeave = (menu: 'file' | 'edit' | 'tools' | 'help') => {
+const handleDropdownMouseLeave = (menu: 'file' | 'edit' | 'tools' | 'view' | 'help') => {
   leaveTimer = setTimeout(() => {
     if (menu === 'file' && !showFontSubmenu.value) showFileMenu.value = false
     if (menu === 'edit' && !showFontSubmenu.value) showEditMenu.value = false
     if (menu === 'tools' && !showFontSubmenu.value) showToolsMenu.value = false
+    if (menu === 'view' && !showFontSubmenu.value) showViewMenu.value = false
     if (menu === 'help' && !showFontSubmenu.value) showHelpMenu.value = false
   }, 200)
 }
@@ -629,6 +663,10 @@ const toggleLineNumbers = () => {
 
 const toggleLogEditable = () => {
   emit('toggle-log-editable')
+}
+
+const toggleTerminalMode = () => {
+  emit('toggle-terminal-mode')
 }
 
 const changeFont = (fontFamily) => {
@@ -664,6 +702,7 @@ const handleClickOutside = (event: MouseEvent) => {
     showFileMenu.value = false
     showEditMenu.value = false
     showToolsMenu.value = false
+    showViewMenu.value = false
     showHelpMenu.value = false
     showFontSubmenu.value = false
   }

@@ -33,4 +33,15 @@ export default interface ConnectionInfo {
   privateKeyPath?: string
   /** 私钥本身的口令，可为空（针对加密过的私钥） */
   passphrase?: string
+  /**
+   * 终端模式：true 表示该连接以交互式终端（xterm）呈现而非纯日志视图。
+   * SSH 默认开启，其余协议默认关闭。
+   */
+  terminalMode?: boolean
+  /**
+   * 远端 PTY 初始尺寸（行数/列数）。
+   * 终端模式下由渲染层在连线前给出实际可视行列，避免交互式程序先按 80x24 排版再跳动。
+   */
+  rows?: number
+  cols?: number
 }

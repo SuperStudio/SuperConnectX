@@ -256,6 +256,7 @@
     "file": "File",
     "edit": "Edit",
     "tools": "Tools",
+    "view": "View",
     "help": "Help",
     "font": "Font",
     "importCmd": "Import Commands",
@@ -281,6 +282,8 @@
     "wordWrap": "Word Wrap",
     "lineNumbers": "Line Numbers",
     "logEditable": "Editable Log",
+    "terminalMode": "Terminal Mode",
+    "terminalModeTip": "Interactive terminal: type directly, Ctrl+C interrupts",
     "theme": "Theme",
     "darkTheme": "Dark",
     "lightTheme": "Light"

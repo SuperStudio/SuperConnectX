@@ -148,10 +148,21 @@ export default class IpcConnector {
       return result
     })
 
-    // send-data
-    ipcMain.handle('send-data', async (_, { conn, command }: { conn: any; command: string }) => {
-      return this.routeSend(conn, command)
-    })
+    // send-data（options.raw=true 时原样发送，用于终端模式下的按键字节与控制字符）
+    ipcMain.handle(
+      'send-data',
+      async (_, { conn, command, options }: { conn: any; command: string; options?: { raw?: boolean } }) => {
+        return this.routeSend(conn, command, options)
+      }
+    )
+
+    // resize-terminal：将渲染层终端的可视行列同步给远端 PTY
+    ipcMain.handle(
+      'resize-terminal',
+      async (_, { conn, rows, cols }: { conn: any; rows: number; cols: number }) => {
+        return this.routeResize(conn, rows, cols)
+      }
+    )
 
     // upload-file
     ipcMain.handle('upload-file', async (_, { conn, localFilePath, remoteFileName }: { conn: any; localFilePath: string; remoteFileName: string }) => {
@@ -254,14 +265,25 @@ export default class IpcConnector {
     return this.directConnector.startConnection(conn, this.workerConnector.buildConnectInfo(conn))
   }
 
-  private routeSend(conn: any, command: string): Promise<object> | object {
+  private routeSend(conn: any, command: string, options?: { raw?: boolean }): Promise<object> | object {
     if (this.workerConnector.shouldUseWorker(conn, this.useWorkerMode)) {
-      return this.workerConnector.sendData(conn, command)
+      return this.workerConnector.sendData(conn, command, options)
     }
     if (conn.connectionType === 'ftp') {
       return this.ftpConnector.sendData(conn, command)
     }
-    return this.directConnector.sendData(conn, command)
+    return this.directConnector.sendData(conn, command, options)
+  }
+
+  /** 终端尺寸同步路由：与建连/发送走同一套 worker / direct 分派规则 */
+  private routeResize(conn: any, rows: number, cols: number): Promise<object> | object {
+    if (this.workerConnector.shouldUseWorker(conn, this.useWorkerMode)) {
+      return this.workerConnector.resizeTerminal(conn, rows, cols)
+    }
+    if (conn.connectionType === 'ftp') {
+      return { success: true, message: 'Resize not supported for FTP' }
+    }
+    return this.directConnector.resizeTerminal(conn, rows, cols)
   }
 
   private routeStop(conn: any): Promise<object> | object {

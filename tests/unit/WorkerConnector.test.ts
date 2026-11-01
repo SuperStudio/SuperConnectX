@@ -4,13 +4,14 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockSetCallbacks, mockStartConnection, mockSendData, mockStopConnection, mockUpdateConfig, mockShutdown, mockGetStatus } = vi.hoisted(() => {
+const { mockSetCallbacks, mockStartConnection, mockSendData, mockStopConnection, mockUpdateConfig, mockResizeTerminal, mockShutdown, mockGetStatus } = vi.hoisted(() => {
   return {
     mockSetCallbacks: vi.fn(),
     mockStartConnection: vi.fn(async () => ({ success: true })),
     mockSendData: vi.fn(async () => ({ success: true })),
     mockStopConnection: vi.fn(async () => ({ success: true })),
     mockUpdateConfig: vi.fn(async () => ({ success: true })),
+    mockResizeTerminal: vi.fn(async () => ({ success: true })),
     mockShutdown: vi.fn(async () => {}),
     mockGetStatus: vi.fn(() => ({ workerCount: 0, sessions: [] }))
   }
@@ -25,6 +26,7 @@ vi.mock('@/main/pool/WorkerPool', () => ({
         sendData: mockSendData,
         stopConnection: mockStopConnection,
         updateConnectionConfig: mockUpdateConfig,
+        resizeTerminal: mockResizeTerminal,
         shutdown: mockShutdown,
         getStatus: mockGetStatus
       }
@@ -205,7 +207,21 @@ describe('WorkerConnector', () => {
       const conn = makeConn({ sessionId: 's1' })
       await connector.sendData(conn, 'ls -la')
 
-      expect(mockSendData).toHaveBeenCalledWith('s1', 'telnet', 'ls -la')
+      expect(mockSendData).toHaveBeenCalledWith('s1', 'telnet', 'ls -la', undefined)
+    })
+
+    it('should forward raw option to workerPool.sendData', async () => {
+      const conn = makeConn({ sessionId: 's1' })
+      await connector.sendData(conn, '\x03', { raw: true })
+
+      expect(mockSendData).toHaveBeenCalledWith('s1', 'telnet', '\x03', { raw: true })
+    })
+
+    it('should delegate resize to workerPool.resizeTerminal', async () => {
+      const conn = makeConn({ sessionId: 's1' })
+      await connector.resizeTerminal(conn, 40, 120)
+
+      expect(mockResizeTerminal).toHaveBeenCalledWith('s1', 'telnet', 40, 120)
     })
   })
 

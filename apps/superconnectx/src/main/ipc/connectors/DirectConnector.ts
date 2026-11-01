@@ -7,12 +7,14 @@
 import ConnectionInfo from '../../protocol/ConnectionInfo'
 import ProtocolLogger from '../../utils/ProtocolLogger'
 import ConnectionStateManager from './ConnectionStateManager'
+import type { SendOptions } from '../../protocol/BaseClient'
 
 interface DirectClient {
   start(info: ConnectionInfo, onData: (dataObj: { data: string; timestamp: string }) => void, onClose: () => void, onLog: (logStr: string, timestamp: string) => void): Promise<object>
-  send(sessionId: string, command: string, onComplete: (dataStr: string) => void): Promise<object>
+  send(sessionId: string, command: string, onComplete: (dataStr: string) => void, options?: SendOptions): Promise<object>
   disconnect(sessionId: string): Promise<object>
   updateConfig(sessionId: string, config: Record<string, unknown>): Promise<object>
+  setWindowSize(sessionId: string, rows: number, cols: number): Promise<object>
 }
 
 export default class DirectConnector {
@@ -118,7 +120,7 @@ export default class DirectConnector {
     }
   }
 
-  async sendData(conn: any, command: string): Promise<object> {
+  async sendData(conn: any, command: string, options?: { raw?: boolean }): Promise<object> {
     const client = this.directClients.get(conn.sessionId)
     if (!client) return { success: false, message: 'Direct mode client not initialized' }
     return await client.send(
@@ -128,8 +130,16 @@ export default class DirectConnector {
         const showTimestamp = this.stateManager.getLogTimestamp(conn.sessionId)
         const finalLog = this.stateManager.buildLogContent(conn.sessionId, dataStr, this.logger.getTimeStamp())
         this.logger.appendToConnLog(finalLog, conn.sessionId, showTimestamp)
-      }
+      },
+      options
     )
+  }
+
+  /** 同步终端尺寸到远端 PTY（终端模式下窗口变化时调用） */
+  async resizeTerminal(conn: any, rows: number, cols: number): Promise<object> {
+    const client = this.directClients.get(conn.sessionId)
+    if (!client) return { success: false, message: 'Direct mode client not initialized' }
+    return await client.setWindowSize(conn.sessionId, rows, cols)
   }
 
   async stopConnection(conn: any): Promise<object> {

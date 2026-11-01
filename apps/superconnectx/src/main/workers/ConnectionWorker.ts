@@ -21,17 +21,22 @@ import ConnectionInfo from '../protocol/ConnectionInfo'
 // ===================== 消息类型定义 =====================
 
 interface WorkerMessage {
-  type: 'start' | 'send' | 'stop' | 'update-config' | 'shutdown'
+  type: 'start' | 'send' | 'stop' | 'update-config' | 'resize' | 'shutdown'
   sessionId: string
   connInfo?: ConnectionInfo
   connectionType?: string
   command?: string
   config?: any
   requestId?: string
+  /** 终端尺寸同步：行数 / 列数 */
+  rows?: number
+  cols?: number
+  /** 原样发送（不追加换行），终端模式下的按键字节/控制字符需要 */
+  raw?: boolean
 }
 
 interface WorkerResponse {
-  type: 'ready' | 'start-result' | 'data' | 'log' | 'close' | 'send-result' | 'stop-result' | 'update-config-result' | 'error'
+  type: 'ready' | 'start-result' | 'data' | 'log' | 'close' | 'send-result' | 'stop-result' | 'update-config-result' | 'resize-result' | 'error'
   sessionId: string
   requestId?: string
   success?: boolean
@@ -191,7 +196,7 @@ async function handleSend(msg: WorkerMessage): Promise<void> {
   try {
     const result = await client.send(sessionId, command, (dataStr: string) => {
       postResponse({ type: 'log', sessionId, logStr: dataStr })
-    })
+    }, { raw: msg.raw === true })
 
     postResponse({
       type: 'send-result',
@@ -306,6 +311,43 @@ async function handleUpdateConfig(msg: WorkerMessage): Promise<void> {
   }
 }
 
+/**
+ * 处理终端窗口尺寸同步（PTY resize）
+ * 未 connected 或协议不支持时静默成功，避免渲染层 resize 风暴刷出错误提示
+ */
+async function handleResize(msg: WorkerMessage): Promise<void> {
+  const { sessionId, rows, cols } = msg
+  if (!client || !rows || !cols) {
+    postResponse({
+      type: 'resize-result',
+      sessionId,
+      requestId: msg.requestId,
+      success: false,
+      message: 'Not connected or missing rows/cols'
+    })
+    return
+  }
+
+  try {
+    const result = await client.setWindowSize(sessionId, rows, cols)
+    postResponse({
+      type: 'resize-result',
+      sessionId,
+      requestId: msg.requestId,
+      success: (result as any)?.success ?? false,
+      message: (result as any)?.message ?? ''
+    })
+  } catch (err: any) {
+    postResponse({
+      type: 'resize-result',
+      sessionId,
+      requestId: msg.requestId,
+      success: false,
+      message: err?.message || 'Resize failed'
+    })
+  }
+}
+
 // ===================== 消息路由 =====================
 
 parentPort?.on('message', async (msg: WorkerMessage) => {
@@ -315,6 +357,9 @@ parentPort?.on('message', async (msg: WorkerMessage) => {
       break
     case 'send':
       await handleSend(msg)
+      break
+    case 'resize':
+      await handleResize(msg)
       break
     case 'stop':
       await handleStop(msg)

@@ -148,7 +148,17 @@ describe('DirectConnector', () => {
 
       const result = await dc.sendData(conn, 'AT\r\n')
       expect(result).toEqual({ success: true })
-      expect(mockComSend).toHaveBeenCalledWith('s1', 'AT\r\n', expect.any(Function))
+      expect(mockComSend).toHaveBeenCalledWith('s1', 'AT\r\n', expect.any(Function), undefined)
+    })
+
+    it('should forward raw option to client.send', async () => {
+      const { dc } = createDirectConnector()
+      const conn = makeConn({ connectionType: 'com', sessionId: 's1' })
+      await dc.startConnection(conn, { host: '', port: 0, username: '', password: '', sessionId: 's1' })
+
+      await dc.sendData(conn, '\x03', { raw: true })
+      // 终端模式下 \x03 必须原样下发，不能被补 \n
+      expect(mockComSend).toHaveBeenCalledWith('s1', '\x03', expect.any(Function), { raw: true })
     })
 
     it('should return failure when client not initialized', async () => {

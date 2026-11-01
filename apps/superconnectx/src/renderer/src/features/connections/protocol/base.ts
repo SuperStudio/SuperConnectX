@@ -11,6 +11,13 @@ export interface BaseConnection {
   id?: number
   name: string
   connectionType: string
+  /**
+   * 终端模式（per-connection 偏好）：
+   * true = 以交互式终端（xterm）呈现会话，可直接按键、支持 Ctrl+C 等控制字符；
+   * false/undefined = 沿用原日志视图 + 命令输入框。
+   * 交互式协议（ssh / telnet / com）支持该开关，其余协议忽略。
+   */
+  terminalMode?: boolean
 }
 
 // ===== 各协议独立接口 =====

@@ -62,7 +62,14 @@ function freePort(): Promise<number> {
 
 function startServer(
   hostKey: string,
-  opts: { allowPublicKey?: boolean; port?: number } = {}
+  opts: {
+    allowPublicKey?: boolean
+    port?: number
+    /** 记录 shell 通道收到的原始字节，用于校验是否真的原样发送 */
+    onShellData?: (chunk: string) => void
+    /** 记录服务端收到的窗口尺寸变更（渲染层 resize 的结果） */
+    onWindowChange?: (info: { rows: number; cols: number }) => void
+  } = {}
 ): Promise<Running> {
   const server = new Server({ hostKeys: [hostKey] }, (client) => {
     client.on('authentication', (ctx) => {
@@ -88,11 +95,16 @@ function startServer(
       client.on('session', (accept) => {
         const session = accept()
         session.on('pty', (a) => a && a())
+        session.on('window-change', (_a, _r, info) => {
+          opts.onWindowChange?.({ rows: info.rows, cols: info.cols })
+        })
         session.on('shell', (a) => {
           const stream = a()
           stream.write('Welcome to mock ssh\r\n')
           let line = ''
           stream.on('data', (d) => {
+            // 无论是否为有效命令，先把原始字节交给 recorder，用于验证 raw 语义
+            opts.onShellData?.(d.toString())
             for (const ch of d.toString()) {
               if (ch === '\r' || ch === '\n') {
                 const cmd = line.trim()
@@ -283,4 +295,83 @@ describe('SshClient 主机密钥指纹校验', () => {
     expect(r3.message).toContain('中间人攻击')
     await srv3.close()
   }, 60000)
+})
+
+describe('SshClient 终端模式支持（raw 发送 / PTY 尺寸同步）', () => {
+  const waitFor = (predicate: () => boolean, timeoutMs = 5000) =>
+    new Promise<void>((resolve, reject) => {
+      const started = Date.now()
+      const timer = setInterval(() => {
+        if (predicate()) {
+          clearInterval(timer)
+          resolve()
+        } else if (Date.now() - started > timeoutMs) {
+          clearInterval(timer)
+          reject(new Error('waitFor timeout'))
+        }
+      }, 20)
+    })
+
+  it('非 raw 发送会追加换行结束命令', async () => {
+    const chunks: string[] = []
+    const srv = await startServer(makeHostKey(), { onShellData: (c) => chunks.push(c) })
+    const client = makeClient(fs.mkdtempSync(path.join(os.tmpdir(), 'scx-raw1-')))
+    const r = await client.start(
+      { host: '127.0.0.1', port: srv.port, username: 'scx', password: 'scxpass', sessionId: 's-raw1' } as any,
+      () => {}, () => {}, () => {}
+    )
+    expect(r.success).toBe(true)
+
+    await client.send('s-raw1', 'ls', undefined)
+    await waitFor(() => chunks.length > 0)
+
+    expect(chunks.join('')).toBe('ls\n')
+
+    await client.disconnect('s-raw1')
+    await srv.close()
+  }, 30000)
+
+  it('raw 发送原样下发 Ctrl+C（\x03），不追加换行', async () => {
+    const chunks: string[] = []
+    const srv = await startServer(makeHostKey(), { onShellData: (c) => chunks.push(c) })
+    const client = makeClient(fs.mkdtempSync(path.join(os.tmpdir(), 'scx-raw2-')))
+    await client.start(
+      { host: '127.0.0.1', port: srv.port, username: 'scx', password: 'scxpass', sessionId: 's-raw2' } as any,
+      () => {}, () => {}, () => {}
+    )
+
+    await client.send('s-raw2', '\x03', undefined, { raw: true })
+    await waitFor(() => chunks.length > 0)
+
+    // 关键断言：追加 \n 会让 ^C 变成 "^C + 回车"，服务端收到 \x03\n 即视为缺陷
+    expect(chunks.join('')).toBe('\x03')
+
+    await client.disconnect('s-raw2')
+    await srv.close()
+  }, 30000)
+
+  it('setWindowSize 会把新的行列同步给远端 PTY', async () => {
+    const changes: Array<{ rows: number; cols: number }> = []
+    const srv = await startServer(makeHostKey(), { onWindowChange: (i) => changes.push(i) })
+    const client = makeClient(fs.mkdtempSync(path.join(os.tmpdir(), 'scx-size-')))
+    await client.start(
+      { host: '127.0.0.1', port: srv.port, username: 'scx', password: 'scxpass', sessionId: 's-size' } as any,
+      () => {}, () => {}, () => {}
+    )
+
+    const result = await client.setWindowSize('s-size', 40, 120)
+    expect(result.success).toBe(true)
+
+    await waitFor(() => changes.length > 0)
+    expect(changes[0]).toEqual({ rows: 40, cols: 120 })
+
+    await client.disconnect('s-size')
+    await srv.close()
+  }, 30000)
+
+  it('未连接的 session 调用 setWindowSize 返回失败而非抛错', async () => {
+    const client = makeClient(fs.mkdtempSync(path.join(os.tmpdir(), 'scx-size2-')))
+    const result = await client.setWindowSize('nope', 24, 80)
+    expect(result.success).toBe(false)
+  })
 })

@@ -24,6 +24,8 @@
         @open-ascii="openAsciiTab"
         @toggle-word-wrap="handleToggleWordWrap"
         @toggle-line-numbers="handleToggleLineNumbers"
+        :terminal-mode="activeTabTerminalMode"
+        @toggle-terminal-mode="handleToggleTerminalMode"
         @toggle-log-editable="handleToggleLogEditable"
         @save-log-as="handleSaveLogAs"
         :active-connection-count="activeConnectionCount"
@@ -253,6 +255,11 @@
                 @font-loaded="
                   (font: string) => {
                     currentFont = font
+                  }
+                "
+                @terminal-mode-changed="
+                  (enabled: boolean) => {
+                    handleTerminalModeChanged(tab.id, enabled)
                   }
                 "
               />
@@ -584,6 +591,46 @@ const {
   applyToAllTerminals,
   applyTerminalDisplaySettingsToTab
 } = useTerminalDisplay()
+
+// ---- 终端模式（视图菜单）----
+//
+// 终端模式是 per-connection 偏好：菜单勾选作用于「当前活动连接」，
+// 由对应终端组件负责热切换 + 落盘，这里只维护回显状态与入口校验。
+const activeTabTerminalMode = ref(false)
+
+const getActiveTerminalRef = () => {
+  const tabId = activeTabId.value
+  if (!tabId) return null
+  return (comTerminalRefs[tabId] || telnetTerminalRefs[tabId]) ?? null
+}
+
+/** 终端内模式发生变化时（含连线后异步读出偏好）同步菜单勾选 */
+const handleTerminalModeChanged = (tabId: string | number, enabled: boolean): void => {
+  if (String(tabId) !== String(activeTabId.value)) return
+  activeTabTerminalMode.value = enabled === true
+}
+
+/** 切换终端（xterm 交互式）模式 / 日志视图 */
+const handleToggleTerminalMode = async (): Promise<void> => {
+  const terminal = getActiveTerminalRef()
+  if (!terminal?.setTerminalMode) {
+    ElMessage.warning(t('titlebar.noActiveTerminal'))
+    return
+  }
+  const next = !(terminal.getTerminalMode?.() === true)
+  await terminal.setTerminalMode(next)
+  activeTabTerminalMode.value = next
+}
+
+// 切换 tab 时回显该连接当前的终端模式
+watch(activeTabId, (tabId) => {
+  if (!tabId) {
+    activeTabTerminalMode.value = false
+    return
+  }
+  const terminal = comTerminalRefs[tabId] || telnetTerminalRefs[tabId]
+  activeTabTerminalMode.value = terminal?.getTerminalMode?.() === true
+})
 
 // ---- Terminal Toolbar Actions（工具栏终端动作编排：显示偏好切换 / 刷新分组命令 / 日志另存为） ----
 const {

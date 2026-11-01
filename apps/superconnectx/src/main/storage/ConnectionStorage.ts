@@ -249,6 +249,11 @@ export default class ConnectionStorage extends BaseStorage {
         }
       }
     }
+    // 终端模式是 per-connection 偏好，所有协议统一允许写入（不支持的协议由渲染层忽略）。
+    // 注意：这里必须显式赋值，否则该字段会在持久化时被静默丢弃。
+    if (conn.terminalMode !== undefined) {
+      con[0].terminalMode = conn.terminalMode
+    }
     if (conn.connectionType === 'ftp') {
       if (conn.ftpMode !== undefined) {
         con[0].ftpMode = conn.ftpMode

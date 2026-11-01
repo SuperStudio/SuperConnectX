@@ -9,6 +9,9 @@
       :placeholder="t('terminal.inputPrompt')"
       :show-bottom-panel="showBottomPanel"
       session-id-prefix="telnet"
+      :terminal-mode="terminalMode"
+      @on-terminal-input="handleTerminalInput"
+      @on-terminal-resize="handleTerminalResize"
       @on-close="handleClose"
       @on-reconnect="handleReconnect"
       @on-open-log-folder="openLogFolder"
@@ -37,7 +40,7 @@ import { formatReceivedData, recvDisplayText } from './useTerminalDisplayText'
 const MAX_RETRY_COUNT = 1000
 const RETRY_INTERVAL_MS = 3000
 
-const emit = defineEmits(['onClose', 'commandSent', 'openCommandEditor', 'fontLoaded', 'openSyntaxHighlight'])
+const emit = defineEmits(['onClose', 'commandSent', 'openCommandEditor', 'fontLoaded', 'openSyntaxHighlight', 'terminalModeChanged'])
 const props = withDefaults(defineProps<{
   connection: {
     id: string | number
@@ -71,6 +74,12 @@ const initMessage = computed(() => {
 
 const isConnecting = ref(false)
 const unifiedTerminalRef = ref<InstanceType<typeof UnifiedTerminal>>()
+
+/**
+ * 终端模式（per-connection 偏好）：true 时输出区为 xterm 真终端。
+ * SSH 默认开启，其余协议默认关闭；可由「视图」菜单热切换并持久化。
+ */
+const terminalMode = ref(false)
 
 let retryCount = 0
 let retryTimer: ReturnType<typeof setTimeout> | null = null
@@ -110,6 +119,11 @@ const loadFontSettings = async () => {
           terminal.showTimestamp.value = conn.showTimestamp
           unifiedTerminalRef.value?.setShowTimestamp?.(conn.showTimestamp)
         }
+        // 终端模式偏好：未配置时按协议默认（SSH 默认进终端模式）
+        const storedMode = conn.terminalMode
+        applyTerminalMode(
+          storedMode === undefined ? props.connection.connectionType === 'ssh' : storedMode === true
+        )
       }
     }
   } catch (error) {
@@ -148,6 +162,96 @@ const terminal = useTerminal({
 })
 
 const { openLogFolder, openLogFile, saveLogFileAs, rotateLogFile, cleanup: terminalCleanup } = terminal
+
+/**
+ * 应用终端模式到界面。
+ * 注意：真正持久化由 saveTerminalModePreference 完成，这里只负责 UI 状态。
+ */
+const applyTerminalMode = (enabled: boolean): void => {
+  terminalMode.value = enabled
+  unifiedTerminalRef.value?.setTerminalMode?.(enabled)
+  // 同步给上层：「视图」菜单要据此回显勾选状态（偏好是异步读出的，必须上报）
+  emit('terminalModeChanged', enabled)
+}
+
+/** 将当前的终端模式偏好写入该连接的存储，实现 per-connection 记忆 */
+const saveTerminalModePreference = async (enabled: boolean): Promise<void> => {
+  const originalId = getOriginalConnectionId()
+  if (!originalId) {
+    // 尚未保存过的新连接无法定位 id，仅切换 UI 不报错
+    return
+  }
+  try {
+    await window.storageApi.updateConnection({ id: originalId, terminalMode: enabled })
+  } catch (error) {
+    console.error('Failed to save terminal mode preference:', error)
+  }
+}
+
+/**
+ * 读取 per-connection 的终端模式偏好。
+ * 连线前就要知道结果，否则先渲染日志视图再切换到 xterm 会出现闪烁。
+ */
+const loadTerminalModePreference = async (): Promise<void> => {
+  const originalId = getOriginalConnectionId()
+  if (!originalId) {
+    // 新建连接尚未落盘：仅按协议默认（SSH 进终端模式）
+    applyTerminalMode(props.connection.connectionType === 'ssh')
+    return
+  }
+  try {
+    const connections = await window.storageApi.getConnections()
+    const conn = connections.find((c: any) => c.id === originalId)
+    const stored = conn?.terminalMode
+    applyTerminalMode(
+      stored === undefined ? props.connection.connectionType === 'ssh' : stored === true
+    )
+  } catch (error) {
+    console.error('Failed to load terminal mode preference:', error)
+    applyTerminalMode(props.connection.connectionType === 'ssh')
+  }
+}
+
+/** 菜单/外部入口：切换终端模式（热切换 + 持久化） */
+const setTerminalMode = async (enabled: boolean): Promise<void> => {
+  applyTerminalMode(enabled)
+  await saveTerminalModePreference(enabled)
+}
+
+/** 当前连线参数（用于 raw 发送与尺寸同步） */
+const getConnectionPayload = (): any => {
+  const connObj = JSON.parse(
+    JSON.stringify({
+      ...fromRawConnection(props.connection),
+      sessionId: props.connection.sessionId,
+      password: undefined
+    })
+  )
+  return connObj
+}
+
+/** 终端模式：xterm 按键上送的字节流必须以 raw 方式发送，否则 Ctrl+C 会被追加 \n 破坏语义 */
+const handleTerminalInput = async (payload: string) => {
+  if (!isConnected.value) return
+  try {
+    await window.connectApi.sendData({ conn: getConnectionPayload(), command: payload, options: { raw: true } })
+    terminal.totalTxSize += payload.length
+    unifiedTerminalRef.value?.updateTxBytes(payload.length)
+  } catch (error) {
+    console.error('Failed to send terminal input:', error)
+  }
+}
+
+/** 终端模式：把可视行列同步给远端 PTY，让 vim/top 等程序随窗口重排 */
+const handleTerminalResize = async (rows: number, cols: number) => {
+  if (!isConnected.value || !terminalMode.value) return
+  try {
+    await window.connectApi.resizeTerminal({ conn: getConnectionPayload(), rows, cols })
+  } catch (error) {
+    // 尺寸同步失败不影响正常使用，静默即可
+    console.error('Failed to sync terminal size:', error)
+  }
+}
 
 const clearRetryTimer = () => {
   if (retryTimer) {
@@ -285,6 +389,12 @@ const registerConnectionListeners = (generation: number) => {
     if (generation !== connectGeneration || String(data.connId) !== sessionId) return
     terminal.totalRxSize += data.data.length
     unifiedTerminalRef.value?.updateRxBytes(data.data.length)
+    // 终端模式下必须由 xterm 自行解析 ANSI（光标移动/清屏），
+    // 不能套用日志视图的时间戳与标签加工，否则控制序列会被污染。
+    if (terminalMode.value) {
+      unifiedTerminalRef.value?.writeToTerminal?.(data.data)
+      return
+    }
     const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
     const displayText = formatReceivedData(`${recvLabel}${data.data}`, terminal.showTimestamp.value, data.timestamp)
     unifiedTerminalRef.value?.appendToTerminal(displayText)
@@ -330,6 +440,8 @@ const connect = async () => {
           ...fromRawConnection(props.connection),
           // 连接建立前就带上日志时间戳开关，避免首批数据落盘时未应用 GUI 状态
           logTimestamp: terminal.showTimestamp.value,
+          // 终端模式下把可视行列交给主进程，使 PTY 初始尺寸即为真实大小
+          ...(terminalMode.value ? unifiedTerminalRef.value?.getTerminalDimensions?.() ?? {} : {}),
           // 清除可能存在的掩码密码，避免覆盖后端解密结果
           password: undefined
         }))
@@ -364,6 +476,14 @@ const connect = async () => {
           updateConn,
           { logTimestamp: terminal.showTimestamp.value }
         )
+
+        // 终端模式：连接就绪后把当前可视行列同步给远端 PTY
+        if (terminalMode.value) {
+          const dims = unifiedTerminalRef.value?.getTerminalDimensions?.()
+          if (dims && dims.rows > 0 && dims.cols > 0) {
+            await handleTerminalResize(dims.rows, dims.cols)
+          }
+        }
 
 
         const successMsg = props.connection.ftpMode === 'server'
@@ -492,6 +612,8 @@ defineExpose({
   setWordWrap: (val: boolean) => unifiedTerminalRef.value?.setWordWrap?.(val),
   setLineNumbers: (val: boolean) => unifiedTerminalRef.value?.setLineNumbers?.(val),
   setLogEditable: (val: boolean) => unifiedTerminalRef.value?.setLogEditable?.(val),
+  setTerminalMode,
+  getTerminalMode: () => terminalMode.value,
   saveLogFileAs
 })
 
@@ -506,6 +628,9 @@ onBeforeUnmount(() => {
 })
 
 onMounted(() => {
+  // 连线前先应用终端模式偏好（SSH 默认进入终端模式），
+  // 避免 xterm 挂载过晚导致首屏仍是日志视图、用户看到闪烁切换。
+  loadTerminalModePreference()
   if (props.autoConnect) {
     connect()
   }

@@ -73,7 +73,9 @@ contextBridge.exposeInMainWorld('storageApi', {
 contextBridge.exposeInMainWorld('connectApi', {
   startConnect: (conn: any) => ipcRenderer.invoke('start-connect', conn),
   startConnectById: (id: number, sessionId: string, extraFields?: any) => ipcRenderer.invoke('start-connect-by-id', { id, sessionId, extraFields }),
-  sendData: (data: { conn: any; command: string }) => ipcRenderer.invoke('send-data', data),
+  sendData: (data: { conn: any; command: string; options?: { raw?: boolean } }) => ipcRenderer.invoke('send-data', data),
+  /** 同步终端可视行列到远端 PTY（终端模式下窗口尺寸变化时调用） */
+  resizeTerminal: (data: { conn: any; rows: number; cols: number }) => ipcRenderer.invoke('resize-terminal', data),
   uploadFile: (data: { conn: any; localFilePath: string; remoteFileName: string }) => ipcRenderer.invoke('upload-file', data),
   stopConnect: (conn: any) => ipcRenderer.invoke('stop-connect', conn),
   updateConnect: (conn: any, config: any) => ipcRenderer.invoke('update-connect', { conn, config }),

@@ -1,7 +1,7 @@
 import { Client, ClientChannel, ConnectConfig } from 'ssh2'
 import { createHash } from 'crypto'
 import { readFileSync } from 'fs'
-import BaseClient, { ILogger } from './BaseClient'
+import BaseClient, { ILogger, SendOptions } from './BaseClient'
 import ConnectionInfo from './ConnectionInfo'
 import { BufferLineSplitter } from './BufferLineSplitter'
 import SshKnownHostsStorage from '../storage/SshKnownHostsStorage'
@@ -10,8 +10,13 @@ const DEFAULT_SSH_PORT = 22
 const DEFAULT_READY_TIMEOUT_MS = 15 * 1000
 const DEFAULT_KEEPALIVE_INTERVAL_MS = 10 * 1000
 const READ_INTERVAL_MS = 10 // 固定10ms读取间隔
-const MAX_BUFFER_BYTES = 1024 * 1024 // 无换行输出也必须有上限，避免接收缓冲区无限增长
 const DEFAULT_TERMINAL_TYPE = 'vt100'
+// 未拿到渲染层行列时的 PTY 兜底尺寸（xterm 默认值也是 80x24）
+const DEFAULT_PTY_ROWS = 24
+const DEFAULT_PTY_COLS = 80
+// 估算单个字符的像素尺寸，用于 PTY 的 height/width（服务端一般忽略，但部分程序会读）
+const DEFAULT_PTY_CELL_HEIGHT = 18
+const DEFAULT_PTY_CELL_WIDTH = 9
 
 interface SshConnectionInfo {
   host: string
@@ -66,7 +71,10 @@ export default class SshClient extends BaseClient {
       .replace(/=+$/, '')}`
   }
 
-  // 处理缓冲区数据，按行分割并添加时间戳
+  // 处理缓冲区数据：SSH 走 PTY，输出是带 \r\n 与 ANSI 控制序列的连续字节流。
+  // 不能按行拆分——拆行会剥掉 \r 与行尾换行符，终端模式（xterm）下换行信息
+  // 丢失，所有输出会挤在一行。这里整段解码后原样下发，换行/回车语义
+  // 由渲染层按视图处理（xterm 原生解析；日志视图由 AnsiParser 去 \r）。
   private processBuffer(sessionId: string): void {
     try {
       const connData = this.sshConnectionData.get(sessionId)
@@ -75,25 +83,15 @@ export default class SshClient extends BaseClient {
       const { buffer, splitter, onData, onLog } = connData
       if (!buffer || buffer.length === 0) return
 
-      const result = splitter.split(buffer)
-      connData.buffer = result.remainder
+      // decodeCompletePrefix 只解码完整字符（多字节截断部分留在 remainder），
+      // 不改动 \r\n 等控制字节；HEX 模式内部会整段转 hex，行为不变
+      const flushed = splitter.decodeCompletePrefix(buffer)
+      connData.buffer = flushed.remainder
 
-      if (result.count > 0) {
+      if (flushed.text) {
         const timestamp = BufferLineSplitter.timestamp()
-        onData?.({ data: result.data, timestamp })
-        onLog?.(result.log, timestamp)
-      }
-
-      // 与 Telnet 同理：某些程序持续输出不带换行的内容（进度条/提示符），
-      // 若没有界刷新，remainder 会无限增长且永远到不了渲染进程。
-      if (connData.buffer.length > MAX_BUFFER_BYTES) {
-        const timestamp = BufferLineSplitter.timestamp()
-        const flushed = splitter.decodeCompletePrefix(connData.buffer)
-        connData.buffer = flushed.remainder
-        if (flushed.text) {
-          onData?.({ data: flushed.text, timestamp })
-          onLog?.(flushed.text, timestamp)
-        }
+        onData?.({ data: flushed.text, timestamp })
+        onLog?.(flushed.text, timestamp)
       }
     } catch (err: any) {
       this.logger.error(`processBuffer error: ${err?.message || err}`)
@@ -192,15 +190,27 @@ export default class SshClient extends BaseClient {
         client.connect(config)
       })
 
-      // 打开交互式 shell 通道
+      // 打开交互式 shell 通道（pty）。
+      // 终端模式下带上渲染层给出的实际行列，避免 vim/less 先按 80x24 排版窗口尺寸同步后再重排导致闪烁
+      const ptyRows = info.rows && info.rows > 0 ? info.rows : DEFAULT_PTY_ROWS
+      const ptyCols = info.cols && info.cols > 0 ? info.cols : DEFAULT_PTY_COLS
       const stream = await new Promise<ClientChannel>((resolve, reject) => {
-        client.shell({ term: DEFAULT_TERMINAL_TYPE }, (err, channel) => {
-          if (err) {
-            reject(err)
-            return
+        client.shell(
+          {
+            term: DEFAULT_TERMINAL_TYPE,
+            rows: ptyRows,
+            cols: ptyCols,
+            height: ptyRows * DEFAULT_PTY_CELL_HEIGHT,
+            width: ptyCols * DEFAULT_PTY_CELL_WIDTH
+          },
+          (err, channel) => {
+            if (err) {
+              reject(err)
+              return
+            }
+            resolve(channel)
           }
-          resolve(channel)
-        })
+        )
       })
 
       this.sshClients.set(sessionId, client)
@@ -310,7 +320,7 @@ export default class SshClient extends BaseClient {
     }
   }
 
-  async send(connId: string, command: string, onComplete: any): Promise<object> {
+  async send(connId: string, command: string, onComplete: any, options?: SendOptions): Promise<object> {
     const connData = this.sshConnectionData.get(connId)
     const stream = connData?.stream
     if (!stream) {
@@ -320,17 +330,42 @@ export default class SshClient extends BaseClient {
     try {
       // 日志时间戳由主线程按 GUI 开关统一添加/省略
       const dataStr = `SEND >>>>>>>>>> ${command}`
-      // shell 会话以换行结束一条命令（等价交互式中敲回车）
-      stream.write(command + '\n')
+      // 非终端模式：shell 会话以换行结束一条命令（等价交互式中敲回车）。
+      // 终端模式（raw）：xterm 已给出按键本身的字节流，追加 \n 会破坏 Ctrl+C 等控制字符语义。
+      const payload = options?.raw ? command : `${command}\n`
+      stream.write(payload)
       onComplete?.(dataStr)
 
-      this.logger.info(`send command: ${command}`)
+      this.logger.info(`send command: ${command}${options?.raw ? ' (raw)' : ''}`)
       return { success: true }
     } catch (error) {
       this.logger.error('ssh send failed', { connId, command, error })
       return {
         success: false,
         message: error instanceof Error ? error.message : '发送命令失败'
+      }
+    }
+  }
+
+  /**
+   * 同步终端窗口尺寸到远端 PTY。
+   * vim / top / less 等交互式程序依赖 SIGWINCH 重新计算排版，不同步会导致界面错乱。
+   */
+  async setWindowSize(connId: string, rows: number, cols: number): Promise<object> {
+    const connData = this.sshConnectionData.get(connId)
+    const stream = connData?.stream
+    if (!stream) {
+      return { success: false, message: 'Connection does not exist' }
+    }
+
+    try {
+      stream.setWindow(rows, cols, rows * DEFAULT_PTY_CELL_HEIGHT, cols * DEFAULT_PTY_CELL_WIDTH)
+      return { success: true, message: 'Window size updated' }
+    } catch (error) {
+      this.logger.error('ssh setWindow failed', { connId, rows, cols, error })
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '同步窗口尺寸失败'
       }
     }
   }
