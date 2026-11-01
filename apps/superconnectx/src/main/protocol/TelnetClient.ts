@@ -3,6 +3,7 @@ import BaseClient, { ILogger } from './BaseClient'
 import ConnectionInfo from './ConnectionInfo'
 import { BufferLineSplitter } from './BufferLineSplitter'
 import * as iconv from 'iconv-lite'
+import { looksLikePasswordPrompt, maskSensitiveInput, SENSITIVE_MASK, SENSITIVE_WINDOW_MS } from '../utils/SensitiveInput'
 
 const DEFAULT_TELNET_PORT = 23
 const DEFAULT_TIMOUT_MS = 10 * 1000
@@ -30,6 +31,23 @@ export default class TelnetClient extends BaseClient {
   telnetConnections = new Map<string, Telnet>()
   connectionInfos = new Map<string, TelnetConnectionInfo>()
   telnetConnectionData = new Map<string, TelnetConnection>()
+  /**
+   * 敏感输入窗口：远端刚打印过密码提示时，记录窗口截止时间（sessionId -> 时间戳）。
+   * 窗口内的用户输入不落明文日志（可能是交互式密码）。
+   */
+  private sensitiveWindowUntil = new Map<string, number>()
+
+  /**
+   * 日志/回显用的输入脱敏：命中凭据特征或处于密码输入窗口内时返回掩码。
+   */
+  private maskForLog(sessionId: string, command: string): string {
+    const until = this.sensitiveWindowUntil.get(sessionId)
+    if (until !== undefined) {
+      if (Date.now() <= until) return SENSITIVE_MASK
+      this.sensitiveWindowUntil.delete(sessionId)
+    }
+    return maskSensitiveInput(command)
+  }
 
   constructor(logger?: ILogger) {
     super(logger)
@@ -48,6 +66,10 @@ export default class TelnetClient extends BaseClient {
       connData.buffer = result.remainder
 
       if (result.count > 0) {
+        // 远端要求输入密码 -> 打开敏感窗口，后续输入日志只记掩码
+        if (looksLikePasswordPrompt(result.log)) {
+          this.sensitiveWindowUntil.set(sessionId, Date.now() + SENSITIVE_WINDOW_MS)
+        }
         const timestamp = BufferLineSplitter.timestamp()
         onData?.({ data: result.data, timestamp })
         onLog?.(result.log, timestamp)
@@ -61,6 +83,9 @@ export default class TelnetClient extends BaseClient {
         const flushed = splitter.decodeCompletePrefix(connData.buffer)
         connData.buffer = flushed.remainder
         if (flushed.text) {
+          if (looksLikePasswordPrompt(flushed.text)) {
+            this.sensitiveWindowUntil.set(sessionId, Date.now() + SENSITIVE_WINDOW_MS)
+          }
           onData?.({ data: flushed.text, timestamp })
           onLog?.(flushed.text, timestamp)
         }
@@ -134,6 +159,7 @@ export default class TelnetClient extends BaseClient {
         this.telnetConnections.delete(sessionId)
         this.connectionInfos.delete(sessionId)
         this.telnetConnectionData.delete(sessionId)
+        this.sensitiveWindowUntil.delete(sessionId)
         onClose?.()
       })
 
@@ -156,15 +182,17 @@ export default class TelnetClient extends BaseClient {
 
     try {
       // 日志时间戳由主线程按 GUI 开关统一添加/省略
-      const dataStr = `SEND >>>>>>>>>> ${command}`
+      // 脱敏：命令本身携带凭据或处于密码输入窗口内时只记掩码
+      const loggedCommand = this.maskForLog(connId, command)
+      const dataStr = `SEND >>>>>>>>>> ${loggedCommand}`
       const encoding = this.connectionInfos.get(connId)?.encoding || 'utf8'
       await connection.send(iconv.encode(command + '\n', encoding))
       onComplete?.(dataStr)
 
-      this.logger.info(`send command: ${command}`)
+      this.logger.info(`send command: ${loggedCommand}`)
       return { success: true }
     } catch (error) {
-      this.logger.error('telnet send failed', { connId, command, error })
+      this.logger.error('telnet send failed', { connId, command: this.maskForLog(connId, command), error })
       return {
         success: false,
         message: error instanceof Error ? error.message : '发送命令失败'
@@ -191,6 +219,7 @@ export default class TelnetClient extends BaseClient {
       this.telnetConnections.delete(connId)
       this.connectionInfos.delete(connId)
       this.telnetConnectionData.delete(connId)
+      this.sensitiveWindowUntil.delete(connId)
     } else {
       this.logger.warn('not find connId for disconnect', { connId })
     }

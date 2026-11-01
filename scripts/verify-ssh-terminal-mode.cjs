@@ -87,6 +87,9 @@ function startSshServer(hostKey) {
   })
 }
 
+/** 本轮在终端里敲入的敏感串，供退出后校验日志是否泄漏 */
+let TYPED_SECRET = ''
+
 async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true })
   fs.writeFileSync(LOG_FILE, '')
@@ -182,6 +185,15 @@ async function main() {
       await page.screenshot({ path: path.join(OUT_DIR, 'tm-5-after-ctrlc.png') })
       termText = await page.locator('.xterm-rows').first().innerText().catch(() => '')
       log(`Ctrl+C 出现 ^C: ${termText.includes('^C')}`)
+
+      // ---------- 5.5 敏感命令不得明文落盘 ----------
+      // 协议日志会把 SEND 内容原样写盘，终端模式下每个按键都走同一链路，
+      // 因此 mysql -p<密码> 这类输入必须被脱敏（详见 utils/SensitiveInput）
+      // 只负责输入：日志有缓冲区，需等应用退出 flush 后再校验（见脚本末尾）
+      TYPED_SECRET = 'superx-secret-9527'
+      await page.keyboard.type(`mysql -uroot -p${TYPED_SECRET}`)
+      await page.keyboard.press('Enter')
+      await page.waitForTimeout(1500)
     }
 
     // ---------- 6. 视图菜单：勾选态应反映当前连接 ----------
@@ -211,6 +223,32 @@ async function main() {
   } finally {
     await app.close().catch(() => {})
     server.close()
+
+    // ---------- 9. 敏感命令脱敏校验（应用退出后日志已 flush） ----------
+    if (TYPED_SECRET) {
+      const logDir = path.join(userDataDir, 'logs')
+      let leaked = false
+      let masked = false
+      let scanned = 0
+      if (fs.existsSync(logDir)) {
+        for (const f of fs.readdirSync(logDir)) {
+          if (!f.endsWith('.log')) continue
+          scanned++
+          const txt = fs.readFileSync(path.join(logDir, f), 'utf8').replace(/\0/g, '')
+          // 只看发送记录：远端回显（shell 会回显命令行）不在本应用可控范围内
+          for (const line of txt.split('\n')) {
+            if (!line.includes('SEND >>>>>>>>>> ')) continue
+            const payload = line.split('SEND >>>>>>>>>> ')[1] || ''
+            if (payload.includes(TYPED_SECRET)) leaked = true
+            if (payload.trim() === '***') masked = true
+          }
+        }
+      }
+      log(
+        `敏感命令脱敏: 扫描日志 ${scanned} 个 | SEND 出现掩码=${masked} | SEND 明文泄漏=${leaked}` +
+          ` (期望 masked=true, leaked=false)`
+      )
+    }
     log('done')
   }
 }

@@ -69,6 +69,8 @@ function startServer(
     onShellData?: (chunk: string) => void
     /** 记录服务端收到的窗口尺寸变更（渲染层 resize 的结果） */
     onWindowChange?: (info: { rows: number; cols: number }) => void
+    /** 自定义 shell 首条输出（用于模拟远端打印密码提示） */
+    greeting?: string
   } = {}
 ): Promise<Running> {
   const server = new Server({ hostKeys: [hostKey] }, (client) => {
@@ -100,7 +102,7 @@ function startServer(
         })
         session.on('shell', (a) => {
           const stream = a()
-          stream.write('Welcome to mock ssh\r\n')
+          stream.write(opts.greeting ?? 'Welcome to mock ssh\r\n')
           let line = ''
           stream.on('data', (d) => {
             // 无论是否为有效命令，先把原始字节交给 recorder，用于验证 raw 语义
@@ -374,4 +376,83 @@ describe('SshClient 终端模式支持（raw 发送 / PTY 尺寸同步）', () =
     const result = await client.setWindowSize('nope', 24, 80)
     expect(result.success).toBe(false)
   })
+
+  it('命令自带凭据时，回显与日志只记掩码', async () => {
+    const srv = await startServer(makeHostKey())
+    const client = makeClient(fs.mkdtempSync(path.join(os.tmpdir(), 'scx-mask1-')))
+    await client.start(
+      { host: '127.0.0.1', port: srv.port, username: 'scx', password: 'scxpass', sessionId: 's-mask1' } as any,
+      () => {}, () => {}, () => {}
+    )
+
+    const echoes: string[] = []
+    // 明文密码跟在 -p 后：不能落进协议日志
+    await client.send('s-mask1', 'mysql -uroot -p123456', (s: string) => echoes.push(s))
+    expect(echoes[0]).toBe('SEND >>>>>>>>>> ***')
+
+    // 普通命令不受影响，保证日志仍可用
+    await client.send('s-mask1', 'ls -la', (s: string) => echoes.push(s))
+    expect(echoes[1]).toBe('SEND >>>>>>>>>> ls -la')
+
+    await client.disconnect('s-mask1')
+    await srv.close()
+  }, 30000)
+
+  it('远端打印密码提示后，逐字输入的密码不落明文', async () => {
+    const received: string[] = []
+    const srv = await startServer(makeHostKey(), {
+      greeting: '[sudo] password for scx: ',
+      onShellData: (c) => received.push(c)
+    })
+    const client = makeClient(fs.mkdtempSync(path.join(os.tmpdir(), 'scx-mask2-')))
+    await client.start(
+      { host: '127.0.0.1', port: srv.port, username: 'scx', password: 'scxpass', sessionId: 's-mask2' } as any,
+      () => {}, () => {}, () => {}
+    )
+    // 等待 processBuffer 刷出 greeting，敏感窗口随之打开
+    await new Promise((r) => setTimeout(r, 300))
+
+    const echoes: string[] = []
+    // 终端模式下密码是逐字发送的：内容本身不含任何敏感关键字，只能靠窗口识别
+    await client.send('s-mask2', 's', (s: string) => echoes.push(s), { raw: true })
+    await client.send('s-mask2', 'ecret', (s: string) => echoes.push(s), { raw: true })
+
+    expect(echoes).toHaveLength(2)
+    expect(echoes.every((e) => e === 'SEND >>>>>>>>>> ***')).toBe(true)
+
+    // 关键：脱敏只影响日志，真实字节仍原样发给远端
+    await waitFor(() => received.join('') === 'secret')
+    expect(received.join('')).toBe('secret')
+
+    await client.disconnect('s-mask2')
+    await srv.close()
+  }, 30000)
+
+  it('终端模式逐字输入时，密码字符同样不落明文', async () => {
+    const srv = await startServer(makeHostKey())
+    const client = makeClient(fs.mkdtempSync(path.join(os.tmpdir(), 'scx-mask3-')))
+    await client.start(
+      { host: '127.0.0.1', port: srv.port, username: 'scx', password: 'scxpass', sessionId: 's-mask3' } as any,
+      () => {}, () => {}, () => {}
+    )
+
+    const echoes: string[] = []
+    // 终端模式下 xterm 是逐字符发送的：单条记录只有一个字符，
+    // 必须靠"本行已输入内容"拼接判断，否则密码会被拆散绕过特征匹配
+    for (const ch of 'mysql -uroot -pSuperSecret123') {
+      await client.send('s-mask3', ch, (s: string) => echoes.push(s), { raw: true })
+    }
+
+    expect(echoes.some((e) => e.includes('SuperSecret123'))).toBe(false)
+    expect(echoes.some((e) => /-p\S/.test(e))).toBe(false)
+    expect(echoes.filter((e) => e === 'SEND >>>>>>>>>> ***').length).toBeGreaterThan(0)
+
+    // 回车结束该行后，后续普通输入恢复明文记录（保证日志仍可读）
+    await client.send('s-mask3', '\r', (s: string) => echoes.push(s), { raw: true })
+    await client.send('s-mask3', 'ls', (s: string) => echoes.push(s), { raw: true })
+    expect(echoes[echoes.length - 1]).toBe('SEND >>>>>>>>>> ls')
+
+    await client.disconnect('s-mask3')
+    await srv.close()
+  }, 30000)
 })

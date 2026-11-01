@@ -5,6 +5,13 @@ import BaseClient, { ILogger, SendOptions } from './BaseClient'
 import ConnectionInfo from './ConnectionInfo'
 import { BufferLineSplitter } from './BufferLineSplitter'
 import SshKnownHostsStorage from '../storage/SshKnownHostsStorage'
+import {
+  looksLikeCredential,
+  looksLikeCredentialPrefix,
+  looksLikePasswordPrompt,
+  SENSITIVE_MASK,
+  SENSITIVE_WINDOW_MS
+} from '../utils/SensitiveInput'
 
 const DEFAULT_SSH_PORT = 22
 const DEFAULT_READY_TIMEOUT_MS = 15 * 1000
@@ -53,6 +60,17 @@ export default class SshClient extends BaseClient {
   connectionInfos = new Map<string, SshConnectionInfo>()
   sshConnectionData = new Map<string, SshConnection>()
   private readonly knownHosts: SshKnownHostsStorage
+  /**
+   * 敏感输入窗口：远端刚打印过密码提示时，记录窗口截止时间（sessionId -> 时间戳）。
+   * 终端模式下密码是逐字发送的，单看一段输入无法判断是否为密码，
+   * 必须结合"远端是否刚要求输入密码"来判断；窗口内的输入不落明文日志。
+   */
+  private sensitiveWindowUntil = new Map<string, number>()
+  /**
+   * 当前行已输入的内容（sessionId -> 片段）。终端模式逐字发送时用于拼接判断，
+   * 遇到换行即清空。
+   */
+  private inputLineBuffer = new Map<string, string>()
 
   constructor(logger?: ILogger, options?: { knownHostsDir?: string }) {
     super(logger)
@@ -89,6 +107,10 @@ export default class SshClient extends BaseClient {
       connData.buffer = flushed.remainder
 
       if (flushed.text) {
+        // 远端要求输入密码 -> 打开敏感窗口，后续按键日志只记掩码
+        if (looksLikePasswordPrompt(flushed.text)) {
+          this.sensitiveWindowUntil.set(sessionId, Date.now() + SENSITIVE_WINDOW_MS)
+        }
         const timestamp = BufferLineSplitter.timestamp()
         onData?.({ data: flushed.text, timestamp })
         onLog?.(flushed.text, timestamp)
@@ -96,6 +118,25 @@ export default class SshClient extends BaseClient {
     } catch (err: any) {
       this.logger.error(`processBuffer error: ${err?.message || err}`)
     }
+  }
+
+  /**
+   * 日志/回显用的输入脱敏：
+   * 命中凭据特征（--password=xxx、mysql -p123456 等）或处于密码输入窗口内时返回掩码。
+   */
+  private maskForLog(sessionId: string, command: string, raw = false): string {
+    const until = this.sensitiveWindowUntil.get(sessionId)
+    if (until !== undefined) {
+      if (Date.now() <= until) return SENSITIVE_MASK
+      this.sensitiveWindowUntil.delete(sessionId)
+    }
+
+    // 终端模式逐字发送：把本行已输入内容拼起来判断，避免密码被拆成单字符绕过特征匹配
+    const cumulative = (this.inputLineBuffer.get(sessionId) ?? '') + command
+    const lineEnded = raw ? /[\r\n]/.test(command) : true
+    this.inputLineBuffer.set(sessionId, lineEnded ? '' : cumulative)
+
+    return looksLikeCredential(cumulative) || looksLikeCredentialPrefix(cumulative) ? SENSITIVE_MASK : command
   }
 
   async start(info: ConnectionInfo, onData: any, onClose: any, onLog: any): Promise<object> {
@@ -262,6 +303,8 @@ export default class SshClient extends BaseClient {
         this.sshClients.delete(sessionId)
         this.connectionInfos.delete(sessionId)
         this.sshConnectionData.delete(sessionId)
+        this.sensitiveWindowUntil.delete(sessionId)
+        this.inputLineBuffer.delete(sessionId)
         onClose?.()
       }
 
@@ -329,17 +372,23 @@ export default class SshClient extends BaseClient {
 
     try {
       // 日志时间戳由主线程按 GUI 开关统一添加/省略
-      const dataStr = `SEND >>>>>>>>>> ${command}`
+      // 脱敏：命令本身携带凭据（mysql -p123456 等）或处于密码输入窗口内时只记掩码
+      const loggedCommand = this.maskForLog(connId, command, options?.raw === true)
+      const dataStr = `SEND >>>>>>>>>> ${loggedCommand}`
       // 非终端模式：shell 会话以换行结束一条命令（等价交互式中敲回车）。
       // 终端模式（raw）：xterm 已给出按键本身的字节流，追加 \n 会破坏 Ctrl+C 等控制字符语义。
       const payload = options?.raw ? command : `${command}\n`
       stream.write(payload)
       onComplete?.(dataStr)
 
-      this.logger.info(`send command: ${command}${options?.raw ? ' (raw)' : ''}`)
+      this.logger.info(`send command: ${loggedCommand}${options?.raw ? ' (raw)' : ''}`)
       return { success: true }
     } catch (error) {
-      this.logger.error('ssh send failed', { connId, command, error })
+      this.logger.error('ssh send failed', {
+        connId,
+        command: this.maskForLog(connId, command, options?.raw === true),
+        error
+      })
       return {
         success: false,
         message: error instanceof Error ? error.message : '发送命令失败'
@@ -392,6 +441,8 @@ export default class SshClient extends BaseClient {
       this.sshClients.delete(connId)
       this.connectionInfos.delete(connId)
       this.sshConnectionData.delete(connId)
+      this.sensitiveWindowUntil.delete(connId)
+      this.inputLineBuffer.delete(connId)
     } else {
       this.logger.warn('not find connId for disconnect', { connId })
     }
