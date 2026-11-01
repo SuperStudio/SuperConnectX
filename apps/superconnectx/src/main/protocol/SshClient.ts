@@ -1,7 +1,10 @@
 import { Client, ClientChannel, ConnectConfig } from 'ssh2'
+import { createHash } from 'crypto'
+import { readFileSync } from 'fs'
 import BaseClient, { ILogger } from './BaseClient'
 import ConnectionInfo from './ConnectionInfo'
 import { BufferLineSplitter } from './BufferLineSplitter'
+import SshKnownHostsStorage from '../storage/SshKnownHostsStorage'
 
 const DEFAULT_SSH_PORT = 22
 const DEFAULT_READY_TIMEOUT_MS = 15 * 1000
@@ -34,15 +37,33 @@ interface SshConnection {
  * 生命周期与数据流转完全对齐 TelnetClient：
  *   连接 -> shell 通道 -> 缓冲累积 -> 定时按行刷出 -> 关闭清理
  *
- * P0 阶段仅支持「密码认证」，私钥 / keyboard-interactive / 主机指纹校验在 P1 补齐。
+ * P1 阶段补齐：
+ *   - 私钥认证（authMethod='key' + privateKeyPath + passphrase）
+ *   - 主机密钥指纹校验（known_hosts，首次连接信任 + 指纹变更拒绝）
+ *
+ * TODO(P2) keyboard-interactive / 跳板机 ProxyJump。
  */
 export default class SshClient extends BaseClient {
   sshClients = new Map<string, Client>()
   connectionInfos = new Map<string, SshConnectionInfo>()
   sshConnectionData = new Map<string, SshConnection>()
+  private readonly knownHosts: SshKnownHostsStorage
 
-  constructor(logger?: ILogger) {
+  constructor(logger?: ILogger, options?: { knownHostsDir?: string }) {
     super(logger)
+    if (!options?.knownHostsDir) {
+      // Worker 环境无法访问 Electron API，known_hosts 目录必须由主进程经 workerData 注入
+      throw new Error('SshClient requires options.knownHostsDir for known_hosts storage')
+    }
+    this.knownHosts = new SshKnownHostsStorage(options.knownHostsDir)
+  }
+
+  /** 计算主机密钥指纹：SHA256:base64（去尾部 =），与 OpenSSH known_hosts 格式一致 */
+  static computeFingerprint(key: Buffer): string {
+    return `SHA256:${createHash('sha256')
+      .update(key)
+      .digest('base64')
+      .replace(/=+$/, '')}`
   }
 
   // 处理缓冲区数据，按行分割并添加时间戳
@@ -84,21 +105,73 @@ export default class SshClient extends BaseClient {
     const port = info.port
     const sessionId = info.sessionId
     const client = new Client()
+    // 主机密钥校验结果：trusted=已授信 / first=首次连接 / mismatch=指纹变更
+    // 用对象包裹而非裸变量：hostVerifier 是同步回调，TS 无法感知其中的赋值，
+    // 裸变量会被静态推断为永远 'trusted'，导致后续比较报错也无意义
+    const hostVerify: { result: 'trusted' | 'first' | 'mismatch' } = { result: 'trusted' }
 
     try {
+      // ---- 认证方式：密码 或 私钥 ----
+      const usePrivateKey = info.authMethod === 'key'
+      let privateKey: Buffer | undefined
+      if (usePrivateKey) {
+        const keyPath = info.privateKeyPath
+        if (!keyPath) {
+          return { success: false, message: '使用私钥认证时必须指定私钥文件路径' }
+        }
+        try {
+          privateKey = readFileSync(keyPath)
+        } catch (readErr) {
+          const reason = readErr instanceof Error ? readErr.message : String(readErr)
+          return { success: false, message: `读取私钥文件失败：${keyPath}（${reason}）` }
+        }
+      }
+
       const config: ConnectConfig = {
         host: host,
         port: port || DEFAULT_SSH_PORT,
         username: info.username,
-        password: info.password,
         readyTimeout: DEFAULT_READY_TIMEOUT_MS,
         keepaliveInterval: DEFAULT_KEEPALIVE_INTERVAL_MS,
         keepaliveCountMax: 3,
-        // P0：仅密码认证。TODO(P1) 支持 tryKeyboard / 私钥(keyboard-interactive) 认证
-        tryKeyboard: false
+        // P1：密码 / 私钥两种认证。TODO(P2) keyboard-interactive / 跳板机 ProxyJump
+        tryKeyboard: false,
+        // 不设置 hostHash，回调收到的是原始主机密钥 Buffer，
+        // 指纹格式由我们自己算（SHA256:base64），不受 ssh2 内部格式差异影响
+        hostVerifier: (key: Buffer) => {
+          const fingerprint = SshClient.computeFingerprint(key)
+          const known = this.knownHosts.getFingerprint(host, port)
+          if (known === null) {
+            // 首次连接：记录指纹并放行（Trust On First Use）
+            this.knownHosts.trust(host, port, fingerprint)
+            hostVerify.result = 'first'
+            this.logger.info(`ssh new host recorded: ${host}:${port} ${fingerprint}`)
+            return true
+          }
+          if (known === fingerprint) {
+            return true
+          }
+          // 指纹变更：极可能是中间人攻击，直接拒绝
+          hostVerify.result = 'mismatch'
+          this.logger.error(
+            `ssh host key mismatch: ${host}:${port} known=${known} got=${fingerprint}`
+          )
+          return false
+        }
       }
 
-      this.logger.info(`start to connect ssh: ${host}:${config.port} (session: ${sessionId})`)
+      if (usePrivateKey) {
+        config.privateKey = privateKey
+        if (info.passphrase) config.passphrase = info.passphrase
+      } else {
+        config.password = info.password
+      }
+
+      this.logger.info(
+        `start to connect ssh: ${host}:${config.port} (session: ${sessionId}, auth: ${
+          usePrivateKey ? 'key' : 'password'
+        })`
+      )
 
       // 等待握手 + 认证完成
       await new Promise<void>((resolve, reject) => {
@@ -184,6 +257,17 @@ export default class SshClient extends BaseClient {
 
       this.logger.info(`ssh connect ok (session: ${sessionId})`)
 
+      // 首次连接：把「已记录指纹」这一安全事实告知用户（写进终端 + 日志）
+      if (hostVerify.result === 'first') {
+        const noticeTs = BufferLineSplitter.timestamp()
+        const notice = `[系统] 首次连接该主机，已记录其密钥指纹 ${this.knownHosts.getFingerprint(
+          host,
+          port
+        )}；若日后指纹发生变化将拒绝连接。`
+        onData?.({ data: notice, timestamp: noticeTs })
+        onLog?.(notice, noticeTs)
+      }
+
       client.on('close', () => {
         this.logger.info(`ssh connection closed: ${host}:${config.port}`)
         handleClosed()
@@ -209,6 +293,15 @@ export default class SshClient extends BaseClient {
         client.end()
       } catch {
         /* ignore */
+      }
+      // 指纹变更属高危场景，给出比原始库错误更明确的中文说明
+      if (hostVerify.result === 'mismatch') {
+        return {
+          success: false,
+          message:
+            `主机密钥指纹校验失败：${host}:${port} 的主机密钥与本地已记录的不一致，可能是服务器被重装/更换，也可能存在中间人攻击。` +
+            `如已确认主机确实更换过密钥，请删除用户数据目录下 userdata/ssh-known-hosts.json 中该主机记录后重连。`
+        }
       }
       return {
         success: false,

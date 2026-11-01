@@ -26,4 +26,11 @@ export default interface ConnectionInfo {
   ftpMode?: 'server' | 'client'
   ftpDirectory?: string
   ftpPermissions?: string[]
+  // SSH 参数
+  /** 认证方式：password=密码认证(默认)，key=私钥认证 */
+  authMethod?: 'password' | 'key'
+  /** 私钥文件路径（authMethod='key' 时必填） */
+  privateKeyPath?: string
+  /** 私钥本身的口令，可为空（针对加密过的私钥） */
+  passphrase?: string
 }

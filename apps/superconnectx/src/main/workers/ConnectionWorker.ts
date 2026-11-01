@@ -9,6 +9,7 @@
  *
  * 注意：Worker 中不能直接访问 Electron API（webContents 等），
  * 所有需要 Electron API 的操作都回传主线程处理。
+ * Electron 相关路径（如 known_hosts 目录）由主进程通过 workerData 注入。
  */
 import { parentPort, workerData } from 'worker_threads'
 import ComClient from '../protocol/ComClient'
@@ -78,7 +79,7 @@ function getOrCreateClient(connectionType: string): BaseClient | null {
       client = new ComClient(console)
       break
     case 'ssh':
-      client = new SshClient(console)
+      client = new SshClient(console, { knownHostsDir: (workerData as any)?.knownHostsDir })
       break
     default:
       return null

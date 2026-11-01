@@ -56,7 +56,10 @@ export default class WorkerConnector {
       receiveHex: conn.receiveHex,
       ftpMode: conn.ftpMode,
       ftpDirectory: conn.ftpDirectory,
-      ftpPermissions: conn.ftpPermissions
+      ftpPermissions: conn.ftpPermissions,
+      authMethod: conn.authMethod,
+      privateKeyPath: conn.privateKeyPath,
+      passphrase: conn.passphrase
     }
   }
 

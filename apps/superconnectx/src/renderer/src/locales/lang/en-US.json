@@ -615,6 +615,18 @@
     "permission": "Permissions",
     "selectFtpDir": "Select FTP Shared Directory"
   },
+  "ssh": {
+    "authMethod": "Auth Method",
+    "password": "Password",
+    "key": "Private Key",
+    "privateKeyPath": "Private Key File",
+    "privateKeyPlaceholder": "Select private key file path",
+    "browse": "Browse",
+    "selectKeyFile": "Select SSH Private Key File",
+    "passphrase": "Passphrase",
+    "passphrasePlaceholder": "Leave empty if key has no passphrase",
+    "pleaseSelectKeyFile": "Please select a private key file"
+  },
   "update": {
     "checkUpdate": "Check for Updates",
     "checking": "Checking for updates...",

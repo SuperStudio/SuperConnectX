@@ -615,6 +615,18 @@
     "permission": "权限",
     "selectFtpDir": "选择FTP共享目录"
   },
+  "ssh": {
+    "authMethod": "认证方式",
+    "password": "密码认证",
+    "key": "私钥认证",
+    "privateKeyPath": "私钥文件",
+    "privateKeyPlaceholder": "请选择私钥文件路径",
+    "browse": "浏览",
+    "selectKeyFile": "选择 SSH 私钥文件",
+    "passphrase": "私钥口令",
+    "passphrasePlaceholder": "私钥无口令时留空",
+    "pleaseSelectKeyFile": "请选择私钥文件"
+  },
   "update": {
     "checkUpdate": "检查更新",
     "checking": "正在检查更新...",

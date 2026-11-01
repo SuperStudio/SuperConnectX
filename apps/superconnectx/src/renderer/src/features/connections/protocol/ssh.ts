@@ -8,7 +8,10 @@ export const SshStrategy = {
       host: '',
       port: 22,
       username: '',
-      password: ''
+      password: '',
+      authMethod: 'password',
+      privateKeyPath: '',
+      passphrase: ''
     }
   },
 
@@ -20,7 +23,10 @@ export const SshStrategy = {
       host: raw.host || '',
       port: raw.port || 22,
       username: raw.username || '',
-      password: raw.password || ''
+      password: raw.password || '',
+      authMethod: raw.authMethod === 'key' ? 'key' : 'password',
+      privateKeyPath: raw.privateKeyPath || '',
+      passphrase: raw.passphrase || ''
     }
   }
 }

@@ -11,20 +11,27 @@
       <el-tab-pane label="HTTP" name="http" disabled />
     </el-tabs>
     <el-form :model="formData" :rules="formRules" ref="formRef" label-width="120px" @submit.prevent>
-      <el-form-item :label="t('dialog.connectionName')" prop="name"><el-input v-model="formData.name" :placeholder="t('dialog.namePlaceholder')" prefix="User" :spellcheck="false" /></el-form-item>
+      <el-form-item :label="t('dialog.connectionName')" prop="name" :required="isRequired('name')"><el-input v-model="formData.name" :placeholder="t('dialog.namePlaceholder')" prefix="User" :spellcheck="false" /></el-form-item>
       <el-form-item :label="t('ftp.mode')" v-if="formData.connectionType === 'ftp'"><el-radio-group v-model="formData.ftpMode" class="mode-radio-group"><el-radio-button value="server">{{ t('ftp.server') }}</el-radio-button><el-radio-button value="client">{{ t('ftp.client') }}</el-radio-button></el-radio-group></el-form-item>
       <template v-if="formData.connectionType === 'ftp' && formData.ftpMode === 'server'">
-        <el-form-item :label="t('dialog.port')" prop="port"><el-input v-model.number="formData.port" placeholder="21" prefix="Key" type="number" :spellcheck="false" /></el-form-item>
-        <el-form-item :label="t('dialog.username')" prop="username"><el-input v-model="formData.username" :placeholder="t('dialog.usernamePlaceholder')" prefix="UserFilled" :spellcheck="false" /></el-form-item>
-        <el-form-item :label="t('dialog.password')" prop="password"><el-input v-model="formData.password" :placeholder="t('dialog.passwordPlaceholder')" type="password" :spellcheck="false" /></el-form-item>
-        <el-form-item :label="t('ftp.directory')" prop="ftpDirectory"><div style="display: flex; gap: 8px; width: 100%"><el-input v-model="formData.ftpDirectory" :placeholder="t('ftp.selectDir')" style="flex: 1" :spellcheck="false" /><el-button class="btn-primary" style="width: auto !important" @click="selectFtpDirectory">{{ t('ftp.browse') }}</el-button></div></el-form-item>
+        <el-form-item :label="t('dialog.port')" prop="port" :required="isRequired('port')"><el-input v-model.number="formData.port" placeholder="21" prefix="Key" type="number" :spellcheck="false" /></el-form-item>
+        <el-form-item :label="t('dialog.username')" prop="username" :required="isRequired('username')"><el-input v-model="formData.username" :placeholder="t('dialog.usernamePlaceholder')" prefix="UserFilled" :spellcheck="false" /></el-form-item>
+        <el-form-item :label="t('dialog.password')" prop="password" :required="isRequired('password')"><el-input v-model="formData.password" :placeholder="t('dialog.passwordPlaceholder')" type="password" :spellcheck="false" /></el-form-item>
+        <el-form-item :label="t('ftp.directory')" prop="ftpDirectory" :required="isRequired('ftpDirectory')"><div style="display: flex; gap: 8px; width: 100%"><el-input v-model="formData.ftpDirectory" :placeholder="t('ftp.selectDir')" style="flex: 1" :spellcheck="false" /><el-button class="btn-primary" style="width: auto !important" @click="selectFtpDirectory">{{ t('ftp.browse') }}</el-button></div></el-form-item>
         <el-form-item :label="t('ftp.permission')"><el-checkbox-group v-model="formData.ftpPermissions"><el-checkbox label="get">Get</el-checkbox><el-checkbox label="put">Put</el-checkbox><el-checkbox label="delete">Delete</el-checkbox><el-checkbox label="rename">Rename</el-checkbox></el-checkbox-group></el-form-item>
       </template>
       <template v-if="formData.connectionType !== 'ftp' || formData.ftpMode === 'client'">
-        <el-form-item :label="t('dialog.serverAddress')" prop="host"><el-input v-model="formData.host" :placeholder="t('dialog.addressPlaceholder')" prefix="Monitor" :spellcheck="false" /></el-form-item>
-        <el-form-item :label="t('dialog.port')" prop="port" v-if="formData.connectionType !== 'ping'"><el-input v-model.number="formData.port" :placeholder="t('dialog.portPlaceholder')" prefix="Key" type="number" :spellcheck="false" /></el-form-item>
-        <el-form-item :label="t('dialog.username')" prop="username" v-if="!['ping', 'tftp', 'http', 'udp'].includes(formData.connectionType)"><el-input v-model="(formData as any).username" :placeholder="t('dialog.usernamePlaceholder')" prefix="UserFilled" :spellcheck="false" /></el-form-item>
-        <el-form-item :label="t('dialog.password')" prop="password" v-if="['ftp', 'tftp', 'http', 'ssh'].includes(formData.connectionType)"><el-input v-model="(formData as any).password" :placeholder="t('dialog.passwordPlaceholder')" type="password" :spellcheck="false" /></el-form-item>
+        <el-form-item :label="t('dialog.serverAddress')" prop="host" :required="isRequired('host')"><el-input v-model="formData.host" :placeholder="t('dialog.addressPlaceholder')" prefix="Monitor" :spellcheck="false" /></el-form-item>
+        <el-form-item :label="t('dialog.port')" prop="port" v-if="formData.connectionType !== 'ping'" :required="isRequired('port')"><el-input v-model.number="formData.port" :placeholder="t('dialog.portPlaceholder')" prefix="Key" type="number" :spellcheck="false" /></el-form-item>
+        <el-form-item :label="t('dialog.username')" prop="username" v-if="!['ping', 'tftp', 'http', 'udp'].includes(formData.connectionType)" :required="isRequired('username')"><el-input v-model="(formData as any).username" :placeholder="t('dialog.usernamePlaceholder')" prefix="UserFilled" :spellcheck="false" /></el-form-item>
+        <el-form-item :label="t('dialog.password')" prop="password" v-if="['ftp', 'tftp', 'http'].includes(formData.connectionType) || (formData.connectionType === 'ssh' && (formData as any).authMethod !== 'key')" :required="isRequired('password')"><el-input v-model="(formData as any).password" :placeholder="t('dialog.passwordPlaceholder')" type="password" :spellcheck="false" /></el-form-item>
+        <template v-if="formData.connectionType === 'ssh'">
+          <el-form-item :label="t('ssh.authMethod')"><el-radio-group v-model="(formData as any).authMethod" class="mode-radio-group"><el-radio-button value="password">{{ t('ssh.password') }}</el-radio-button><el-radio-button value="key">{{ t('ssh.key') }}</el-radio-button></el-radio-group></el-form-item>
+          <template v-if="(formData as any).authMethod === 'key'">
+            <el-form-item :label="t('ssh.privateKeyPath')" prop="privateKeyPath" :required="isRequired('privateKeyPath')"><div style="display: flex; gap: 8px; width: 100%"><el-input v-model="(formData as any).privateKeyPath" :placeholder="t('ssh.privateKeyPlaceholder')" style="flex: 1" :spellcheck="false" /><el-button class="btn-primary" style="width: auto !important" @click="selectSshPrivateKey">{{ t('ssh.browse') }}</el-button></div></el-form-item>
+            <el-form-item :label="t('ssh.passphrase')"><el-input v-model="(formData as any).passphrase" :placeholder="t('ssh.passphrasePlaceholder')" type="password" :spellcheck="false" /></el-form-item>
+          </template>
+        </template>
         <el-form-item :label="t('comTerminal.encoding')" v-if="formData.connectionType === 'telnet'"><el-select v-model="formData.encoding" style="width: 100%"><el-option label="UTF-8" value="utf8" /><el-option label="GB2312" value="gb2312" /><el-option label="GBK" value="gbk" /><el-option label="GB18030" value="gb18030" /><el-option label="BIG5" value="big5" /><el-option label="Shift-JIS" value="shift-jis" /><el-option label="EUC-KR" value="euc-kr" /><el-option label="ASCII" value="ascii" /><el-option label="ISO-8859-1" value="latin1" /><el-option label="ISO-8859-2" value="latin2" /><el-option label="KOI8-R" value="koi8-r" /><el-option label="windows-1251" value="windows-1251" /><el-option label="windows-1252" value="windows-1252" /><el-option label="ISO-8859-5" value="iso-8859-5" /><el-option label="UTF-16LE" value="utf16le" /><el-option label="UTF-16BE" value="utf16be" /></el-select></el-form-item>
       </template>
     </el-form>
@@ -61,6 +68,8 @@ const openEdit = (conn: any) => {
   Object.keys(formData).forEach((key) => delete (formData as any)[key])
   const normalized = fromRawConnection(conn)
   if ((normalized as any).password) (normalized as any).password = PASSWORD_PLACEHOLDER
+  // 私钥口令同密码：编辑时只显示占位符，未修改则不被提交
+  if ((normalized as any).passphrase) (normalized as any).passphrase = PASSWORD_PLACEHOLDER
   Object.assign(formData, normalized)
   dialogVisible.value = true
 }
@@ -71,7 +80,18 @@ const handleProtocolChange = (value: string) => {
     ;(formData as any).ftpDirectory ||= ''
     if (!(formData as any).ftpPermissions?.length) (formData as any).ftpPermissions = ['get', 'put', 'delete', 'rename']
   }
+  if (value === 'ssh') {
+    ;(formData as any).authMethod ||= 'password'
+    ;(formData as any).privateKeyPath ||= ''
+    ;(formData as any).passphrase ||= ''
+  }
   ;(formData as any).port = ({ telnet: 23, ssh: 22, ftp: 21, tcp: 0, udp: 0, ping: 0, tftp: 69, http: 80 } as Record<string, number>)[value] ?? 0
+}
+const selectSshPrivateKey = async () => {
+  try {
+    const result = await window.dialogApi.openFileDialog({ title: t('ssh.selectKeyFile'), properties: ['openFile'] })
+    if (result.filePaths?.length) (formData as any).privateKeyPath = result.filePaths[0]
+  } catch (error) { console.error('选择私钥文件失败', error) }
 }
 const selectFtpDirectory = async () => {
   try {
@@ -87,21 +107,31 @@ const getRequiredFields = () => {
   fields.push({ prop: 'host', message: t('dialog.pleaseEnterAddress') })
   fields.push({ prop: 'port', message: t('dialog.pleaseEnterPort') })
   if (!['tcp', 'udp', 'ftp', 'telnet'].includes(formData.connectionType)) fields.push({ prop: 'username', message: t('dialog.pleaseEnterUsername') })
-  if (['tftp', 'http', 'ssh'].includes(formData.connectionType)) fields.push({ prop: 'password', message: t('dialog.pleaseEnterPassword') })
+  if (['tftp', 'http'].includes(formData.connectionType) || (formData.connectionType === 'ssh' && (formData as any).authMethod !== 'key')) fields.push({ prop: 'password', message: t('dialog.pleaseEnterPassword') })
+  // SSH 私钥认证：私钥文件必填（口令可为空，针对无口令私钥）
+  if (formData.connectionType === 'ssh' && (formData as any).authMethod === 'key') fields.push({ prop: 'privateKeyPath', message: t('ssh.pleaseSelectKeyFile') })
   return fields
 }
+/**
+ * 必填字段据此显示星号。
+ * 单一数据源复用 getRequiredFields()，避免“界面看着可选、点保存才报错”的割裂感。
+ */
+const isRequired = (prop: string) => getRequiredFields().some((f) => f.prop === prop)
 const handleSubmit = async () => {
   if (!formRef.value || isSubmitting.value) return
   for (const field of getRequiredFields()) {
     if ((formData as any)[field.prop] === '' || (formData as any)[field.prop] === undefined || (formData as any)[field.prop] === null) {
       if (isEditMode.value && field.prop === 'password') continue
       ElMessage.error(field.message)
+      // 滚动并聚焦到第一个缺失字段，省去用户自己找
+      formRef.value?.scrollToField(field.prop)
       return
     }
   }
   isSubmitting.value = true
   const normalized = fromRawConnection(formData)
   if (isEditMode.value && (normalized as any).password === PASSWORD_PLACEHOLDER) (normalized as any).password = '***MASKED***'
+  if (isEditMode.value && (normalized as any).passphrase === PASSWORD_PLACEHOLDER) (normalized as any).passphrase = '***MASKED***'
   emit('submit', JSON.parse(JSON.stringify(normalized)) as ConnectionFormData)
 }
 const closeOnSuccess = () => { dialogVisible.value = false; isSubmitting.value = false; ElMessage.success(t('dialog.connectionSaved', { name: formData.name })) }

@@ -20,6 +20,11 @@ const secureStr = SafeStorageString.getInstance()
 const PROTOCOLS_WITH_PASSWORD = ['ftp', 'telnet', 'ssh', 'tftp', 'http', 'com']
 
 /**
+ * 需要处理私钥口令字段的协议类型列表（目前只有 SSH）
+ */
+const PROTOCOLS_WITH_PASSPHRASE = ['ssh']
+
+/**
  * 判断连接是否需要处理密码字段
  */
 function hasPasswordField(conn: any): boolean {
@@ -27,13 +32,27 @@ function hasPasswordField(conn: any): boolean {
 }
 
 /**
+ * 判断连接是否需要处理私钥口令（passphrase）字段
+ */
+function hasPassphraseField(conn: any): boolean {
+  return PROTOCOLS_WITH_PASSPHRASE.includes(conn.connectionType) && conn.passphrase !== undefined
+}
+
+/**
  * 加密连接对象中的密码字段（浅拷贝后加密）
  */
 function encryptConnectionPassword(conn: any): any {
-  if (!hasPasswordField(conn)) return conn
   const encrypted = { ...conn }
-  if (encrypted.password && !secureStr.isEncrypted(encrypted.password)) {
-    encrypted.password = secureStr.encrypt(encrypted.password)
+  if (hasPasswordField(conn)) {
+    if (encrypted.password && !secureStr.isEncrypted(encrypted.password)) {
+      encrypted.password = secureStr.encrypt(encrypted.password)
+    }
+  }
+  // 私钥口令同样按密文存储（允许为空：无需口令的私钥）
+  if (hasPassphraseField(conn)) {
+    if (encrypted.passphrase && !secureStr.isEncrypted(encrypted.passphrase)) {
+      encrypted.passphrase = secureStr.encrypt(encrypted.passphrase)
+    }
   }
   return encrypted
 }
@@ -42,10 +61,12 @@ function encryptConnectionPassword(conn: any): any {
  * 解密连接对象中的密码字段（浅拷贝后解密）
  */
 function decryptConnectionPassword(conn: any): any {
-  if (!hasPasswordField(conn)) return conn
   const decrypted = { ...conn }
   if (decrypted.password && secureStr.isEncrypted(decrypted.password)) {
     decrypted.password = secureStr.decrypt(decrypted.password)
+  }
+  if (decrypted.passphrase && secureStr.isEncrypted(decrypted.passphrase)) {
+    decrypted.passphrase = secureStr.decrypt(decrypted.passphrase)
   }
   return decrypted
 }
@@ -55,10 +76,14 @@ function decryptConnectionPassword(conn: any): any {
  * 前端看不到明文密码，只知道"这个连接有密码"
  */
 function maskConnectionPassword(conn: any): any {
-  if (!hasPasswordField(conn)) return conn
+  if (!hasPasswordField(conn) && !hasPassphraseField(conn)) return conn
   const masked = { ...conn }
   if (masked.password) {
     masked.password = MASKED_PASSWORD
+  }
+  // 私钥口令对前端同样只暴露掩码
+  if (masked.passphrase) {
+    masked.passphrase = MASKED_PASSWORD
   }
   return masked
 }
@@ -208,6 +233,20 @@ export default class ConnectionStorage extends BaseStorage {
         // 用户未修改密码，保留原值
       } else {
         con[0].password = secureStr.encrypt(conn.password)
+      }
+    }
+    if (conn.connectionType === 'ssh') {
+      if (conn.authMethod !== undefined) {
+        con[0].authMethod = conn.authMethod
+      }
+      if (conn.privateKeyPath !== undefined) {
+        con[0].privateKeyPath = conn.privateKeyPath
+      }
+      // 私钥口令：掩码表示未修改，明文则加密存储，空串表示无口令私钥
+      if (conn.passphrase !== undefined) {
+        if (conn.passphrase !== MASKED_PASSWORD) {
+          con[0].passphrase = conn.passphrase ? secureStr.encrypt(conn.passphrase) : ''
+        }
       }
     }
     if (conn.connectionType === 'ftp') {

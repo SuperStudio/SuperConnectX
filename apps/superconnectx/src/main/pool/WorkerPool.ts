@@ -15,6 +15,7 @@
 import { Worker } from 'worker_threads'
 import path from 'path'
 import logger from '../ipc/IpcAppLogger'
+import { getAppDataDir } from '../utils/AppDir'
 
 // ===================== 消息类型定义 =====================
 
@@ -111,7 +112,12 @@ export default class WorkerPool {
     logger.info(`[WorkerPool] Creating Worker for session: ${sessionId}`)
 
     const worker = new Worker(workerPath, {
-      workerData: { sessionId }
+      workerData: {
+        sessionId,
+        // SSH 的 known_hosts 存储需要应用数据目录；
+        // Worker 线程无法访问 Electron API，路径必须在创建时注入
+        knownHostsDir: getAppDataDir()
+      }
     })
 
     const entry: WorkerEntry = {

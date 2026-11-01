@@ -30,6 +30,12 @@ export interface SshConnection extends BaseConnection {
   port: number
   username: string
   password: string
+  /** 认证方式：password=密码认证（默认），key=私钥认证 */
+  authMethod: 'password' | 'key'
+  /** 私钥文件路径（authMethod='key' 时必填） */
+  privateKeyPath: string
+  /** 私钥口令，无口令的私钥留空即可 */
+  passphrase: string
 }
 
 export interface ComConnection extends BaseConnection {
