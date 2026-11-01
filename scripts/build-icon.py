@@ -34,7 +34,9 @@ ICNS_SIZES = [
 ]
 
 # Windows ICO sizes to include
-ICO_SIZES = [16, 32, 48, 64, 128, 256]
+# 16/20/24/32 覆盖小托盘(100%/125%/150%/200% DPI)，40 覆盖 250%，
+# 48/64/128/256 覆盖大托盘与各 DPI 精确尺寸
+ICO_SIZES = [16, 20, 24, 32, 40, 48, 64, 128, 256]
 
 
 def _resample(src: Image.Image, size: int) -> Image.Image:
