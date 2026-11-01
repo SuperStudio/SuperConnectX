@@ -24,7 +24,7 @@ export interface UseTerminalOptions {
   /** 是否正在连接 */
   isConnecting?: Ref<boolean>
   /** 连接类型 */
-  connectionType: 'telnet' | 'com'
+  connectionType: 'telnet' | 'com' | 'ssh'
   /** 连接对象 */
   connection: TerminalConnection
   /** 发送命令回调 */
@@ -87,9 +87,16 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
   const getConnectionIpcPayload = () => {
     // IPC must receive plain data rather than Vue reactive proxies.
     const rawConn = JSON.parse(JSON.stringify(conn))
-    return connectionType === 'telnet'
-      ? { connectionType: 'telnet' as const, host: rawConn.host, port: rawConn.port, sessionId: rawConn.sessionId }
-      : { connectionType: 'com' as const, comName: rawConn.comName, sessionId: rawConn.sessionId }
+    if (connectionType === 'com') {
+      return { connectionType: 'com' as const, comName: rawConn.comName, sessionId: rawConn.sessionId }
+    }
+    // telnet / ssh 均以 host:port 标识会话
+    return {
+      connectionType: connectionType as 'telnet' | 'ssh',
+      host: rawConn.host,
+      port: rawConn.port,
+      sessionId: rawConn.sessionId
+    }
   }
 
   watch([
@@ -157,9 +164,9 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
         }
       }
 
-      const shortName = connectionType === 'telnet'
-        ? `${conn.host}_${conn.port}`
-        : (conn.comName || 'unknown').split('/').pop() || conn.comName || 'unknown'
+      const shortName = connectionType === 'com'
+        ? (conn.comName || 'unknown').split('/').pop() || conn.comName || 'unknown'
+        : `${conn.host}_${conn.port}`
       const sanitize = (value: unknown) => String(value).replace(/[\\/*?:"<>|]/g, '-')
       const now = new Date()
       const date = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`

@@ -18,7 +18,7 @@
         class="telnet-terminal"
       />
       <TelnetTerminal
-        v-if="tab.connectionType === 'telnet' || tab.connectionType === 'ftp'"
+        v-if="tab.connectionType === 'telnet' || tab.connectionType === 'ftp' || tab.connectionType === 'ssh'"
         v-show="activeTabId === tab.id.toString()"
         :connection="tab"
         :ref="(el: any) => { if (el) onTelnetTerminalRef(tab.id, el) }"

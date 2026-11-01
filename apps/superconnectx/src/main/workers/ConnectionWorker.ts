@@ -3,7 +3,7 @@
  *
  * 设计原则：1 Connection = 1 Worker
  * - 每个 Worker 只负责一个连接（sessionId）
- * - 拥有独立的协议客户端实例（TelnetClient 或 ComClient）
+ * - 拥有独立的协议客户端实例（TelnetClient / ComClient / SshClient）
  * - 数据接收、Buffer 处理、HEX 转换全部在独立线程中完成
  * - 通过 parentPort 与主线程通信，只回传已处理好的数据
  *
@@ -13,6 +13,7 @@
 import { parentPort, workerData } from 'worker_threads'
 import ComClient from '../protocol/ComClient'
 import TelnetClient from '../protocol/TelnetClient'
+import SshClient from '../protocol/SshClient'
 import BaseClient from '../protocol/BaseClient'
 import ConnectionInfo from '../protocol/ConnectionInfo'
 
@@ -75,6 +76,9 @@ function getOrCreateClient(connectionType: string): BaseClient | null {
       break
     case 'com':
       client = new ComClient(console)
+      break
+    case 'ssh':
+      client = new SshClient(console)
       break
     default:
       return null

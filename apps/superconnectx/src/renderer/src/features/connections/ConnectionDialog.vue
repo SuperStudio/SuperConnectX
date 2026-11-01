@@ -2,7 +2,7 @@
   <el-dialog :title="isEditMode ? t('dialog.editConnection') : t('dialog.newConnection')" v-model="dialogVisible" width="640px" @keydown.enter.native="handleSubmit" :close-on-click-modal="false">
     <el-tabs v-model="formData.connectionType" @tab-change="handleProtocolChange" class="protocol-tabs">
       <el-tab-pane label="Telnet" name="telnet" :disabled="isEditMode" />
-      <el-tab-pane label="SSH" name="ssh" disabled />
+      <el-tab-pane label="SSH" name="ssh" :disabled="isEditMode" />
       <el-tab-pane label="FTP" name="ftp" :disabled="isEditMode" />
       <el-tab-pane label="TCP" name="tcp" disabled />
       <el-tab-pane label="UDP" name="udp" disabled />
@@ -24,7 +24,7 @@
         <el-form-item :label="t('dialog.serverAddress')" prop="host"><el-input v-model="formData.host" :placeholder="t('dialog.addressPlaceholder')" prefix="Monitor" :spellcheck="false" /></el-form-item>
         <el-form-item :label="t('dialog.port')" prop="port" v-if="formData.connectionType !== 'ping'"><el-input v-model.number="formData.port" :placeholder="t('dialog.portPlaceholder')" prefix="Key" type="number" :spellcheck="false" /></el-form-item>
         <el-form-item :label="t('dialog.username')" prop="username" v-if="!['ping', 'tftp', 'http', 'udp'].includes(formData.connectionType)"><el-input v-model="(formData as any).username" :placeholder="t('dialog.usernamePlaceholder')" prefix="UserFilled" :spellcheck="false" /></el-form-item>
-        <el-form-item :label="t('dialog.password')" prop="password" v-if="['ftp', 'tftp', 'http'].includes(formData.connectionType)"><el-input v-model="(formData as any).password" :placeholder="t('dialog.passwordPlaceholder')" type="password" :spellcheck="false" /></el-form-item>
+        <el-form-item :label="t('dialog.password')" prop="password" v-if="['ftp', 'tftp', 'http', 'ssh'].includes(formData.connectionType)"><el-input v-model="(formData as any).password" :placeholder="t('dialog.passwordPlaceholder')" type="password" :spellcheck="false" /></el-form-item>
         <el-form-item :label="t('comTerminal.encoding')" v-if="formData.connectionType === 'telnet'"><el-select v-model="formData.encoding" style="width: 100%"><el-option label="UTF-8" value="utf8" /><el-option label="GB2312" value="gb2312" /><el-option label="GBK" value="gbk" /><el-option label="GB18030" value="gb18030" /><el-option label="BIG5" value="big5" /><el-option label="Shift-JIS" value="shift-jis" /><el-option label="EUC-KR" value="euc-kr" /><el-option label="ASCII" value="ascii" /><el-option label="ISO-8859-1" value="latin1" /><el-option label="ISO-8859-2" value="latin2" /><el-option label="KOI8-R" value="koi8-r" /><el-option label="windows-1251" value="windows-1251" /><el-option label="windows-1252" value="windows-1252" /><el-option label="ISO-8859-5" value="iso-8859-5" /><el-option label="UTF-16LE" value="utf16le" /><el-option label="UTF-16BE" value="utf16be" /></el-select></el-form-item>
       </template>
     </el-form>
@@ -87,7 +87,7 @@ const getRequiredFields = () => {
   fields.push({ prop: 'host', message: t('dialog.pleaseEnterAddress') })
   fields.push({ prop: 'port', message: t('dialog.pleaseEnterPort') })
   if (!['tcp', 'udp', 'ftp', 'telnet'].includes(formData.connectionType)) fields.push({ prop: 'username', message: t('dialog.pleaseEnterUsername') })
-  if (['tftp', 'http'].includes(formData.connectionType)) fields.push({ prop: 'password', message: t('dialog.pleaseEnterPassword') })
+  if (['tftp', 'http', 'ssh'].includes(formData.connectionType)) fields.push({ prop: 'password', message: t('dialog.pleaseEnterPassword') })
   return fields
 }
 const handleSubmit = async () => {

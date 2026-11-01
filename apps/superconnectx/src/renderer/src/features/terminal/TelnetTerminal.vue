@@ -140,7 +140,9 @@ const terminal = useTerminal({
   unifiedTerminalRef,
   isConnected,
   isConnecting,
-  connectionType: 'telnet',
+  // telnet / ftp / ssh 共用本终端外壳：ftp 维持原 payload 语义不变，ssh 必须用真实类型，
+  // 否则 IPC 会带着 'telnet' 路由，主进程不会走 SshClient。
+  connectionType: (props.connection.connectionType === 'ssh' ? 'ssh' : 'telnet') as 'telnet' | 'ssh',
   sendDisplaySuffix: 'SEND >>>>>>>>>>>',
   saveFontSettings
 })
@@ -159,7 +161,7 @@ const getStopConnectionPayload = () => {
     connectionType: props.connection.connectionType,
     sessionId: props.connection.sessionId
   }
-  if (props.connection.connectionType === 'telnet') {
+  if (props.connection.connectionType === 'telnet' || props.connection.connectionType === 'ssh') {
     stopConn.host = props.connection.host
     stopConn.port = props.connection.port
   }
@@ -354,7 +356,7 @@ const connect = async () => {
           connectionType: connType,
           sessionId: props.connection.sessionId
         }
-        if (connType === 'telnet') {
+        if (connType === 'telnet' || connType === 'ssh') {
           updateConn.host = props.connection.host
           updateConn.port = props.connection.port
         }

@@ -235,7 +235,7 @@
                 "
               />
               <TelnetTerminal
-                v-if="tab.connectionType === 'telnet' || tab.connectionType === 'ftp'"
+                v-if="tab.connectionType === 'telnet' || tab.connectionType === 'ftp' || tab.connectionType === 'ssh'"
                 v-show="isTabActiveInItsPanel(tab.id.toString())"
                 :ref="
                   (el: any) => {
@@ -462,7 +462,7 @@ const activeConnectionCount = computed(() => {
   return connectionTabs.value.filter((tab) => {
     if (tab.connectionType === 'com') {
       return comTerminalRefs[tab.id]?.isConnected
-    } else if (tab.connectionType === 'telnet' || tab.connectionType === 'ftp') {
+    } else if (tab.connectionType === 'telnet' || tab.connectionType === 'ftp' || tab.connectionType === 'ssh') {
       return telnetTerminalRefs[tab.id]?.isConnected
     }
     return false
