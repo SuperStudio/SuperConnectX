@@ -156,7 +156,7 @@
             >
               <span class="section-title">
                 <el-icon class="expand-icon" :class="{ collapsed: !connectionGroupExpanded[type] }"><ArrowRight /></el-icon>
-                {{ type.toUpperCase() }} ({{ conns.length }})
+                {{ protocolGroupLabel(type) }} ({{ conns.length }})
               </span>
             </div>
             <div class="connection-group-list" v-show="connectionGroupExpanded[type]">
@@ -332,6 +332,12 @@ const hasPortDetails = (port: SerialPortInfo): boolean => {
     port.locationId
   )
 }
+
+/**
+ * 协议分组标题显示名。
+ * SSH 目前处于 beta 阶段，需在侧边栏明确标注，避免用户按稳定协议预期使用。
+ */
+const protocolGroupLabel = (type: string): string => (type === 'ssh' ? 'SSH(beta)' : type.toUpperCase())
 
 const toggleGroupExpanded = (type: string) => {
   emit('sidebarMenuCommand', '__toggleGroup__' + type)

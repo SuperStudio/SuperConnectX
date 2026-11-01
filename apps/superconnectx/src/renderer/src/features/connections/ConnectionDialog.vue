@@ -2,7 +2,7 @@
   <el-dialog :title="isEditMode ? t('dialog.editConnection') : t('dialog.newConnection')" v-model="dialogVisible" width="640px" @keydown.enter.native="handleSubmit" :close-on-click-modal="false">
     <el-tabs v-model="formData.connectionType" @tab-change="handleProtocolChange" class="protocol-tabs">
       <el-tab-pane label="Telnet" name="telnet" :disabled="isEditMode" />
-      <el-tab-pane label="SSH" name="ssh" :disabled="isEditMode" />
+      <el-tab-pane label="SSH(beta)" name="ssh" :disabled="isEditMode" />
       <el-tab-pane label="FTP" name="ftp" :disabled="isEditMode" />
       <el-tab-pane label="TCP" name="tcp" disabled />
       <el-tab-pane label="UDP" name="udp" disabled />
