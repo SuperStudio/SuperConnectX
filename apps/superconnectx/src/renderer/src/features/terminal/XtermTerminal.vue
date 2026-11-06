@@ -1,26 +1,27 @@
 <template>
-  <div ref="containerEl" class="xterm-host" @contextmenu.prevent="openContextMenu"></div>
-
-  <!-- 右键菜单：teleport 到 body，避免被终端容器的 overflow 裁剪 -->
-  <Teleport to="body">
-    <div
-      v-if="menu.visible"
-      ref="menuEl"
-      class="xterm-context-menu"
-      :style="{ left: menu.x + 'px', top: menu.y + 'px' }"
-      @contextmenu.prevent
-      @mousedown.stop
-    >
-      <div class="menu-item" :class="menuClass(!menu.hasSelection)" @click="copySelection">
-        {{ t('terminal.copy') }}
+  <!-- 必须保持单根节点：父组件用 v-show 控制显隐，多根（fragment）会让指令被 Vue 静默丢弃 -->
+  <div ref="containerEl" class="xterm-host" @contextmenu.prevent="openContextMenu">
+    <!-- 右键菜单：teleport 到 body，避免被终端容器的 overflow 裁剪 -->
+    <Teleport to="body">
+      <div
+        v-if="menu.visible"
+        ref="menuEl"
+        class="xterm-context-menu"
+        :style="{ left: menu.x + 'px', top: menu.y + 'px' }"
+        @contextmenu.prevent
+        @mousedown.stop
+      >
+        <div class="menu-item" :class="menuClass(!menu.hasSelection)" @click="copySelection">
+          {{ t('terminal.copy') }}
+        </div>
+        <div class="menu-item" :class="menuClass(props.disabled)" @click="pasteFromClipboard">
+          {{ t('terminal.paste') }}
+        </div>
+        <div class="menu-item" @click="selectAll">{{ t('terminal.selectAll') }}</div>
+        <div class="menu-item" @click="clearScreen">{{ t('terminal.clear') }}</div>
       </div>
-      <div class="menu-item" :class="menuClass(props.disabled)" @click="pasteFromClipboard">
-        {{ t('terminal.paste') }}
-      </div>
-      <div class="menu-item" @click="selectAll">{{ t('terminal.selectAll') }}</div>
-      <div class="menu-item" @click="clearScreen">{{ t('terminal.clear') }}</div>
-    </div>
-  </Teleport>
+    </Teleport>
+  </div>
 </template>
 
 <script setup lang="ts">
