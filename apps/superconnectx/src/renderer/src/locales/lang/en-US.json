@@ -470,6 +470,7 @@
     "fileUploadSuccess": "File uploaded: {name}",
     "uploadFailed": "Upload failed: {message}",
     "reconnecting": "Connection closed, attempting to reconnect...",
+    "disconnected": "Connection closed",
     "openLogFolderFailed": "Failed to open log folder: {message}",
     "openLogFolderFailedWithError": "Failed to open log folder: {error}",
     "openLogFileFailed": "Failed to open log file: {message}",

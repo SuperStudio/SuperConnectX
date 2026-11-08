@@ -373,6 +373,13 @@ const handleTelnetClose = (_sessionId: string | number, generation: number) => {
     unifiedTerminalRef.value?.appendToTerminal(`\nFTP 服务已停止\n`)
     return
   }
+  // SSH 断开后不再自动重连：避免服务端断开/网络中断后无限重试，
+  // 需要恢复时由用户手动点「连接」（Tab 右键菜单或工具栏）重新建立。
+  if (props.connection.connectionType === 'ssh') {
+    unifiedTerminalRef.value?.appendToTerminal(`\n${t('terminal.disconnected')}\n`)
+    ElMessage.info(t('terminal.disconnected'))
+    return
+  }
   ElMessage.info(t('terminal.reconnecting'))
   unifiedTerminalRef.value?.appendToTerminal(`\n连接已关闭，将在${RETRY_INTERVAL_MS / 1000}秒后尝试重连...\n`)
   if (!stopRetry.value) {

@@ -470,6 +470,7 @@
     "fileUploadSuccess": "文件上传成功: {name}",
     "uploadFailed": "上传失败: {message}",
     "reconnecting": "连接已关闭，将尝试重新连接...",
+    "disconnected": "连接已断开",
     "openLogFolderFailed": "打开日志文件夹失败：{message}",
     "openLogFolderFailedWithError": "打开日志文件夹失败：{error}",
     "openLogFileFailed": "打开日志文件失败：{message}",
