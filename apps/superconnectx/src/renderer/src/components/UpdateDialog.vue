@@ -277,6 +277,9 @@ const handleRecheck = () => {
 }
 
 const handleStartDownload = () => {
+  // 兜底：从“缓存更新信息”路径打开时 open() 曾提前 return，若不在此处注册监听，
+  // 后续 download-progress / update-downloaded 事件全部收不到（表现为进度条停在 0）
+  ensureListener()
   status.value = 'download-progress'
   progressInfo.value = { percent: 0, transferred: 0, total: 0, bytesPerSecond: 0 }
   window.updateApi.startDownload()
@@ -316,6 +319,10 @@ const open = async () => {
   progressInfo.value = null
   errorMessage.value = ''
 
+  // 先注册监听：后台检测到新版本时会带缓存信息直接进入「发现新版本」，
+  // 该路径不会触发 checkForUpdates，若不在此处注册将收不到下载进度/完成事件
+  ensureListener()
+
   // 获取当前版本
   try {
     currentVersion.value = await window.windowApi.getAppVersion()
@@ -333,9 +340,6 @@ const open = async () => {
 
   status.value = 'checking'
   updateInfo.value = null
-
-  // 注册更新状态监听
-  ensureListener()
 
   // 触发检查
   try {
