@@ -11,3 +11,6 @@ tests/report
 *.tsbuildinfo
 pnpm-debug.log*
 .txt
+
+# WorkBuddy 本地项目数据（记忆、会话缓存等），不入库
+.workbuddy/
