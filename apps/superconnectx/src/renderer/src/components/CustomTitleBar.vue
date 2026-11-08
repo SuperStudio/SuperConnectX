@@ -17,7 +17,8 @@
 
       <div
         class="menu-button"
-        @mouseenter="((showFileMenu = true), (showEditMenu = false), (showToolsMenu = false), (showViewMenu = false), (showHelpMenu = false))"
+        @mouseenter="handleMenuMouseEnter('file')"
+        @mouseleave="handleMenuMouseLeave('file')"
       >
         <button class="menu-btn">{{ t('titlebar.file') }}</button>
         <div
@@ -91,7 +92,8 @@
 
       <div
         class="menu-button"
-        @mouseenter="((showFileMenu = false), (showEditMenu = false), (showToolsMenu = true), (showViewMenu = false), (showHelpMenu = false))"
+        @mouseenter="handleMenuMouseEnter('tools')"
+        @mouseleave="handleMenuMouseLeave('tools')"
       >
         <button class="menu-btn">{{ t('titlebar.tools') }}</button>
         <div
@@ -135,7 +137,8 @@
 
       <div
         class="menu-button"
-        @mouseenter="((showFileMenu = false), (showEditMenu = false), (showToolsMenu = false), (showHelpMenu = false))"
+        @mouseenter="handleMenuMouseEnter('help')"
+        @mouseleave="handleMenuMouseLeave('help')"
       >
         <button class="menu-btn">{{ t('titlebar.help') }}</button>
         <div
@@ -574,16 +577,21 @@ const handleMenuMouseEnter = async (menuType) => {
   showHelpMenu.value = false
   showFontSubmenu.value = false
 
-  if (!fontsLoaded.value) {
-    systemFonts.value = await getSystemFonts()
-    fontsLoaded.value = true
-  }
-
+  // 先同步打开目标菜单，避免被系统字体异步加载阻塞（首次悬停时字体列表可能耗时较久）
   if (menuType === 'file') showFileMenu.value = true
   if (menuType === 'edit') showEditMenu.value = true
   if (menuType === 'tools') showToolsMenu.value = true
   if (menuType === 'view') showViewMenu.value = true
   if (menuType === 'help') showHelpMenu.value = true
+
+  if (!fontsLoaded.value) {
+    try {
+      systemFonts.value = await getSystemFonts()
+      fontsLoaded.value = true
+    } catch {
+      // 字体枚举失败不应影响菜单展示，下次悬停时重试
+    }
+  }
 }
 
 let leaveTimer: ReturnType<typeof setTimeout> | null = null
