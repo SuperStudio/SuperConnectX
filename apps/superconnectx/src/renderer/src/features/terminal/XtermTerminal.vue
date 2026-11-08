@@ -319,9 +319,37 @@ defineExpose({ write, clear, fit, focus, getDimensions })
   overflow: hidden;
 }
 
-/* xterm 默认有 2px padding，这里贴合 Monaco 输出区的观感 */
+/* xterm 默认无内边距，文字会顶到容器四边；与日志视图 .terminal-output 的 15px 对齐，
+   切换终端模式时内容位置不跳动。
+   注意：FitAddon 会读取 .xterm 自身的 padding 并从可用宽高里扣除，行列数不会算错；
+   因此内边距必须加在 .xterm 上，而不是外层 .xterm-host。 */
+.xterm-host :deep(.xterm) {
+  padding: var(--terminal-content-padding, 15px);
+}
+
 .xterm-host :deep(.xterm-viewport) {
   background-color: transparent !important;
+}
+
+/* xterm 自带回滚条（viewport overflow-y: scroll）常驻显示，且贴着面板右缘，
+   视觉上像多余的滚动条。与日志视图 .terminal-output 的约定保持一致：
+   默认隐藏，鼠标悬停终端区域时显示 8px 细滚动条（复用主题变量）。 */
+.xterm-host :deep(.xterm-viewport)::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.xterm-host :deep(.xterm-viewport)::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.xterm-host:hover :deep(.xterm-viewport)::-webkit-scrollbar-thumb {
+  background: var(--terminal-output-scrollbar-thumb, #444);
+}
+
+.xterm-host:hover :deep(.xterm-viewport)::-webkit-scrollbar-thumb:hover {
+  background: var(--terminal-output-scrollbar-hover, #555);
 }
 
 /* 终端右键菜单：与 Tab/标题栏菜单同一套主题变量（assets/color.css 的 --menu-*），
