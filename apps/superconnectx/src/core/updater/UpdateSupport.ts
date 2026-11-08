@@ -12,6 +12,15 @@ export interface UpdateInfo {
   releaseDate: string
   releaseNotes?: string
   files?: Array<{ url: string; size: number }>
+  /**
+   * 安装包是否已下载完成。为 true 时界面应直接进入「下载完成，重启安装」，
+   * 而不是重新展示「发现新版本 / 开始更新」。
+   */
+  downloaded?: boolean
+  /** 是否正在下载。对话框在下载途中被关闭后重新打开时，据此恢复进度界面。 */
+  downloading?: boolean
+  /** 最近一次下载进度，仅在 `downloading` 为 true 时有意义。 */
+  progress?: ProgressInfo
 }
 
 export interface ProgressInfo {
@@ -47,6 +56,24 @@ export function normalizeReleaseNotes(notes: unknown): string {
       .join('\n')
   }
   return ''
+}
+
+/**
+ * 下载完成后更新缓存的更新信息：保留已有的发布信息，并把 `downloaded` 置为 true。
+ *
+ * 主进程的缓存信息在下载完成后不能丢弃——对话框关闭再打开时需要据此直接展示
+ * 「下载完成，重启安装」，而不是又回到「发现新版本 / 开始更新」。
+ */
+export function markUpdateDownloaded(cached: UpdateInfo | null, version: string): UpdateInfo {
+  return {
+    version,
+    releaseDate: cached?.releaseDate || new Date().toISOString(),
+    releaseNotes: cached?.releaseNotes || '',
+    files: cached?.files,
+    downloaded: true,
+    downloading: false,
+    progress: undefined
+  }
 }
 
 /** Maps transport and updater errors to display-safe messages. */

@@ -333,8 +333,19 @@ const open = async () => {
   // 检查是否有缓存的更新信息
   const cached = await window.updateApi.getCachedUpdateInfo()
   if (cached && cached.version) {
-    status.value = 'update-available'
     updateInfo.value = cached
+    if (cached.downloaded) {
+      // 安装包已下载完成：直接进入「下载完成，重启安装」，
+      // 否则会退回「开始更新」，点一下又会重新下载一遍
+      status.value = 'update-downloaded'
+    } else if (cached.downloading) {
+      // 下载仍在进行（此前关闭了对话框）：恢复进度界面并接着显示，
+      // 否则会显示「开始更新」，用户再点一次就会重复下载
+      status.value = 'download-progress'
+      progressInfo.value = cached.progress || { percent: 0, transferred: 0, total: 0, bytesPerSecond: 0 }
+    } else {
+      status.value = 'update-available'
+    }
     return
   }
 

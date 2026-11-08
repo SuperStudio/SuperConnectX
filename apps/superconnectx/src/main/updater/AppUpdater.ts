@@ -4,7 +4,9 @@ import { CancellationToken } from 'builder-util-runtime'
 import logger from '../ipc/IpcAppLogger'
 import {
   mapUpdateErrorToFriendlyMessage,
+  markUpdateDownloaded,
   normalizeReleaseNotes,
+  type ProgressInfo,
   type UpdateInfo,
   type UpdateStatus
 } from '../../core/updater/UpdateSupport'
@@ -15,6 +17,8 @@ export default class AppUpdater {
   private static sInstance: AppUpdater
   private mainWindow: BrowserWindow | null = null
   private _cachedUpdateInfo: UpdateInfo | null = null
+  /** 最近一次下载进度：对话框重开时用于恢复进度条，避免从 0% 重来 */
+  private _lastProgress: ProgressInfo | null = null
   private downloadCancellation: CancellationToken | null = null
   private downloadedFilePath: string | null = null
   private silentMode = false
@@ -65,11 +69,14 @@ export default class AppUpdater {
     // 发现新版本
     autoUpdater.on('update-available', (info) => {
       logger.info(`[Updater] New version available: ${info.version}`)
+      this._lastProgress = null
       this._cachedUpdateInfo = {
         version: info.version,
         releaseDate: info.releaseDate,
         releaseNotes: normalizeReleaseNotes(info.releaseNotes),
-        files: info.files?.map((f) => ({ url: f.url, size: f.size ?? 0 }))
+        files: info.files?.map((f) => ({ url: f.url, size: f.size ?? 0 })),
+        downloaded: false,
+        downloading: false
       }
       this.sendStatus('update-available', this._cachedUpdateInfo)
     })
@@ -86,12 +93,15 @@ export default class AppUpdater {
 
     // 下载进度（支持断点续传，百分比会反映实际进度）
     autoUpdater.on('download-progress', (progress) => {
-      this.sendStatus('download-progress', {
+      const info: ProgressInfo = {
         percent: Math.round(progress.percent),
         transferred: progress.transferred,
         total: progress.total,
         bytesPerSecond: progress.bytesPerSecond
-      })
+      }
+      // 缓存一份：对话框关闭后重新打开时用它恢复进度，而不是从 0% 重来
+      this._lastProgress = info
+      this.sendStatus('download-progress', info)
     })
 
     // 更新包下载完成
@@ -99,10 +109,11 @@ export default class AppUpdater {
       logger.info(`[Updater] Update downloaded: ${info.version}`)
       // electron-updater 6.x 的 UpdateDownloadedEvent 带有 downloadedFile（下载完成的安装包路径）
       this.downloadedFilePath = (info as { downloadedFile?: string }).downloadedFile || null
-      this.sendStatus('update-downloaded', {
-        version: info.version,
-        releaseNotes: this._cachedUpdateInfo?.releaseNotes || ''
-      })
+      // 在缓存上标记已下载：对话框关闭后再次打开时据此直接展示「下载完成」，
+      // 否则用户会看到「发现新版本 + 开始更新」，重复下载
+      this._lastProgress = null
+      this._cachedUpdateInfo = markUpdateDownloaded(this._cachedUpdateInfo, info.version)
+      this.sendStatus('update-downloaded', this._cachedUpdateInfo)
     })
 
     // 下载出错
@@ -147,6 +158,8 @@ export default class AppUpdater {
       }
 
       logger.info('[Updater] Starting download')
+      this._lastProgress = null
+      this.setDownloadingState(true)
       this.downloadCancellation = new CancellationToken()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await autoUpdater.downloadUpdate(this.downloadCancellation as any)
@@ -154,13 +167,31 @@ export default class AppUpdater {
       if (this.downloadCancellation?.cancelled) {
         logger.info('[Updater] Download cancelled by user')
         // 取消后通知前端回到发现新版本界面
-        this.sendStatus('update-available', this._cachedUpdateInfo)
+        this._lastProgress = null
+        this.setDownloadingState(false)
+        this.sendStatus('update-available', this.cachedUpdateInfo)
       } else {
         logger.error(`[Updater] Download failed: ${err.message}`)
+        this.setDownloadingState(false)
         this.sendStatus('error', { message: mapUpdateErrorToFriendlyMessage(err) })
       }
     } finally {
       this.downloadCancellation = null
+      // 下载结束（成功/失败/取消）都要清掉下载中标记，避免重开对话框卡在"下载中"
+      this.setDownloadingState(false)
+    }
+  }
+
+  /**
+   * 更新缓存里的下载态标记。
+   * 下载中：`downloading=true`、`downloaded=false`；结束后：`downloading=false`。
+   */
+  private setDownloadingState(downloading: boolean): void {
+    if (!this._cachedUpdateInfo) return
+    this._cachedUpdateInfo = {
+      ...this._cachedUpdateInfo,
+      downloading,
+      downloaded: downloading ? false : this._cachedUpdateInfo.downloaded
     }
   }
 
@@ -199,8 +230,12 @@ export default class AppUpdater {
     app.quit()
   }
 
-  /** 获取缓存的更新信息 */
+  /** 获取缓存的更新信息（下载中会带上最近一次进度） */
   get cachedUpdateInfo(): UpdateInfo | null {
+    if (!this._cachedUpdateInfo) return null
+    if (this._cachedUpdateInfo.downloading && this._lastProgress) {
+      return { ...this._cachedUpdateInfo, progress: this._lastProgress }
+    }
     return this._cachedUpdateInfo
   }
 
