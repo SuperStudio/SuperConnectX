@@ -9,6 +9,9 @@
       :placeholder="t('comTerminal.placeholder')"
       :show-bottom-panel="showBottomPanel"
       session-id-prefix="com"
+      :terminal-mode="terminalMode"
+      @on-terminal-input="handleTerminalInput"
+      @on-terminal-resize="handleTerminalResize"
       @on-close="handleClose"
       @on-reconnect="reconnect"
       @on-open-log-folder="openLogFolder"
@@ -23,15 +26,18 @@
       <!-- 波特率等设置放到下面 -->
       <template #extra>
         <div class="param-row">
-          <el-switch
-            v-model="hexDisplayMode"
-            width="50"
-            active-text="HEX"
-            inactive-text="STR"
-            inline-prompt
-            size="small"
-            class="terminal-switch terminal-switch-inline"
-          />
+          <span @click="onHexDisplayClick">
+            <el-switch
+              v-model="hexDisplayMode"
+              width="50"
+              active-text="HEX"
+              inactive-text="STR"
+              inline-prompt
+              size="small"
+              class="terminal-switch terminal-switch-inline"
+              :disabled="terminalMode"
+            />
+          </span>
           <div class="param-item">
             <span class="param-label">{{ t('comTerminal.baudRate') }}</span>
             <el-select v-model="baudRate" size="small" class="param-select-baud" :popper-append-to-body="false">
@@ -52,7 +58,8 @@
 
           <div class="param-item">
             <span class="param-label">{{ t('comTerminal.encoding') }}</span>
-            <el-select v-model="encoding" size="small" class="param-select-encoding" :popper-append-to-body="false">
+            <el-tooltip :disabled="!terminalMode" :content="t('comTerminal.terminalModeNoUtf16')" placement="top">
+              <el-select v-model="encoding" size="small" class="param-select-encoding" :popper-append-to-body="false">
               <el-option label="UTF-8" value="utf8" />
               <el-option label="GB2312" value="gb2312" />
               <el-option label="GBK" value="gbk" />
@@ -67,9 +74,10 @@
               <el-option label="windows-1251" value="windows-1251" />
               <el-option label="windows-1252" value="windows-1252" />
               <el-option label="ISO-8859-5" value="iso-8859-5" />
-              <el-option label="UTF-16LE" value="utf16le" />
-              <el-option label="UTF-16BE" value="utf16be" />
-            </el-select>
+              <el-option :disabled="terminalMode" label="UTF-16LE" value="utf16le" />
+              <el-option :disabled="terminalMode" label="UTF-16BE" value="utf16be" />
+              </el-select>
+            </el-tooltip>
           </div>
 
           <div class="param-item">
@@ -186,7 +194,7 @@ import { sendDisplayText, recvDisplayText } from './useTerminalDisplayText'
 
 const { t } = useI18n()
 
-const emit = defineEmits(['onClose', 'commandSent', 'onConnect', 'onDisconnect', 'openCommandEditor', 'remarkUpdated', 'fontLoaded', 'openSyntaxHighlight'])
+const emit = defineEmits(['onClose', 'commandSent', 'onConnect', 'onDisconnect', 'openCommandEditor', 'remarkUpdated', 'fontLoaded', 'openSyntaxHighlight', 'terminalModeChanged'])
 const props = withDefaults(defineProps<{
   connection: {
     id: string | number
@@ -216,6 +224,11 @@ const unifiedTerminalRef = ref<InstanceType<typeof UnifiedTerminal>>()
 const isConnected = ref(false)
 const isConnecting = ref(false)
 const preventAutoReconnect = ref(false)
+/**
+ * 终端模式（per-port 偏好，存 com-settings）：true 时输出区为 xterm 真终端。
+ * 默认关闭，由用户手动切换；可由「视图」菜单热切换并持久化。
+ */
+const terminalMode = ref(false)
 const showMoreDialog = ref(false)
 const showAddBaudRateDialog = ref(false)
 const newBaudRate = ref(9600)
@@ -323,8 +336,13 @@ watch(terminal.fontSize, () => {
   saveComSettings()
 })
 
-// 监听 HEX 显示模式变化
+// 监听 HEX 显示模式变化；终端模式下拒绝开启并回滚（决策 5）
 watch(hexDisplayMode, (newVal) => {
+  if (terminalMode.value && newVal) {
+    hexDisplayMode.value = false
+    ElMessage.info(t('comTerminal.terminalModeNoHex'))
+    return
+  }
   saveComSettings()
   unifiedTerminalRef.value?.setHexDisplayMode?.(newVal)
   if (isConnected.value) {
@@ -455,6 +473,128 @@ const updateReceiveHexMode = async (isHex: boolean) => {
   }
 }
 
+/** 通知主进程切换接收链路（终端模式整段解码 / 日志模式按行分割），不重开端口 */
+const updateReceiveTerminalMode = async (enabled: boolean) => {
+  try {
+    await window.connectApi.updateConnect(
+      {
+        connectionType: 'com',
+        comName: props.connection.comName,
+        sessionId: props.connection.sessionId
+      },
+      { terminalMode: enabled }
+    )
+  } catch (error) {
+    console.error('updateReceiveTerminalMode error:', error)
+  }
+}
+
+/** 终端模式：xterm 按键上送的原始字节流（含 Ctrl+C 的 \x03），不经日志输入框的换行加工 */
+const handleTerminalInput = async (payload: string) => {
+  if (!isConnected.value) return
+  try {
+    await window.connectApi.sendData({
+      conn: {
+        connectionType: 'com',
+        comName: props.connection.comName,
+        sessionId: props.connection.sessionId
+      },
+      command: payload,
+      // 终端模式下按键必须原样发送，显式声明 raw 语义（当前 ComClient 不追加换行，等价；
+      // 但表达意图，防止将来 send 行为变化时按键被追加换行）
+      options: { raw: true }
+    })
+    terminal.totalTxSize += payload.length
+    unifiedTerminalRef.value?.updateTxBytes(payload.length)
+  } catch (error) {
+    console.error('Failed to send terminal input:', error)
+  }
+}
+
+/** 终端模式：同步可视行列（串口无 PTY，主进程为空实现，静默处理） */
+const handleTerminalResize = async (rows: number, cols: number) => {
+  if (!isConnected.value || !terminalMode.value) return
+  try {
+    await window.connectApi.resizeTerminal({
+      conn: {
+        connectionType: 'com',
+        comName: props.connection.comName,
+        sessionId: props.connection.sessionId
+      },
+      rows,
+      cols
+    })
+  } catch (error) {
+    console.error('Failed to sync terminal size:', error)
+  }
+}
+
+/** 应用终端模式到界面（不持久化；持久化走 saveComSettings） */
+const applyTerminalMode = (enabled: boolean): void => {
+  terminalMode.value = enabled
+  unifiedTerminalRef.value?.setTerminalMode?.(enabled)
+  emit('terminalModeChanged', enabled)
+}
+
+/** 读取并应用偏好（值已由 loadComSettings 读入 terminalMode.value） */
+const loadTerminalModePreference = async (): Promise<void> => {
+  // 历史偏好冲突兜底：com-settings 里 terminalMode=true 但 HEX/UTF-16 也开着时，
+  // 不进入终端模式（保持日志模式）并提示——避免加载路径绕过 setTerminalMode 的拦截
+  const hasHex = hexDisplayMode.value
+  const hasUtf16 = encoding.value === 'utf16le' || encoding.value === 'utf16be'
+  if (terminalMode.value && (hasHex || hasUtf16)) {
+    terminalMode.value = false
+    const key = hasHex && hasUtf16
+      ? 'terminalModeConflictBoth'
+      : hasHex
+        ? 'terminalModeConflictHex'
+        : 'terminalModeConflictUtf16'
+    ElMessage.warning(t(`comTerminal.${key}`))
+    return
+  }
+  applyTerminalMode(terminalMode.value)
+}
+
+/** 菜单/外部入口：切换终端模式（热切换 + 持久化 + 通知主进程 + 协议特有边界处理）
+ *  @returns true=切换成功；false=被禁止（HEX/UTF-16 冲突），调用方据此决定是否更新勾选状态 */
+const setTerminalMode = async (enabled: boolean): Promise<boolean> => {
+  if (enabled) {
+    // 串口特有：HEX 与 UTF-16 不支持终端模式，禁止切换并提示原因
+    const hasHex = hexDisplayMode.value
+    const hasUtf16 = encoding.value === 'utf16le' || encoding.value === 'utf16be'
+    if (hasHex && hasUtf16) {
+      ElMessage.warning(t('comTerminal.terminalModeConflictBoth'))
+      return false
+    }
+    if (hasHex) {
+      ElMessage.warning(t('comTerminal.terminalModeConflictHex'))
+      return false
+    }
+    if (hasUtf16) {
+      ElMessage.warning(t('comTerminal.terminalModeConflictUtf16'))
+      return false
+    }
+  }
+  applyTerminalMode(enabled)
+  saveComSettings()
+  // 切接收链路（HEX 已确认关闭；切回日志模式时同样先切链路）
+  if (isConnected.value) {
+    await updateReceiveTerminalMode(enabled)
+  }
+  // 切回日志模式时恢复用户 HEX 偏好
+  if (!enabled && hexDisplayMode.value) {
+    await updateReceiveHexMode(true)
+  }
+  return true
+}
+
+/** 终端模式下 HEX 开关点击提示（开关已置灰，点击由外层捕获；决策 5） */
+const onHexDisplayClick = (): void => {
+  if (terminalMode.value) {
+    ElMessage.info(t('comTerminal.terminalModeNoHex'))
+  }
+}
+
 // 加载保存的串口设置
 const loadComSettings = async () => {
   isLoadingComSettings = true
@@ -481,6 +621,7 @@ const loadComSettings = async () => {
       hexMode.value = settings.hexMode || false
       crcEnabled.value = settings.crcEnabled !== undefined ? settings.crcEnabled : true
       crcMethod.value = settings.crcMethod || 'CRC-16/MODBUS'
+      terminalMode.value = settings.terminalMode === true
       terminal.fontSize.value = settings.fontSize !== undefined ? settings.fontSize : 14
       terminal.fontFamily.value = settings.fontFamily || getDefaultTerminalFont()
       const savedInput = settings.commandInput || ''
@@ -530,7 +671,8 @@ const saveComSettings = async () => {
       crcMethod: crcMethod.value,
       fontSize: terminal.fontSize.value,
       fontFamily: terminal.fontFamily.value,
-      commandInput: unifiedTerminalRef.value?.getCommandInput?.() || ''
+      commandInput: unifiedTerminalRef.value?.getCommandInput?.() || '',
+      terminalMode: terminalMode.value
     }
     await window.storageApi.saveComSettings(props.connection.comName, settings)
   } catch (error) {
@@ -656,7 +798,8 @@ const handleConnect = async () => {
     readTimeout: readTimeout.value,
     writeTimeout: writeTimeout.value,
     packetTimeout: packetTimeout.value,
-    receiveHex: hexDisplayMode.value,
+    terminalMode: terminalMode.value,
+    receiveHex: terminalMode.value ? false : hexDisplayMode.value,
     // 连接建立前就带上时间戳开关状态，避免设备立即回传的头部数据在开关关闭时仍被写入时间戳
     logTimestamp: terminal.showTimestamp.value
   }
@@ -691,6 +834,11 @@ const handleConnect = async () => {
         if (String(data.connId) !== String(currentSessionId.value)) return
         terminal.totalRxSize += data.data.length
         unifiedTerminalRef.value?.updateRxBytes(data.data.length)
+        // 终端模式：原始字节流交给 xterm 解析 ANSI，不做时间戳/标签加工
+        if (terminalMode.value) {
+          unifiedTerminalRef.value?.writeToTerminal(data.data)
+          return
+        }
         const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
         const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
         const displayText = `${prefix}${recvLabel}${data.data}\n`
@@ -843,6 +991,8 @@ defineExpose({
   setWordWrap: (val: boolean) => unifiedTerminalRef.value?.setWordWrap?.(val),
   setLineNumbers: (val: boolean) => unifiedTerminalRef.value?.setLineNumbers?.(val),
   setLogEditable: (val: boolean) => unifiedTerminalRef.value?.setLogEditable?.(val),
+  setTerminalMode,
+  getTerminalMode: () => terminalMode.value,
   saveLogFileAs
 })
 
@@ -851,6 +1001,7 @@ onMounted(async () => {
   preventAutoReconnect.value = false
   await loadBaudRates()
   await loadComSettings()
+  await loadTerminalModePreference()
   if (isDisposed) return
 
   nextTick(() => {
@@ -869,6 +1020,8 @@ onMounted(async () => {
       if (preventAutoReconnect.value) return
       isConnected.value = false
       unifiedTerminalRef.value?.appendToTerminal(`\n${t('comTerminal.disconnected')}\n`)
+      // 终端模式下 Monaco 隐藏，append 看不到；补一条全局提示（R11）
+      ElMessage.warning(t('comTerminal.disconnected'))
       emit('onDisconnect', sessionId)
     }
   })

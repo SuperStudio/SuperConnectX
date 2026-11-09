@@ -32,6 +32,8 @@ interface SerialConnection {
   onClose: any
   onLog: any
   receiveHex: boolean
+  /** 终端模式：true 时接收链路整段解码下发（不拆行、保留 \r），与日志视图的按行分割区分 */
+  terminalMode: boolean
   splitter: BufferLineSplitter
 }
 
@@ -85,13 +87,28 @@ export default class ComClient extends BaseClient {
         return
       }
 
-      const result = splitter.split(buffer)
-      connection.buffer = result.remainder
+      // 终端模式：整段解码下发（保留 \r 与空行，不拆行），日志模式：按行分割
+      let data: string
+      let log: string
+      let count: number
+      if (connection.terminalMode) {
+        const flushed = splitter.decodeCompletePrefix(buffer)
+        data = flushed.text
+        log = flushed.text
+        count = flushed.text ? 1 : 0
+        connection.buffer = flushed.remainder
+      } else {
+        const result = splitter.split(buffer)
+        data = result.data
+        log = result.log
+        count = result.count
+        connection.buffer = result.remainder
+      }
 
-      if (result.count > 0) {
+      if (count > 0) {
         const timestamp = BufferLineSplitter.timestamp()
-        onData?.({ data: result.data, timestamp })
-        onLog?.(result.log, timestamp)
+        onData?.({ data, timestamp })
+        onLog?.(log, timestamp)
       }
 
       const now = Date.now()
@@ -101,7 +118,8 @@ export default class ComClient extends BaseClient {
       // 数据会一直压在 buffer 里不显示，用户会误以为死机或丢日志。
       // 这里按"停留时长"兜底，保证连续流也能在分包超时内显示；超时配 0 时禁用该行为，
       // 退回"仅按换行符/空闲刷新输出"的原始语义。
-      if (connection.buffer.length > 0) {
+      // 终端模式下 buffer 只留不完整多字节，由 decodeCompletePrefix 处理，不做定时强制刷新（决策 12）
+      if (!connection.terminalMode && connection.buffer.length > 0) {
         if (connection.pendingSince === 0) {
           connection.pendingSince = now
         } else if (
@@ -116,7 +134,7 @@ export default class ComClient extends BaseClient {
       }
 
       // 兜底上限：即使上面的定时刷新被跳过，Buffer 也必须有界，否则随运行时间无限增长。
-      if (connection.buffer.length > MAX_BUFFER_BYTES) {
+      if (!connection.terminalMode && connection.buffer.length > MAX_BUFFER_BYTES) {
         this.flushCompletePrefix(connection, 'buffer cap')
         connection.pendingSince = connection.buffer.length > 0 ? now : 0
       }
@@ -131,6 +149,9 @@ export default class ComClient extends BaseClient {
    */
   private checkFlushBuffer(connection: SerialConnection): void {
     if (!connection.buffer || connection.buffer.length === 0) return
+    // 终端模式下 buffer 只留不完整多字节，由 decodeCompletePrefix 处理；
+    // 强制 decodeFull 会把不完整多字节解成替换字符（U+FFFD），故跳过（决策 12）
+    if (connection.terminalMode) return
     const elapsed = Date.now() - connection.lastDataTime
     if (elapsed < FLUSH_TIMEOUT_MS) return
 
@@ -209,6 +230,7 @@ export default class ComClient extends BaseClient {
             onClose: onClose,
             onLog: onLog,
             receiveHex: info.receiveHex === true,
+            terminalMode: info.terminalMode === true,
             splitter: new BufferLineSplitter(encoding, info.receiveHex === true)
           }
           this.serialConnections.set(sessionId, connection)
@@ -453,6 +475,7 @@ export default class ComClient extends BaseClient {
     dtr?: boolean
     flowControl?: 'none' | 'hardware' | 'software'
     receiveHex?: boolean
+    terminalMode?: boolean
   }): Promise<object> {
 
     // 分包超时只影响缓冲刷新节奏，与端口硬件参数无关，
@@ -474,6 +497,17 @@ export default class ComClient extends BaseClient {
         connection.receiveHex = config.receiveHex
         connection.splitter.updateReceiveHex(config.receiveHex)
         this.logger.info(`update serial receiveHex: ${config.receiveHex}, sessionId: ${connId}`)
+        return { success: true, message: 'Updated successfully' }
+      }
+      return { success: false, message: 'Connection does not exist' }
+    }
+
+    // 动态更新终端模式（接收链路整段解码 / 按行分割的切换，不重开端口）
+    if (config.terminalMode !== undefined) {
+      const connection = this.serialConnections.get(connId)
+      if (connection) {
+        connection.terminalMode = config.terminalMode === true
+        this.logger.info(`update serial terminalMode: ${connection.terminalMode}, sessionId: ${connId}`)
         return { success: true, message: 'Updated successfully' }
       }
       return { success: false, message: 'Connection does not exist' }
@@ -562,6 +596,7 @@ export default class ComClient extends BaseClient {
             onClose: savedOnClose,
             onLog: connection.onLog,
             receiveHex: connection.receiveHex,
+            terminalMode: connection.terminalMode,
             splitter: new BufferLineSplitter(newEncoding, connection.receiveHex)
           }
           this.serialConnections.set(connId, newConnection)
@@ -658,6 +693,7 @@ export default class ComClient extends BaseClient {
           onClose: oldConnection.onClose,
           onLog: oldConnection.onLog,
           receiveHex: oldConnection.receiveHex,
+          terminalMode: oldConnection.terminalMode,
           splitter: new BufferLineSplitter(encoding, oldConnection.receiveHex)
         }
         this.serialConnections.set(connId, newConnection)
