@@ -306,7 +306,7 @@ const emit = defineEmits<{
   onOpenLogFolder: []
   onOpenLogFile: []
   onRotateLog: []
-  onSend: [command: string, originalInput?: string]
+  onSend: [command: string, originalInput?: string, source?: 'hex' | 'text']
   onCommandSent: [cmdName: string]
   onDataReceived: [data: string]
   'update:isConnected': [value: boolean]
@@ -1212,8 +1212,8 @@ const handleSendCommand = () => {
   // 保存命令到历史记录
   addToHistory(originalInput)
 
-  // 传递原始输入用于显示（在HEX模式下需要显示原始HEX字符串）
-  emit('onSend', sendData, originalInput)
+  // 传递原始输入用于显示（在HEX模式下需要显示原始HEX字符串）；source 供后端区分 HEX 载荷与文本
+  emit('onSend', sendData, originalInput, hexMode.value ? 'hex' : 'text')
   closeHistoryPopup()
 
   // 发送后清空输入栏

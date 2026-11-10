@@ -8,6 +8,8 @@ export interface SendOptions {
    * 此时若再补一个 \n 会让 ^C 变成 "^C + 回车"，语义被破坏。
    */
   raw?: boolean
+  /** 输入来源：'hex' 表示 HEX 载荷（按二进制逐字节写入），'text' 表示文本（按编码写入） */
+  source?: 'hex' | 'text'
 }
 
 // Logger 接口（兼容 winston logger 和 console）

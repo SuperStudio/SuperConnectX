@@ -450,7 +450,7 @@ export default class WorkerPool {
     sessionId: string,
     _connectionType: string,
     command: string,
-    options?: { raw?: boolean }
+    options?: { raw?: boolean; source?: 'hex' | 'text' }
   ): Promise<{ success: boolean; message?: string }> {
     try {
       const normalizedSessionId = String(sessionId)

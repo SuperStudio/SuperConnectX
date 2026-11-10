@@ -71,7 +71,7 @@ export default class WorkerConnector {
     return await this.workerPool.startConnection(connInfo, conn.connectionType)
   }
 
-  async sendData(conn: any, command: string, options?: { raw?: boolean }): Promise<object> {
+  async sendData(conn: any, command: string, options?: { raw?: boolean; source?: 'hex' | 'text' }): Promise<object> {
     return await this.workerPool.sendData(conn.sessionId, conn.connectionType, command, options)
   }
 

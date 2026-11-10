@@ -336,8 +336,9 @@ watch(terminal.fontSize, () => {
   saveComSettings()
 })
 
-// 监听 HEX 显示模式变化；终端模式下拒绝开启并回滚（决策 5）
+// 监听 HEX 显示模式变化；终端模式下拒绝开启并回滚（决策 5）。加载期间跳过（意见 4）
 watch(hexDisplayMode, (newVal) => {
+  if (isLoadingComSettings) return
   if (terminalMode.value && newVal) {
     hexDisplayMode.value = false
     ElMessage.info(t('comTerminal.terminalModeNoHex'))
@@ -500,9 +501,8 @@ const handleTerminalInput = async (payload: string) => {
         sessionId: props.connection.sessionId
       },
       command: payload,
-      // 终端模式下按键必须原样发送，显式声明 raw 语义（当前 ComClient 不追加换行，等价；
-      // 但表达意图，防止将来 send 行为变化时按键被追加换行）
-      options: { raw: true }
+      // 终端模式按键：raw 抑制明文日志（意见 1）；source='text' 让它按编码写入（意见 2）
+      options: { raw: true, source: 'text' }
     })
     terminal.totalTxSize += payload.length
     unifiedTerminalRef.value?.updateTxBytes(payload.length)
@@ -536,22 +536,8 @@ const applyTerminalMode = (enabled: boolean): void => {
   emit('terminalModeChanged', enabled)
 }
 
-/** 读取并应用偏好（值已由 loadComSettings 读入 terminalMode.value） */
+/** 读取并应用偏好（冲突已在 loadComSettings 里降级；此处仅应用） */
 const loadTerminalModePreference = async (): Promise<void> => {
-  // 历史偏好冲突兜底：com-settings 里 terminalMode=true 但 HEX/UTF-16 也开着时，
-  // 不进入终端模式（保持日志模式）并提示——避免加载路径绕过 setTerminalMode 的拦截
-  const hasHex = hexDisplayMode.value
-  const hasUtf16 = encoding.value === 'utf16le' || encoding.value === 'utf16be'
-  if (terminalMode.value && (hasHex || hasUtf16)) {
-    terminalMode.value = false
-    const key = hasHex && hasUtf16
-      ? 'terminalModeConflictBoth'
-      : hasHex
-        ? 'terminalModeConflictHex'
-        : 'terminalModeConflictUtf16'
-    ElMessage.warning(t(`comTerminal.${key}`))
-    return
-  }
   applyTerminalMode(terminalMode.value)
 }
 
@@ -602,6 +588,15 @@ const loadComSettings = async () => {
     if (!props.connection.comName) return
     const settings = await window.storageApi.getComSettings(props.connection.comName)
     if (settings) {
+      // 终端模式与 HEX / UTF-16 冲突：保留 HEX、降级终端模式并提示（意见 4）
+      const savedTerminalMode = settings.terminalMode === true
+      const savedHexDisplay = settings.hexDisplayMode === true
+      const savedUtf16 = settings.encoding === 'utf16le' || settings.encoding === 'utf16be'
+      if (savedTerminalMode && (savedHexDisplay || savedUtf16)) {
+        ElMessage.warning(t('comTerminal.terminalModeConflict'))
+      }
+      const effectiveTerminalMode = savedTerminalMode && !savedHexDisplay && !savedUtf16
+
       baudRate.value = settings.baudRate || 9600
       dataBits.value = settings.dataBits || 8
       stopBits.value = settings.stopBits || 1
@@ -621,7 +616,7 @@ const loadComSettings = async () => {
       hexMode.value = settings.hexMode || false
       crcEnabled.value = settings.crcEnabled !== undefined ? settings.crcEnabled : true
       crcMethod.value = settings.crcMethod || 'CRC-16/MODBUS'
-      terminalMode.value = settings.terminalMode === true
+      terminalMode.value = effectiveTerminalMode
       terminal.fontSize.value = settings.fontSize !== undefined ? settings.fontSize : 14
       terminal.fontFamily.value = settings.fontFamily || getDefaultTerminalFont()
       const savedInput = settings.commandInput || ''
@@ -641,6 +636,8 @@ const loadComSettings = async () => {
   } catch (error) {
     console.error(t('comTerminal.loadSettingsFailed'), error)
   } finally {
+    // 等 watcher 的 flush 回调先跑完再释放守卫，确保加载期间 watcher 被拦住（意见 4）
+    await nextTick()
     isLoadingComSettings = false
   }
 }
@@ -824,6 +821,8 @@ const handleConnect = async () => {
       emit('onConnect', props.connection.sessionId)
 
       notifyLogTimestampToBackend(terminal.showTimestamp.value)
+      // 建连成功后同步终端模式（连接中切换时后端无 session，updateConnect 会失败，需在此补一次）
+      await updateReceiveTerminalMode(terminalMode.value)
 
       // 清理旧的数据监听器，防止重复注册
       if (removeDataListener) {
@@ -913,7 +912,7 @@ const handleClose = async () => {
   emit('onDisconnect', props.connection.sessionId)
 }
 
-const handleSendCommand = async (command: string, originalInput?: string) => {
+const handleSendCommand = async (command: string, originalInput?: string, source?: 'hex' | 'text') => {
   if (!command.trim() || !isConnected.value) return
 
   // HEX 模式下将实际发送的二进制数据转成 HEX 显示（包含 CRLF 和 CRC 字节）
@@ -942,7 +941,8 @@ const handleSendCommand = async (command: string, originalInput?: string) => {
         comName: props.connection.comName,
         sessionId: props.connection.sessionId
       },
-      command: command
+      command: command,
+      options: { source: source || 'text' }
     })
     // 发送成功后保存当前输入栏内容
     saveComSettings()

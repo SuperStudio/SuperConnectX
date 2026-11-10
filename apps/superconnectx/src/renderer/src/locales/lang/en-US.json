@@ -404,6 +404,7 @@
     "disconnected": "Disconnected",
     "terminalModeNoHex": "HEX mode is not supported in serial terminal mode",
     "terminalModeNoUtf16": "UTF-16 encoding is not supported in serial terminal mode",
+    "terminalModeConflict": "Terminal mode conflicts with current settings (HEX / UTF-16), so it was not enabled. Adjust and retry.",
     "terminalModeConflictHex": "Serial terminal mode does not support HEX. Please turn off HEX first",
     "terminalModeConflictUtf16": "Serial terminal mode does not support UTF-16. Please change the encoding",
     "terminalModeConflictBoth": "Serial terminal mode does not support HEX and UTF-16. Please turn off HEX and change the encoding",

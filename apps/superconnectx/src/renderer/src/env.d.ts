@@ -72,7 +72,7 @@ interface StorageApi {
 interface ConnectApi {
   startConnect: (conn: any) => Promise<any>
   startConnectById: (id: number, sessionId: string, extraFields?: any) => Promise<any>
-  sendData: (data: { conn: any; command: string; options?: { raw?: boolean } }) => Promise<any>
+  sendData: (data: { conn: any; command: string; options?: { raw?: boolean; source?: 'hex' | 'text' } }) => Promise<any>
   resizeTerminal: (data: { conn: any; rows: number; cols: number }) => Promise<any>
   uploadFile: (data: { conn: any; localFilePath: string; remoteFileName: string }) => Promise<any>
   stopConnect: (conn: any) => Promise<any>

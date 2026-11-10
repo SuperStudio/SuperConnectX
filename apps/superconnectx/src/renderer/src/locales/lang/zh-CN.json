@@ -404,6 +404,7 @@
     "disconnected": "连接已断开",
     "terminalModeNoHex": "串口终端模式不支持 HEX 模式",
     "terminalModeNoUtf16": "串口终端模式不支持 UTF-16 编码",
+    "terminalModeConflict": "终端模式与当前设置（HEX / UTF-16）冲突，本次未进入终端模式，请调整后再试",
     "terminalModeConflictHex": "串口终端模式不支持 HEX，请先关闭 HEX",
     "terminalModeConflictUtf16": "串口终端模式不支持 UTF-16，请更换编码",
     "terminalModeConflictBoth": "串口终端模式不支持 HEX 与 UTF-16，请关闭 HEX 并更换编码",

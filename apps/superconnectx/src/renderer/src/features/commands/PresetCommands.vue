@@ -843,7 +843,8 @@ const sendPresetCommand = async (cmd: any) => {
     console.log('Send command - connection info:', JSON.stringify(conn), 'command:', sendData)
     const result = await window.connectApi.sendData({
       conn: conn,
-      command: sendData
+      command: sendData,
+      options: { source: props.hexMode ? 'hex' : 'text' }
     })
     console.log('Send result:', JSON.stringify(result))
     if (!result.success) {
