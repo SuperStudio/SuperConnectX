@@ -336,7 +336,7 @@ watch(terminal.fontSize, () => {
   saveComSettings()
 })
 
-// 监听 HEX 显示模式变化；终端模式下拒绝开启并回滚（决策 5）。加载期间跳过（意见 4）
+// 监听 HEX 显示模式变化；终端模式下拒绝开启并回滚。加载期间跳过
 watch(hexDisplayMode, (newVal) => {
   if (isLoadingComSettings) return
   if (terminalMode.value && newVal) {
@@ -501,7 +501,7 @@ const handleTerminalInput = async (payload: string) => {
         sessionId: props.connection.sessionId
       },
       command: payload,
-      // 终端模式按键：raw 抑制明文日志（意见 1）；source='text' 让它按编码写入（意见 2）
+      // 终端模式按键：raw 抑制明文日志；source='text' 让它按编码写入
       options: { raw: true, source: 'text' }
     })
     terminal.totalTxSize += payload.length
@@ -574,7 +574,7 @@ const setTerminalMode = async (enabled: boolean): Promise<boolean> => {
   return true
 }
 
-/** 终端模式下 HEX 开关点击提示（开关已置灰，点击由外层捕获；决策 5） */
+/** 终端模式下 HEX 开关点击提示（开关已置灰，点击由外层捕获） */
 const onHexDisplayClick = (): void => {
   if (terminalMode.value) {
     ElMessage.info(t('comTerminal.terminalModeNoHex'))
@@ -588,7 +588,7 @@ const loadComSettings = async () => {
     if (!props.connection.comName) return
     const settings = await window.storageApi.getComSettings(props.connection.comName)
     if (settings) {
-      // 终端模式与 HEX / UTF-16 冲突：保留 HEX、降级终端模式并提示（意见 4）
+      // 终端模式与 HEX / UTF-16 冲突：保留 HEX、降级终端模式并提示
       const savedTerminalMode = settings.terminalMode === true
       const savedHexDisplay = settings.hexDisplayMode === true
       const savedUtf16 = settings.encoding === 'utf16le' || settings.encoding === 'utf16be'
@@ -636,7 +636,7 @@ const loadComSettings = async () => {
   } catch (error) {
     console.error(t('comTerminal.loadSettingsFailed'), error)
   } finally {
-    // 等 watcher 的 flush 回调先跑完再释放守卫，确保加载期间 watcher 被拦住（意见 4）
+    // 等 watcher 的 flush 回调先跑完再释放守卫，确保加载期间 watcher 被拦住
     await nextTick()
     isLoadingComSettings = false
   }
@@ -803,6 +803,26 @@ const handleConnect = async () => {
   isConnecting.value = true
   unifiedTerminalRef.value?.appendToTerminal(`\n${t('comTerminal.connecting', { port: props.connection.comName })}\n`)
 
+  // 先注册接收监听器，再等待建连——避免等待期间设备数据（banner / 密码提示）丢失
+  if (removeDataListener) {
+    removeDataListener()
+    removeDataListener = null
+  }
+  removeDataListener = window.connectApi.onRecvData((data) => {
+    if (String(data.connId) !== String(props.connection.sessionId)) return
+    terminal.totalRxSize += data.data.length
+    unifiedTerminalRef.value?.updateRxBytes(data.data.length)
+    // 终端模式：原始字节流交给 xterm 解析 ANSI，不做时间戳/标签加工
+    if (terminalMode.value) {
+      unifiedTerminalRef.value?.writeToTerminal(data.data)
+      return
+    }
+    const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
+    const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
+    const displayText = `${prefix}${recvLabel}${data.data}\n`
+    unifiedTerminalRef.value?.appendToTerminal(displayText)
+  })
+
   try {
     const result = await window.connectApi.startConnect(connection)
 
@@ -821,28 +841,11 @@ const handleConnect = async () => {
       emit('onConnect', props.connection.sessionId)
 
       notifyLogTimestampToBackend(terminal.showTimestamp.value)
-      // 建连成功后同步终端模式（连接中切换时后端无 session，updateConnect 会失败，需在此补一次）
+      // 建连成功后同步终端模式与 HEX 接收（连接中切换时后端无 session，updateConnect 会失败，需在此补一次）
       await updateReceiveTerminalMode(terminalMode.value)
+      await updateReceiveHexMode(hexDisplayMode.value && !terminalMode.value)
 
-      // 清理旧的数据监听器，防止重复注册
-      if (removeDataListener) {
-        removeDataListener()
-        removeDataListener = null
-      }
-      removeDataListener = window.connectApi.onRecvData((data) => {
-        if (String(data.connId) !== String(currentSessionId.value)) return
-        terminal.totalRxSize += data.data.length
-        unifiedTerminalRef.value?.updateRxBytes(data.data.length)
-        // 终端模式：原始字节流交给 xterm 解析 ANSI，不做时间戳/标签加工
-        if (terminalMode.value) {
-          unifiedTerminalRef.value?.writeToTerminal(data.data)
-          return
-        }
-        const prefix = terminal.showTimestamp.value && data.timestamp ? `[${data.timestamp}] ` : ''
-        const recvLabel = recvDisplayText.value ? `${recvDisplayText.value} ` : ''
-        const displayText = `${prefix}${recvLabel}${data.data}\n`
-        unifiedTerminalRef.value?.appendToTerminal(displayText)
-      })
+      // 接收监听器已在 startConnect 之前注册（见上），此处不再重复
 
       unifiedTerminalRef.value?.focusInput()
     } else {
@@ -853,6 +856,11 @@ const handleConnect = async () => {
   } catch (error) {
     if (isDisposed || generation !== connectGeneration) return
     isConnecting.value = false
+    // 失败路径清理监听器（注册已提前到 startConnect 之前）
+    if (removeDataListener) {
+      removeDataListener()
+      removeDataListener = null
+    }
     const err = error as Error & { code?: string }
     unifiedTerminalRef.value?.appendToTerminal(`\n${t('comTerminal.connectFailed')}: ${err.message}\n`)
     ElMessage.error(t('comTerminal.connectFailed'))

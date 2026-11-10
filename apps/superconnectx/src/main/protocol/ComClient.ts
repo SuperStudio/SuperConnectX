@@ -21,6 +21,7 @@ const FLUSH_TIMEOUT_MS = 100 // 空闲超时：buffer 中有数据但超过此�
 const DEFAULT_PACKET_TIMEOUT_MS = 50 // 默认分包超时：无换行数据停留超过该时长即强制输出
 const MAX_PACKET_TIMEOUT_MS = 60000 // 分包超时上限，防止误填超大值导致长时间无输出
 const MAX_BUFFER_BYTES = 1024 * 1024 // 无换行输出也必须有上限，避免接收缓冲区无限增长
+const RECEIVE_TAIL_MAX = 128 // 跨块密码提示检测的接收尾部上限（字节）
 const CLOSE_TIMEOUT_MS = 5000
 
 interface SerialConnection {
@@ -52,6 +53,8 @@ export default class ComClient extends BaseClient {
   private sensitiveWindowUntil = new Map<string, number>()
   /** 终端逐字输入的行缓冲：累积本行内容以匹配凭据特征（单字符无法匹配） */
   private inputLineBuffer = new Map<string, string>()
+  /** 接收尾部：跨块拼接检测密码提示（避免 `Pass`+`word: ` 漏检） */
+  private receiveTail = new Map<string, string>()
 
   constructor(logger?: ILogger) {
     super(logger)
@@ -91,11 +94,15 @@ export default class ComClient extends BaseClient {
     return flushed.remainder
   }
 
-  /** 检测远端密码提示并开窗（所有输出路径共用，意见 1） */
+  /** 检测远端密码提示并开窗（所有输出路径共用）。拼接有界 receive tail，跨块提示也能命中 */
   private detectPasswordPrompt(text: string, connection: SerialConnection): void {
-    if (text && looksLikePasswordPrompt(text)) {
+    if (!text) return
+    const tail = this.receiveTail.get(connection.sessionId) ?? ''
+    const combined = tail + text
+    if (looksLikePasswordPrompt(combined)) {
       this.sensitiveWindowUntil.set(connection.sessionId, Date.now() + SENSITIVE_WINDOW_MS)
     }
+    this.receiveTail.set(connection.sessionId, combined.slice(-RECEIVE_TAIL_MAX))
   }
 
   /**
@@ -159,7 +166,7 @@ export default class ComClient extends BaseClient {
       // 数据会一直压在 buffer 里不显示，用户会误以为死机或丢日志。
       // 这里按"停留时长"兜底，保证连续流也能在分包超时内显示；超时配 0 时禁用该行为，
       // 退回"仅按换行符/空闲刷新输出"的原始语义。
-      // 终端模式下 buffer 只留不完整多字节，由 decodeCompletePrefix 处理，不做定时强制刷新（决策 12）
+      // 终端模式下 buffer 只留不完整多字节，由 decodeCompletePrefix 处理，不做定时强制刷新
       if (!connection.terminalMode && connection.buffer.length > 0) {
         if (connection.pendingSince === 0) {
           connection.pendingSince = now
@@ -191,7 +198,7 @@ export default class ComClient extends BaseClient {
   private checkFlushBuffer(connection: SerialConnection): void {
     if (!connection.buffer || connection.buffer.length === 0) return
     // 终端模式下 buffer 只留不完整多字节，由 decodeCompletePrefix 处理；
-    // 强制 decodeFull 会把不完整多字节解成替换字符（U+FFFD），故跳过（决策 12）
+    // 强制 decodeFull 会把不完整多字节解成替换字符（U+FFFD），故跳过
     if (connection.terminalMode) return
     const elapsed = Date.now() - connection.lastDataTime
     if (elapsed < FLUSH_TIMEOUT_MS) return
@@ -320,6 +327,7 @@ export default class ComClient extends BaseClient {
             this.serialConnections.delete(sessionId)
             this.sensitiveWindowUntil.delete(sessionId)
             this.inputLineBuffer.delete(sessionId)
+            this.receiveTail.delete(sessionId)
             connection.onClose?.()
           })
 
@@ -487,6 +495,7 @@ export default class ComClient extends BaseClient {
       this.serialConnections.delete(connId)
       this.sensitiveWindowUntil.delete(connId)
       this.inputLineBuffer.delete(connId)
+      this.receiveTail.delete(connId)
       // close 回调完成后锁和文件描述符才真正释放，此时再通知上层。
       savedOnClose?.()
     } else {
@@ -668,6 +677,7 @@ export default class ComClient extends BaseClient {
             this.serialConnections.delete(connId)
             this.sensitiveWindowUntil.delete(connId)
             this.inputLineBuffer.delete(connId)
+            this.receiveTail.delete(connId)
           })
 
           newPort.on('error', (err: Error) => {
@@ -766,6 +776,7 @@ export default class ComClient extends BaseClient {
           this.serialConnections.delete(connId)
           this.sensitiveWindowUntil.delete(connId)
           this.inputLineBuffer.delete(connId)
+          this.receiveTail.delete(connId)
         })
 
         this.logger.info(`serial port recovered: ${comName} @ ${baudRate}`)

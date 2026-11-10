@@ -1,5 +1,5 @@
 /**
- * ComClient 智能脱敏测试（PR #330 意见 1）
+ * ComClient 智能脱敏测试
  * 覆盖：凭据特征、行缓冲累积、密码窗口（有/无换行）、窗口过期、HEX 载荷、清理
  */
 import { describe, it, expect, vi } from 'vitest'
@@ -112,5 +112,21 @@ describe('ComClient 智能脱敏', () => {
     await client.disconnect('s1')
     expect((client as any).sensitiveWindowUntil.has('s1')).toBe(false)
     expect((client as any).inputLineBuffer.has('s1')).toBe(false)
+  })
+
+  it('跨块密码提示（Pass + word:）经 receive tail 拼接后开窗', () => {
+    const { client } = makeClient()
+    const conn = (client as any).serialConnections.get('s1')
+    ;(client as any).detectPasswordPrompt('Pass', conn)
+    expect((client as any).sensitiveWindowUntil.has('s1')).toBe(false)
+    ;(client as any).detectPasswordPrompt('word: ', conn)
+    expect((client as any).sensitiveWindowUntil.has('s1')).toBe(true)
+  })
+
+  it('disconnect 同时清理 receive tail', async () => {
+    const { client } = makeClient()
+    ;(client as any).receiveTail.set('s1', 'abc')
+    await client.disconnect('s1')
+    expect((client as any).receiveTail.has('s1')).toBe(false)
   })
 })
