@@ -151,7 +151,7 @@ export default class IpcConnector {
     // send-data（options.raw=true 时原样发送，用于终端模式下的按键字节与控制字符）
     ipcMain.handle(
       'send-data',
-      async (_, { conn, command, options }: { conn: any; command: string; options?: { raw?: boolean } }) => {
+      async (_, { conn, command, options }: { conn: any; command: string; options?: { raw?: boolean; source?: 'hex' | 'text' } }) => {
         return this.routeSend(conn, command, options)
       }
     )
@@ -265,7 +265,7 @@ export default class IpcConnector {
     return this.directConnector.startConnection(conn, this.workerConnector.buildConnectInfo(conn))
   }
 
-  private routeSend(conn: any, command: string, options?: { raw?: boolean }): Promise<object> | object {
+  private routeSend(conn: any, command: string, options?: { raw?: boolean; source?: 'hex' | 'text' }): Promise<object> | object {
     if (this.workerConnector.shouldUseWorker(conn, this.useWorkerMode)) {
       return this.workerConnector.sendData(conn, command, options)
     }

@@ -3,6 +3,13 @@ import BaseClient, { ILogger } from './BaseClient'
 import ConnectionInfo from './ConnectionInfo'
 import { BufferLineSplitter } from './BufferLineSplitter'
 import * as iconv from 'iconv-lite'
+import {
+  looksLikeCredential,
+  looksLikeCredentialPrefix,
+  looksLikePasswordPrompt,
+  SENSITIVE_MASK,
+  SENSITIVE_WINDOW_MS
+} from '../utils/SensitiveInput'
 
 const DEFAULT_BAUD_RATE = 9600
 const DEFAULT_DATA_BITS = 8
@@ -14,6 +21,7 @@ const FLUSH_TIMEOUT_MS = 100 // 空闲超时：buffer 中有数据但超过此�
 const DEFAULT_PACKET_TIMEOUT_MS = 50 // 默认分包超时：无换行数据停留超过该时长即强制输出
 const MAX_PACKET_TIMEOUT_MS = 60000 // 分包超时上限，防止误填超大值导致长时间无输出
 const MAX_BUFFER_BYTES = 1024 * 1024 // 无换行输出也必须有上限，避免接收缓冲区无限增长
+const RECEIVE_TAIL_MAX = 128 // 跨块密码提示检测的接收尾部上限（字节）
 const CLOSE_TIMEOUT_MS = 5000
 
 interface SerialConnection {
@@ -32,11 +40,21 @@ interface SerialConnection {
   onClose: any
   onLog: any
   receiveHex: boolean
+  /** 终端模式：true 时接收链路整段解码下发（不拆行、保留 \r），与日志视图的按行分割区分 */
+  terminalMode: boolean
+  /** 会话 ID（serialConnections 的 key），供接收侧密码窗口使用 */
+  sessionId: string
   splitter: BufferLineSplitter
 }
 
 export default class ComClient extends BaseClient {
   serialConnections = new Map<string, SerialConnection>()
+  /** 密码输入敏感窗口：远端打印密码提示后，窗口内的输入日志只记掩码 */
+  private sensitiveWindowUntil = new Map<string, number>()
+  /** 终端逐字输入的行缓冲：累积本行内容以匹配凭据特征（单字符无法匹配） */
+  private inputLineBuffer = new Map<string, string>()
+  /** 接收尾部：跨块拼接检测密码提示（避免 `Pass`+`word: ` 漏检） */
+  private receiveTail = new Map<string, string>()
 
   constructor(logger?: ILogger) {
     super(logger)
@@ -67,12 +85,42 @@ export default class ComClient extends BaseClient {
     const flushed = splitter.decodeCompletePrefix(buffer)
     connection.buffer = flushed.remainder
     if (flushed.text) {
+      this.detectPasswordPrompt(flushed.text, connection)
       const timestamp = BufferLineSplitter.timestamp()
       onData?.({ data: flushed.text, timestamp })
       onLog?.(splitter.toLogLine(flushed.text), timestamp)
     }
     this.logger.info(`serial ${reason} flush: ${flushed.text.length} chars`)
     return flushed.remainder
+  }
+
+  /** 检测远端密码提示并开窗（所有输出路径共用）。拼接有界 receive tail，跨块提示也能命中 */
+  private detectPasswordPrompt(text: string, connection: SerialConnection): void {
+    if (!text) return
+    const tail = this.receiveTail.get(connection.sessionId) ?? ''
+    const combined = tail + text
+    if (looksLikePasswordPrompt(combined)) {
+      this.sensitiveWindowUntil.set(connection.sessionId, Date.now() + SENSITIVE_WINDOW_MS)
+    }
+    this.receiveTail.set(connection.sessionId, combined.slice(-RECEIVE_TAIL_MAX))
+  }
+
+  /**
+   * 日志用的输入脱敏：命中凭据特征或处于密码输入窗口内时返回掩码。
+   * 终端逐字发送时把本行已输入内容累积，避免密码被拆成单字符绕过特征匹配。
+   */
+  private maskForLog(connId: string, command: string, raw = false): string {
+    const until = this.sensitiveWindowUntil.get(connId)
+    if (until !== undefined) {
+      if (Date.now() <= until) return SENSITIVE_MASK
+      this.sensitiveWindowUntil.delete(connId)
+    }
+
+    const cumulative = (this.inputLineBuffer.get(connId) ?? '') + command
+    const lineEnded = raw ? /[\r\n]/.test(command) : true
+    this.inputLineBuffer.set(connId, lineEnded ? '' : cumulative)
+
+    return looksLikeCredential(cumulative) || looksLikeCredentialPrefix(cumulative) ? SENSITIVE_MASK : command
   }
 
   // 处理缓冲区数据，按行分割并添加时间戳
@@ -85,13 +133,30 @@ export default class ComClient extends BaseClient {
         return
       }
 
-      const result = splitter.split(buffer)
-      connection.buffer = result.remainder
+      // 终端模式：整段解码下发（保留 \r 与空行，不拆行），日志模式：按行分割
+      let data: string
+      let log: string
+      let count: number
+      if (connection.terminalMode) {
+        const flushed = splitter.decodeCompletePrefix(buffer)
+        data = flushed.text
+        log = flushed.text
+        count = flushed.text ? 1 : 0
+        connection.buffer = flushed.remainder
+      } else {
+        const result = splitter.split(buffer)
+        data = result.data
+        log = result.log
+        count = result.count
+        connection.buffer = result.remainder
+      }
 
-      if (result.count > 0) {
+      if (count > 0) {
+        // 远端打印密码提示 -> 打开敏感窗口，窗口内输入日志只记掩码
+        this.detectPasswordPrompt(data, connection)
         const timestamp = BufferLineSplitter.timestamp()
-        onData?.({ data: result.data, timestamp })
-        onLog?.(result.log, timestamp)
+        onData?.({ data, timestamp })
+        onLog?.(log, timestamp)
       }
 
       const now = Date.now()
@@ -101,7 +166,8 @@ export default class ComClient extends BaseClient {
       // 数据会一直压在 buffer 里不显示，用户会误以为死机或丢日志。
       // 这里按"停留时长"兜底，保证连续流也能在分包超时内显示；超时配 0 时禁用该行为，
       // 退回"仅按换行符/空闲刷新输出"的原始语义。
-      if (connection.buffer.length > 0) {
+      // 终端模式下 buffer 只留不完整多字节，由 decodeCompletePrefix 处理，不做定时强制刷新
+      if (!connection.terminalMode && connection.buffer.length > 0) {
         if (connection.pendingSince === 0) {
           connection.pendingSince = now
         } else if (
@@ -116,7 +182,7 @@ export default class ComClient extends BaseClient {
       }
 
       // 兜底上限：即使上面的定时刷新被跳过，Buffer 也必须有界，否则随运行时间无限增长。
-      if (connection.buffer.length > MAX_BUFFER_BYTES) {
+      if (!connection.terminalMode && connection.buffer.length > MAX_BUFFER_BYTES) {
         this.flushCompletePrefix(connection, 'buffer cap')
         connection.pendingSince = connection.buffer.length > 0 ? now : 0
       }
@@ -131,6 +197,9 @@ export default class ComClient extends BaseClient {
    */
   private checkFlushBuffer(connection: SerialConnection): void {
     if (!connection.buffer || connection.buffer.length === 0) return
+    // 终端模式下 buffer 只留不完整多字节，由 decodeCompletePrefix 处理；
+    // 强制 decodeFull 会把不完整多字节解成替换字符（U+FFFD），故跳过
+    if (connection.terminalMode) return
     const elapsed = Date.now() - connection.lastDataTime
     if (elapsed < FLUSH_TIMEOUT_MS) return
 
@@ -141,6 +210,7 @@ export default class ComClient extends BaseClient {
     connection.lastDataTime = Date.now()
     connection.pendingSince = 0
 
+    this.detectPasswordPrompt(remainingStr, connection)
     this.logger.info(`serial idle flush: ${buffer.length} bytes after ${elapsed}ms idle`)
     onData?.({ data: remainingStr, timestamp })
     onLog?.(splitter.toLogLine(remainingStr), timestamp)
@@ -209,6 +279,8 @@ export default class ComClient extends BaseClient {
             onClose: onClose,
             onLog: onLog,
             receiveHex: info.receiveHex === true,
+            terminalMode: info.terminalMode === true,
+            sessionId: sessionId,
             splitter: new BufferLineSplitter(encoding, info.receiveHex === true)
           }
           this.serialConnections.set(sessionId, connection)
@@ -247,11 +319,15 @@ export default class ComClient extends BaseClient {
             if (connection.buffer && connection.buffer.length > 0) {
               const timestamp = BufferLineSplitter.timestamp()
               const remainingStr = connection.splitter.decodeFull(connection.buffer)
+              this.detectPasswordPrompt(remainingStr, connection)
               connection.onData?.({ data: remainingStr, timestamp })
               connection.onLog?.(connection.splitter.toLogLine(remainingStr), timestamp)
               connection.buffer = Buffer.alloc(0)
             }
             this.serialConnections.delete(sessionId)
+            this.sensitiveWindowUntil.delete(sessionId)
+            this.inputLineBuffer.delete(sessionId)
+            this.receiveTail.delete(sessionId)
             connection.onClose?.()
           })
 
@@ -294,33 +370,18 @@ export default class ComClient extends BaseClient {
     return error.message ? error : new Error('打开串口失败')
   }
 
-  /**
-   * 检测字符串是否包含非 ASCII 字节（0x80-0xFF），即是否为 HEX 模式发送的二进制数据。
-   * HEX 模式下 parseHexString 使用 String.fromCharCode() 将每个字节转为 JS 字符串中的字符，
-   * 0x80-0xFF 范围的字节在 JS 字符串中对应 charCode 128-255，这些不是合法 UTF-8 单字节字符。
-   */
-  private isBinaryString(str: string): boolean {
-    for (let i = 0; i < str.length; i++) {
-      const code = str.charCodeAt(i)
-      if (code >= 0x80 && code <= 0xff) {
-        return true
-      }
-    }
-    return false
-  }
-
-  async send(connId: string, command: string, onComplete: any): Promise<object> {
+  async send(connId: string, command: string, onComplete: any, options?: { raw?: boolean; source?: 'hex' | 'text' }): Promise<object> {
     const connection = this.serialConnections.get(connId)
     if (!connection) {
       return { success: false, message: 'Connection does not exist' }
     }
 
     try {
-      // HEX 模式下 command 是二进制字符串（含不可打印字符），日志需要转 hex 显示
-      const isBinary = this.isBinaryString(command)
-      const logCommand = isBinary
+      // HEX 载荷（source='hex'）是二进制字符串，日志转 hex；其余走智能脱敏（密码窗口/凭据特征）
+      const isHexPayload = options?.source === 'hex'
+      const logCommand = isHexPayload
         ? Array.from({ length: command.length }, (_, i) => command.charCodeAt(i).toString(16).padStart(2, '0')).join(' ').toUpperCase()
-        : command
+        : this.maskForLog(connId, command, options?.raw === true)
       // 日志时间戳由主线程按 GUI 开关统一添加/省略，这里不再写死（旧实现带 UTC 时间，易误解）
       const dataStr = `SEND >>>>>>>>>> ${logCommand}`
 
@@ -335,8 +396,8 @@ export default class ComClient extends BaseClient {
       return new Promise((resolve) => {
         let writeData: Buffer | string
         let writeEncoding: BufferEncoding | undefined
-        if (isBinary) {
-          // HEX 模式二进制数据：直接构造 Buffer，逐字节写入，完全绕过字符编码层
+        if (isHexPayload) {
+          // HEX 载荷：直接构造 Buffer，逐字节写入，完全绕过字符编码层
           const buf = Buffer.alloc(command.length)
           for (let i = 0; i < command.length; i++) {
             buf[i] = command.charCodeAt(i) & 0xff
@@ -369,7 +430,7 @@ export default class ComClient extends BaseClient {
         })
       })
     } catch (error) {
-      this.logger.error('serial send failed', { connId, command, error })
+      this.logger.error('serial send failed', { connId, command: this.maskForLog(connId, command, options?.raw === true), error })
       return {
         success: false,
         message: error instanceof Error ? error.message : '发送命令失败'
@@ -432,6 +493,9 @@ export default class ComClient extends BaseClient {
       }
 
       this.serialConnections.delete(connId)
+      this.sensitiveWindowUntil.delete(connId)
+      this.inputLineBuffer.delete(connId)
+      this.receiveTail.delete(connId)
       // close 回调完成后锁和文件描述符才真正释放，此时再通知上层。
       savedOnClose?.()
     } else {
@@ -453,6 +517,7 @@ export default class ComClient extends BaseClient {
     dtr?: boolean
     flowControl?: 'none' | 'hardware' | 'software'
     receiveHex?: boolean
+    terminalMode?: boolean
   }): Promise<object> {
 
     // 分包超时只影响缓冲刷新节奏，与端口硬件参数无关，
@@ -474,6 +539,17 @@ export default class ComClient extends BaseClient {
         connection.receiveHex = config.receiveHex
         connection.splitter.updateReceiveHex(config.receiveHex)
         this.logger.info(`update serial receiveHex: ${config.receiveHex}, sessionId: ${connId}`)
+        return { success: true, message: 'Updated successfully' }
+      }
+      return { success: false, message: 'Connection does not exist' }
+    }
+
+    // 动态更新终端模式（接收链路整段解码 / 按行分割的切换，不重开端口）
+    if (config.terminalMode !== undefined) {
+      const connection = this.serialConnections.get(connId)
+      if (connection) {
+        connection.terminalMode = config.terminalMode === true
+        this.logger.info(`update serial terminalMode: ${connection.terminalMode}, sessionId: ${connId}`)
         return { success: true, message: 'Updated successfully' }
       }
       return { success: false, message: 'Connection does not exist' }
@@ -562,6 +638,8 @@ export default class ComClient extends BaseClient {
             onClose: savedOnClose,
             onLog: connection.onLog,
             receiveHex: connection.receiveHex,
+            terminalMode: connection.terminalMode,
+            sessionId: connection.sessionId,
             splitter: new BufferLineSplitter(newEncoding, connection.receiveHex)
           }
           this.serialConnections.set(connId, newConnection)
@@ -597,6 +675,9 @@ export default class ComClient extends BaseClient {
               newConnection.flushTimer = null
             }
             this.serialConnections.delete(connId)
+            this.sensitiveWindowUntil.delete(connId)
+            this.inputLineBuffer.delete(connId)
+            this.receiveTail.delete(connId)
           })
 
           newPort.on('error', (err: Error) => {
@@ -658,6 +739,8 @@ export default class ComClient extends BaseClient {
           onClose: oldConnection.onClose,
           onLog: oldConnection.onLog,
           receiveHex: oldConnection.receiveHex,
+          terminalMode: oldConnection.terminalMode,
+          sessionId: oldConnection.sessionId,
           splitter: new BufferLineSplitter(encoding, oldConnection.receiveHex)
         }
         this.serialConnections.set(connId, newConnection)
@@ -691,6 +774,9 @@ export default class ComClient extends BaseClient {
             newConnection.flushTimer = null
           }
           this.serialConnections.delete(connId)
+          this.sensitiveWindowUntil.delete(connId)
+          this.inputLineBuffer.delete(connId)
+          this.receiveTail.delete(connId)
         })
 
         this.logger.info(`serial port recovered: ${comName} @ ${baudRate}`)

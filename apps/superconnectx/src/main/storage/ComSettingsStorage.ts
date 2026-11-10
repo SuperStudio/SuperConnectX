@@ -30,6 +30,8 @@ interface ComPortSettings {
   crcEnabled?: boolean
   crcMethod?: string
   commandInput?: string
+  /** 终端模式（per-port 偏好）：true 时输出区为 xterm 真终端 */
+  terminalMode?: boolean
 }
 
 interface StoredData {

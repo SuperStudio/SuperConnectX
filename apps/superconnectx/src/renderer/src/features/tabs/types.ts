@@ -20,6 +20,8 @@ export interface ComTerminalRef {
   setWordWrap?: (value: boolean) => void
   setLineNumbers?: (value: boolean) => void
   setLogEditable?: (value: boolean) => void
+  setTerminalMode?: (enabled: boolean) => Promise<boolean>
+  getTerminalMode?: () => boolean
   [key: string]: any
 }
 

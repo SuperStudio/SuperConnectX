@@ -235,6 +235,11 @@
                     currentFont = font
                   }
                 "
+                @terminal-mode-changed="
+                  (enabled: boolean) => {
+                    handleTerminalModeChanged(tab.id, enabled)
+                  }
+                "
               />
               <TelnetTerminal
                 v-if="tab.connectionType === 'telnet' || tab.connectionType === 'ftp' || tab.connectionType === 'ssh'"
@@ -613,13 +618,21 @@ const handleTerminalModeChanged = (tabId: string | number, enabled: boolean): vo
 /** 切换终端（xterm 交互式）模式 / 日志视图 */
 const handleToggleTerminalMode = async (): Promise<void> => {
   const terminal = getActiveTerminalRef()
-  if (!terminal?.setTerminalMode) {
+  if (!terminal) {
     ElMessage.warning(t('titlebar.noActiveTerminal'))
     return
   }
+  if (!terminal.setTerminalMode) {
+    ElMessage.warning(t('titlebar.unsupportedTerminalMode'))
+    return
+  }
   const next = !(terminal.getTerminalMode?.() === true)
-  await terminal.setTerminalMode(next)
-  activeTabTerminalMode.value = next
+  const success = await terminal.setTerminalMode(next)
+  // 只有切换成功才更新勾选状态；被禁止时（HEX/UTF-16 冲突）保持原状态。
+  // telnet 侧未显式返回（undefined），视为成功——由 terminalModeChanged 事件兜底回显。
+  if (success !== false) {
+    activeTabTerminalMode.value = next
+  }
 }
 
 // 切换 tab 时回显该连接当前的终端模式

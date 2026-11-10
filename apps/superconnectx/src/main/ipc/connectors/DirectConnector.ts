@@ -120,13 +120,14 @@ export default class DirectConnector {
     }
   }
 
-  async sendData(conn: any, command: string, options?: { raw?: boolean }): Promise<object> {
+  async sendData(conn: any, command: string, options?: { raw?: boolean; source?: 'hex' | 'text' }): Promise<object> {
     const client = this.directClients.get(conn.sessionId)
     if (!client) return { success: false, message: 'Direct mode client not initialized' }
     return await client.send(
       conn.sessionId, command,
       (dataStr: string) => {
         if (!this.logger) return
+        // dataStr 已由客户端（ComClient/TelnetClient/SshClient）自行脱敏，这里不再二次处理
         const showTimestamp = this.stateManager.getLogTimestamp(conn.sessionId)
         const finalLog = this.stateManager.buildLogContent(conn.sessionId, dataStr, this.logger.getTimeStamp())
         this.logger.appendToConnLog(finalLog, conn.sessionId, showTimestamp)

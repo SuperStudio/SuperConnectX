@@ -791,11 +791,13 @@ const sendPresetCommand = async (cmd: any) => {
   }
 
   try {
+    // 首个 await 前快照 HEX 模式：CRC 计算期间用户可能切换，避免二进制载荷按文本发出
+    const source: 'hex' | 'text' = props.hexMode ? 'hex' : 'text'
     let sendData: string = cmd.command.trim()
     const displayContent: string = cmd.command
 
     // HEX模式：将HEX字符串转为二进制
-    if (props.hexMode) {
+    if (source === 'hex') {
       const parsed = parseHexString(sendData)
       if (parsed === null) {
         ElMessage.warning(t('presetCommands.invalidHexFormat'))
@@ -830,7 +832,7 @@ const sendPresetCommand = async (cmd: any) => {
 
     emit('commandSent', cmd.name.trim())
     // HEX 模式下将实际发送的二进制数据转成 HEX 显示（包含 CRLF 和 CRC 字节）
-    if (props.hexMode) {
+    if (source === 'hex') {
       const hexBytes: string[] = []
       for (let i = 0; i < sendData.length; i++) {
         hexBytes.push(sendData.charCodeAt(i).toString(16).padStart(2, '0').toUpperCase())
@@ -843,7 +845,8 @@ const sendPresetCommand = async (cmd: any) => {
     console.log('Send command - connection info:', JSON.stringify(conn), 'command:', sendData)
     const result = await window.connectApi.sendData({
       conn: conn,
-      command: sendData
+      command: sendData,
+      options: { source }
     })
     console.log('Send result:', JSON.stringify(result))
     if (!result.success) {
