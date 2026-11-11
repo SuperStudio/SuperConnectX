@@ -37,6 +37,21 @@ export default defineConfig(
     }
   },
   {
+    // 编译期内联常量（electron.vite.config.ts 的 define，类型声明见 renderer/src/env.d.ts）
+    files: ['apps/*/src/renderer/**/*.{ts,tsx,vue}'],
+    ignores: ['**/*.d.ts'],
+    languageOptions: {
+      globals: {
+        __APP_CONTRIBUTORS__: 'readonly',
+        __APP_JOIN_GROUP_URL__: 'readonly',
+        __APP_REPOSITORY_URL__: 'readonly',
+        __APP_ISSUES_URL__: 'readonly',
+        __APP_WIKI_URL__: 'readonly',
+        __APP_BUILD_DATE__: 'readonly'
+      }
+    }
+  },
+  {
     // 进程边界：渲染层（应用渲染层 + foundation 渲染子树）禁止引用主进程运行时
     files: [
       'apps/*/src/renderer/**/*.{ts,tsx,vue}',

@@ -22,12 +22,16 @@ const rootPkg = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf-
 }
 
 // 将 app_config 中的外部链接在编译期内联进 bundle，避免代码里散落硬编码 URL
+// 构建时间同样内联：关于页展示「发布时间」，打包即成版，取构建时刻即可
+const buildDate = new Date().toISOString()
+
 const appDefines = {
   __APP_CONTRIBUTORS__: JSON.stringify(rootPkg.contributors ?? []),
   __APP_REPOSITORY_URL__: JSON.stringify(rootPkg.app_config?.RepositoryUrl ?? ''),
   __APP_ISSUES_URL__: JSON.stringify(rootPkg.app_config?.IssuesUrl ?? ''),
   __APP_WIKI_URL__: JSON.stringify(rootPkg.app_config?.WikiUrl ?? ''),
-  __APP_JOIN_GROUP_URL__: JSON.stringify(rootPkg.app_config?.JoinGroupUrl ?? '')
+  __APP_JOIN_GROUP_URL__: JSON.stringify(rootPkg.app_config?.JoinGroupUrl ?? ''),
+  __APP_BUILD_DATE__: JSON.stringify(buildDate)
 }
 
 export default defineConfig({

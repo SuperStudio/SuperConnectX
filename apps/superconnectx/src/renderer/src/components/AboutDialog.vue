@@ -12,6 +12,7 @@
       </div>
       <h2 class="about-title">SuperConnectX</h2>
       <p class="about-version">{{ t('about.version', { version }) }}</p>
+      <p v-if="publishDate" class="about-publish-date">{{ t('about.publishDate', { date: publishDate }) }}</p>
       <p class="about-desc">{{ t('about.description') }}</p>
       <div class="about-divider"></div>
       <div class="about-contributors">
@@ -48,6 +49,19 @@ const { t } = useI18n()
 const dialogVisible = defineModel<boolean>()
 
 const version = ref('')
+
+/**
+ * 发布时间：构建时由 electron.vite.config.ts 内联的 __APP_BUILD_DATE__，
+ * 打包即发版，因此以构建时刻作为发布时间展示（YYYY-MM-DD）。
+ */
+const formatPublishDate = (iso: string): string => {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number): string => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+const publishDate = ref(formatPublishDate(__APP_BUILD_DATE__))
 
 const loadVersion = async () => {
   try {
@@ -98,7 +112,7 @@ const contributors = __APP_CONTRIBUTORS__.map((c) => ({ ...c, avatar: resolveLoc
 .about-logo {
   width: 80px;
   height: 80px;
-  margin: 0 auto 16px;
+  margin: 0 auto 12px;
 }
 
 .about-logo img {
@@ -110,25 +124,31 @@ const contributors = __APP_CONTRIBUTORS__.map((c) => ({ ...c, avatar: resolveLoc
 .about-title {
   color: var(--about-title-color);
   font-size: 20px;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
 }
 
 .about-version {
   color: var(--about-version-color);
   font-size: 14px;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
+}
+
+.about-publish-date {
+  color: var(--about-desc-color);
+  font-size: 13px;
+  margin: 0 0 6px 0;
 }
 
 .about-desc {
   color: var(--about-desc-color);
   font-size: 13px;
-  margin: 0 0 16px 0;
+  margin: 0 0 12px 0;
 }
 
 .about-divider {
   height: 1px;
   background: var(--about-divider-bg);
-  margin: 16px 0;
+  margin: 12px 0;
 }
 
 .about-author,
@@ -157,7 +177,7 @@ const contributors = __APP_CONTRIBUTORS__.map((c) => ({ ...c, avatar: resolveLoc
 .about-contributors-title {
   color: var(--about-desc-color);
   font-size: 13px;
-  margin: 0 0 12px 0;
+  margin: 0 0 10px 0;
 }
 
 .contributor-list {

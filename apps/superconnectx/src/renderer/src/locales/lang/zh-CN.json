@@ -615,6 +615,7 @@
   "about": {
     "title": "关于 SuperConnectX",
     "version": "版本 {version}",
+    "publishDate": "发布时间：{date}",
     "description": "超级连接 - 多协议终端连接工具",
     "group": "交流群",
     "contributors": "贡献者"

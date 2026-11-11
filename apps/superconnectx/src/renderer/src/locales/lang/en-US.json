@@ -615,6 +615,7 @@
   "about": {
     "title": "About SuperConnectX",
     "version": "Version {version}",
+    "publishDate": "Released on {date}",
     "description": "SuperConnectX - AI-enabled multi-protocol terminal tool",
     "group": "Community",
     "contributors": "Contributors"

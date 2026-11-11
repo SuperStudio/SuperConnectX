@@ -29,6 +29,8 @@ declare const __APP_REPOSITORY_URL__: string
 declare const __APP_ISSUES_URL__: string
 /** 编译期内联的 Wiki 链接（来自根 package.json 的 app_config.WikiUrl） */
 declare const __APP_WIKI_URL__: string
+/** 编译期内联的构建时间（ISO 字符串，构建时写入，关于页展示为发布时间） */
+declare const __APP_BUILD_DATE__: string
 
 interface ToolApi {
   openDevtools: () => Promise<void>
