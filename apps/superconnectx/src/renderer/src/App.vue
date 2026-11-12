@@ -272,6 +272,7 @@
                 v-if="tab.connectionType === 'commandEditor'"
                 v-show="isTabActiveInItsPanel(tab.id.toString())"
                 :connection-type="tab.editorConnectionType"
+                :is-active="isTabActiveInItsPanel(tab.id.toString())"
                 class="terminal-component"
               />
               <ShortcutsPage

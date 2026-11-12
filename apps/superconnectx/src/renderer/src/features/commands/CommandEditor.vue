@@ -148,7 +148,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import Sortable from 'sortablejs'
@@ -165,8 +165,10 @@ interface CommandGroup {
 
 const props = withDefaults(defineProps<{
   connectionType?: string
+  isActive?: boolean
 }>(), {
-  connectionType: 'telnet'
+  connectionType: 'telnet',
+  isActive: false
 })
 
 interface PresetCommand {
@@ -309,11 +311,14 @@ const loadCommands = async () => {
   }
 }
 
-const handlePresetCommandsChanged = (connectionType: string) => {
-  if (props.connectionType === connectionType) {
-    loadCommands()
+const handlePresetCommandsChanged = () => loadCommands()
+
+watch(
+  () => props.isActive,
+  (isActive) => {
+    if (isActive) loadCommands()
   }
-}
+)
 
 const tableRowClassName = ({ rowIndex }: { rowIndex: number }) => {
   return rowIndex % 2 === 1 ? 'stripe-row' : ''
