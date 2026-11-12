@@ -410,7 +410,7 @@
                 <el-slider
                   v-model="commandHistoryMaxCountSelection"
                   :min="1"
-                  :max="10000"
+                  :max="1000"
                   :step="1"
                   :show-tooltip="false"
                   style="width: 120px"
