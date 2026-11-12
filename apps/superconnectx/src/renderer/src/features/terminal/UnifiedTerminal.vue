@@ -606,7 +606,6 @@ const isHistoryNavigating = ref(false)
 let showCommandHistory = true // 是否显示历史命令弹窗
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 let editorModel: monaco.editor.ITextModel | null = null
-let editorContextMenuDisposer: (() => void) | null = null
 let themeObserver: MutationObserver | null = null
 let syntaxDecorationIds: string[] = []
 let enableSyntaxHighlight = true
@@ -672,8 +671,7 @@ const initEditor = async () => {
   editor = monaco.editor.create(editorContainer.value, {
     model: editorModel,
     readOnly: true,
-    // COM 连接使用自定义 CRLF 右键菜单；其余连接保留 Monaco 原生右键菜单
-    contextmenu: props.connection.connectionType !== 'com',
+    contextmenu: true,
     lineNumbers: 'on',
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
@@ -702,24 +700,6 @@ const initEditor = async () => {
   if (domNode) {
     domNode.addEventListener('mouseenter', () => { showScrollbar.value = true })
     domNode.addEventListener('mouseleave', () => { showScrollbar.value = false })
-  }
-
-  // 通过 Monaco 官方 onContextMenu 事件拦截 COM 连接的右键，
-  // 该事件在 contextmenu 选项为 false 时仍会触发，且早于 Monaco 原生菜单，
-  // 比在容器上挂捕获监听更可靠（不受 Monaco 节点级监听顺序影响）
-  if (props.connection.connectionType === 'com' && editor) {
-    const sub = editor.onContextMenu((e: any) => {
-      const ctxEvent = e?.event ?? e
-      const native: MouseEvent | null = (ctxEvent?.browserEvent ?? ctxEvent?.event ?? null) as MouseEvent | null
-      const x = native ? native.clientX : (e?.anchor?.x ?? 0)
-      const y = native ? native.clientY : (e?.anchor?.y ?? 0)
-      if (native) {
-        native.preventDefault()
-        native.stopPropagation()
-      }
-      showCrlfMenu(x, y)
-    })
-    editorContextMenuDisposer = () => sub.dispose()
   }
 
   editor.onMouseDown(() => {
@@ -1785,7 +1765,6 @@ onUnmounted(() => {
   window.removeEventListener('syntax-rules-updated', handleSyntaxRulesUpdated)
   document.removeEventListener('click', handleClickOutsideCrc)
   document.removeEventListener('click', onCrlfDocClick)
-  editorContextMenuDisposer?.()
   document.removeEventListener('contextmenu', onCrlfDocContextMenu)
   document.removeEventListener('keydown', onCrlfDocKeyDown)
   if (themeObserver) {
