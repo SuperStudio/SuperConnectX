@@ -408,14 +408,18 @@
               </div>
               <div class="slider-control">
                 <el-slider
-                  v-model="settings.commandHistoryMaxCount"
+                  v-model="commandHistoryMaxCountSelection"
                   :min="1"
                   :max="10000"
                   :step="1"
                   :show-tooltip="false"
                   style="width: 120px"
+                  @change="handleCommandHistoryMaxCountChange"
                 />
-                <span class="slider-value">{{ settings.commandHistoryMaxCount }} {{ t('historySettings.commandHistoryMaxCountUnit') }}</span>
+                <span class="slider-value">
+                  {{ commandHistoryMaxCountSelection }}
+                  {{ t('historySettings.commandHistoryMaxCountUnit') }}
+                </span>
               </div>
             </SettingItem>
           </SettingGroup>
@@ -732,6 +736,7 @@ const settings = ref<Record<string, any>>({})
 let isLoading = true
 // 日志落盘间隔下拉的本地值：“立即写入”需要二次确认后才写回 settings
 const logWriteIntervalSelection = ref<number>(10 * 1000)
+const commandHistoryMaxCountSelection = ref(10)
 const mcpStatus = ref({ enabled: false, port: null as number | null, endpoint: null as string | null })
 const mcpConfig = ref({ endpoint: null as string | null, token: null as string | null })
 const mcpSettings = ref({ enabled: false, port: 32180, accessMode: 'read-only' as 'read-only' | 'read-write' | 'full', allowExport: false })
@@ -900,6 +905,10 @@ const handleLogWriteIntervalChange = async (value: number): Promise<void> => {
   settings.value.logWriteInterval = 0
 }
 
+const handleCommandHistoryMaxCountChange = (value: number): void => {
+  settings.value.commandHistoryMaxCount = value
+}
+
 // 手动清理日志
 const isCleaningUp = ref(false)
 const handleCleanupLogs = async () => {
@@ -952,6 +961,14 @@ watch(settings, () => {
 watch(() => settings.value.logWriteInterval, (value) => {
   if (typeof value === 'number') logWriteIntervalSelection.value = value
 }, { immediate: true })
+
+watch(
+  () => settings.value.commandHistoryMaxCount,
+  (value) => {
+    if (typeof value === 'number') commandHistoryMaxCountSelection.value = value
+  },
+  { immediate: true }
+)
 
 // 监听语言设置变化，实时切换界面语言
 watch(() => settings.value.language, (newLocale) => {
