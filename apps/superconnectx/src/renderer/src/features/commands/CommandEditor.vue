@@ -314,7 +314,9 @@ const scrollToCommand = async (commandId: number): Promise<void> => {
   await nextTick()
   const commandIndex = commands.value.findIndex((command) => command.id === commandId)
   const table = commandTableRef.value
-  const scrollContainer = table?.querySelector<HTMLElement>('.el-table__body-wrapper')
+  const scrollContainer =
+    table?.querySelector<HTMLElement>('.el-table__body-wrapper .el-scrollbar__wrap') ??
+    table?.querySelector<HTMLElement>('.el-table__body-wrapper')
   const row = table?.querySelectorAll<HTMLElement>('.el-table__body-wrapper tbody > tr')[
     commandIndex
   ]
