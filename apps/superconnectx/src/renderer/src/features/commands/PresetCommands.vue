@@ -715,6 +715,7 @@ const savePresetCommand = async () => {
       await window.storageApi.addPresetCommand(JSON.parse(JSON.stringify(pureFormData)))
     }
 
+    eventBus.emit('presetCommandsChanged', props.connection?.connectionType || 'telnet')
     loadPresetCommands()
     isPresetDialogOpen.value = false
   } catch (error) {

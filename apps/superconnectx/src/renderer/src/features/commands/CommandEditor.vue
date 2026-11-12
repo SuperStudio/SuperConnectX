@@ -309,6 +309,12 @@ const loadCommands = async () => {
   }
 }
 
+const handlePresetCommandsChanged = (connectionType: string) => {
+  if (props.connectionType === connectionType) {
+    loadCommands()
+  }
+}
+
 const tableRowClassName = ({ rowIndex }: { rowIndex: number }) => {
   return rowIndex % 2 === 1 ? 'stripe-row' : ''
 }
@@ -537,9 +543,11 @@ const resetGroupForm = () => {
 
 onMounted(() => {
   loadGroups()
+  eventBus.on('presetCommandsChanged', handlePresetCommandsChanged)
 })
 
 onBeforeUnmount(() => {
+  eventBus.off('presetCommandsChanged', handlePresetCommandsChanged)
   if (sortableInstance.value) {
     sortableInstance.value.destroy()
     sortableInstance.value = null
