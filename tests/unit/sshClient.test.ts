@@ -388,11 +388,11 @@ describe('SshClient 终端模式支持（raw 发送 / PTY 尺寸同步）', () =
     const echoes: string[] = []
     // 明文密码跟在 -p 后：不能落进协议日志
     await client.send('s-mask1', 'mysql -uroot -p123456', (s: string) => echoes.push(s))
-    expect(echoes[0]).toBe('SEND >>>>>>>>>> ***')
+    expect(echoes[0]).toBe('***')
 
     // 普通命令不受影响，保证日志仍可用
     await client.send('s-mask1', 'ls -la', (s: string) => echoes.push(s))
-    expect(echoes[1]).toBe('SEND >>>>>>>>>> ls -la')
+    expect(echoes[1]).toBe('ls -la')
 
     await client.disconnect('s-mask1')
     await srv.close()
@@ -400,6 +400,7 @@ describe('SshClient 终端模式支持（raw 发送 / PTY 尺寸同步）', () =
 
   it('远端打印密码提示后，逐字输入的密码不落明文', async () => {
     const received: string[] = []
+    const remoteLogs: string[] = []
     const srv = await startServer(makeHostKey(), {
       greeting: '[sudo] password for scx: ',
       onShellData: (c) => received.push(c)
@@ -407,10 +408,12 @@ describe('SshClient 终端模式支持（raw 发送 / PTY 尺寸同步）', () =
     const client = makeClient(fs.mkdtempSync(path.join(os.tmpdir(), 'scx-mask2-')))
     await client.start(
       { host: '127.0.0.1', port: srv.port, username: 'scx', password: 'scxpass', sessionId: 's-mask2' } as any,
-      () => {}, () => {}, () => {}
+      () => {}, () => {}, (log: string) => remoteLogs.push(log)
     )
     // 等待 processBuffer 刷出 greeting，敏感窗口随之打开
-    await new Promise((r) => setTimeout(r, 300))
+    await waitFor(() => remoteLogs.length > 0)
+    expect(remoteLogs.join('')).toContain('[sudo] password for scx: ')
+    expect(remoteLogs.join('')).not.toMatch(/(?:SEND|RECV) >>>>>>>>>>/)
 
     const echoes: string[] = []
     // 终端模式下密码是逐字发送的：内容本身不含任何敏感关键字，只能靠窗口识别
@@ -418,7 +421,7 @@ describe('SshClient 终端模式支持（raw 发送 / PTY 尺寸同步）', () =
     await client.send('s-mask2', 'ecret', (s: string) => echoes.push(s), { raw: true })
 
     expect(echoes).toHaveLength(2)
-    expect(echoes.every((e) => e === 'SEND >>>>>>>>>> ***')).toBe(true)
+    expect(echoes.every((e) => e === '***')).toBe(true)
 
     // 关键：脱敏只影响日志，真实字节仍原样发给远端
     await waitFor(() => received.join('') === 'secret')
@@ -445,12 +448,12 @@ describe('SshClient 终端模式支持（raw 发送 / PTY 尺寸同步）', () =
 
     expect(echoes.some((e) => e.includes('SuperSecret123'))).toBe(false)
     expect(echoes.some((e) => /-p\S/.test(e))).toBe(false)
-    expect(echoes.filter((e) => e === 'SEND >>>>>>>>>> ***').length).toBeGreaterThan(0)
+    expect(echoes.filter((e) => e === '***').length).toBeGreaterThan(0)
 
     // 回车结束该行后，后续普通输入恢复明文记录（保证日志仍可读）
     await client.send('s-mask3', '\r', (s: string) => echoes.push(s), { raw: true })
     await client.send('s-mask3', 'ls', (s: string) => echoes.push(s), { raw: true })
-    expect(echoes[echoes.length - 1]).toBe('SEND >>>>>>>>>> ls')
+    expect(echoes[echoes.length - 1]).toBe('ls')
 
     await client.disconnect('s-mask3')
     await srv.close()

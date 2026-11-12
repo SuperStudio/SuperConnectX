@@ -374,12 +374,11 @@ export default class SshClient extends BaseClient {
       // 日志时间戳由主线程按 GUI 开关统一添加/省略
       // 脱敏：命令本身携带凭据（mysql -p123456 等）或处于密码输入窗口内时只记掩码
       const loggedCommand = this.maskForLog(connId, command, options?.raw === true)
-      const dataStr = `SEND >>>>>>>>>> ${loggedCommand}`
       // 非终端模式：shell 会话以换行结束一条命令（等价交互式中敲回车）。
       // 终端模式（raw）：xterm 已给出按键本身的字节流，追加 \n 会破坏 Ctrl+C 等控制字符语义。
       const payload = options?.raw ? command : `${command}\n`
       stream.write(payload)
-      onComplete?.(dataStr)
+      onComplete?.(loggedCommand)
 
       this.logger.info(`send command: ${loggedCommand}${options?.raw ? ' (raw)' : ''}`)
       return { success: true }
