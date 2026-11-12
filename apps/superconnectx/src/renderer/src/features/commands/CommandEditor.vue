@@ -48,7 +48,7 @@
       </div>
 
       <!-- 命令表格 -->
-      <div class="command-table">
+      <div ref="commandTableRef" class="command-table">
         <el-table
           :data="commands"
           size="small"
@@ -188,6 +188,7 @@ const editingGroupId = ref<number | null>(null)
 const currentRow = ref<PresetCommand | null>(null)
 const groupNameInputRef = ref<HTMLInputElement | null>(null)
 const sortableInstance = ref<Sortable | null>(null)
+const commandTableRef = ref<HTMLElement | null>(null)
 
 const openGroupDialog = () => {
   resetGroupForm()
@@ -306,6 +307,25 @@ const loadCommands = async () => {
     initSortable()
   } catch (error) {
     console.error('Failed to load commands:', error)
+  }
+}
+
+const scrollToCommand = async (commandId: number): Promise<void> => {
+  await nextTick()
+  const commandIndex = commands.value.findIndex((command) => command.id === commandId)
+  const table = commandTableRef.value
+  const scrollContainer = table?.querySelector<HTMLElement>('.el-table__body-wrapper')
+  const row = table?.querySelectorAll<HTMLElement>('.el-table__body-wrapper tbody > tr')[
+    commandIndex
+  ]
+  if (!scrollContainer || !row) return
+
+  const rowRect = row.getBoundingClientRect()
+  const containerRect = scrollContainer.getBoundingClientRect()
+  if (rowRect.top < containerRect.top) {
+    scrollContainer.scrollTop -= containerRect.top - rowRect.top
+  } else if (rowRect.bottom > containerRect.bottom) {
+    scrollContainer.scrollTop += rowRect.bottom - containerRect.bottom
   }
 }
 
@@ -456,7 +476,7 @@ const addCommand = async () => {
 
   try {
     const seqNum = commands.value.length + 1
-    await window.storageApi.addPresetCommand({
+    const newCommand = await window.storageApi.addPresetCommand({
       name: '',
       command: '',
       delay: 0,
@@ -465,6 +485,7 @@ const addCommand = async () => {
     })
     // 立即刷新表格，获取数据库中的真实数据
     await loadCommands()
+    if (newCommand?.id != null) await scrollToCommand(newCommand.id)
     // 通知其他组件刷新命令列表
     eventBus.emit('presetCommandsChanged', props.connectionType)
   } catch (error) {
@@ -492,7 +513,7 @@ const insertCommandAbove = async () => {
       }
     }
 
-    await window.storageApi.addPresetCommand({
+    const newCommand = await window.storageApi.addPresetCommand({
       name: '',
       command: '',
       delay: 0,
@@ -502,6 +523,7 @@ const insertCommandAbove = async () => {
 
     // 重新加载命令列表
     await loadCommands()
+    if (newCommand?.id != null) await scrollToCommand(newCommand.id)
     // 通知其他组件刷新命令列表
     eventBus.emit('presetCommandsChanged', props.connectionType)
   } catch (error) {
