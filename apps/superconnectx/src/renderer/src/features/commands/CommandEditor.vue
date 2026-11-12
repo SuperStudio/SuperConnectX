@@ -48,8 +48,9 @@
       </div>
 
       <!-- 命令表格 -->
-      <div ref="commandTableRef" class="command-table">
+      <div ref="commandTableContainerRef" class="command-table">
         <el-table
+          ref="commandTableRef"
           :data="commands"
           size="small"
           stripe
@@ -188,7 +189,8 @@ const editingGroupId = ref<number | null>(null)
 const currentRow = ref<PresetCommand | null>(null)
 const groupNameInputRef = ref<HTMLInputElement | null>(null)
 const sortableInstance = ref<Sortable | null>(null)
-const commandTableRef = ref<HTMLElement | null>(null)
+const commandTableContainerRef = ref<HTMLElement | null>(null)
+const commandTableRef = ref<{ setCurrentRow: (row?: PresetCommand) => void } | null>(null)
 
 const openGroupDialog = () => {
   resetGroupForm()
@@ -313,7 +315,14 @@ const loadCommands = async () => {
 const scrollToCommand = async (commandId: number): Promise<void> => {
   await nextTick()
   const commandIndex = commands.value.findIndex((command) => command.id === commandId)
-  const table = commandTableRef.value
+  const command = commands.value[commandIndex]
+  if (!command) return
+
+  currentRow.value = command
+  commandTableRef.value?.setCurrentRow(command)
+  saveCurrentCommandId()
+
+  const table = commandTableContainerRef.value
   const scrollContainer =
     table?.querySelector<HTMLElement>('.el-table__body-wrapper .el-scrollbar__wrap') ??
     table?.querySelector<HTMLElement>('.el-table__body-wrapper')
