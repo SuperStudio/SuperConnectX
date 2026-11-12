@@ -160,6 +160,16 @@ describe('settingsIndex - 与 SettingsPage 模板一致', () => {
     }
   })
 
+  it('历史最大条数滑块只在拖动结束后更新设置', () => {
+    const historySetting = template.match(
+      /<SettingItem id="history\.commandHistoryMaxCount">([\s\S]*?)<\/SettingItem>/
+    )?.[1]
+    expect(historySetting).toContain('v-model="commandHistoryMaxCountSelection"')
+    expect(historySetting).toContain('@change="handleCommandHistoryMaxCountChange"')
+    expect(historySetting).toContain('{{ commandHistoryMaxCountSelection }}')
+    expect(template).toContain('settings.value.commandHistoryMaxCount = value')
+  })
+
   it('每个设置项都配置了别名，便于跨语言搜索', () => {
     for (const entry of SETTINGS_INDEX) {
       expect(entry.keywords?.length, `${entry.id} 缺少 keywords`).toBeGreaterThan(0)
