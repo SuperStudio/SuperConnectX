@@ -423,13 +423,7 @@ async function importDataFromZip(
     let commandsSkipped = 0
     for (const cmd of commandsData.data) {
       // 按 name+groupId+command 去重
-      const groupId =
-        importedGroupIds.get(Number(cmd.groupId)) ??
-        (Array.isArray(groupsData?.data) ? undefined : cmd.groupId)
-      if (groupId === undefined) {
-        commandsSkipped++
-        continue
-      }
+      const groupId = importedGroupIds.get(Number(cmd.groupId)) ?? cmd.groupId
 
       const exists = existingCommands.some(
         (ec) => ec.name === cmd.name && ec.groupId === groupId && ec.command === cmd.command

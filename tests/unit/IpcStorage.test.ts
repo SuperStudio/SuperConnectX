@@ -270,6 +270,31 @@ describe('IpcStorage', () => {
       ])
     })
 
+    it('imports commands using the source group ID when no group mapping exists', async () => {
+      mockStorageData.groups.push({ groupId: 1, name: 'Existing group', connectionType: 'telnet' })
+      const entry = (
+        entryName: string,
+        data: unknown
+      ): { entryName: string; getData: () => Buffer } => ({
+        entryName,
+        getData: (): Buffer => Buffer.from(JSON.stringify({ data }))
+      })
+      mockStorageData.zipEntries = [
+        entry('commandGroups.json', []),
+        entry('commands.json', [
+          { id: 1, groupId: 1, name: 'Imported command', command: 'AT+CSQ' }
+        ])
+      ]
+
+      ipcStorage.init()
+      const result = await mockHandlers.get('import-data')!({}, process.cwd())
+
+      expect(result.commandsImported).toBe(1)
+      expect(mockStorageData.commands).toEqual([
+        { id: 1, name: 'Imported command', command: 'AT+CSQ', groupId: 1 }
+      ])
+    })
+
     it('should return empty array for get-connections', async () => {
       ipcStorage.init()
       const result = await mockHandlers.get('get-connections')!()
