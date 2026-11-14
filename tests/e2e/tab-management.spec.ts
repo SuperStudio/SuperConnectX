@@ -95,6 +95,65 @@ test.describe('选项卡管理', () => {
     }
   })
 
+  test('终端中编辑命令后切回编辑器显示最新内容', async () => {
+    const { app, page, userDataDir } = await launchApp()
+    try {
+      const group = (await invokeStorage(app, 'addCommandGroup', {
+        name: 'TAB-命令组',
+        connectionType: 'telnet'
+      })) as { groupId: number }
+      await invokeStorage(app, 'addPresetCommand', {
+        name: '旧命令名',
+        command: 'old-command',
+        delay: 0,
+        seqNum: 1,
+        groupId: group.groupId
+      })
+      await invokeStorage(app, 'addConnection', {
+        name: 'TAB-命令编辑',
+        connectionType: 'telnet',
+        host: '10.0.0.5',
+        port: 23
+      })
+      await page.reload()
+      await page.waitForSelector('.app-container', { timeout: 30000 })
+
+      const connectionGroup = page.locator('.connection-group').filter({ hasText: 'TELNET' }).first()
+      await connectionGroup
+        .locator('.connection-card')
+        .filter({ hasText: 'TAB-命令编辑' })
+        .first()
+        .getByRole('button', { name: '连接' })
+        .click()
+
+      const terminalTab = page.locator('.tab-item').filter({ hasText: 'TAB-命令编辑' }).first()
+      const commandButton = page.locator('.preset-btn').filter({ hasText: '旧命令名' }).first()
+      await expect(commandButton).toBeVisible()
+
+      await page.locator('.edit-commands-btn').click()
+      const editorTab = page.locator('.tab-item').filter({ hasText: '编辑命令-TELNET' }).first()
+      await expect(editorTab).toHaveClass(/active/)
+
+      await terminalTab.click()
+      await commandButton.click({ button: 'right' })
+      const contextMenu = page.locator('.context-menu-container')
+      await expect(contextMenu).toBeVisible()
+      await contextMenu.locator('.menu-item').filter({ hasText: '编辑' }).click()
+
+      const dialog = page.getByRole('dialog').filter({ hasText: '编辑命令' })
+      await dialog.locator('input').first().fill('新命令名')
+      await dialog.locator('textarea').fill('new-command')
+      await dialog.getByRole('button', { name: '保存' }).click()
+      await expect(dialog).toBeHidden()
+
+      await editorTab.click()
+      const commandRow = page.locator('.command-table .el-table__row').first()
+      await expect(commandRow.locator('input').nth(1)).toHaveValue('新命令名')
+    } finally {
+      await closeApp(app, userDataDir)
+    }
+  })
+
   test('同一分屏中的每个标签独立保存底部面板高度', async () => {
     const { app, page, userDataDir } = await launchApp()
     try {
