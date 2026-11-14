@@ -4,10 +4,15 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockHandlers, mockIpcMain } = vi.hoisted(() => {
+const { mockHandlers, mockIpcMain, mockStorageData } = vi.hoisted(() => {
   const handlers = new Map<string, Function>()
   return {
     mockHandlers: handlers,
+    mockStorageData: {
+      groups: [] as { groupId: number; name: string; connectionType: string }[],
+      commands: [] as { id: number; groupId: number; name: string; command: string }[],
+      zipEntries: [] as { entryName: string; getData: () => Buffer }[]
+    },
     mockIpcMain: {
       _handlers: handlers,
       handle(channel: string, handler: Function) {
@@ -43,8 +48,17 @@ vi.mock('@/main/storage/ConnectionStorage', () => ({
 
 vi.mock('@/main/storage/PreSetCommandStorage', () => ({
   default: class {
-    getAll() { return [] }
-    add(_c: any) { return '' }
+    getAll() { return mockStorageData.commands }
+    add(c: { name: string; command: string; groupId?: number; delay?: number; seqNum?: number }) {
+      const command = {
+        id: mockStorageData.commands.length + 1,
+        name: c.name,
+        command: c.command,
+        groupId: c.groupId ?? 0
+      }
+      mockStorageData.commands.push(command)
+      return command
+    }
     update(_c: any) { return '' }
     delete(_id: number) {}
     deleteByGroupId(_g: number) {}
@@ -56,8 +70,13 @@ vi.mock('@/main/storage/PreSetCommandStorage', () => ({
 
 vi.mock('@/main/storage/CommandGroupStorage', () => ({
   default: class {
-    getAll() { return [] }
-    add(_g: any) { return {} }
+    getAll() { return mockStorageData.groups }
+    add(g: { name: string; connectionType: string }) {
+      const groupId = Math.max(0, ...mockStorageData.groups.map((group) => group.groupId)) + 1
+      const group = { groupId, ...g }
+      mockStorageData.groups.push(group)
+      return group
+    }
     update(_g: any) { return null }
     delete(_id: number) {}
   }
@@ -120,7 +139,11 @@ vi.mock('archiver', () => ({
 }))
 
 vi.mock('adm-zip', () => ({
-  default: class { getEntries() { return [] } }
+  default: class {
+    getEntries(): { entryName: string; getData: () => Buffer }[] {
+      return mockStorageData.zipEntries
+    }
+  }
 }))
 
 import IpcStorage from '@/main/ipc/IpcStorage'
@@ -132,6 +155,9 @@ describe('IpcStorage', () => {
     ;(IpcStorage as any).sInstance = null
     ipcStorage = IpcStorage.getInstance()
     mockHandlers.clear()
+    mockStorageData.groups = []
+    mockStorageData.commands = []
+    mockStorageData.zipEntries = []
   })
 
   describe('getInstance', () => {
@@ -208,6 +234,67 @@ describe('IpcStorage', () => {
   })
 
   describe('handler behavior', () => {
+    it('imports commands into groups matched by name instead of colliding IDs', async () => {
+      mockStorageData.groups.push(
+        { groupId: 1, name: 'User group', connectionType: 'telnet' },
+        { groupId: 2, name: 'Shared group', connectionType: 'telnet' }
+      )
+      const entry = (
+        entryName: string,
+        data: unknown
+      ): { entryName: string; getData: () => Buffer } => ({
+        entryName,
+        getData: (): Buffer => Buffer.from(JSON.stringify({ data }))
+      })
+      mockStorageData.zipEntries = [
+        entry('commandGroups.json', [
+          { groupId: 1, name: 'Imported group', connectionType: 'telnet' },
+          { groupId: 2, name: 'Shared group', connectionType: 'telnet' }
+        ]),
+        entry('commands.json', [
+          { id: 1, groupId: 1, name: 'Imported command', command: 'AT+NEW' },
+          { id: 2, groupId: 2, name: 'Shared command', command: 'AT+SHARED' }
+        ])
+      ]
+
+      ipcStorage.init()
+      const result = await mockHandlers.get('import-data')!({}, process.cwd())
+
+      expect(result.groupsImported).toBe(1)
+      expect(result.groupsSkipped).toBe(1)
+      expect(mockStorageData.commands.map((command) => command.groupId)).toEqual([3, 2])
+      expect(mockStorageData.groups.map((group) => group.name)).toEqual([
+        'User group',
+        'Shared group',
+        'Imported group'
+      ])
+    })
+
+    it('imports commands using the source group ID when no group mapping exists', async () => {
+      mockStorageData.groups.push({ groupId: 1, name: 'Existing group', connectionType: 'telnet' })
+      const entry = (
+        entryName: string,
+        data: unknown
+      ): { entryName: string; getData: () => Buffer } => ({
+        entryName,
+        getData: (): Buffer => Buffer.from(JSON.stringify({ data }))
+      })
+      mockStorageData.zipEntries = [
+        entry('commandGroups.json', []),
+        entry('commands.json', [
+          { id: 1, groupId: 1, name: 'Imported command', command: 'AT+CSQ' }
+        ])
+      ]
+
+      ipcStorage.init()
+      const result = await mockHandlers.get('import-data')!({}, process.cwd())
+
+      expect(result.commandsImported).toBe(1)
+      expect(mockStorageData.commands).toEqual([
+        { id: 1, name: 'Imported command', command: 'AT+CSQ', groupId: 1 }
+      ])
+    })
+
     it('should return empty array for get-connections', async () => {
       ipcStorage.init()
       const result = await mockHandlers.get('get-connections')!()

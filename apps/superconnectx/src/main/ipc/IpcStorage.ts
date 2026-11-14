@@ -389,19 +389,25 @@ async function importDataFromZip(
 
   // ---- 2. commandGroups (自动新增) ----
   const groupsData = readJsonEntry('commandGroups.json')
+  const importedGroupIds = new Map<number, number>()
   if (groupsData?.data && Array.isArray(groupsData.data)) {
-    const existingGroups = groupStorage.getAll()
+    const existingGroups = [...groupStorage.getAll()]
     let groupsAdded = 0
     let groupsSkipped = 0
     for (const g of groupsData.data) {
-      const exists = existingGroups.some(
+      const existing = existingGroups.find(
         (eg) => eg.name === g.name && eg.connectionType === g.connectionType
       )
-      if (!exists) {
-        groupStorage.add({ name: g.name, connectionType: g.connectionType })
-        groupsAdded++
-      } else {
+      if (existing) {
+        importedGroupIds.set(Number(g.groupId), existing.groupId)
         groupsSkipped++
+      } else {
+        const added = groupStorage.add({ name: g.name, connectionType: g.connectionType })
+        if (added) {
+          existingGroups.push(added)
+          importedGroupIds.set(Number(g.groupId), added.groupId)
+          groupsAdded++
+        }
       }
     }
     result.groupsImported = groupsAdded
@@ -412,22 +418,25 @@ async function importDataFromZip(
   // ---- 3. commands (自动新增，去重) ----
   const commandsData = readJsonEntry('commands.json')
   if (commandsData?.data && Array.isArray(commandsData.data)) {
-    const existingCommands = preSetCommandStorage.getAll()
+    const existingCommands = [...preSetCommandStorage.getAll()]
     let commandsAdded = 0
     let commandsSkipped = 0
     for (const cmd of commandsData.data) {
       // 按 name+groupId+command 去重
+      const groupId = importedGroupIds.get(Number(cmd.groupId)) ?? cmd.groupId
+
       const exists = existingCommands.some(
-        (ec) => ec.name === cmd.name && ec.groupId === cmd.groupId && ec.command === cmd.command
+        (ec) => ec.name === cmd.name && ec.groupId === groupId && ec.command === cmd.command
       )
       if (!exists) {
-        preSetCommandStorage.add({
+        const added = preSetCommandStorage.add({
           name: cmd.name,
           command: cmd.command,
           delay: cmd.delay || 0,
           seqNum: cmd.seqNum || 1,
-          groupId: cmd.groupId || 0
+          groupId: groupId || 0
         })
+        if (added) existingCommands.push(added)
         commandsAdded++
       } else {
         commandsSkipped++
