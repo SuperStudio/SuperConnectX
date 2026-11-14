@@ -31,7 +31,7 @@ export interface TerminalToolbarActionsController {
   handleToggleLineNumbers: () => Promise<void>
   /** 切换日志可编辑并应用到全部终端 */
   handleToggleLogEditable: () => Promise<void>
-  /** 刷新当前活动终端的分组命令 */
+  /** 刷新所有终端的分组命令 */
   refreshHandler: () => void
   /** 日志另存为（作用于当前活动终端） */
   handleSaveLogAs: () => Promise<void>
@@ -95,12 +95,11 @@ export function useTerminalToolbarActions(
   }
 
   const refreshHandler = (): void => {
-    if (activeTabId.value) {
-      const tabId = activeTabId.value
-      if (comTerminalRefs[tabId]) {
-        comTerminalRefs[tabId]?.refreshGroupsCmds?.()
+    for (const tab of connectionTabs.value) {
+      if (tab.connectionType === 'com') {
+        comTerminalRefs[tab.id]?.refreshGroupsCmds?.()
       } else {
-        telnetTerminalRefs[tabId]?.refreshGroupsCmds?.()
+        telnetTerminalRefs[tab.id]?.refreshGroupsCmds?.()
       }
     }
   }
