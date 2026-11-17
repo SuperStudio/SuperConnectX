@@ -410,8 +410,10 @@ describe('SshClient 终端模式支持（raw 发送 / PTY 尺寸同步）', () =
       { host: '127.0.0.1', port: srv.port, username: 'scx', password: 'scxpass', sessionId: 's-mask2' } as any,
       () => {}, () => {}, (log: string) => remoteLogs.push(log)
     )
-    // 等待 processBuffer 刷出 greeting，敏感窗口随之打开
-    await waitFor(() => remoteLogs.length > 0)
+    // 等待 processBuffer 刷出 greeting，敏感窗口随之打开。
+    // 不能只等 logs.length > 0：首次连接时最先到达的是「已记录密钥指纹」的系统提示，
+    // CI 上时序稍有差异就会在 greeting 之前放行，导致断言偶发失败。
+    await waitFor(() => remoteLogs.join('').includes('[sudo] password for scx: '))
     expect(remoteLogs.join('')).toContain('[sudo] password for scx: ')
     expect(remoteLogs.join('')).not.toMatch(/(?:SEND|RECV) >>>>>>>>>>/)
 
